@@ -32,6 +32,7 @@ import {
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
+import { setupProjectHealthRoutes } from "./routes/project-health";
 import { hashPassword } from "./auth";
 import { sendEmail, generatePasswordResetEmail } from "./email";
 import { randomBytes } from "crypto";

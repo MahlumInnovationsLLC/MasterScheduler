@@ -348,37 +348,150 @@ const ProjectDetails = () => {
     return Math.round((completedTasks / tasks.length) * 100);
   };
 
-  const calculateProjectHealth = (): { score: number; change: number } => {
-    if (!project || !tasks || !billingMilestones) return { score: 0, change: 0 };
+  const calculateProjectHealth = (): { 
+    score: number; 
+    change: number; 
+    breakdown: {
+      taskCompletion: number;
+      timelineAdherence: number;
+      billingProgress: number;
+      manufacturingStatus: number;
+      overallRisk: string;
+    }
+  } => {
+    if (!project) return { 
+      score: 0, 
+      change: 0, 
+      breakdown: {
+        taskCompletion: 0,
+        timelineAdherence: 0,
+        billingProgress: 0,
+        manufacturingStatus: 0,
+        overallRisk: 'Unknown'
+      }
+    };
     
-    // Calculate percent of tasks completed
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.isCompleted).length;
-    const taskScore = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+    // 1. Task Completion Score (0-100)
+    let taskScore = 0;
+    if (tasks && tasks.length > 0) {
+      const completedTasks = tasks.filter(t => t.isCompleted).length;
+      taskScore = (completedTasks / tasks.length) * 100;
+    } else if (project.percentComplete) {
+      // Use project's overall completion if no tasks
+      taskScore = parseFloat(project.percentComplete);
+    }
     
-    // Calculate percent of billing milestones completed
-    const totalMilestones = billingMilestones.length;
-    const completedMilestones = billingMilestones.filter(m => m.status === 'paid').length;
-    const billingScore = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
-    
-    // Calculate timeline adherence (whether project is on track)
-    const percentComplete = calculateProjectProgress();
+    // 2. Timeline Adherence Score (0-100)
+    let timelineScore = 100;
     const today = new Date();
-    const startDate = new Date(project.startDate);
-    const endDate = new Date(project.estimatedCompletionDate);
-    const totalDuration = endDate.getTime() - startDate.getTime();
-    const elapsedDuration = today.getTime() - startDate.getTime();
-    const expectedProgress = Math.min(100, Math.max(0, (elapsedDuration / totalDuration) * 100));
     
-    // Penalize if behind schedule, reward if ahead of schedule
-    const timelineScore = 100 - Math.abs(percentComplete - expectedProgress);
+    if (project.startDate && project.estimatedCompletionDate) {
+      const startDate = new Date(project.startDate);
+      const endDate = new Date(project.estimatedCompletionDate);
+      const totalDuration = endDate.getTime() - startDate.getTime();
+      const elapsedDuration = today.getTime() - startDate.getTime();
+      
+      if (totalDuration > 0) {
+        const expectedProgress = Math.min(100, Math.max(0, (elapsedDuration / totalDuration) * 100));
+        const actualProgress = taskScore;
+        
+        // Calculate timeline adherence based on expected vs actual progress
+        const progressDifference = actualProgress - expectedProgress;
+        
+        if (progressDifference >= 0) {
+          // Ahead of schedule or on time
+          timelineScore = Math.min(100, 100 + (progressDifference * 0.5));
+        } else {
+          // Behind schedule
+          timelineScore = Math.max(0, 100 + (progressDifference * 1.5));
+        }
+      }
+    }
     
-    // Calculate overall health score
-    const overallScore = (taskScore * 0.4) + (billingScore * 0.3) + (timelineScore * 0.3);
+    // 3. Billing Progress Score (0-100)
+    let billingScore = 50; // Default neutral score
+    if (billingMilestones && billingMilestones.length > 0) {
+      const totalValue = billingMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
+      const paidValue = billingMilestones
+        .filter(m => m.status === 'paid')
+        .reduce((sum, m) => sum + (m.amount || 0), 0);
+      
+      if (totalValue > 0) {
+        billingScore = (paidValue / totalValue) * 100;
+      }
+    }
+    
+    // 4. Manufacturing Status Score (0-100)
+    let manufacturingScore = 50; // Default neutral score
+    if (manufacturingSchedules && manufacturingSchedules.length > 0) {
+      const projectSchedules = manufacturingSchedules.filter(s => s.projectId === parseInt(projectId));
+      
+      if (projectSchedules.length > 0) {
+        const activeSchedule = projectSchedules.find(s => {
+          const start = new Date(s.startDate);
+          const end = new Date(s.endDate);
+          return start <= today && today <= end;
+        });
+        
+        if (activeSchedule) {
+          // Project is in active manufacturing
+          manufacturingScore = 80;
+        } else {
+          // Check if scheduled for future
+          const futureSchedule = projectSchedules.find(s => new Date(s.startDate) > today);
+          if (futureSchedule) {
+            manufacturingScore = 70; // Scheduled
+          } else {
+            // Check if completed
+            const completedSchedule = projectSchedules.find(s => new Date(s.endDate) < today);
+            if (completedSchedule) {
+              manufacturingScore = 90; // Manufacturing complete
+            }
+          }
+        }
+      } else {
+        // Not scheduled for manufacturing yet
+        manufacturingScore = 30;
+      }
+    }
+    
+    // 5. Calculate Overall Health Score with weighted factors
+    const weights = {
+      task: 0.35,
+      timeline: 0.30,
+      billing: 0.20,
+      manufacturing: 0.15
+    };
+    
+    const overallScore = (
+      taskScore * weights.task +
+      timelineScore * weights.timeline +
+      billingScore * weights.billing +
+      manufacturingScore * weights.manufacturing
+    );
+    
+    // 6. Determine Risk Level
+    let riskLevel = 'Low';
+    if (overallScore < 30) riskLevel = 'Critical';
+    else if (overallScore < 50) riskLevel = 'High';
+    else if (overallScore < 70) riskLevel = 'Medium';
+    
+    // 7. Calculate trend (simplified - in real implementation, compare with historical data)
+    let trendChange = 0;
+    if (timelineScore > 80) trendChange = 3;
+    else if (timelineScore < 50) trendChange = -5;
+    else trendChange = 1;
     
     return {
       score: Math.round(overallScore),
-      change: 5 // This would be calculated from historical data in a real implementation
+      change: trendChange,
+      breakdown: {
+        taskCompletion: Math.round(taskScore),
+        timelineAdherence: Math.round(timelineScore),
+        billingProgress: Math.round(billingScore),
+        manufacturingStatus: Math.round(manufacturingScore),
+        overallRisk: riskLevel
+      }
     };
   };
 
@@ -650,9 +763,21 @@ const ProjectDetails = () => {
             <div className="text-sm text-gray-400 mb-1">Project Health</div>
             <div className="flex items-center gap-2">
               <div className="text-2xl font-bold">{projectHealth.score}<span className="text-sm">/100</span></div>
-              <div className="bg-success text-white rounded px-1.5 text-xs flex items-center">
-                <ArrowLeft className="h-3 w-3 rotate-90" /> {projectHealth.change}
+              <div className={`text-white rounded px-1.5 text-xs flex items-center ${
+                projectHealth.change > 0 ? 'bg-green-600' : projectHealth.change < 0 ? 'bg-red-600' : 'bg-gray-600'
+              }`}>
+                <ArrowLeft className={`h-3 w-3 ${projectHealth.change > 0 ? '-rotate-90' : projectHealth.change < 0 ? 'rotate-90' : 'rotate-0'}`} /> 
+                {projectHealth.change > 0 ? '+' : ''}{projectHealth.change}
               </div>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Risk: <span className={`font-medium ${
+                projectHealth.breakdown.overallRisk === 'Critical' ? 'text-red-400' :
+                projectHealth.breakdown.overallRisk === 'High' ? 'text-orange-400' :
+                projectHealth.breakdown.overallRisk === 'Medium' ? 'text-yellow-400' : 'text-green-400'
+              }`}>
+                {projectHealth.breakdown.overallRisk}
+              </span>
             </div>
           </div>
           
@@ -661,11 +786,14 @@ const ProjectDetails = () => {
             <div className="flex items-center gap-3">
               <div className="w-32 bg-gray-800 rounded-full h-2.5">
                 <div 
-                  className="bg-success h-2.5 rounded-full" 
-                  style={{ width: `${calculateProjectProgress()}%` }}
+                  className="bg-success h-2.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${projectHealth.breakdown.taskCompletion}%` }}
                 ></div>
               </div>
-              <span className="text-lg font-bold">{calculateProjectProgress()}%</span>
+              <span className="text-lg font-bold">{projectHealth.breakdown.taskCompletion}%</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Timeline: {projectHealth.breakdown.timelineAdherence}%
             </div>
           </div>
           
@@ -676,6 +804,11 @@ const ProjectDetails = () => {
                 {tasks.filter(t => t.isCompleted).length}/{tasks.length}
               </span>
               <span className="text-sm text-gray-400">completed</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {tasks.length === 0 ? 'No tasks defined' : 
+               tasks.filter(t => t.isCompleted).length === tasks.length ? 'All complete' :
+               `${tasks.length - tasks.filter(t => t.isCompleted).length} remaining`}
             </div>
           </div>
           
@@ -694,6 +827,9 @@ const ProjectDetails = () => {
                 )}
               </span>
             </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Progress: {projectHealth.breakdown.billingProgress}%
+            </div>
           </div>
           
           <div className="col-span-1">
@@ -702,9 +838,18 @@ const ProjectDetails = () => {
               <span className="text-lg font-bold">
                 {activeBay ? `Bay ${activeBay.bayNumber}` : 'None'}
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-success bg-opacity-20 text-success text-xs">
-                {activeSchedule ? 'Active' : 'Not Scheduled'}
+              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                activeSchedule ? 'bg-blue-600 bg-opacity-20 text-blue-400' : 
+                manufacturingSchedules?.some(s => s.projectId === parseInt(projectId) && new Date(s.startDate) > new Date()) ? 
+                'bg-yellow-600 bg-opacity-20 text-yellow-400' : 'bg-gray-600 bg-opacity-20 text-gray-400'
+              }`}>
+                {activeSchedule ? 'In Progress' : 
+                 manufacturingSchedules?.some(s => s.projectId === parseInt(projectId) && new Date(s.startDate) > new Date()) ? 
+                 'Scheduled' : 'Not Scheduled'}
               </span>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Status: {projectHealth.breakdown.manufacturingStatus}%
             </div>
           </div>
           
