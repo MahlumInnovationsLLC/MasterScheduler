@@ -202,12 +202,14 @@ export default function AuthPage() {
                         render={({ field }) => (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
+                              <input
+                                type="checkbox"
+                                checked={field.value || false}
+                                onChange={(e) => field.onChange(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                               />
                             </FormControl>
-                            <FormLabel className="text-sm font-normal">
+                            <FormLabel className="text-sm font-normal cursor-pointer">
                               Keep me signed in for 30 days
                             </FormLabel>
                           </FormItem>
