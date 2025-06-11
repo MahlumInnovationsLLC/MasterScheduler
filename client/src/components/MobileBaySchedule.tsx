@@ -235,11 +235,14 @@ export function MobileBaySchedule({
                         <span>Progress</span>
                         <span>{project.percentComplete || 0}%</span>
                       </div>
-                      <div className="w-full bg-gray-600 rounded-full h-1.5">
+                      <div className="w-full bg-gray-600 rounded-full h-1.5 relative overflow-hidden">
                         <div 
-                          className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
+                          className="h-1.5 rounded-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 relative overflow-hidden transition-all duration-300"
                           style={{ width: `${project.percentComplete || 0}%` }}
-                        />
+                        >
+                          {/* Shimmer effect */}
+                          <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                        </div>
                       </div>
                     </div>
 
