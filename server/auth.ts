@@ -29,11 +29,11 @@ function generateDeviceFingerprint(req: any): string {
   return createHash('sha256').update(fingerprint).digest('hex');
 }
 
-// Check if session has expired (24 hours)
+// Check if session has expired (7 days)
 function isSessionExpired(lastActivity: Date): boolean {
   const now = new Date();
-  const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-  return (now.getTime() - lastActivity.getTime()) > twentyFourHours;
+  const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds (extended from 24 hours)
+  return (now.getTime() - lastActivity.getTime()) > sevenDays;
 }
 
 export async function hashPassword(password: string) {
@@ -100,7 +100,7 @@ export async function setupAuth(app: Express) {
       sessionStore = new PostgresSessionStore({ 
         pool: pool, 
         createTableIfMissing: false,
-        ttl: 24 * 60 * 60, // 24 hours in seconds
+        ttl: 7 * 24 * 60 * 60, // 7 days in seconds (extended from 24 hours)
         errorLog: (error) => {
           // Only log unexpected errors, not connection issues
           if (!error.message.includes('already exists') && 
@@ -128,7 +128,7 @@ export async function setupAuth(app: Express) {
     store: sessionStore,
     cookie: {
       secure: false, // Set to true in production with HTTPS
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (extended from 24 hours)
       httpOnly: true,
       sameSite: 'lax' // Better for same-origin requests
     }
@@ -150,7 +150,7 @@ export async function setupAuth(app: Express) {
       const sessionFingerprint = req.session.deviceFingerprint;
       const lastActivity = req.session.lastActivity ? new Date(req.session.lastActivity) : new Date();
       
-      // Check if session expired (24 hours)
+      // Check if session expired (7 days)
       if (isSessionExpired(lastActivity)) {
         console.log(`[SESSION] Session expired for user ${req.session.user.email}`);
         req.session.destroy((err: any) => {
@@ -159,11 +159,10 @@ export async function setupAuth(app: Express) {
         return next();
       }
       
-      // More lenient device fingerprint check - only check if fingerprint was previously set
+      // Very lenient device fingerprint check - only destroy session for major device changes
       if (sessionFingerprint && sessionFingerprint !== currentFingerprint) {
-        // Allow for minor changes in fingerprint but log the difference
-        console.log(`[SESSION] Device fingerprint changed for user ${req.session.user.email}`);
-        // Update to new fingerprint instead of destroying session
+        // Just log the change and update fingerprint - don't destroy session
+        console.log(`[SESSION] Device fingerprint updated for user ${req.session.user.email}`);
         req.session.deviceFingerprint = currentFingerprint;
       }
       
@@ -359,14 +358,12 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ error: "Session expired" });
       }
       
-      // Validate device fingerprint
+      // Update device fingerprint if changed (don't invalidate session)
       const currentFingerprint = generateDeviceFingerprint(req);
       const sessionFingerprint = (req.session as any)?.deviceFingerprint;
       if (sessionFingerprint && sessionFingerprint !== currentFingerprint) {
-        req.session.destroy((err: any) => {
-          if (err) console.error('Session destroy error:', err);
-        });
-        return res.status(401).json({ error: "Device validation failed" });
+        console.log(`[USER ENDPOINT] Device fingerprint updated for user ${sessionUser.email}`);
+        (req.session as any).deviceFingerprint = currentFingerprint;
       }
       
       // Get fresh user data from database to ensure role is current

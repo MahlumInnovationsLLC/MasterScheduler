@@ -17,6 +17,7 @@ import { useMutation } from "@tanstack/react-query";
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
+  rememberMe: z.boolean().optional(),
 });
 
 const registerSchema = z.object({
@@ -50,6 +51,7 @@ export default function AuthPage() {
     defaultValues: {
       email: "",
       password: "",
+      rememberMe: false,
     },
   });
 
@@ -76,6 +78,7 @@ export default function AuthPage() {
     const loginData = {
       username: data.email, // Backend expects 'username' field but we'll send email
       password: data.password,
+      rememberMe: data.rememberMe,
     };
 
     authLoginMutation.mutate(loginData, {
