@@ -18,12 +18,15 @@ export function setupProjectHealthRoutes(app: Express) {
       }
 
       // Get related data
-      const [tasks, billingMilestones, manufacturingSchedules, manufacturingBays] = await Promise.all([
-        storage.getTasks().then(allTasks => allTasks.filter((t: any) => t.projectId === projectId)),
-        storage.getBillingMilestones().then(allMilestones => allMilestones.filter((m: any) => m.projectId === projectId)),
+      const [allTasks, allMilestones, manufacturingSchedules, manufacturingBays] = await Promise.all([
+        storage.getTasks(),
+        storage.getBillingMilestones(),
         storage.getManufacturingSchedules(),
         storage.getManufacturingBays()
       ]);
+
+      const tasks = allTasks?.filter((t: any) => t.projectId === projectId) || [];
+      const billingMilestones = allMilestones?.filter((m: any) => m.projectId === projectId) || [];
 
       // Calculate comprehensive health metrics
       const healthData = calculateProjectHealth(
@@ -55,11 +58,14 @@ export function setupProjectHealthRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
 
-      const [tasks, billingMilestones, manufacturingSchedules] = await Promise.all([
-        storage.getTasks().then(allTasks => allTasks.filter((t: any) => t.projectId === projectId)),
-        storage.getBillingMilestones().then(allMilestones => allMilestones.filter((m: any) => m.projectId === projectId)),
+      const [allTasks, allMilestones, manufacturingSchedules] = await Promise.all([
+        storage.getTasks(),
+        storage.getBillingMilestones(),
         storage.getManufacturingSchedules()
       ]);
+
+      const tasks = allTasks?.filter((t: any) => t.projectId === projectId) || [];
+      const billingMilestones = allMilestones?.filter((m: any) => m.projectId === projectId) || [];
 
       const projectSchedules = manufacturingSchedules?.filter(s => s.projectId === projectId) || [];
       const today = new Date();
