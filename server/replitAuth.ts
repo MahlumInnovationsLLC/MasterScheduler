@@ -119,15 +119,6 @@ export async function setupAuth(app: Express) {
   app.get("/api/logout", (req, res) => {
     console.log('Logout initiated for user:', req.user);
     
-    // Store the session ID in a blacklist to prevent reuse
-    const sessionId = req.sessionID;
-    if (sessionId) {
-      // Store blacklisted session (in production, use Redis or database)
-      global.blacklistedSessions = global.blacklistedSessions || new Set();
-      global.blacklistedSessions.add(sessionId);
-      console.log('Blacklisted session:', sessionId);
-    }
-    
     req.logout((err) => {
       if (err) {
         console.error('Logout error:', err);
@@ -149,27 +140,17 @@ export async function setupAuth(app: Express) {
   app.get("/api/auth/logout", (req, res) => {
     console.log('Auth logout initiated for user:', req.user);
     
-    // Store the session ID in a blacklist to prevent reuse
-    const sessionId = req.sessionID;
-    if (sessionId) {
-      // Store blacklisted session (in production, use Redis or database)
-      global.blacklistedSessions = global.blacklistedSessions || new Set();
-      global.blacklistedSessions.add(sessionId);
-      console.log('Blacklisted session:', sessionId);
-    }
-    
     req.logout((err) => {
       if (err) {
-        console.error('Logout error:', err);
+        console.error('Auth logout error:', err);
       }
       req.session.destroy((sessionErr) => {
         if (sessionErr) {
-          console.error('Session destroy error:', sessionErr);
+          console.error('Auth session destroy error:', sessionErr);
         }
         res.clearCookie('connect.sid');
-        res.clearCookie('replit.sid'); // Clear any Replit-specific cookies
+        res.clearCookie('replit.sid');
         
-        // Redirect to a logout confirmation page that clears all auth state
         res.redirect(`${req.protocol}://${req.hostname}/logout-complete`);
       });
     });
