@@ -70,30 +70,46 @@ const InteractiveProgressSlider: React.FC<InteractiveProgressSliderProps> = ({
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [localValue, setLocalValue] = useState(value);
+  const [startValue, setStartValue] = useState(value);
+
+  // Update local value when prop changes (from external updates)
+  React.useEffect(() => {
+    if (!isDragging) {
+      setLocalValue(value);
+    }
+  }, [value, isDragging]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     setIsDragging(true);
-    updateValue(e.clientX);
+    setStartValue(localValue);
+    updateLocalValue(e.clientX);
     e.preventDefault();
-  }, []);
+  }, [localValue]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
-      updateValue(e.clientX);
+      updateLocalValue(e.clientX);
     }
   }, [isDragging]);
 
   const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+    if (isDragging) {
+      setIsDragging(false);
+      // Only save when mouse is released and value has changed
+      if (Math.abs(localValue - startValue) >= 1) {
+        onChange(Math.round(localValue));
+      }
+    }
+  }, [isDragging, localValue, startValue, onChange]);
 
-  const updateValue = useCallback((clientX: number) => {
+  const updateLocalValue = useCallback((clientX: number) => {
     if (sliderRef.current) {
       const rect = sliderRef.current.getBoundingClientRect();
       const percentage = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-      onChange(Math.round(percentage));
+      setLocalValue(percentage);
     }
-  }, [onChange]);
+  }, []);
 
   React.useEffect(() => {
     if (isDragging) {
@@ -114,11 +130,11 @@ const InteractiveProgressSlider: React.FC<InteractiveProgressSliderProps> = ({
     >
       <div 
         className="bg-success h-2.5 rounded-full transition-all duration-200" 
-        style={{ width: `${value}%` }}
+        style={{ width: `${localValue}%` }}
       />
       <div 
-        className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-success rounded-full border-2 border-white shadow-md cursor-grab"
-        style={{ left: `calc(${value}% - 8px)` }}
+        className={`absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-success rounded-full border-2 border-white shadow-md cursor-grab transition-all duration-200 ${isDragging ? 'scale-110 shadow-lg cursor-grabbing' : 'hover:scale-105'}`}
+        style={{ left: `calc(${localValue}% - 8px)` }}
       />
     </div>
   );
