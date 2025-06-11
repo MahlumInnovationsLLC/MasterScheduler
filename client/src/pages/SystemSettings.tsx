@@ -1349,8 +1349,8 @@ const SystemSettings = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                            {user.preferences?.department ? 
-                              user.preferences.department.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 
+                            {user.department ? 
+                              user.department.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 
                               'Not assigned'
                             }
                           </TableCell>
