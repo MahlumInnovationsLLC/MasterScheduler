@@ -5213,6 +5213,9 @@ Response format:
     }
   });
 
+  // Setup project health routes
+  setupProjectHealthRoutes(app);
+
   const httpServer = createServer(app);
   return httpServer;
 }

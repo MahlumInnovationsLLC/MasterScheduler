@@ -19,8 +19,8 @@ export function setupProjectHealthRoutes(app: Express) {
 
       // Get related data
       const [tasks, billingMilestones, manufacturingSchedules, manufacturingBays] = await Promise.all([
-        storage.getProjectTasks(projectId),
-        storage.getProjectBillingMilestones(projectId),
+        storage.getTasks().then(allTasks => allTasks.filter((t: any) => t.projectId === projectId)),
+        storage.getBillingMilestones().then(allMilestones => allMilestones.filter((m: any) => m.projectId === projectId)),
         storage.getManufacturingSchedules(),
         storage.getManufacturingBays()
       ]);
@@ -42,7 +42,7 @@ export function setupProjectHealthRoutes(app: Express) {
   });
 
   // Get real-time project metrics summary
-  app.get("/api/projects/:id/metrics", authenticateRequired, async (req, res) => {
+  app.get("/api/projects/:id/metrics", async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       
@@ -56,8 +56,8 @@ export function setupProjectHealthRoutes(app: Express) {
       }
 
       const [tasks, billingMilestones, manufacturingSchedules] = await Promise.all([
-        storage.getProjectTasks(projectId),
-        storage.getProjectBillingMilestones(projectId),
+        storage.getTasks().then(allTasks => allTasks.filter((t: any) => t.projectId === projectId)),
+        storage.getBillingMilestones().then(allMilestones => allMilestones.filter((m: any) => m.projectId === projectId)),
         storage.getManufacturingSchedules()
       ]);
 
