@@ -29,11 +29,13 @@ function generateDeviceFingerprint(req: any): string {
   return createHash('sha256').update(fingerprint).digest('hex');
 }
 
-// Check if session has expired (7 days)
-function isSessionExpired(lastActivity: Date): boolean {
+// Check if session has expired based on remember me preference
+function isSessionExpired(lastActivity: Date, rememberMe: boolean = false): boolean {
   const now = new Date();
-  const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds (extended from 24 hours)
-  return (now.getTime() - lastActivity.getTime()) > sevenDays;
+  const sessionDuration = rememberMe 
+    ? 30 * 24 * 60 * 60 * 1000  // 30 days for remember me
+    : 7 * 24 * 60 * 60 * 1000;  // 7 days for regular sessions
+  return (now.getTime() - lastActivity.getTime()) > sessionDuration;
 }
 
 export async function hashPassword(password: string) {
@@ -150,9 +152,11 @@ export async function setupAuth(app: Express) {
       const sessionFingerprint = req.session.deviceFingerprint;
       const lastActivity = req.session.lastActivity ? new Date(req.session.lastActivity) : new Date();
       
-      // Check if session expired (7 days)
-      if (isSessionExpired(lastActivity)) {
-        console.log(`[SESSION] Session expired for user ${req.session.user.email}`);
+      // Check if session expired based on remember me preference
+      const rememberMe = req.session.rememberMe || false;
+      if (isSessionExpired(lastActivity, rememberMe)) {
+        const duration = rememberMe ? '30 days' : '7 days';
+        console.log(`[SESSION] Session expired for user ${req.session.user.email} (${duration} duration)`);
         req.session.destroy((err: any) => {
           if (err) console.error('Session destroy error:', err);
         });
@@ -284,6 +288,7 @@ export async function setupAuth(app: Express) {
   // Login endpoint
   app.post("/api/login", (req, res, next) => {
     const deviceFingerprint = generateDeviceFingerprint(req);
+    const rememberMe = req.body.rememberMe || false;
     
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
@@ -306,6 +311,18 @@ export async function setupAuth(app: Express) {
         (req.session as any).deviceFingerprint = deviceFingerprint;
         (req.session as any).lastActivity = new Date();
         (req.session as any).user = user;
+        (req.session as any).rememberMe = rememberMe;
+        
+        // Set cookie duration based on "Remember Me" preference
+        if (rememberMe) {
+          // Extended session: 30 days
+          req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+          console.log(`[LOGIN] Extended session (30 days) set for user: ${user.email || user.username}`);
+        } else {
+          // Regular session: 7 days
+          req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+          console.log(`[LOGIN] Regular session (7 days) set for user: ${user.email || user.username}`);
+        }
         
         // Force save session to ensure persistence
         req.session.save((saveErr) => {
@@ -349,9 +366,12 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      // Validate session hasn't expired
+      // Validate session hasn't expired based on remember me preference
       const lastActivity = (req.session as any)?.lastActivity ? new Date((req.session as any).lastActivity) : new Date();
-      if (isSessionExpired(lastActivity)) {
+      const rememberMe = (req.session as any)?.rememberMe || false;
+      if (isSessionExpired(lastActivity, rememberMe)) {
+        const duration = rememberMe ? '30 days' : '7 days';
+        console.log(`[USER ENDPOINT] Session expired for user ${sessionUser.email} (${duration} duration)`);
         req.session.destroy((err: any) => {
           if (err) console.error('Session destroy error:', err);
         });
