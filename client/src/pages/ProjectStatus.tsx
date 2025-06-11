@@ -1353,11 +1353,14 @@ const ProjectStatus = () => {
         const percentValue = typeof value === 'string' ? parseFloat(value) : Number(value);
         return (
           <div className="flex items-center gap-2">
-            <div className="w-full bg-gray-800 rounded-full h-2.5">
+            <div className="w-full bg-gray-800 rounded-full h-2.5 relative overflow-hidden">
               <div 
-                className="bg-success h-2.5 rounded-full" 
+                className="h-2.5 rounded-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 relative overflow-hidden" 
                 style={{ width: `${percentValue}%` }}
-              ></div>
+              >
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+              </div>
             </div>
             <span className="text-xs font-medium">{percentValue}%</span>
           </div>

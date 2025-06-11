@@ -31,6 +31,20 @@
   --radius: 0.5rem;
 }
 
+/* Shimmer animation for progress bars */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-12deg);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
 /* Light mode specific overrides */
 :root:not(.dark) {
   --foreground: 240 10% 3.9%;

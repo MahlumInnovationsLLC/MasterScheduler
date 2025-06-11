@@ -129,11 +129,14 @@ const InteractiveProgressSlider: React.FC<InteractiveProgressSliderProps> = ({
       onMouseDown={handleMouseDown}
     >
       <div 
-        className="bg-success h-2.5 rounded-full transition-all duration-200" 
+        className="h-2.5 rounded-full transition-all duration-200 bg-gradient-to-r from-green-400 via-green-500 to-green-600 relative overflow-hidden" 
         style={{ width: `${localValue}%` }}
-      />
+      >
+        {/* Shimmer effect */}
+        <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+      </div>
       <div 
-        className={`absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-success rounded-full border-2 border-white shadow-md cursor-grab transition-all duration-200 ${isDragging ? 'scale-110 shadow-lg cursor-grabbing' : 'hover:scale-105'}`}
+        className={`absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-md cursor-grab transition-all duration-200 ${isDragging ? 'scale-110 shadow-lg cursor-grabbing' : 'hover:scale-105'}`}
         style={{ left: `calc(${localValue}% - 8px)` }}
       />
     </div>
