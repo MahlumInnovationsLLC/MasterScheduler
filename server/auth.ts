@@ -138,7 +138,7 @@ export async function setupAuth(app: Express) {
 
   app.use(session(sessionSettings));
   
-  // Session timeout and device validation middleware
+  // Simplified session activity tracking middleware
   app.use((req: any, res: any, next: any) => {
     // Skip auth routes and static assets
     if (req.path.includes('/api/login') || req.path.includes('/api/register') || 
@@ -147,38 +147,18 @@ export async function setupAuth(app: Express) {
       return next();
     }
 
+    // Only update activity for authenticated sessions, don't destroy them here
     if (req.session && req.session.user) {
       const currentFingerprint = generateDeviceFingerprint(req);
       const sessionFingerprint = req.session.deviceFingerprint;
-      const lastActivity = req.session.lastActivity ? new Date(req.session.lastActivity) : new Date();
       
-      // Check if session expired based on remember me preference
-      const rememberMe = req.session.rememberMe || false;
-      if (isSessionExpired(lastActivity, rememberMe)) {
-        const duration = rememberMe ? '30 days' : '7 days';
-        console.log(`[SESSION] Session expired for user ${req.session.user.email} (${duration} duration)`);
-        req.session.destroy((err: any) => {
-          if (err) console.error('Session destroy error:', err);
-        });
-        return next();
-      }
-      
-      // Very lenient device fingerprint check - only destroy session for major device changes
-      if (sessionFingerprint && sessionFingerprint !== currentFingerprint) {
-        // Just log the change and update fingerprint - don't destroy session
-        console.log(`[SESSION] Device fingerprint updated for user ${req.session.user.email}`);
+      // Update device fingerprint if changed (but don't destroy session)
+      if (!sessionFingerprint || sessionFingerprint !== currentFingerprint) {
         req.session.deviceFingerprint = currentFingerprint;
       }
       
-      // Update last activity
+      // Update last activity timestamp
       req.session.lastActivity = new Date();
-      
-      // Save session to ensure persistence
-      req.session.save((err: any) => {
-        if (err) {
-          console.error('Session save error:', err);
-        }
-      });
     }
     
     next();
@@ -366,12 +346,17 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      // Validate session hasn't expired based on remember me preference
+      // Check session expiration only for the /api/user endpoint to avoid frequent checks
       const lastActivity = (req.session as any)?.lastActivity ? new Date((req.session as any).lastActivity) : new Date();
       const rememberMe = (req.session as any)?.rememberMe || false;
-      if (isSessionExpired(lastActivity, rememberMe)) {
+      
+      // Only check expiration if it's been more than 1 hour since last activity
+      const oneHour = 60 * 60 * 1000;
+      const timeSinceActivity = new Date().getTime() - lastActivity.getTime();
+      
+      if (timeSinceActivity > oneHour && isSessionExpired(lastActivity, rememberMe)) {
         const duration = rememberMe ? '30 days' : '7 days';
-        console.log(`[USER ENDPOINT] Session expired for user ${sessionUser.email} (${duration} duration)`);
+        console.log(`[USER ENDPOINT] Session expired for user ${sessionUser.email} (${duration} duration, remember me: ${rememberMe})`);
         req.session.destroy((err: any) => {
           if (err) console.error('Session destroy error:', err);
         });

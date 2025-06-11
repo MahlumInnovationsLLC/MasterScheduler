@@ -18,7 +18,7 @@ import { useMutation } from "@tanstack/react-query";
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().optional(),
+  rememberMe: z.boolean().default(false),
 });
 
 const registerSchema = z.object({
