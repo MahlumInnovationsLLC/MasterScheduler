@@ -307,6 +307,7 @@ export const projects = pgTable("projects", {
   estimatedCompletionDate: date("estimated_completion_date").notNull(),
   actualCompletionDate: date("actual_completion_date"),
   chassisETA: date("chassis_eta"),
+  mechShop: date("mech_shop"),
   fabricationStart: date("fabrication_start"),
   assemblyStart: date("assembly_start"),
   wrapDate: date("wrap_date"),
@@ -403,6 +404,7 @@ export const archivedProjects = pgTable("archived_projects", {
   estimatedCompletionDate: date("estimated_completion_date").notNull(),
   actualCompletionDate: date("actual_completion_date"),
   chassisETA: date("chassis_eta"),
+  mechShop: date("mech_shop"),
   fabricationStart: date("fabrication_start"),
   assemblyStart: date("assembly_start"),
   wrapDate: date("wrap_date"),
@@ -1326,22 +1328,22 @@ export const projectForensics = pgTable("project_forensics", {
   action: forensicsActionEnum("action").notNull(),
   userId: varchar("user_id").references(() => users.id),
   username: text("username"), // Store username for display even if user is deleted
-  
+
   // Change tracking
   changedFields: text("changed_fields").array(), // Array of field names that changed
   previousValues: jsonb("previous_values"), // JSON object with previous field values
   newValues: jsonb("new_values"), // JSON object with new field values
-  
+
   // Context information
   changeDescription: text("change_description"), // Human-readable description of what changed
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   source: text("source").default("manual"), // manual, import, api, bulk_update, etc.
-  
+
   // Impact tracking
   affectedEntities: jsonb("affected_entities"), // Other entities affected by this change
   cascadeChanges: boolean("cascade_changes").default(false), // Whether this change triggered other changes
-  
+
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 

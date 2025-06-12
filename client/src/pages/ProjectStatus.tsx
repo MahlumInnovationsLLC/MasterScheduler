@@ -664,6 +664,7 @@ const ProjectStatus = () => {
     contractDate: true, // Show Contract Date instead of Start Date
     estimatedCompletionDate: false, // Hidden: Est. Completion
     chassisETA: true,
+    mechShop: true,
     qcStartDate: true,
     qcDays: true,
     shipDate: true,
@@ -1383,6 +1384,9 @@ const ProjectStatus = () => {
       { size: 140 }),
     createColumn('chassisETA', 'chassisETA', 'Chassis ETA', 
       (value, project) => <EditableDateField projectId={project.id} field="chassisETA" value={value} />,
+      { size: 140 }),
+    createColumn('mechShop', 'mechShop', 'MECH Shop', 
+      (value, project) => <EditableDateField projectId={project.id} field="mechShop" value={value} />,
       { size: 140 }),
     createColumn('dpasRating', 'dpasRating', 'DPAS Rating',
       (value, project) => <EditableTextField projectId={project.id} field="dpasRating" value={value} />,

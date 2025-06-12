@@ -418,7 +418,9 @@ export function DataTable<TData, TValue>({
                       if (!frozenColumns.includes(header.column.id)) {
                         let headerText = flexRender(header.column.columnDef.header, header.getContext());
                         // Conditionally change headers (assuming you have access to header.column.id)
-                        if (header.column.id === 'fabricationStart') {
+                        if (header.column.id === 'mechShop') {
+                            headerText = 'MECH Shop';
+                        } else if (header.column.id === 'fabricationStart') {
                             headerText = 'FAB Start';
                         } else if (header.column.id === 'ntcTestingDays') {
                             headerText = 'NTC Days';

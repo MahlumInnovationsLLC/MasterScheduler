@@ -644,6 +644,18 @@ const Dashboard = () => {
       ),
     },
     {
+      accessorKey: 'mechShop',
+      header: 'MECH Shop',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Wrench className="h-4 w-4 text-gray-400" />
+          <div className="text-sm">
+            {formatDate(row.original.mechShop)}
+          </div>
+        </div>
+      ),
+    },
+    {
       accessorKey: 'fabricationStart',
       header: 'FAB Start',
       cell: ({ row }) => (
