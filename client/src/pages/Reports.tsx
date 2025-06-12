@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -42,7 +41,7 @@ import {
   Cell,
 } from 'recharts';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { Download, FileText, Filter, Calendar as CalendarIcon } from 'lucide-react';
+import { Download, FileText, Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -56,128 +55,124 @@ const ReportsPage = () => {
   const [projectFilter, setProjectFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  // Hard-code date ranges to avoid any potential date handling errors
-  // These are predefined date strings in ISO format (YYYY-MM-DD)
-  const getDateRangeStrings = () => {
-    try {
-      // Use date-fns for more reliable date handling
-      const now = new Date();
-      
-      // Make sure we have a valid date object
-      if (isNaN(now.getTime())) {
-        throw new Error('Invalid current date');
-      }
-      
-      // Format date as YYYY-MM-DD using helper function with type safety
-      const formatDateString = (date: Date): string => {
-        try {
-          // Ensure we have a valid date before formatting
-          if (!(date instanceof Date) || isNaN(date.getTime())) {
-            throw new Error('Invalid date object');
-          }
-          return format(date, 'yyyy-MM-dd');
-        } catch (error) {
-          console.error('Error formatting date:', error);
-          // Return a fallback string that will be caught by validation later
-          return 'invalid-date';
-        }
-      };
-      
-      const today = formatDateString(now);
-      console.log('Current date:', today);
-      
-      // Calculate start date based on time range
-      let startDate;
-      
-      try {
-        switch (timeRange) {
-          case '3months': {
-            // Use date-fns subMonths for safer date math
-            const threeMonthsAgo = startOfMonth(subMonths(now, 3));
-            startDate = formatDateString(threeMonthsAgo);
-            console.log('3 months ago date:', startDate);
-            break;
-          }
-          case '6months': {
-            const sixMonthsAgo = startOfMonth(subMonths(now, 6));
-            startDate = formatDateString(sixMonthsAgo);
-            console.log('6 months ago date:', startDate);
-            break;
-          }
-          case '12months': {
-            const twelveMonthsAgo = startOfMonth(subMonths(now, 12));
-            startDate = formatDateString(twelveMonthsAgo);
-            console.log('12 months ago date:', startDate);
-            break;
-          }
-          case 'ytd': {
-            // Start of current year
-            const startOfYear = new Date(now.getFullYear(), 0, 1);
-            startDate = formatDateString(startOfYear);
-            console.log('YTD start date:', startDate);
-            break;
-          }
-          default: {
-            // Default to 6 months ago
-            const sixMonthsAgo = startOfMonth(subMonths(now, 6));
-            startDate = formatDateString(sixMonthsAgo);
-            console.log('Default (6 months ago) date:', startDate);
-          }
-        }
-      } catch (error) {
-        console.error('Error in date range calculation:', error);
-        // If there's an error in calculating specific range, default to 6 months
-        const sixMonthsAgo = startOfMonth(subMonths(now, 6));
-        startDate = formatDateString(sixMonthsAgo);
-      }
-      
-      // Ensure we have valid date strings
-      if (!startDate || !today || startDate.length !== 10 || today.length !== 10) {
-        throw new Error('Invalid date string format');
-      }
-      
-      // Validate the dates by parsing them back to Date objects
-      const startObj = new Date(startDate + 'T00:00:00'); // Add time for more consistent parsing
-      const endObj = new Date(today + 'T00:00:00');
-      
-      if (isNaN(startObj.getTime()) || isNaN(endObj.getTime())) {
-        throw new Error('Invalid date calculation: non-parseable dates');
-      }
-      
-      // Make sure start is before end
-      if (startObj > endObj) {
-        // If dates are reversed, swap them
-        console.warn('Start date was after end date, swapping dates');
-        return { startDate: today, endDate: startDate };
-      }
-      
-      console.log('Using date range:', { startDate, endDate: today });
-      return { startDate, endDate: today };
-    } catch (error) {
-      console.error('Error calculating date strings:', error);
-      // Hardcoded fallback dates as strings that are definitely valid
-      return {
-        startDate: '2024-11-01',
-        endDate: '2025-05-01'
-      };
+  // Get current date range for filtering
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate;
+
+    switch (timeRange) {
+      case '3months':
+        startDate = startOfMonth(subMonths(now, 3));
+        break;
+      case '6months':
+        startDate = startOfMonth(subMonths(now, 6));
+        break;
+      case '12months':
+        startDate = startOfMonth(subMonths(now, 12));
+        break;
+      case 'ytd':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        startDate = startOfMonth(subMonths(now, 6));
     }
+
+    return {
+      startDate: format(startDate, 'yyyy-MM-dd'),
+      endDate: format(now, 'yyyy-MM-dd')
+    };
   };
-  
-  // Handle exporting data to CSV
+
+  const dateRange = getDateRange();
+
+  // Fetch live data from API endpoints
+  const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+    queryFn: () => fetch('/api/projects').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const { data: billingMilestones = [], isLoading: milestonesLoading, refetch: refetchMilestones } = useQuery<BillingMilestone[]>({
+    queryKey: ['/api/billing-milestones'],
+    queryFn: () => fetch('/api/billing-milestones').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  const { data: manufacturingSchedules = [], isLoading: schedulesLoading, refetch: refetchSchedules } = useQuery<ManufacturingSchedule[]>({
+    queryKey: ['/api/manufacturing-schedules'],
+    queryFn: () => fetch('/api/manufacturing-schedules').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  const { data: manufacturingBays = [], isLoading: baysLoading } = useQuery({
+    queryKey: ['/api/manufacturing-bays'],
+    queryFn: () => fetch('/api/manufacturing-bays').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
+  });
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    refetchProjects();
+    refetchMilestones();
+    refetchSchedules();
+    toast({
+      title: "Data refreshed",
+      description: "All reports have been updated with the latest data",
+    });
+  };
+
+  // Filter data based on selected criteria
+  const filteredProjects = projects.filter(project => {
+    if (projectFilter !== 'all' && project.id.toString() !== projectFilter) return false;
+
+    // Filter by date range - check if project has activity in the date range
+    const projectDate = new Date(project.createdAt || 0);
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+
+    return projectDate >= startDate || projectDate <= endDate;
+  });
+
+  const filteredMilestones = billingMilestones.filter(milestone => {
+    if (projectFilter !== 'all' && milestone.projectId.toString() !== projectFilter) return false;
+
+    if (milestone.targetInvoiceDate) {
+      const milestoneDate = new Date(milestone.targetInvoiceDate);
+      const startDate = new Date(dateRange.startDate);
+      const endDate = new Date(dateRange.endDate);
+      return milestoneDate >= startDate && milestoneDate <= endDate;
+    }
+    return true;
+  });
+
+  const filteredSchedules = manufacturingSchedules.filter(schedule => {
+    if (projectFilter !== 'all' && schedule.projectId.toString() !== projectFilter) return false;
+
+    const scheduleStart = new Date(schedule.startDate);
+    const scheduleEnd = new Date(schedule.endDate);
+    const rangeStart = new Date(dateRange.startDate);
+    const rangeEnd = new Date(dateRange.endDate);
+
+    return (scheduleStart <= rangeEnd && scheduleEnd >= rangeStart);
+  });
+
+  // Handle export functionality
   const handleExport = async () => {
     if (isExporting) return;
-    
+
     try {
       setIsExporting(true);
-      
-      // Prepare the export request data
+
       const exportData = {
         reportType,
-        ...getDateRangeStrings(),
+        ...dateRange,
         projectId: projectFilter !== 'all' ? parseInt(projectFilter) : undefined
       };
-      
-      // Fetch the CSV data from the API
+
       const response = await fetch('/api/reports/export', {
         method: 'POST',
         headers: {
@@ -185,41 +180,25 @@ const ReportsPage = () => {
         },
         body: JSON.stringify(exportData),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to export report data');
       }
-      
-      // Get the blob from the response
+
       const blob = await response.blob();
-      
-      // Create a download link and trigger the download
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      // Add robust date formatting for the filename
-      try {
-        const today = new Date();
-        if (isNaN(today.getTime())) {
-          a.download = `${reportType}-report-export.csv`;
-        } else {
-          a.download = `${reportType}-report-${format(today, 'yyyy-MM-dd')}.csv`;
-        }
-      } catch (error) {
-        console.error('Error formatting date for export filename:', error);
-        a.download = `${reportType}-report-export.csv`;
-      }
+      a.download = `${reportType}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
       document.body.appendChild(a);
       a.click();
-      
-      // Clean up
+
       window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Export successful",
         description: "Report data has been exported to CSV",
-        variant: "default",
       });
     } catch (error) {
       console.error('Export error:', error);
@@ -233,530 +212,132 @@ const ReportsPage = () => {
     }
   };
 
-  // Base date parameters for report queries
-  const dateParams = {
-    ...getDateRangeStrings(),
-    projectId: projectFilter !== 'all' ? projectFilter : undefined
-  };
+  // Calculate real-time financial metrics
+  const totalInvoiced = filteredMilestones.reduce((sum, milestone) => {
+    const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount;
+    return sum + (amount || 0);
+  }, 0);
 
-  // Fetch financial report data
-  const { data: financialReport, isLoading: isLoadingFinancial } = useQuery({
-    queryKey: ['/api/reports/financial', dateParams],
-    queryFn: () => fetch(`/api/reports/financial?startDate=${dateParams.startDate}&endDate=${dateParams.endDate}${dateParams.projectId ? `&projectId=${dateParams.projectId}` : ''}`).then(res => res.json()),
-    enabled: isAuthenticated && reportType === 'financial',
-  });
+  const totalReceived = filteredMilestones
+    .filter(milestone => milestone.status === 'paid')
+    .reduce((sum, milestone) => {
+      const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount;
+      return sum + (amount || 0);
+    }, 0);
 
-  // Fetch project status report data
-  const { data: projectStatusReport, isLoading: isLoadingProjectStatus } = useQuery({
-    queryKey: ['/api/reports/project-status', dateParams],
-    queryFn: () => fetch(`/api/reports/project-status?startDate=${dateParams.startDate}&endDate=${dateParams.endDate}${dateParams.projectId ? `&projectId=${dateParams.projectId}` : ''}`).then(res => res.json()),
-    enabled: isAuthenticated && reportType === 'project',
-  });
+  const totalOutstanding = totalInvoiced - totalReceived;
 
-  // Fetch manufacturing report data
-  const { data: manufacturingReport, isLoading: isLoadingManufacturing } = useQuery({
-    queryKey: ['/api/reports/manufacturing', dateParams],
-    queryFn: () => fetch(`/api/reports/manufacturing?startDate=${dateParams.startDate}&endDate=${dateParams.endDate}${dateParams.projectId ? `&projectId=${dateParams.projectId}` : ''}`).then(res => res.json()),
-    enabled: isAuthenticated && reportType === 'manufacturing',
-  });
+  const upcomingMilestones = filteredMilestones
+    .filter(milestone => milestone.status === 'upcoming' || milestone.status === 'invoiced')
+    .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime())
+    .slice(0, 10);
 
-  // Fetch delivery report data
-  const { data: deliveryReport, isLoading: isLoadingDelivery } = useQuery({
-    queryKey: ['/api/reports/delivery', dateParams],
-    queryFn: () => fetch(`/api/reports/delivery?startDate=${dateParams.startDate}&endDate=${dateParams.endDate}${dateParams.projectId ? `&projectId=${dateParams.projectId}` : ''}`).then(res => res.json()),
-    enabled: isAuthenticated && reportType === 'delivery',
-  });
-
-  // Define empty fallback data for all reports to ensure we always have valid data structures
-  const emptyFinancialReport = {
-    metrics: {
-      totalInvoiced: 0,
-      totalPaid: 0,
-      totalOutstanding: 0,
-      averagePaymentTime: 0
-    },
-    milestones: []
-  };
-  
-  const emptyProjectStatusReport = {
-    metrics: {
-      totalProjects: 0,
-      onTrack: 0,
-      atRisk: 0,
-      delayed: 0
-    },
-    projects: []
-  };
-  
-  const emptyManufacturingReport = {
-    metrics: {
-      bayUtilization: 0,
-      averageProjectDuration: 0,
-      onTimeDelivery: 0,
-      averageTeamSize: 0
-    },
-    schedules: [],
-    bayUtilization: [], // Make sure this exists for the chart data
-    bayData: [],       // Alternative property name that might be used
-    utilizationByBay: []  // Another possible property name
-  };
-  
-  const emptyDeliveryReport = {
-    metrics: {
-      totalDeliveries: 0,
-      onTimeDeliveries: 0,
-      averageDelay: 0
-    },
-    deliveries: [],
-    deliveriesByMonth: []  // Make sure this exists for the chart data
-  };
-  
-  // Fallback to fetch all data directly if reports API fails
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
-    enabled: isAuthenticated && (!financialReport || !projectStatusReport),
-  });
-
-  const { data: billingMilestones = [] } = useQuery<BillingMilestone[]>({
-    queryKey: ['/api/billing-milestones'],
-    enabled: isAuthenticated && !financialReport,
-  });
-
-  const { data: manufacturingSchedules = [] } = useQuery<ManufacturingSchedule[]>({
-    queryKey: ['/api/manufacturing-schedules'],
-    enabled: isAuthenticated && !manufacturingReport,
-  });
-
-  // Use filtered data from the API response or fallback to client-side filtering with safe date handling
-  // Always have a report data (either from API or fallback empty objects)
-  const safeFinancialReport = financialReport || emptyFinancialReport;
-  const safeProjectStatusReport = projectStatusReport || emptyProjectStatusReport;
-  const safeManufacturingReport = manufacturingReport || emptyManufacturingReport;
-  const safeDeliveryReport = deliveryReport || emptyDeliveryReport;
-  
-  // Use filtered data from the API response or fallback to client-side filtering with safe date handling
-  const filteredMilestones = safeFinancialReport.milestones || billingMilestones.filter(milestone => {
-    try {
-      // First check for project filter which doesn't involve dates
-      const passesProjectFilter = projectFilter === 'all' || milestone.projectId.toString() === projectFilter;
-      if (!passesProjectFilter) return false;
-      
-      // Safely handle date filtering
-      if (!milestone.targetInvoiceDate || !dateParams.startDate || !dateParams.endDate) {
-        return false;
-      }
-      
-      const milestoneDate = new Date(milestone.targetInvoiceDate);
-      const startDate = new Date(dateParams.startDate);
-      const endDate = new Date(dateParams.endDate);
-      
-      // Validate all dates are valid before comparison
-      if (isNaN(milestoneDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return false;
-      }
-      
-      return milestoneDate >= startDate && milestoneDate <= endDate;
-    } catch (error) {
-      console.error('Error filtering milestone:', error);
-      return false;
-    }
-  });
-
-  const filteredSchedules = safeManufacturingReport.schedules || manufacturingSchedules.filter(schedule => {
-    try {
-      // First check for project filter which doesn't involve dates
-      const passesProjectFilter = projectFilter === 'all' || schedule.projectId.toString() === projectFilter;
-      if (!passesProjectFilter) return false;
-      
-      // Safely handle date filtering
-      if (!schedule.startDate || !dateParams.startDate || !dateParams.endDate) {
-        return false;
-      }
-      
-      const scheduleDate = new Date(schedule.startDate);
-      const startDate = new Date(dateParams.startDate);
-      const endDate = new Date(dateParams.endDate);
-      
-      // Validate all dates are valid before comparison
-      if (isNaN(scheduleDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return false;
-      }
-      
-      return scheduleDate >= startDate && scheduleDate <= endDate;
-    } catch (error) {
-      console.error('Error filtering schedule:', error);
-      return false;
-    }
-  });
-
-  // Prepare financial data for charts
+  // Prepare financial chart data
   const getFinancialData = () => {
-    try {
-      // If we have data from the API, use it (but with our safe object)
-      if (safeFinancialReport?.chartData && safeFinancialReport.chartData.length > 0) {
-        return safeFinancialReport.chartData;
-      }
-      
-      // Fallback to client-side processing
-      // Create monthly buckets
-      const months: Record<string, { month: string, invoiced: number, received: number, outstanding: number }> = {};
-      
-      try {
-        // Validate dates first
-        let validStartDate = new Date(dateParams.startDate);
-        let validEndDate = new Date(dateParams.endDate);
-        
-        if (isNaN(validStartDate.getTime()) || isNaN(validEndDate.getTime())) {
-          // Use fallback dates if either is invalid
-          validStartDate = new Date('2024-11-01');
-          validEndDate = new Date('2025-05-01');
-        }
-        
-        // Initialize months in range with extra safety
-        let currentMonth = new Date(validStartDate);
-        currentMonth.setDate(1); // Set to start of month
-        
-        // Limited loop to avoid any potential infinite loops
-        let loopLimit = 0;
-        const maxLoops = 100; // Safety valve
-        
-        while (currentMonth <= validEndDate && loopLimit < maxLoops) {
-          try {
-            const monthKey = format(currentMonth, 'yyyy-MM');
-            months[monthKey] = {
-              month: format(currentMonth, 'MMM yyyy'),
-              invoiced: 0,
-              received: 0,
-              outstanding: 0
-            };
-            
-            // Advance to next month safely by creating a new date object
-            const year = currentMonth.getFullYear();
-            const month = currentMonth.getMonth();
-            currentMonth = new Date(year, month + 1, 1);
-            
-            loopLimit++;
-          } catch (e) {
-            console.error('Error in month initialization:', e);
-            break;
-          }
-        }
-        
-        // If something went wrong and no months were added, add at least one month
-        if (Object.keys(months).length === 0) {
-          const today = new Date();
-          const monthKey = format(today, 'yyyy-MM');
-          months[monthKey] = {
-            month: format(today, 'MMM yyyy'),
-            invoiced: 0,
-            received: 0,
-            outstanding: 0
-          };
-        }
-      } catch (error) {
-        console.error('Error initializing months:', error);
-        // Add a default month as fallback
-        const today = new Date();
-        const monthKey = format(today, 'yyyy-MM');
-        months[monthKey] = {
-          month: format(today, 'MMM yyyy'),
-          invoiced: 0,
-          received: 0,
-          outstanding: 0
-        };
-      }
-      
-      // Fill in milestone data with additional safety
-      if (Array.isArray(filteredMilestones)) {
-        filteredMilestones.forEach(milestone => {
-          try {
-            // Make sure milestone is valid before processing
-            if (!milestone || !milestone.targetInvoiceDate) {
-              return;
-            }
-            
-            // Try to parse the date
-            let invoiceDate: Date;
-            try {
-              invoiceDate = new Date(milestone.targetInvoiceDate);
-              if (isNaN(invoiceDate.getTime())) {
-                return;
-              }
-            } catch (e) {
-              return;
-            }
-            
-            // Format month key safely
-            let monthKey: string;
-            try {
-              monthKey = format(invoiceDate, 'yyyy-MM');
-            } catch (e) {
-              return;
-            }
-            
-            // Check if month exists in our map
-            if (!months[monthKey]) {
-              return;
-            }
-            
-            // Parse amount safely
-            let amount = 0;
-            if (typeof milestone.amount === 'string') {
-              const parsed = parseFloat(milestone.amount);
-              amount = isNaN(parsed) ? 0 : parsed;
-            } else if (typeof milestone.amount === 'number') {
-              amount = isNaN(milestone.amount) ? 0 : milestone.amount;
-            }
-            
-            // Increment counters
-            months[monthKey].invoiced += amount;
-            
-            if (milestone.status === 'paid') {
-              months[monthKey].received += amount;
-            } else {
-              months[monthKey].outstanding += amount;
-            }
-          } catch (error) {
-            console.error('Error processing milestone for financial chart:', error);
-          }
-        });
-      }
-      
-      return Object.values(months);
-    } catch (error) {
-      console.error('Fatal error in getFinancialData:', error);
-      // Return minimal valid data as ultimate fallback
-      return [
-        { month: 'Current', invoiced: 0, received: 0, outstanding: 0 }
-      ];
-    }
-  };
+    const months: Record<string, { month: string, invoiced: number, received: number, outstanding: number }> = {};
 
-  // Prepare project status data for charts
-  const getProjectStatusData = () => {
-    try {
-      // If we have data from the API, use it (with our safe object)
-      if (safeProjectStatusReport?.statusDistribution && safeProjectStatusReport.statusDistribution.length > 0) {
-        return safeProjectStatusReport.statusDistribution;
-      }
-      
-      // Fallback to client-side processing with safety
-      const statusCounts = {
-        'active': 0,
-        'delayed': 0,
-        'completed': 0,
-        'archived': 0,
-        'critical': 0
+    // Initialize months in range
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+    let currentMonth = new Date(startDate);
+    currentMonth.setDate(1);
+
+    while (currentMonth <= endDate) {
+      const monthKey = format(currentMonth, 'yyyy-MM');
+      months[monthKey] = {
+        month: format(currentMonth, 'MMM yyyy'),
+        invoiced: 0,
+        received: 0,
+        outstanding: 0
       };
-
-      try {
-        // Filter projects with error handling
-        const filteredProjects = Array.isArray(projects) ? projects.filter(project => {
-          try {
-            if (!project || !project.id) return false;
-            return projectFilter === 'all' || project.id.toString() === projectFilter;
-          } catch (error) {
-            console.error('Error filtering project:', error);
-            return false;
-          }
-        }) : [];
-        
-        // Count projects by status with error handling
-        filteredProjects.forEach(project => {
-          try {
-            if (!project || !project.status) return;
-            
-            if (statusCounts.hasOwnProperty(project.status)) {
-              statusCounts[project.status as keyof typeof statusCounts]++;
-            }
-          } catch (error) {
-            console.error('Error processing project status:', error);
-          }
-        });
-      } catch (error) {
-        console.error('Error processing projects for status chart:', error);
-      }
-      
-      // Convert to chart format
-      return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-    } catch (error) {
-      console.error('Fatal error in getProjectStatusData:', error);
-      // Return minimal valid data as ultimate fallback
-      return [
-        { name: 'active', value: 0 },
-        { name: 'delayed', value: 0 },
-        { name: 'completed', value: 0 }
-      ];
+      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
     }
-  };
 
-  // Prepare manufacturing data for charts
-  const getManufacturingData = () => {
-    try {
-      // If we have data from the API, use it (with our safe object)
-      if (safeManufacturingReport?.bayUtilization && safeManufacturingReport.bayUtilization.length > 0) {
-        return safeManufacturingReport.bayUtilization;
-      }
-      
-      // Fallback to client-side processing
-      const bayUtilization: Record<string, { bay: string, scheduled: number, completed: number, utilization: number }> = {};
-      
-      try {
-        // Get all unique bay IDs with safety
-        let uniqueBayIds: any[] = [];
-        
-        if (Array.isArray(filteredSchedules)) {
-          try {
-            // Safely extract bay IDs
-            uniqueBayIds = [...new Set(
-              filteredSchedules
-                .filter(schedule => schedule && schedule.bayId)
-                .map(schedule => schedule.bayId)
-            )];
-          } catch (error) {
-            console.error('Error extracting bay IDs:', error);
-            uniqueBayIds = [1, 2, 3]; // Fallback to common bay IDs
-          }
+    // Fill in milestone data
+    filteredMilestones.forEach(milestone => {
+      if (!milestone.targetInvoiceDate) return;
+
+      const invoiceDate = new Date(milestone.targetInvoiceDate);
+      const monthKey = format(invoiceDate, 'yyyy-MM');
+
+      if (months[monthKey]) {
+        const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount || 0;
+        months[monthKey].invoiced += amount;
+
+        if (milestone.status === 'paid') {
+          months[monthKey].received += amount;
         } else {
-          console.warn('filteredSchedules is not an array');
-          uniqueBayIds = [1, 2, 3]; // Fallback to common bay IDs
+          months[monthKey].outstanding += amount;
         }
-        
-        uniqueBayIds.forEach(bayId => {
-          if (!bayId) return; // Skip invalid bay IDs
-          
-          try {
-            const baySchedules = Array.isArray(filteredSchedules) 
-              ? filteredSchedules.filter(schedule => schedule && schedule.bayId === bayId) 
-              : [];
-            const bayName = `Bay ${bayId}`;
-            
-            // Calculate total days with safety
-            const totalDays = baySchedules.reduce((total, schedule) => {
-              try {
-                if (!schedule || !schedule.startDate || !schedule.endDate) return total;
-                
-                const start = new Date(schedule.startDate);
-                const end = new Date(schedule.endDate);
-                
-                if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-                  console.warn('Invalid date in schedule:', schedule.id);
-                  return total;
-                }
-                
-                const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                return total + Math.max(0, days); // Ensure we don't add negative days
-              } catch (error) {
-                console.error('Error calculating days for schedule:', error);
-                return total;
-              }
-            }, 0);
-            
-            // Calculate completed days with safety
-            const completedDays = baySchedules
-              .filter(schedule => schedule && schedule.status === 'complete')
-              .reduce((total, schedule) => {
-                try {
-                  if (!schedule || !schedule.startDate || !schedule.endDate) return total;
-                  
-                  const start = new Date(schedule.startDate);
-                  const end = new Date(schedule.endDate);
-                  
-                  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-                    console.warn('Invalid date in completed schedule:', schedule.id);
-                    return total;
-                  }
-                  
-                  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                  return total + Math.max(0, days); // Ensure we don't add negative days
-                } catch (error) {
-                  console.error('Error calculating days for completed schedule:', error);
-                  return total;
-                }
-              }, 0);
-            
-            // Calculate utilization as a percentage of the date range
-            let utilization = 0;
-            
-            try {
-              // Validate date parameters
-              if (!dateParams || !dateParams.startDate || !dateParams.endDate) {
-                console.warn('Missing date parameters for utilization calculation');
-              } else {
-                const startDate = new Date(dateParams.startDate);
-                const endDate = new Date(dateParams.endDate);
-                
-                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                  console.warn('Invalid date parameters for utilization calculation');
-                } else {
-                  const dateRangeDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-                  utilization = dateRangeDays > 0 ? (totalDays / dateRangeDays) * 100 : 0;
-                }
-              }
-            } catch (error) {
-              console.error('Error calculating bay utilization:', error);
-            }
-            
-            // Store the bay data
-            bayUtilization[bayName] = {
-              bay: bayName,
-              scheduled: totalDays,
-              completed: completedDays,
-              utilization: Math.min(100, Math.round(utilization))
-            };
-          } catch (error) {
-            console.error(`Error processing bay ${bayId}:`, error);
-            // Add fallback for this bay
-            bayUtilization[`Bay ${bayId}`] = {
-              bay: `Bay ${bayId}`,
-              scheduled: 0,
-              completed: 0,
-              utilization: 0
-            };
-          }
-        });
-      } catch (error) {
-        console.error('Error processing bays:', error);
       }
-      
-      // Return chart data
-      const result = Object.values(bayUtilization);
-      
-      // If no bays were processed, return default data
-      if (result.length === 0) {
-        return [
-          { bay: 'Bay 1', scheduled: 0, completed: 0, utilization: 0 },
-          { bay: 'Bay 2', scheduled: 0, completed: 0, utilization: 0 },
-          { bay: 'Bay 3', scheduled: 0, completed: 0, utilization: 0 }
-        ];
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Fatal error in getManufacturingData:', error);
-      // Return minimal valid data as ultimate fallback
-      return [
-        { bay: 'Bay 1', scheduled: 0, completed: 0, utilization: 0 },
-        { bay: 'Bay 2', scheduled: 0, completed: 0, utilization: 0 },
-        { bay: 'Bay 3', scheduled: 0, completed: 0, utilization: 0 }
-      ];
-    }
+    });
+
+    return Object.values(months);
   };
-  
-  // Prepare delivery data for charts
-  const getDeliveryData = () => {
-    try {
-      // If we have data from the API, use it (with our safe object)
-      if (safeDeliveryReport?.deliveriesByMonth && safeDeliveryReport.deliveriesByMonth.length > 0) {
-        return safeDeliveryReport.deliveriesByMonth;
+
+  // Prepare project status data
+  const getProjectStatusData = () => {
+    const statusCounts = {
+      'active': 0,
+      'delayed': 0,
+      'completed': 0,
+      'archived': 0,
+      'on-track': 0,
+      'at-risk': 0
+    };
+
+    filteredProjects.forEach(project => {
+      const status = project.status?.toLowerCase() || 'active';
+      if (statusCounts.hasOwnProperty(status)) {
+        statusCounts[status as keyof typeof statusCounts]++;
+      } else {
+        statusCounts['active']++;
       }
-      
-      // Fallback to empty data, will not be used unless delivery report is selected
-      return [];
-    } catch (error) {
-      console.error('Error in getDeliveryData:', error);
-      return [];
-    }
+    });
+
+    return Object.entries(statusCounts)
+      .filter(([_, value]) => value > 0)
+      .map(([name, value]) => ({ name, value }));
+  };
+
+  // Prepare manufacturing data
+  const getManufacturingData = () => {
+    const bayUtilization: Record<string, { bay: string, scheduled: number, completed: number, utilization: number }> = {};
+
+    // Get unique bay IDs from schedules
+    const uniqueBayIds = [...new Set(filteredSchedules.map(s => s.bayId))];
+
+    uniqueBayIds.forEach(bayId => {
+      const bay = manufacturingBays.find(b => b.id === bayId);
+      const bayName = bay?.name || `Bay ${bayId}`;
+      const baySchedules = filteredSchedules.filter(s => s.bayId === bayId);
+
+      const totalHours = baySchedules.reduce((sum, schedule) => sum + (schedule.totalHours || 0), 0);
+      const completedHours = baySchedules
+        .filter(schedule => {
+          const project = projects.find(p => p.id === schedule.projectId);
+          return project?.status === 'completed';
+        })
+        .reduce((sum, schedule) => sum + (schedule.totalHours || 0), 0);
+
+      // Calculate utilization based on available time in date range
+      const startDate = new Date(dateRange.startDate);
+      const endDate = new Date(dateRange.endDate);
+      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const workDays = Math.ceil(totalDays * 5 / 7); // Approximate work days
+      const availableHours = workDays * 8; // 8 hours per day
+
+      const utilization = availableHours > 0 ? Math.min(100, (totalHours / availableHours) * 100) : 0;
+
+      bayUtilization[bayName] = {
+        bay: bayName,
+        scheduled: totalHours,
+        completed: completedHours,
+        utilization: Math.round(utilization)
+      };
+    });
+
+    return Object.values(bayUtilization);
   };
 
   const financialData = getFinancialData();
@@ -765,41 +346,26 @@ const ReportsPage = () => {
 
   // Colors for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-  const STATUS_COLORS = {
-    'On Track': '#00C49F',
-    'At Risk': '#FFBB28',
-    'Delayed': '#FF8042',
-    'Completed': '#0088FE'
-  };
 
-  // Calculate summary metrics - use API data if available
-  const totalInvoiced = financialReport?.metrics?.totalInvoiced || 
-    filteredMilestones.reduce((sum, milestone) => {
-      const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount;
-      return sum + amount;
-    }, 0);
+  // Calculate project health metrics
+  const onTrackProjects = filteredProjects.filter(p => p.status === 'active' || p.status === 'on-track').length;
+  const atRiskProjects = filteredProjects.filter(p => p.status === 'at-risk').length;
+  const delayedProjects = filteredProjects.filter(p => p.status === 'delayed').length;
+  const completedProjects = filteredProjects.filter(p => p.status === 'completed').length;
 
-  const totalReceived = financialReport?.metrics?.totalPaid || 
-    filteredMilestones
-      .filter(milestone => milestone.status === 'paid')
-      .reduce((sum, milestone) => {
-        const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount;
-        return sum + amount;
-      }, 0);
-
-  const totalOutstanding = financialReport?.metrics?.totalOutstanding || (totalInvoiced - totalReceived);
-  
-  const upcomingMilestones = financialReport?.upcomingMilestones || 
-    filteredMilestones
-      .filter(milestone => milestone.status === 'upcoming' || milestone.status === 'invoiced')
-      .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime());
+  const isLoading = projectsLoading || milestonesLoading || schedulesLoading || baysLoading;
 
   return (
     <div className="container mx-auto py-6 max-w-7xl px-4 sm:px-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-        
+
         <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh Data
+          </Button>
+
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Time Range" />
@@ -811,7 +377,7 @@ const ReportsPage = () => {
               <SelectItem value="ytd">Year-to-Date</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Button variant="outline" onClick={handleExport} disabled={isExporting}>
             {isExporting ? (
               <>
@@ -826,7 +392,14 @@ const ReportsPage = () => {
           </Button>
         </div>
       </div>
-      
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Loading latest data...</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <Tabs defaultValue="financial" value={reportType} onValueChange={setReportType}>
@@ -835,7 +408,7 @@ const ReportsPage = () => {
               <TabsTrigger value="project">Project Status</TabsTrigger>
               <TabsTrigger value="manufacturing">Manufacturing</TabsTrigger>
             </TabsList>
-            
+
             {/* Financial Reports Tab */}
             <TabsContent value="financial">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
@@ -845,35 +418,37 @@ const ReportsPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{formatCurrency(totalInvoiced)}</div>
-                    <p className="text-xs text-gray-400">For selected period</p>
+                    <p className="text-xs text-gray-400">From {filteredMilestones.length} milestones</p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Total Received</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-success">{formatCurrency(totalReceived)}</div>
-                    <p className="text-xs text-gray-400">{Math.round((totalReceived / (totalInvoiced || 1)) * 100)}% of invoiced amount</p>
+                    <div className="text-2xl font-bold text-green-500">{formatCurrency(totalReceived)}</div>
+                    <p className="text-xs text-gray-400">
+                      {totalInvoiced > 0 ? Math.round((totalReceived / totalInvoiced) * 100) : 0}% of invoiced amount
+                    </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Outstanding</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-warning">{formatCurrency(totalOutstanding)}</div>
+                    <div className="text-2xl font-bold text-yellow-500">{formatCurrency(totalOutstanding)}</div>
                     <p className="text-xs text-gray-400">{upcomingMilestones.length} pending milestones</p>
                   </CardContent>
                 </Card>
               </div>
-              
+
               <Card className="mb-4">
                 <CardHeader>
                   <CardTitle>Revenue Trend</CardTitle>
-                  <CardDescription>Monthly invoiced vs received amounts</CardDescription>
+                  <CardDescription>Monthly invoiced vs received amounts (Live Data)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-80">
@@ -881,26 +456,26 @@ const ReportsPage = () => {
                       <BarChart data={financialData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
-                        <YAxis tickFormatter={(value) => `$${value / 1000}k`} />
+                        <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
                         <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
                         <Legend />
-                        <Bar dataKey="invoiced" stackId="a" name="Invoiced" fill="#8884d8" />
-                        <Bar dataKey="received" stackId="a" name="Received" fill="#00C49F" />
-                        <Bar dataKey="outstanding" stackId="a" name="Outstanding" fill="#FFBB28" />
+                        <Bar dataKey="invoiced" name="Invoiced" fill="#8884d8" />
+                        <Bar dataKey="received" name="Received" fill="#00C49F" />
+                        <Bar dataKey="outstanding" name="Outstanding" fill="#FFBB28" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Upcoming Milestones</CardTitle>
-                  <CardDescription>Next due payments</CardDescription>
+                  <CardDescription>Next due payments (Live Data)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {upcomingMilestones.slice(0, 5).map(milestone => {
+                    {upcomingMilestones.map(milestone => {
                       const project = projects.find(p => p.id === milestone.projectId);
                       return (
                         <div key={milestone.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg">
@@ -910,22 +485,7 @@ const ReportsPage = () => {
                               <Badge variant="outline">{project?.projectNumber}</Badge>
                             </div>
                             <div className="text-sm text-gray-400 mt-1">
-                              Due: {
-                                (() => {
-                                  try {
-                                    // Only attempt to format if we have a valid date
-                                    if (!milestone.dueDate) return 'No date set';
-                                    
-                                    const dateObj = new Date(milestone.dueDate);
-                                    if (isNaN(dateObj.getTime())) return 'Invalid date';
-                                    
-                                    return format(dateObj, 'MMM d, yyyy');
-                                  } catch (error) {
-                                    console.error('Error formatting due date:', error);
-                                    return 'Date error';
-                                  }
-                                })()
-                              }
+                              Due: {milestone.targetInvoiceDate ? format(new Date(milestone.targetInvoiceDate), 'MMM d, yyyy') : 'No date set'}
                             </div>
                           </div>
                           <div className="font-semibold">
@@ -934,7 +494,7 @@ const ReportsPage = () => {
                         </div>
                       );
                     })}
-                    
+
                     {upcomingMilestones.length === 0 && (
                       <div className="text-center py-6 text-gray-400">
                         No upcoming milestones in the selected period
@@ -942,285 +502,191 @@ const ReportsPage = () => {
                     )}
                   </div>
                 </CardContent>
-                {upcomingMilestones.length > 5 && (
-                  <CardFooter>
-                    <Button variant="link" className="w-full">
-                      View All {upcomingMilestones.length} Milestones
-                    </Button>
-                  </CardFooter>
-                )}
               </Card>
             </TabsContent>
-            
+
             {/* Project Status Tab */}
             <TabsContent value="project">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Project Status Distribution</CardTitle>
-                    <CardDescription>Overview of project health</CardDescription>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Project Health Overview</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={projectStatusData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={100}
-                            fill="#8884d8"
-                            dataKey="value"
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          >
-                            {projectStatusData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name as keyof typeof STATUS_COLORS] || COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value) => [value, 'Projects']} />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-500">{onTrackProjects}</div>
+                        <p className="text-xs text-gray-400">On Track</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-yellow-500">{atRiskProjects}</div>
+                        <p className="text-xs text-gray-400">At Risk</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-500">{delayedProjects}</div>
+                        <p className="text-xs text-gray-400">Delayed</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-500">{completedProjects}</div>
+                        <p className="text-xs text-gray-400">Completed</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Timeline Adherence</CardTitle>
-                    <CardDescription>Project completion vs planned timeline</CardDescription>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Total Projects</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={projects
-                            .filter(project => projectFilter === 'all' || project.id.toString() === projectFilter)
-                            .map(project => ({
-                              name: project.name,
-                              planned: 100,
-                              actual: project.percentComplete,
-                            }))
-                            .slice(0, 5)}
-                          layout="vertical"
-                          margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" tickFormatter={(value) => `${value}%`} />
-                          <YAxis type="category" dataKey="name" width={90} />
-                          <Tooltip formatter={(value) => [`${value}%`, '']} />
-                          <Legend />
-                          <Bar dataKey="planned" fill="#8884d8" name="Planned" />
-                          <Bar dataKey="actual" fill="#00C49F" name="Actual" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle>Project Health Metrics</CardTitle>
-                    <CardDescription>Key performance indicators by project</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-left text-gray-400 text-xs border-b border-gray-700">
-                            <th className="pb-2 font-medium">Project</th>
-                            <th className="pb-2 font-medium">Status</th>
-                            <th className="pb-2 font-medium">Timeline</th>
-                            <th className="pb-2 font-medium">Budget</th>
-                            <th className="pb-2 font-medium">Resources</th>
-                            <th className="pb-2 font-medium">Health Score</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {projects
-                            .filter(project => projectFilter === 'all' || project.id.toString() === projectFilter)
-                            .map(project => {
-                              // Calculate artificial health score
-                              const timelineScore = project.percentComplete >= 90 ? 3 : project.percentComplete >= 70 ? 2 : 1;
-                              const statusScore = project.status === 'On Track' ? 3 : project.status === 'At Risk' ? 2 : 1;
-                              const healthScore = Math.round((timelineScore + statusScore) / 2 * 33.33);
-                              
-                              return (
-                                <tr key={project.id} className="border-b border-gray-800">
-                                  <td className="py-3 font-medium">{project.name}</td>
-                                  <td className="py-3">
-                                    <Badge className={`
-                                      ${project.status === 'On Track' && 'bg-success bg-opacity-20 text-success'} 
-                                      ${project.status === 'At Risk' && 'bg-warning bg-opacity-20 text-warning'} 
-                                      ${project.status === 'Delayed' && 'bg-danger bg-opacity-20 text-danger'}
-                                      ${project.status === 'Completed' && 'bg-primary bg-opacity-20 text-primary'}
-                                    `}>
-                                      {project.status}
-                                    </Badge>
-                                  </td>
-                                  <td className="py-3">
-                                    <div className="flex items-center">
-                                      <div className="w-20 h-2 bg-gray-700 rounded mr-2">
-                                        <div 
-                                          className={`h-full rounded ${
-                                            project.percentComplete >= 90 ? 'bg-success' : 
-                                            project.percentComplete >= 70 ? 'bg-warning' : 'bg-danger'
-                                          }`}
-                                          style={{ width: `${project.percentComplete}%` }}
-                                        ></div>
-                                      </div>
-                                      <span className="text-sm">{project.percentComplete}%</span>
-                                    </div>
-                                  </td>
-                                  <td className="py-3">
-                                    <Badge variant="outline">
-                                      {project.budget ? formatCurrency(project.budget) : 'N/A'}
-                                    </Badge>
-                                  </td>
-                                  <td className="py-3 text-sm">
-                                    {project.teamSize || 'N/A'}
-                                  </td>
-                                  <td className="py-3">
-                                    <div className="flex items-center">
-                                      <div className="w-20 h-2 bg-gray-700 rounded mr-2">
-                                        <div 
-                                          className={`h-full rounded ${
-                                            healthScore >= 90 ? 'bg-success' : 
-                                            healthScore >= 60 ? 'bg-warning' : 'bg-danger'
-                                          }`}
-                                          style={{ width: `${healthScore}%` }}
-                                        ></div>
-                                      </div>
-                                      <span className="text-sm">{healthScore}%</span>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                        </tbody>
-                      </table>
-                    </div>
+                    <div className="text-2xl font-bold">{filteredProjects.length}</div>
+                    <p className="text-xs text-gray-400">In selected time range</p>
                   </CardContent>
                 </Card>
               </div>
+
+              <Card className="mb-4">
+                <CardHeader>
+                  <CardTitle>Project Status Distribution</CardTitle>
+                  <CardDescription>Current project health breakdown (Live Data)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={projectStatusData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {projectStatusData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => [value, 'Projects']} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Project Activity</CardTitle>
+                  <CardDescription>Latest project updates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {filteredProjects.slice(0, 5).map(project => (
+                      <div key={project.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{project.name}</span>
+                            <Badge variant="outline">{project.projectNumber}</Badge>
+                          </div>
+                          <div className="text-sm text-gray-400 mt-1">
+                            Status: {project.status || 'Active'}
+                          </div>
+                        </div>
+                        <Badge className={`
+                          ${project.status === 'completed' && 'bg-green-500'} 
+                          ${project.status === 'at-risk' && 'bg-yellow-500'} 
+                          ${project.status === 'delayed' && 'bg-red-500'}
+                          ${(!project.status || project.status === 'active') && 'bg-blue-500'}
+                        `}>
+                          {project.status || 'Active'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
-            
+
             {/* Manufacturing Tab */}
             <TabsContent value="manufacturing">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Bay Utilization</CardTitle>
-                    <CardDescription>Production capacity usage</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={manufacturingData}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="bay" />
-                          <YAxis tickFormatter={(value) => `${value}%`} />
-                          <Tooltip formatter={(value) => [`${value}%`, 'Utilization']} />
-                          <Legend />
-                          <Bar dataKey="utilization" fill="#8884d8" name="Utilization" />
-                        </BarChart>
-                      </ResponsiveContainer>
+              <Card className="mb-4">
+                <CardHeader>
+                  <CardTitle>Bay Utilization</CardTitle>
+                  <CardDescription>Current manufacturing capacity usage (Live Data)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={manufacturingData}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="bay" />
+                        <YAxis tickFormatter={(value) => `${value}%`} />
+                        <Tooltip formatter={(value, name) => [
+                          name === 'utilization' ? `${value}%` : `${value} hours`,
+                          name === 'utilization' ? 'Utilization' : name === 'scheduled' ? 'Scheduled Hours' : 'Completed Hours'
+                        ]} />
+                        <Legend />
+                        <Bar dataKey="utilization" fill="#8884d8" name="Utilization %" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Manufacturing Schedule Overview</CardTitle>
+                  <CardDescription>Current schedules and capacity (Live Data)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{filteredSchedules.length}</div>
+                      <p className="text-sm text-gray-400">Active Schedules</p>
                     </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Scheduled vs Completed Days</CardTitle>
-                    <CardDescription>Manufacturing bays productivity</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={manufacturingData}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="bay" />
-                          <YAxis label={{ value: 'Days', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="scheduled" fill="#8884d8" name="Scheduled Days" />
-                          <Bar dataKey="completed" fill="#00C49F" name="Completed Days" />
-                        </BarChart>
-                      </ResponsiveContainer>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{manufacturingBays.length}</div>
+                      <p className="text-sm text-gray-400">Manufacturing Bays</p>
                     </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle>Manufacturing Schedule Status</CardTitle>
-                    <CardDescription>Overview of production schedule adherence</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-left text-gray-400 text-xs border-b border-gray-700">
-                            <th className="pb-2 font-medium">Project</th>
-                            <th className="pb-2 font-medium">Bay</th>
-                            <th className="pb-2 font-medium">Start Date</th>
-                            <th className="pb-2 font-medium">End Date</th>
-                            <th className="pb-2 font-medium">Duration</th>
-                            <th className="pb-2 font-medium">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredSchedules.map(schedule => {
-                            const project = projects.find(p => p.id === schedule.projectId);
-                            const startDate = new Date(schedule.startDate);
-                            const endDate = new Date(schedule.endDate);
-                            const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-                            
-                            return (
-                              <tr key={schedule.id} className="border-b border-gray-800">
-                                <td className="py-3 font-medium">{project?.name || 'Unknown'}</td>
-                                <td className="py-3">Bay {schedule.bayId}</td>
-                                <td className="py-3">{format(startDate, 'MMM d, yyyy')}</td>
-                                <td className="py-3">{format(endDate, 'MMM d, yyyy')}</td>
-                                <td className="py-3">{days} days</td>
-                                <td className="py-3">
-                                  <Badge className={`
-                                    ${schedule.status === 'Completed' && 'bg-success bg-opacity-20 text-success'} 
-                                    ${schedule.status === 'In Progress' && 'bg-primary bg-opacity-20 text-primary'} 
-                                    ${schedule.status === 'Scheduled' && 'bg-gray-500 bg-opacity-20 text-gray-400'}
-                                    ${schedule.status === 'Delayed' && 'bg-danger bg-opacity-20 text-danger'}
-                                  `}>
-                                    {schedule.status}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                          
-                          {filteredSchedules.length === 0 && (
-                            <tr>
-                              <td colSpan={6} className="py-8 text-center text-gray-400">
-                                No manufacturing schedules found for the selected criteria
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">
+                        {filteredSchedules.reduce((sum, s) => sum + (s.totalHours || 0), 0)}
+                      </div>
+                      <p className="text-sm text-gray-400">Total Scheduled Hours</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {manufacturingData.slice(0, 5).map(bay => (
+                      <div key={bay.bay} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg">
+                        <div>
+                          <span className="font-medium">{bay.bay}</span>
+                          <div className="text-sm text-gray-400 mt-1">
+                            {bay.scheduled} scheduled hrs | {bay.completed} completed hrs
+                          </div>
+                        </div>
+                        <Badge className={`
+                          ${bay.utilization >= 80 && 'bg-red-500'} 
+                          ${bay.utilization >= 60 && bay.utilization < 80 && 'bg-yellow-500'} 
+                          ${bay.utilization < 60 && 'bg-green-500'}
+                        `}>
+                          {bay.utilization}% Utilized
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
-        
+
+        {/* Sidebar with filters and info */}
         <div>
           <Card className="mb-6">
             <CardHeader>
@@ -1240,7 +706,7 @@ const ReportsPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label>Time Range</Label>
                 <Select value={timeRange} onValueChange={setTimeRange}>
@@ -1255,7 +721,7 @@ const ReportsPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label>Filter by Project</Label>
                 <Select value={projectFilter} onValueChange={setProjectFilter}>
@@ -1272,60 +738,65 @@ const ReportsPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <Separator />
-              
+
               <div className="pt-2">
                 <Button variant="outline" className="w-full mb-2">
                   <FileText className="mr-2 h-4 w-4" /> Generate PDF Report
                 </Button>
-                <Button variant="outline" className="w-full">
-                  <Download className="mr-2 h-4 w-4" /> Export to Excel
+                <Button variant="outline" className="w-full" onClick={handleExport} disabled={isExporting}>
+                  <Download className="mr-2 h-4 w-4" /> Export to CSV
                 </Button>
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Report Date Range</CardTitle>
+              <CardTitle className="text-lg">Live Data Status</CardTitle>
               <CardDescription>
-                {new Date(dateParams.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(dateParams.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {dateRange.startDate} to {dateRange.endDate}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-gray-400 mb-4">
                 <div className="flex justify-between mb-2">
-                  <span>Projects included:</span>
-                  <span className="font-medium text-white">
-                    {projectFilter === 'all' ? projects.length : 1}
-                  </span>
+                  <span>Total Projects:</span>
+                  <span className="font-medium text-white">{filteredProjects.length}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span>Total invoiced:</span>
-                  <span className="font-medium text-white">{formatCurrency(totalInvoiced)}</span>
+                  <span>Total Milestones:</span>
+                  <span className="font-medium text-white">{filteredMilestones.length}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Manufacturing schedules:</span>
+                <div className="flex justify-between mb-2">
+                  <span>Active Schedules:</span>
                   <span className="font-medium text-white">{filteredSchedules.length}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span>Last Updated:</span>
+                  <span className="font-medium text-white">{format(new Date(), 'HH:mm:ss')}</span>
+                </div>
               </div>
-              
+
               <div className="border border-gray-700 p-3 rounded-lg bg-gray-800 bg-opacity-30">
                 <div className="flex items-center gap-2 mb-2">
                   <CalendarIcon className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-medium">Report Period</span>
+                  <span className="text-sm font-medium">Data Refresh</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <div className="text-gray-400">Start Date</div>
-                    <div>{new Date(dateParams.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-400">End Date</div>
-                    <div>{new Date(dateParams.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                  </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Reports automatically refresh every 30 seconds
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full" 
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`mr-2 h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh Now
+                </Button>
               </div>
             </CardContent>
           </Card>
