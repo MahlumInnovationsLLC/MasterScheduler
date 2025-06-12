@@ -234,7 +234,7 @@ export function ProjectStatsCard({
                 </div>
               </div>
               <div className="text-gray-400 text-right ml-2">
-                {formatDate(milestone.dueDate)}
+                {milestone.targetInvoiceDate ? formatDate(milestone.targetInvoiceDate) : 'No date set'}
               </div>
             </div>
           ))}
