@@ -37,7 +37,7 @@ import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownC
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from "lucide-react";
