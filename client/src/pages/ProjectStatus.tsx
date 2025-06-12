@@ -661,7 +661,7 @@ const ProjectStatus = () => {
     timeline: true,
     percentComplete: true,
     status: true,
-    contractDate: false, // Hidden: Start Date
+    contractDate: true, // Show Contract Date instead of Start Date
     estimatedCompletionDate: false, // Hidden: Est. Completion
     chassisETA: true,
     qcStartDate: true,
@@ -1374,9 +1374,6 @@ const ProjectStatus = () => {
       { size: 200 }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
       (value, project) => <EditableDateField projectId={project.id} field="contractDate" value={value} />,
-      { size: 140 }),
-    createColumn('startDate', 'startDate', 'Start Date', 
-      (value) => formatDate(value),
       { size: 140 }),
     createColumn('estimatedCompletionDate', 'estimatedCompletionDate', 'Est. Completion', 
       (value) => formatDate(value),

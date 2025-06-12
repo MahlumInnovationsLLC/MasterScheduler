@@ -436,6 +436,8 @@ export function DataTable<TData, TValue>({
                             headerText = 'IT %';
                         } else if (header.column.id === 'ntcDesignOrdersPercent') {
                             headerText = 'NTC %';
+                        } else if (header.column.id === 'contractDate') {
+                            headerText = 'Contract Date';
                         }
                         return (
                           <th 
