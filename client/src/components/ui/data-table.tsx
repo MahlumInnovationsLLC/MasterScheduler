@@ -527,6 +527,32 @@ export function DataTable<TData, TValue>({
               scrollbarWidth: 'thin', /* Firefox */
               scrollbarColor: 'var(--border) var(--muted)', /* Firefox */
             }}
+            ref={(el) => {
+              if (el) {
+                // Calculate the actual scrollable width by finding the scrollable table
+                const updateScrollbarWidth = () => {
+                  const mainContainer = el.parentElement as HTMLElement;
+                  const gridContainer = mainContainer?.querySelector('div[style*="position: relative"] > div.grid') as HTMLElement;
+                  const scrollableTable = gridContainer?.querySelector('div.overflow-x-auto') as HTMLElement;
+                  const innerTable = scrollableTable?.querySelector('table') as HTMLElement;
+
+                  if (innerTable && el.firstElementChild) {
+                    const actualWidth = innerTable.scrollWidth;
+                    (el.firstElementChild as HTMLElement).style.width = `${actualWidth}px`;
+                  }
+                };
+
+                // Update width after component mounts and data loads
+                setTimeout(updateScrollbarWidth, 100);
+
+                // Update on window resize
+                const resizeObserver = new ResizeObserver(updateScrollbarWidth);
+                const mainContainer = el.parentElement as HTMLElement;
+                if (mainContainer) {
+                  resizeObserver.observe(mainContainer);
+                }
+              }
+            }}
             onScroll={(e) => {
               // Sync scroll with the scrollable table content
               const scrollLeft = e.currentTarget.scrollLeft;
@@ -560,7 +586,7 @@ export function DataTable<TData, TValue>({
             `}</style>
             <div style={{ 
               height: '1px', 
-              width: `${(columns.length - frozenColumns.length) * 200}px` // Approximate total width
+              width: `${(columns.length - frozenColumns.length) * 220}px` // Initial width, will be updated dynamically
             }}></div>
           </div>
         </div>
