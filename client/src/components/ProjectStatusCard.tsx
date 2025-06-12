@@ -69,6 +69,7 @@ interface ProjectStatsCardProps {
     id: number;
     name: string;
     projectNumber: string;
+    projectName: string;
     amount: string;
     dueDate: string;
     status: string;
@@ -229,8 +230,11 @@ export function ProjectStatsCard({
                 <div className="font-medium text-gray-200 truncate">
                   {milestone.name}
                 </div>
-                <div className="text-gray-400">
-                  {milestone.projectNumber} • {formatCurrency(parseFloat(milestone.amount))}
+                <div className="text-gray-400 truncate">
+                  {milestone.projectNumber} • {milestone.projectName}
+                </div>
+                <div className="text-gray-500 text-xs">
+                  {formatCurrency(parseFloat(milestone.amount))}
                 </div>
               </div>
               <div className="text-gray-400 text-right ml-2">
