@@ -537,19 +537,32 @@ export function DataTable<TData, TValue>({
                   const innerTable = scrollableTable?.querySelector('table') as HTMLElement;
 
                   if (innerTable && el.firstElementChild) {
-                    const actualWidth = innerTable.scrollWidth;
+                    // Add extra padding to ensure the actions column is fully visible
+                    const actualWidth = innerTable.scrollWidth + 20; // Add 20px buffer
                     (el.firstElementChild as HTMLElement).style.width = `${actualWidth}px`;
                   }
                 };
 
                 // Update width after component mounts and data loads
                 setTimeout(updateScrollbarWidth, 100);
+                // Add a second check after a longer delay to catch late-loading content
+                setTimeout(updateScrollbarWidth, 500);
 
                 // Update on window resize
                 const resizeObserver = new ResizeObserver(updateScrollbarWidth);
                 const mainContainer = el.parentElement as HTMLElement;
                 if (mainContainer) {
                   resizeObserver.observe(mainContainer);
+                }
+
+                // Also observe the inner table for content changes
+                if (mainContainer) {
+                  const gridContainer = mainContainer.querySelector('div[style*="position: relative"] > div.grid') as HTMLElement;
+                  const scrollableTable = gridContainer?.querySelector('div.overflow-x-auto') as HTMLElement;
+                  const innerTable = scrollableTable?.querySelector('table') as HTMLElement;
+                  if (innerTable) {
+                    resizeObserver.observe(innerTable);
+                  }
                 }
               }
             }}
