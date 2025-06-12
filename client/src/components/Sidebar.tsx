@@ -153,16 +153,7 @@ const Sidebar = () => {
             </h6>
           )}
           <ul>
-            {isModuleVisible('sales-forecast') && (
-              <li>
-                <SidebarLink href="/sales-forecast" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive('/sales-forecast') ? 'active' : ''
-                } ${isCollapsed ? 'justify-center' : ''}`} title="Sales Forecast">
-                  <TrendingUp size={20} className={`${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
-                  {!isCollapsed && <span>Sales Forecast</span>}
-                </SidebarLink>
-              </li>
-            )}
+            
             {isModuleVisible('bay-scheduling') && (
               <li>
                 <SidebarLink href="/bay-scheduling" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
