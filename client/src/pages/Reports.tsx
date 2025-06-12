@@ -289,6 +289,20 @@ const ReportsPage = () => {
     refetchInterval: 30000,
   });
 
+  // Fetch mech shop report data
+  const { data: mechShopReportData, isLoading: mechShopReportLoading } = useQuery({
+    queryKey: [`/api/reports/mech-shop?${new URLSearchParams({ 
+      ...dateRange, 
+      ...(projectFilter !== 'all' ? { projectId: projectFilter } : {}) 
+    }).toString()}`],
+    queryFn: () => fetch(`/api/reports/mech-shop?${new URLSearchParams({ 
+      ...dateRange, 
+      ...(projectFilter !== 'all' ? { projectId: projectFilter } : {}) 
+    }).toString()}`).then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
   // Prepare project status data
   const getProjectStatusData = () => {
     const statusCounts = {
@@ -417,10 +431,11 @@ const ReportsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <Tabs defaultValue="financial" value={reportType} onValueChange={setReportType}>
-            <TabsList className="grid grid-cols-3 mb-4">
+            <TabsList className="grid grid-cols-4 mb-4">
               <TabsTrigger value="financial">Financial Reports</TabsTrigger>
               <TabsTrigger value="project">Project Status</TabsTrigger>
               <TabsTrigger value="manufacturing">Manufacturing</TabsTrigger>
+              <TabsTrigger value="mech-shop">Mech Shop</TabsTrigger>
             </TabsList>
 
             {/* Financial Reports Tab */}
@@ -792,6 +807,229 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Mech Shop Tab */}
+            <TabsContent value="mech-shop">
+              {/* Mech Shop Metrics Overview */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Total Projects</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {mechShopReportData?.metrics?.totalProjects || 0}
+                    </div>
+                    <p className="text-xs text-gray-400">In selected period</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">With Mech Shop Date</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-500">
+                      {mechShopReportData?.metrics?.projectsWithMechShopDate || 0}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {mechShopReportData?.metrics?.totalProjects > 0 
+                        ? Math.round((mechShopReportData?.metrics?.projectsWithMechShopDate || 0) / mechShopReportData?.metrics?.totalProjects * 100)
+                        : 0}% of projects
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Due This Week</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-yellow-500">
+                      {mechShopReportData?.metrics?.dueThisWeek || 0}
+                    </div>
+                    <p className="text-xs text-gray-400">Need attention</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Avg Days Before Production</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-500">
+                      {mechShopReportData?.metrics?.averageDaysBeforeProduction || 0}
+                    </div>
+                    <p className="text-xs text-gray-400">Days lead time</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Monthly Mech Shop Trends */}
+              <Card className="mb-4">
+                <CardHeader>
+                  <CardTitle>Monthly Mech Shop Schedule</CardTitle>
+                  <CardDescription>Scheduled vs completed mech shop work by month (Live Data)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={mechShopReportData?.monthlyData || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="scheduled" name="Scheduled" fill="#8884d8" />
+                        <Bar dataKey="completed" name="Completed" fill="#00C49F" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mech Shop Project List */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Mech Shop Schedule Details</CardTitle>
+                    <CardDescription>All projects with mech shop dates and production timing</CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      // Generate PDF report
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        const projects = mechShopReportData?.projects || [];
+                        const html = `
+                          <!DOCTYPE html>
+                          <html>
+                          <head>
+                            <title>Mech Shop Report - ${format(new Date(), 'MMM d, yyyy')}</title>
+                            <style>
+                              body { font-family: Arial, sans-serif; margin: 20px; }
+                              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                              .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+                              .metric { border: 1px solid #ddd; padding: 15px; text-align: center; }
+                              .metric-value { font-size: 24px; font-weight: bold; }
+                              .metric-label { font-size: 12px; color: #666; }
+                              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                              th { background-color: #f5f5f5; }
+                              .status-completed { color: #10b981; }
+                              .status-due { color: #f59e0b; }
+                              .status-scheduled { color: #3b82f6; }
+                              .status-none { color: #6b7280; }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="header">
+                              <h1>Mech Shop Report</h1>
+                              <p>Generated on ${format(new Date(), 'MMMM d, yyyy')} | Period: ${dateRange.startDate} to ${dateRange.endDate}</p>
+                            </div>
+                            
+                            <div class="metrics">
+                              <div class="metric">
+                                <div class="metric-value">${mechShopReportData?.metrics?.totalProjects || 0}</div>
+                                <div class="metric-label">Total Projects</div>
+                              </div>
+                              <div class="metric">
+                                <div class="metric-value">${mechShopReportData?.metrics?.projectsWithMechShopDate || 0}</div>
+                                <div class="metric-label">With Mech Shop Date</div>
+                              </div>
+                              <div class="metric">
+                                <div class="metric-value">${mechShopReportData?.metrics?.dueThisWeek || 0}</div>
+                                <div class="metric-label">Due This Week</div>
+                              </div>
+                              <div class="metric">
+                                <div class="metric-value">${mechShopReportData?.metrics?.averageDaysBeforeProduction || 0}</div>
+                                <div class="metric-label">Avg Days Before Production</div>
+                              </div>
+                            </div>
+
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>Project Number</th>
+                                  <th>Project Name</th>
+                                  <th>Mech Shop Date</th>
+                                  <th>Production Start</th>
+                                  <th>Days Before Production</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${projects.map(project => `
+                                  <tr>
+                                    <td>${project.projectNumber || 'N/A'}</td>
+                                    <td>${project.name || 'N/A'}</td>
+                                    <td>${project.mechShop ? format(new Date(project.mechShop), 'MMM d, yyyy') : 'Not Set'}</td>
+                                    <td>${project.earliestProductionStart ? format(new Date(project.earliestProductionStart), 'MMM d, yyyy') : 'Not Scheduled'}</td>
+                                    <td>${project.daysBeforeProduction !== null ? project.daysBeforeProduction + ' days' : 'N/A'}</td>
+                                    <td class="status-${project.mechShopStatus.toLowerCase().replace(' ', '-')}">${project.mechShopStatus}</td>
+                                  </tr>
+                                `).join('')}
+                              </tbody>
+                            </table>
+                          </body>
+                          </html>
+                        `;
+                        printWindow.document.write(html);
+                        printWindow.document.close();
+                        printWindow.print();
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Export PDF Report
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {(mechShopReportData?.projects || []).slice(0, 20).map(project => (
+                      <div key={project.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{project.name}</span>
+                            <Badge variant="outline">{project.projectNumber}</Badge>
+                          </div>
+                          <div className="text-sm text-gray-400 mt-1 grid grid-cols-2 gap-4">
+                            <div>
+                              Mech Shop: {project.mechShop ? format(new Date(project.mechShop), 'MMM d, yyyy') : 'Not Set'}
+                            </div>
+                            <div>
+                              Production: {project.earliestProductionStart ? format(new Date(project.earliestProductionStart), 'MMM d, yyyy') : 'Not Scheduled'}
+                            </div>
+                          </div>
+                          {project.daysBeforeProduction !== null && (
+                            <div className="text-sm text-blue-400 mt-1">
+                              {project.daysBeforeProduction} days before production
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge className={`
+                            ${project.mechShopStatus === 'Completed' && 'bg-green-500'} 
+                            ${project.mechShopStatus === 'Due This Week' && 'bg-yellow-500'} 
+                            ${project.mechShopStatus === 'Scheduled' && 'bg-blue-500'}
+                            ${project.mechShopStatus === 'No Mech Shop Date' && 'bg-gray-500'}
+                          `}>
+                            {project.mechShopStatus}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {(mechShopReportData?.projects || []).length === 0 && (
+                      <div className="text-center py-6 text-gray-400">
+                        No projects found in the selected period
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
 
@@ -812,6 +1050,7 @@ const ReportsPage = () => {
                     <SelectItem value="financial">Financial Reports</SelectItem>
                     <SelectItem value="project">Project Status</SelectItem>
                     <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="mech-shop">Mech Shop</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

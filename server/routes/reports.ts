@@ -500,6 +500,165 @@ export async function getManufacturingReport(req: Request, res: Response) {
   }
 }
 
+export async function getMechShopReport(req: Request, res: Response) {
+  try {
+    const { startDate, endDate, projectId } = req.query;
+
+    console.log('Mech Shop report request:', { startDate, endDate, projectId });
+
+    // Get current data
+    const allProjects = await storage.getProjects();
+    const allSchedules = await storage.getManufacturingSchedules();
+
+    // Filter projects
+    const filteredProjects = allProjects.filter(project => {
+      // Project filter
+      if (projectId && project.id.toString() !== projectId.toString()) {
+        return false;
+      }
+
+      // Date filter
+      if (startDate && endDate) {
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+        
+        // Include projects with mech shop dates in range or production dates in range
+        if (project.mechShop) {
+          const mechDate = new Date(project.mechShop);
+          if (mechDate >= start && mechDate <= end) {
+            return true;
+          }
+        }
+
+        // Also check production schedules
+        const hasScheduleInRange = allSchedules.some(schedule => {
+          if (schedule.projectId !== project.id) return false;
+          const scheduleStart = new Date(schedule.startDate);
+          const scheduleEnd = new Date(schedule.endDate);
+          return (scheduleStart <= end && scheduleEnd >= start);
+        });
+
+        return hasScheduleInRange;
+      }
+
+      return true;
+    });
+
+    // Calculate mech shop metrics and prepare project data
+    const projectsWithMechShop = filteredProjects.map(project => {
+      const projectSchedules = allSchedules.filter(s => s.projectId === project.id);
+      
+      // Find the earliest production start date
+      let earliestProductionStart = null;
+      if (projectSchedules.length > 0) {
+        const productionDates = projectSchedules.map(s => new Date(s.startDate));
+        earliestProductionStart = new Date(Math.min(...productionDates.map(d => d.getTime())));
+      }
+
+      // Calculate days before production
+      let daysBeforeProduction = null;
+      if (project.mechShop && earliestProductionStart) {
+        const mechDate = new Date(project.mechShop);
+        const timeDiff = earliestProductionStart.getTime() - mechDate.getTime();
+        daysBeforeProduction = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+      }
+
+      // Determine status based on dates
+      let status = 'No Mech Shop Date';
+      if (project.mechShop) {
+        const today = new Date();
+        const mechDate = new Date(project.mechShop);
+        
+        if (mechDate < today) {
+          status = 'Completed';
+        } else if (mechDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)) {
+          status = 'Due This Week';
+        } else {
+          status = 'Scheduled';
+        }
+      }
+
+      return {
+        ...project,
+        schedules: projectSchedules,
+        earliestProductionStart,
+        daysBeforeProduction,
+        mechShopStatus: status
+      };
+    });
+
+    // Calculate summary metrics
+    const totalProjects = projectsWithMechShop.length;
+    const projectsWithMechShopDate = projectsWithMechShop.filter(p => p.mechShop).length;
+    const projectsWithoutMechShopDate = totalProjects - projectsWithMechShopDate;
+    
+    const completedMechShop = projectsWithMechShop.filter(p => p.mechShopStatus === 'Completed').length;
+    const dueThisWeek = projectsWithMechShop.filter(p => p.mechShopStatus === 'Due This Week').length;
+    
+    // Calculate average days before production (excluding null values)
+    const validDaysBeforeProduction = projectsWithMechShop
+      .filter(p => p.daysBeforeProduction !== null)
+      .map(p => p.daysBeforeProduction);
+    
+    const averageDaysBeforeProduction = validDaysBeforeProduction.length > 0
+      ? Math.round(validDaysBeforeProduction.reduce((sum, days) => sum + days, 0) / validDaysBeforeProduction.length)
+      : 0;
+
+    // Group by month for chart data
+    const monthlyData: Record<string, { month: string, scheduled: number, completed: number }> = {};
+
+    if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      let currentMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+
+      while (currentMonth <= end) {
+        const monthKey = format(currentMonth, 'yyyy-MM');
+        monthlyData[monthKey] = {
+          month: format(currentMonth, 'MMM yyyy'),
+          scheduled: 0,
+          completed: 0
+        };
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+      }
+    }
+
+    // Fill in monthly data
+    projectsWithMechShop.forEach(project => {
+      if (!project.mechShop) return;
+
+      const mechDate = new Date(project.mechShop);
+      const monthKey = format(mechDate, 'yyyy-MM');
+
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].scheduled++;
+        if (project.mechShopStatus === 'Completed') {
+          monthlyData[monthKey].completed++;
+        }
+      }
+    });
+
+    const response = {
+      metrics: {
+        totalProjects,
+        projectsWithMechShopDate,
+        projectsWithoutMechShopDate,
+        completedMechShop,
+        dueThisWeek,
+        averageDaysBeforeProduction
+      },
+      projects: projectsWithMechShop,
+      monthlyData: Object.values(monthlyData),
+      generatedAt: new Date().toISOString()
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error generating mech shop report:', error);
+    res.status(500).json({ error: 'Failed to generate mech shop report' });
+  }
+}
+
 export async function getDeliveryReport(req: Request, res: Response) {
   try {
     const { startDate, endDate, projectId } = req.query;
@@ -691,6 +850,60 @@ export async function exportReport(req: Request, res: Response) {
             end_date: schedule.endDate,
             total_hours: schedule.totalHours || 0,
             status: project?.status || 'Active'
+          };
+        });
+        break;
+
+      case 'mech-shop':
+        const allProjectsForMech = await storage.getProjects();
+        const allSchedulesForMech = await storage.getManufacturingSchedules();
+
+        const filteredProjectsForMech = allProjectsForMech.filter(project => {
+          if (projectId && project.id.toString() !== projectId.toString()) return false;
+          return true;
+        });
+
+        fields = ['project_number', 'project_name', 'mech_shop_date', 'production_start_date', 'days_before_production', 'mech_shop_status'];
+        data = filteredProjectsForMech.map(project => {
+          const projectSchedules = allSchedulesForMech.filter(s => s.projectId === project.id);
+          
+          // Find earliest production start
+          let earliestProductionStart = null;
+          if (projectSchedules.length > 0) {
+            const productionDates = projectSchedules.map(s => new Date(s.startDate));
+            earliestProductionStart = new Date(Math.min(...productionDates.map(d => d.getTime())));
+          }
+
+          // Calculate days before production
+          let daysBeforeProduction = 'N/A';
+          if (project.mechShop && earliestProductionStart) {
+            const mechDate = new Date(project.mechShop);
+            const timeDiff = earliestProductionStart.getTime() - mechDate.getTime();
+            daysBeforeProduction = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)).toString();
+          }
+
+          // Determine status
+          let status = 'No Mech Shop Date';
+          if (project.mechShop) {
+            const today = new Date();
+            const mechDate = new Date(project.mechShop);
+            
+            if (mechDate < today) {
+              status = 'Completed';
+            } else if (mechDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)) {
+              status = 'Due This Week';
+            } else {
+              status = 'Scheduled';
+            }
+          }
+
+          return {
+            project_number: project.projectNumber || 'N/A',
+            project_name: project.name || 'N/A',
+            mech_shop_date: project.mechShop || 'Not Set',
+            production_start_date: earliestProductionStart ? format(earliestProductionStart, 'yyyy-MM-dd') : 'Not Scheduled',
+            days_before_production: daysBeforeProduction,
+            mech_shop_status: status
           };
         });
         break;
