@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Folders,
   ArrowUp,
@@ -6,7 +6,9 @@ import {
   PauseCircle,
   Clock,
   ActivitySquare,
-  CheckCircle
+  CheckCircle,
+  Plus, 
+  Minus
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -89,6 +91,10 @@ export function ProjectStatsCard({
   upcomingMilestones,
   className
 }: ProjectStatsCardProps) {
+  const [showProjectsPopover, setShowProjectsPopover] = useState(false);
+  const [currentStateFilter, setCurrentStateFilter] = useState<string | null>(null);
+  const [showAllMilestones, setShowAllMilestones] = useState(false);
+
   // Define state breakdown items if provided
   const stateItems = stateBreakdown ? [
     {
@@ -220,28 +226,55 @@ export function ProjectStatsCard({
         </div>
       )}
 
-      {/* Upcoming Milestones List */}
+      {/* Upcoming Milestones Section */}
       {upcomingMilestones && upcomingMilestones.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <div className="text-xs text-gray-400 font-medium">Next 3 Due:</div>
-          {upcomingMilestones.map((milestone, index) => (
-            <div key={milestone.id} className="flex items-center justify-between text-xs bg-gray-800/50 rounded p-2">
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-gray-200 truncate">
-                  {milestone.name}
+        <div className="mt-4 pt-4 border-t border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-gray-300">Next 3 Due:</h4>
+            {upcomingMilestones.length > 3 && (
+              <button
+                onClick={() => setShowAllMilestones(!showAllMilestones)}
+                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                {showAllMilestones ? (
+                  <>
+                    <Minus className="h-3 w-3" />
+                    Show Less
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-3 w-3" />
+                    Show All ({upcomingMilestones.length})
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {(showAllMilestones ? upcomingMilestones : upcomingMilestones.slice(0, 3)).map((milestone) => (
+              <div
+                key={milestone.id}
+                className="flex items-center justify-between p-2 bg-gray-800/50 rounded border border-gray-700"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-200 truncate">
+                    {milestone.name}
+                  </div>
+                  <div className="text-gray-400 truncate">
+                    {milestone.projectNumber} • {milestone.projectName}
+                  </div>
+                  <div className="text-gray-500 text-xs">
+                    {formatCurrency(parseFloat(milestone.amount))}
+                  </div>
                 </div>
-                <div className="text-gray-400 truncate">
-                  {milestone.projectNumber} • {milestone.projectName}
-                </div>
-                <div className="text-gray-500 text-xs">
-                  {formatCurrency(parseFloat(milestone.amount))}
+                <div className="text-gray-400 text-right ml-2">
+                  <div className="text-xs">
+                    {milestone.dueDate ? formatDate(milestone.dueDate) : 'No date set'}
+                  </div>
                 </div>
               </div>
-              <div className="text-gray-400 text-right ml-2">
-                {milestone.targetInvoiceDate ? formatDate(milestone.targetInvoiceDate) : 'No date set'}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </Card>
