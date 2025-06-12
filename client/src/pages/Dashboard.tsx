@@ -466,6 +466,26 @@ const Dashboard = () => {
     };
   }, [billingMilestones]);
 
+  // Calculate upcoming milestones (billing milestones due in next 30 days)
+  const upcomingMilestonesCount = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
+
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+
+    return billingMilestones.filter(milestone => {
+      if (!milestone.targetInvoiceDate) return false;
+
+      try {
+        const dueDate = new Date(milestone.targetInvoiceDate);
+        return (milestone.status === 'upcoming' || milestone.status === 'delayed') && 
+               dueDate >= now && dueDate <= thirtyDaysFromNow;
+      } catch (e) {
+        console.error("Error parsing milestone target invoice date:", e);
+        return false;
+      }
+    }).length;
+  }, [billingMilestones]);
 
 
   // Manufacturing bay stats
