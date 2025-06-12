@@ -254,7 +254,7 @@ const Sidebar = () => {
                 {!isCollapsed && <span>User Preferences</span>}
               </SidebarLink>
             </li>
-            {isModuleVisible('system-settings') && (
+            {isModuleVisible('system-settings') && userRole !== 'viewer' && (
               <li>
                 <SidebarLink href="/system-settings" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'active' : ''
