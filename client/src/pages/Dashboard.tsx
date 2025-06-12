@@ -847,6 +847,15 @@ const Dashboard = () => {
           projectLists={projectStats?.projectLists}
         />
 
+        <ProjectStatsCard
+          title="Upcoming Milestones"
+          value={upcomingMilestonesCount}
+          icon={<Calendar className="text-primary" />}
+          tags={[
+            { label: "due in 30 days", value: upcomingMilestonesCount, status: "Upcoming" }
+          ]}
+        />
+
         <BillingStatusCard
           title="Billing Status"
           value={formatCurrency(billingStats?.amounts.pending || 0)}
@@ -934,14 +943,13 @@ const Dashboard = () => {
           }}
         />
 
-        <ManufacturingCard
-          title="Bay Utilization"
-          value={manufacturingStats?.utilization || 0}
-          type="utilization"
-          subtitle={manufacturingStats ? 
-            getBayStatusInfo(manufacturingStats.utilization).description :
-            'No bay utilization data available'
-          }
+        <ProjectStatsCard
+          title="Upcoming Milestones"
+          value={upcomingMilestonesCount}
+          icon={<Calendar className="text-primary" />}
+          tags={[
+            { label: "due in 30 days", value: upcomingMilestonesCount, status: "Upcoming" }
+          ]}
         />
       </div>
 
