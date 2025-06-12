@@ -57,7 +57,6 @@ interface BillingStatusCardProps {
   }[];
   onGoalCreate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
   onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
-  isRealTime?: boolean;
 }
 
 // Goal Setting Dialog Component
@@ -103,7 +102,7 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
   const [isEditing, setIsEditing] = useState(false);
   const [goalType, setGoalType] = useState<'month' | 'week'>(defaultGoalType);
   const [currentDate, setCurrentDate] = useState<{year: number, month: number, week?: number} | null>(null);
-
+  
   // Expose the openDialog method to the parent component via ref
   useImperativeHandle(ref, () => ({
     openDialog: (type: 'month' | 'week') => {
@@ -111,12 +110,12 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
       handleOpenCreate();
     }
   }));
-
+  
   const handleOpenCreate = () => {
     if (selectedMonthIndex !== undefined && chart) {
       const today = new Date();
       const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex);
-
+      
       // Use standardized fiscal week number if in week mode
       let weekVal;
       if (goalType === 'week' && selectedWeekIndex !== undefined) {
@@ -125,18 +124,18 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
       } else {
         weekVal = undefined;
       }
-
+      
       setCurrentDate({
         year: targetDate.getFullYear(),
         month: targetDate.getMonth() + 1,
         week: weekVal
       });
-
+      
       // Check if a goal already exists for this month or week
       const existingGoal = goals?.find(g => {
         const yearMatch = g.year === targetDate.getFullYear();
         const monthMatch = g.month === targetDate.getMonth() + 1;
-
+        
         if (goalType === 'month') {
           return yearMatch && monthMatch && !g.week;
         } else {
@@ -144,7 +143,7 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
           return yearMatch && monthMatch && g.week === weekVal;
         }
       });
-
+      
       if (existingGoal) {
         // We're editing
         setIsEditing(true);
@@ -156,17 +155,17 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
         setGoalAmount("");
         setGoalDescription("");
       }
-
+      
       setIsOpen(true);
     }
   };
-
+  
   const handleSave = () => {
     if (!currentDate || !goalAmount) return;
-
+    
     const amount = parseFloat(goalAmount);
     if (isNaN(amount)) return;
-
+    
     if (isEditing) {
       onGoalUpdate && onGoalUpdate(
         currentDate.year,
@@ -184,10 +183,10 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
         currentDate.week
       );
     }
-
+    
     setIsOpen(false);
   };
-
+  
   return (
     <div id="goal-dialog-container">
       <button 
@@ -195,7 +194,7 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
         className="hidden"
         onClick={handleOpenCreate}
       />
-
+      
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -203,7 +202,7 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
               {isEditing ? "Edit Financial Goal" : "Set New Financial Goal"}
             </DialogTitle>
           </DialogHeader>
-
+          
           {currentDate && (
             <div className="grid gap-4 py-4">
               <div className="flex items-center gap-4">
@@ -219,7 +218,7 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
                   )}
                 </div>
               </div>
-
+              
               <div className="flex items-center gap-4">
                 <Label className="w-24 text-right">Goal Type:</Label>
                 <div className="flex items-center space-x-2">
@@ -254,7 +253,7 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
                   </Button>
                 </div>
               </div>
-
+              
               <div className="flex items-center gap-4">
                 <Label htmlFor="goalAmount" className="w-24 text-right">
                   Target Amount:
@@ -272,7 +271,7 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
                   </div>
                 </div>
               </div>
-
+              
               <div className="flex items-center gap-4">
                 <Label htmlFor="goalDescription" className="w-24 text-right">
                   Description:
@@ -286,7 +285,7 @@ const GoalSettingDialog = forwardRef<GoalDialogRef, {
               </div>
             </div>
           )}
-
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancel
@@ -317,8 +316,7 @@ export function BillingStatusCard({
   fiscalWeekDisplay = 'below',
   goals,
   onGoalCreate,
-  onGoalUpdate,
-  isRealTime = true
+  onGoalUpdate
 }: BillingStatusCardProps) {
   // Create a ref for the goal dialog
   const goalDialogRef = useRef<GoalDialogRef>(null);
@@ -339,51 +337,51 @@ export function BillingStatusCard({
 
   // Determine if this is a full-width forecast card (for special styling)
   const isFullWidthForecast = type === 'forecast' && chart && chart.weekValues;
-
+  
   // Function to render the fiscal week charts
   const renderFiscalWeekCharts = () => {
     if (!chart || !chart.weekValues) return null;
-
+    
     // Get the selected month's year and month based on selectedMonthIndex
     const today = new Date();
     const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
-
+    
     // Get fiscal weeks for this month
     const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-
+    
     // Extract revenue values specific to this month's weeks
     // Each week needs its own revenue value
     const weekRevenues = fiscalWeeks.map((week, index) => {
       // Here we use the week index to align with the UI
       return chart.weekValues ? chart.weekValues[index] || 0 : 0;
     });
-
+    
     // Calculate maximum value for proper scaling across all weeks in this month only
     const maxWeekValue = Math.max(...weekRevenues, 1); // At least 1 to avoid division by zero
-
+    
     // Only display charts for the weeks of the selected month
     return fiscalWeeks.map((fiscalWeek, idx) => {
       // Get the value for this specific week
       const val = weekRevenues[idx];
-
+      
       // Find a matching goal for this specific fiscal week
       const matchingGoal = goals?.find(g => 
         g.year === targetDate.getFullYear() && 
         g.month === targetDate.getMonth() + 1 && 
         g.week === fiscalWeek.weekNumber
       );
-
+      
       // Determine if this week has met or exceeded its goal
       const hasGoal = !!matchingGoal;
       const isExceedingGoal = hasGoal && val >= (matchingGoal?.targetAmount || 0);
-
+      
       return (
         <div key={idx} className={`${isFullWidthForecast ? 'flex-1 mx-1' : ''} bg-blue-500 bg-opacity-20 relative rounded-sm ${selectedWeekIndex === idx ? 'ring-1 ring-blue-400' : ''}`}>
           <div 
             className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-blue-400'}`}
             style={{ height: `${(val / maxWeekValue) * 100}%` }}
           ></div>
-
+          
           {/* Goal marker line if this week has a goal */}
           {hasGoal && (
             <div 
@@ -409,37 +407,15 @@ export function BillingStatusCard({
       );
     });
   };
-  const getIconColor = () => {
-    switch (type) {
-      case 'revenue':
-        return 'bg-green-100 text-green-500';
-      case 'milestones':
-        return 'bg-blue-100 text-blue-500';
-      case 'forecast':
-        return 'bg-orange-100 text-orange-500';
-      case 'cashflow':
-        return 'bg-purple-100 text-purple-500';
-      default:
-        return 'bg-gray-100 text-gray-500';
-    }
-  };
   return (
     <Card className={`bg-darkCard rounded-xl p-4 border border-gray-800 ${isFullWidthForecast ? 'p-6' : ''}`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex items-center gap-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          {isRealTime && (
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-gray-500">Live</span>
-            </div>
-          )}
-        </div>
-        <div className={`p-2 rounded-lg bg-opacity-10`} style={{ backgroundColor: 'rgba(var(--chart-1), 0.1)' }}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className={`text-gray-400 font-medium ${isFullWidthForecast ? 'text-lg' : ''}`}>{title}</h3>
+        <div className="p-2 rounded-lg bg-opacity-10" style={{ backgroundColor: 'rgba(var(--chart-1), 0.1)' }}>
           {getIcon()}
         </div>
-      </CardHeader>
-
+      </div>
+      
       {type === 'milestones' && stats ? (
         <div className="grid grid-cols-2 gap-2">
           {stats.map((stat, index) => (
@@ -486,7 +462,7 @@ export function BillingStatusCard({
                 <span className="text-2xl font-bold font-sans">{value}</span>
                 <span className="ml-2 text-sm text-gray-400">forecast</span>
               </div>
-
+              
               {/* YTD and 12M Buttons */}
               <div className="flex gap-2">
                 <Button 
@@ -505,7 +481,7 @@ export function BillingStatusCard({
                 >
                   YTD
                 </Button>
-
+                
                 <Button 
                   variant={selectedMonthIndex === -2 ? "default" : "outline"}
                   size="sm"
@@ -524,7 +500,7 @@ export function BillingStatusCard({
                 </Button>
               </div>
             </div>
-
+            
             {/* Goal Progress */}
             {goals && goals.length > 0 && selectedMonthIndex !== undefined && (
               <div className="mt-1">
@@ -533,11 +509,11 @@ export function BillingStatusCard({
                   const today = new Date();
                   const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex);
                   const matchingGoal = goals.find(g => g.year === targetDate.getFullYear() && g.month === targetDate.getMonth() + 1);
-
+                  
                   if (matchingGoal) {
                     const monthValue = chart.values[selectedMonthIndex];
                     const percentage = Math.min(100, Math.round((monthValue / matchingGoal.targetAmount) * 100));
-
+                    
                     return (
                       <div className="flex flex-col gap-1">
                         <div className="flex justify-between text-xs">
@@ -553,7 +529,7 @@ export function BillingStatusCard({
                       </div>
                     );
                   }
-
+                  
                   return (
                     <div className="flex justify-between items-center text-xs mt-1 text-gray-400">
                       <span>No goal set for this month</span>
@@ -578,7 +554,7 @@ export function BillingStatusCard({
               </div>
             )}
           </div>
-
+          
           {/* Month Navigation and Chart */}
           <div className={`mt-3 ${isFullWidthForecast ? 'px-2' : ''}`}>
             {/* Month Navigation Buttons */}
@@ -586,7 +562,7 @@ export function BillingStatusCard({
               {chart.labels.map((label, idx) => {
                 // Create a distinct visual style for the selected month
                 const isSelected = selectedMonthIndex === idx;
-
+                
                 return (
                   <Button 
                     key={idx}
@@ -599,7 +575,7 @@ export function BillingStatusCard({
                     `}
                     onClick={() => {
                       console.log(`Month selection: Changing to month index ${idx} (${label})`);
-
+                      
                       // When changing months, we should also update the fiscal week display
                       // by resetting the selected week to the first week of the month
                       if (onMonthSelect) {
@@ -610,17 +586,17 @@ export function BillingStatusCard({
                           targetDate.getFullYear(),
                           targetDate.getMonth()
                         );
-
+                        
                         // If onWeekSelect is provided, also select the first week of this month
                         if (onWeekSelect) {
                           // Calculate the target date based on selected month
                           const today = new Date();
                           const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), idx);
-
+                          
                           // Get first fiscal week of the month
                           const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
                           const firstWeekNumber = fiscalWeeks.length > 0 ? fiscalWeeks[0].weekNumber : 1;
-
+                          
                           onWeekSelect(
                             targetDate.getFullYear(),
                             firstWeekNumber // Use the correct first fiscal week of the month
@@ -634,13 +610,13 @@ export function BillingStatusCard({
                 );
               })}
             </div>
-
+            
             {/* Bar Chart */}
             <div className={`grid grid-cols-12 gap-1 ${isFullWidthForecast ? 'h-32' : 'h-16'}`}>
               {chart.values.map((val, idx) => {
                 // Debug log to see actual values and selection state
                 console.log(`Bar ${idx} (${chart.labels[idx]}): $${val}, Selected: ${selectedMonthIndex}, IsSelected: ${selectedMonthIndex === idx}`);
-
+                
                 // Calculate max value for scaling - use all values, not just positive ones
                 const maxValue = Math.max(...chart.values);
                 const heightPercentage = maxValue > 0 ? (val / maxValue) * 90 : 0;
@@ -653,14 +629,14 @@ export function BillingStatusCard({
                   g.month === targetDate.getMonth() + 1 &&
                   !g.week // Only find month-level goals here
                 );
-
+                
                 // Determine if this month has met or exceeded its goal
                 const hasGoal = !!matchingGoal;
                 const isExceedingGoal = hasGoal && val >= matchingGoal.targetAmount;
-
+                
                 // Highlight the selected month
                 const isSelected = selectedMonthIndex === idx;
-
+                
                 return (
                   <div key={idx} className={`bg-gray-700 bg-opacity-30 relative rounded-sm ${isSelected ? 'ring-2 ring-green-400 ring-opacity-80' : ''}`}>
                     <div 
@@ -677,7 +653,7 @@ export function BillingStatusCard({
                         height: `${val > 0 ? Math.max(3, heightPercentage) : 2}%` 
                       }}
                     ></div>
-
+                    
                     {/* Goal marker line if this month has a goal */}
                     {hasGoal && (
                       <div 
@@ -687,7 +663,7 @@ export function BillingStatusCard({
                         }}
                       ></div>
                     )}
-
+                    
                     {/* Value label above the bar for full-width view */}
                     {isFullWidthForecast && (
                       <div className="absolute w-full text-center -top-6 text-xs">
@@ -704,7 +680,7 @@ export function BillingStatusCard({
               })}
             </div>
           </div>
-
+          
           {/* Fiscal Week Display - Appears below the monthly chart */}
           {showFiscalWeeks && chart?.weekLabels && chart?.weekValues && (
             <div className={`mt-8 bg-gray-900/30 rounded-lg ${isFullWidthForecast ? 'p-6' : 'p-4'} border border-gray-800`}>
@@ -715,10 +691,10 @@ export function BillingStatusCard({
                     // Get the selected month's year and month based on selectedMonthIndex
                     const today = new Date();
                     const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
-
+                    
                     // Get fiscal weeks for the current selected month
                     const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-
+                    
                     // Display proper week range if available
                     if (fiscalWeeks[selectedWeekIndex]) {
                       const weekNumber = fiscalWeeks[selectedWeekIndex].weekNumber;
@@ -728,25 +704,25 @@ export function BillingStatusCard({
                   })()}
                 </span>
               </div>
-
+              
               {/* Week Navigation Buttons */}
               <div className={`${isFullWidthForecast ? 'flex justify-between' : 'grid grid-cols-6 gap-1'} mb-4`}>
                 {(() => {
                   // Get the selected month's year and month based on selectedMonthIndex
                   const today = new Date();
                   const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
-
+                  
                   // Get fiscal weeks for the current selected month
                   const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-
+                  
                   // Adjust the number of buttons based on actual fiscal weeks
                   const weeksToShow = fiscalWeeks.length;
-
+                  
                   // Create buttons based on the number of weeks in the selected month
                   return fiscalWeeks.map((fiscalWeek, idx) => {
                     // Get the week label with range - just the dates for the current month
                     const weekRangeLabel = getFiscalWeekLabel(targetDate.getFullYear(), targetDate.getMonth() + 1, fiscalWeek.weekNumber, true);
-
+                    
                     return (
                       <Button 
                         key={idx}
@@ -769,12 +745,12 @@ export function BillingStatusCard({
                   });
                 })()}
               </div>
-
+              
               {/* Fiscal Week Chart */}
               <div className={`${isFullWidthForecast ? 'flex justify-between h-40' : 'grid grid-cols-6 gap-1 h-20'}`}>
                 {renderFiscalWeekCharts()}
               </div>
-
+              
               {/* Weekly Goal Status */}
               {selectedWeekIndex !== undefined && (
                 <div className={`${isFullWidthForecast ? 'mt-6 flex justify-between items-center' : 'mt-3 flex justify-between items-center text-sm'}`}>
@@ -785,10 +761,10 @@ export function BillingStatusCard({
                         // Get the selected month's year and month
                         const today = new Date();
                         const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
-
+                        
                         // Get fiscal weeks for this month
                         const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-
+                        
                         if (fiscalWeeks[selectedWeekIndex]) {
                           return `Week ${selectedWeekIndex + 1} Total:`;
                         }
@@ -801,12 +777,12 @@ export function BillingStatusCard({
                         const today = new Date();
                         const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
                         const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-
+                        
                         // Extract revenue values specific to this month's weeks
                         const weekRevenues = fiscalWeeks.map((week, index) => {
                           return chart.weekValues ? chart.weekValues[index] || 0 : 0;
                         });
-
+                        
                         const weekValue = weekRevenues[selectedWeekIndex] || 0;
                         return new Intl.NumberFormat('en-US', { 
                           style: 'currency', 
@@ -816,7 +792,7 @@ export function BillingStatusCard({
                       })()}
                     </span>
                   </div>
-
+                  
                   {/* Add Goal button */}
                   <Button 
                     variant="outline" 
@@ -831,8 +807,7 @@ export function BillingStatusCard({
                       }
                     }}
                   >
-                    <PlusCircle```text
- className="h-3.5 w-3.5 mr-1" /> {isFullWidthForecast ? 'Set Weekly Goal' : 'Set Goal'}
+                    <PlusCircle className="h-3.5 w-3.5 mr-1" /> {isFullWidthForecast ? 'Set Weekly Goal' : 'Set Goal'}
                   </Button>
                 </div>
               )}
@@ -863,7 +838,7 @@ export function BillingStatusCard({
               </span>
             )}
           </div>
-
+          
           {progress && (
             <div className="mt-3 flex items-center">
               <Progress value={progress.value} className="w-full bg-gray-800 h-2" />

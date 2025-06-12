@@ -23,8 +23,7 @@ import {
   Wrench,
   Clock,
   CheckCircle,
-  Search,
-  AlertTriangle
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
@@ -38,35 +37,25 @@ import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "wouter";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
   const { toast } = useToast();
-  const navigate = useNavigate();
 
-  // Fetch projects with auto-refresh for real-time updates
-  const { data: projects, isLoading: isLoadingProjects, error: projectsError } = useQuery({
+  // All hooks must be called before any conditional returns
+  const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
-    staleTime: 15000, // 15 seconds for more frequent updates
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchIntervalInBackground: true, // Continue refreshing in background
   });
 
-  // Fetch billing milestones with auto-refresh for real-time updates
-  const { data: billingMilestones, isLoading: isLoadingBillingMilestones, error: billingError } = useQuery({
+  const { data: billingMilestones, isLoading: isLoadingBillingMilestones } = useQuery({
     queryKey: ['/api/billing-milestones'],
-    staleTime: 15000, // 15 seconds for more frequent updates
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchIntervalInBackground: true, // Continue refreshing in background
   });
 
   const { data: manufacturingSchedules, isLoading: isLoadingManufacturing } = useQuery({
@@ -457,23 +446,6 @@ const Dashboard = () => {
 
       return monthlyRevenue;
     });
-    
-    // Calculate upcoming milestones for the next 30 days
-    const next30Days = new Date();
-    next30Days.setDate(next30Days.getDate() + 30);
-
-    const upcomingMilestones = billingMilestones.filter(m => {
-        if (!m.targetInvoiceDate) return false;
-        const milestoneDate = new Date(m.targetInvoiceDate);
-        return milestoneDate >= today && milestoneDate <= next30Days && m.status !== 'paid' && m.status !== 'delayed';
-    }).slice(0, 5); // Limit to top 5 upcoming milestones
-
-    // Calculate overdue milestones
-    const overdueMilestones = billingMilestones.filter(m => {
-        if (!m.targetInvoiceDate) return false;
-        const milestoneDate = new Date(m.targetInvoiceDate);
-        return milestoneDate < today && m.status !== 'paid';
-    });
 
     return {
       milestones: {
@@ -490,9 +462,7 @@ const Dashboard = () => {
       forecast: {
         labels: monthNames,
         values: forecastValues
-      },
-      upcomingMilestones: upcomingMilestones,
-      overdueMilestones: overdueMilestones
+      }
     };
   }, [billingMilestones]);
 
@@ -866,7 +836,6 @@ const Dashboard = () => {
             { label: "Pending", value: formatCurrency(billingStats?.amounts.pending || 0) },
             { label: "Overdue", value: formatCurrency(billingStats?.amounts.overdue || 0) }
           ]}
-          isRealTime={true}
         />
 
         <BillingStatusCard
