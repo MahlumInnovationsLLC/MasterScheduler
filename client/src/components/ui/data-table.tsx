@@ -416,6 +416,13 @@ export function DataTable<TData, TValue>({
                   <tr className="bg-muted/50">
                     {table.getHeaderGroups()[0].headers.map((header) => {
                       if (!frozenColumns.includes(header.column.id)) {
+                        let headerText = flexRender(header.column.columnDef.header, header.getContext());
+                        // Conditionally change headers (assuming you have access to header.column.id)
+                        if (header.column.id === 'fabricationStart') {
+                            headerText = 'FAB Start';
+                        } else if (header.column.id === 'ntcTestingDays') {
+                            headerText = 'NTC Days';
+                        }
                         return (
                           <th 
                             key={header.id}
@@ -443,10 +450,7 @@ export function DataTable<TData, TValue>({
                               }
                               onClick={header.column.getToggleSortingHandler()}
                             >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                              {headerText}
                               {header.column.getCanSort() && (
                                 <div className="inline-block">
                                   {{
