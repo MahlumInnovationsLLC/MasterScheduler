@@ -467,13 +467,13 @@ const Dashboard = () => {
   }, [billingMilestones]);
 
   // Calculate upcoming milestones (billing milestones due in next 30 days)
-  const upcomingMilestonesCount = React.useMemo(() => {
-    if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
+  const upcomingMilestonesData = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return { count: 0, milestones: [] };
 
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
 
-    return billingMilestones.filter(milestone => {
+    const upcomingMilestones = billingMilestones.filter(milestone => {
       if (!milestone.targetInvoiceDate) return false;
 
       try {
@@ -484,7 +484,19 @@ const Dashboard = () => {
         console.error("Error parsing milestone target invoice date:", e);
         return false;
       }
-    }).length;
+    });
+
+    // Sort milestones by due date
+    upcomingMilestones.sort((a, b) => {
+      const dateA = new Date(a.targetInvoiceDate);
+      const dateB = new Date(b.targetInvoiceDate);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    return {
+      count: upcomingMilestones.length,
+      milestones: upcomingMilestones.slice(0, 3) // Get the next 3 upcoming milestones
+    };
   }, [billingMilestones]);
 
 
@@ -849,11 +861,12 @@ const Dashboard = () => {
 
         <ProjectStatsCard
           title="Upcoming Milestones"
-          value={upcomingMilestonesCount}
+          value={upcomingMilestonesData.count}
           icon={<Calendar className="text-primary" />}
           tags={[
-            { label: "due in 30 days", value: upcomingMilestonesCount, status: "Upcoming" }
+            { label: "due in 30 days", value: upcomingMilestonesData.count, status: "Upcoming" }
           ]}
+          upcomingMilestones={upcomingMilestonesData.milestones}
         />
 
         <BillingStatusCard
@@ -941,15 +954,6 @@ const Dashboard = () => {
 
             console.log(`Month ${month + 1}/${year}: $${monthlyAmount} from ${selectedMonthMilestones.length} milestones`);
           }}
-        />
-
-        <ProjectStatsCard
-          title="Upcoming Milestones"
-          value={upcomingMilestonesCount}
-          icon={<Calendar className="text-primary" />}
-          tags={[
-            { label: "due in 30 days", value: upcomingMilestonesCount, status: "Upcoming" }
-          ]}
         />
       </div>
 

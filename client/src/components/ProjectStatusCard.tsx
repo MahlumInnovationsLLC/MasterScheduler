@@ -22,6 +22,11 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Link } from "wouter";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface ProjectInfo {
   id: number;
@@ -60,6 +65,14 @@ interface ProjectStatsCardProps {
     complete: ProjectInfo[];
     delivered: ProjectInfo[];
   };
+  upcomingMilestones?: Array<{
+    id: number;
+    name: string;
+    projectNumber: string;
+    amount: string;
+    dueDate: string;
+    status: string;
+  }>;
   className?: string;
 }
 
@@ -72,6 +85,7 @@ export function ProjectStatsCard({
   progress,
   stateBreakdown,
   projectLists,
+  upcomingMilestones,
   className
 }: ProjectStatsCardProps) {
   // Define state breakdown items if provided
@@ -135,14 +149,14 @@ export function ProjectStatsCard({
           </span>
         )}
       </div>
-      
+
       {progress && (
         <div className="mt-3 flex items-center">
           <Progress value={progress.value} className="w-full bg-gray-800 h-2" />
           <span className="ml-2 text-xs text-gray-400">{progress.label}</span>
         </div>
       )}
-      
+
       {tags && tags.length > 0 && (
         <div className="mt-2 flex gap-2 flex-wrap">
           {tags.map((tag, index) => (
@@ -181,7 +195,7 @@ export function ProjectStatsCard({
                       <span>{item.status} Projects ({item.count})</span>
                     </h3>
                   </div>
-                  
+
                   {item.projects.length > 0 ? (
                     <div className="max-h-[320px] overflow-y-auto">
                       {item.projects.map((project) => (
@@ -210,6 +224,28 @@ export function ProjectStatsCard({
               </HoverCard>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Upcoming Milestones List */}
+      {upcomingMilestones && upcomingMilestones.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <div className="text-xs text-gray-400 font-medium">Next 3 Due:</div>
+          {upcomingMilestones.map((milestone, index) => (
+            <div key={milestone.id} className="flex items-center justify-between text-xs bg-gray-800/50 rounded p-2">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-200 truncate">
+                  {milestone.name}
+                </div>
+                <div className="text-gray-400">
+                  {milestone.projectNumber} • {formatCurrency(parseFloat(milestone.amount))}
+                </div>
+              </div>
+              <div className="text-gray-400 text-right ml-2">
+                {formatDate(milestone.dueDate)}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </Card>
