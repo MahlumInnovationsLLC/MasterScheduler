@@ -511,10 +511,12 @@ export function DataTable<TData, TValue>({
           </div>
           {/* External scrollbar positioned below both table sections */}
           <div 
-            className="overflow-x-auto mt-0" 
+            className="overflow-x-auto mt-0 border-t border-border bg-muted/20" 
             style={{ 
               height: '15px',
-              width: '100%'
+              width: '100%',
+              scrollbarWidth: 'thin', /* Firefox */
+              scrollbarColor: 'var(--border) var(--muted)', /* Firefox */
             }}
             onScroll={(e) => {
               // Sync scroll with the scrollable table content
@@ -525,6 +527,23 @@ export function DataTable<TData, TValue>({
               }
             }}
           >
+            <style jsx>{`
+              div::-webkit-scrollbar {
+                height: 12px;
+              }
+              div::-webkit-scrollbar-track {
+                background: var(--muted);
+                border-radius: 6px;
+              }
+              div::-webkit-scrollbar-thumb {
+                background: var(--border);
+                border-radius: 6px;
+                border: 2px solid var(--muted);
+              }
+              div::-webkit-scrollbar-thumb:hover {
+                background: var(--foreground);
+              }
+            `}</style>
             <div style={{ 
               height: '1px', 
               width: `${(columns.length - frozenColumns.length) * 200}px` // Approximate total width
