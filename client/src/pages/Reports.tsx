@@ -275,6 +275,20 @@ const ReportsPage = () => {
     return Object.values(months);
   };
 
+  // Fetch detailed project report data
+  const { data: projectReportData, isLoading: projectReportLoading } = useQuery({
+    queryKey: [`/api/reports/project-status?${new URLSearchParams({ 
+      ...dateRange, 
+      ...(projectFilter !== 'all' ? { projectId: projectFilter } : {}) 
+    }).toString()}`],
+    queryFn: () => fetch(`/api/reports/project-status?${new URLSearchParams({ 
+      ...dateRange, 
+      ...(projectFilter !== 'all' ? { projectId: projectFilter } : {}) 
+    }).toString()}`).then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
   // Prepare project status data
   const getProjectStatusData = () => {
     const statusCounts = {
@@ -507,30 +521,82 @@ const ReportsPage = () => {
 
             {/* Project Status Tab */}
             <TabsContent value="project">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              {/* Project Categories Overview */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Project Health Overview</CardTitle>
+                    <CardTitle className="text-lg">Delivered</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-500">{onTrackProjects}</div>
-                        <p className="text-xs text-gray-400">On Track</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-yellow-500">{atRiskProjects}</div>
-                        <p className="text-xs text-gray-400">At Risk</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-500">{delayedProjects}</div>
-                        <p className="text-xs text-gray-400">Delayed</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-500">{completedProjects}</div>
-                        <p className="text-xs text-gray-400">Completed</p>
-                      </div>
+                    <div className="text-2xl font-bold text-green-500">
+                      {projectReportData?.metrics?.delivered || 0}
                     </div>
+                    <p className="text-xs text-gray-400">Projects delivered</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">In Progress</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-500">
+                      {projectReportData?.metrics?.inProgress || 0}
+                    </div>
+                    <p className="text-xs text-gray-400">Currently in manufacturing</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Scheduled</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-yellow-500">
+                      {projectReportData?.metrics?.scheduled || 0}
+                    </div>
+                    <p className="text-xs text-gray-400">Scheduled for future</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Unscheduled</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-500">
+                      {projectReportData?.metrics?.unscheduled || 0}
+                    </div>
+                    <p className="text-xs text-gray-400">Awaiting scheduling</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Delivery Performance Metrics */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">On-Time Delivery Rate</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-500">
+                      {projectReportData?.metrics?.onTimeDeliveryRate || 0}%
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {projectReportData?.deliveryMetrics?.onTimeDeliveries || 0} of {projectReportData?.deliveryMetrics?.totalDelivered || 0} delivered on time
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Average Days Late</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-500">
+                      {projectReportData?.metrics?.averageDaysLate || 0}
+                    </div>
+                    <p className="text-xs text-gray-400">For late deliveries</p>
                   </CardContent>
                 </Card>
 
@@ -539,23 +605,48 @@ const ReportsPage = () => {
                     <CardTitle className="text-lg">Total Projects</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{filteredProjects.length}</div>
+                    <div className="text-2xl font-bold">{projectReportData?.metrics?.totalProjects || 0}</div>
                     <p className="text-xs text-gray-400">In selected time range</p>
                   </CardContent>
                 </Card>
               </div>
 
+              {/* Monthly Delivery Trends */}
               <Card className="mb-4">
                 <CardHeader>
-                  <CardTitle>Project Status Distribution</CardTitle>
-                  <CardDescription>Current project health breakdown (Live Data)</CardDescription>
+                  <CardTitle>Monthly Delivery Performance</CardTitle>
+                  <CardDescription>Delivered projects and on-time performance by month (Live Data)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={projectReportData?.monthlyDeliveries || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="delivered" name="Total Delivered" fill="#8884d8" />
+                        <Bar dataKey="onTime" name="On Time" fill="#00C49F" />
+                        <Bar dataKey="late" name="Late" fill="#FF8042" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Project Status Distribution */}
+              <Card className="mb-4">
+                <CardHeader>
+                  <CardTitle>Active Project Status Distribution</CardTitle>
+                  <CardDescription>Current project health breakdown (excluding delivered projects)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={projectStatusData}
+                          data={projectReportData?.statusDistribution || []}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
@@ -564,7 +655,7 @@ const ReportsPage = () => {
                           dataKey="value"
                           label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                         >
-                          {projectStatusData.map((entry, index) => (
+                          {(projectReportData?.statusDistribution || []).map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -576,34 +667,52 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
 
+              {/* Project Details Table */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Project Activity</CardTitle>
-                  <CardDescription>Latest project updates</CardDescription>
+                  <CardTitle>Project Details</CardTitle>
+                  <CardDescription>Complete project breakdown with schedule status</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {filteredProjects.slice(0, 5).map(project => (
+                    {(projectReportData?.projects || []).slice(0, 10).map(project => (
                       <div key={project.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg">
-                        <div>
+                        <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{project.name}</span>
                             <Badge variant="outline">{project.projectNumber}</Badge>
                           </div>
                           <div className="text-sm text-gray-400 mt-1">
-                            Status: {project.status || 'Active'}
+                            Status: {project.status || 'Active'} | Schedule: {project.scheduleStatus}
+                            {project.totalHours > 0 && ` | ${project.totalHours} hours`}
                           </div>
                         </div>
-                        <Badge className={`
-                          ${project.status === 'completed' && 'bg-green-500'} 
-                          ${project.status === 'at-risk' && 'bg-yellow-500'} 
-                          ${project.status === 'delayed' && 'bg-red-500'}
-                          ${(!project.status || project.status === 'active') && 'bg-blue-500'}
-                        `}>
-                          {project.status || 'Active'}
-                        </Badge>
+                        <div className="flex gap-2">
+                          <Badge className={`
+                            ${project.scheduleStatus === 'delivered' && 'bg-green-500'} 
+                            ${project.scheduleStatus === 'in-progress' && 'bg-blue-500'} 
+                            ${project.scheduleStatus === 'scheduled' && 'bg-yellow-500'}
+                            ${project.scheduleStatus === 'unscheduled' && 'bg-red-500'}
+                          `}>
+                            {project.scheduleStatus}
+                          </Badge>
+                          <Badge className={`
+                            ${project.status === 'completed' && 'bg-green-500'} 
+                            ${project.status === 'at-risk' && 'bg-yellow-500'} 
+                            ${project.status === 'delayed' && 'bg-red-500'}
+                            ${(!project.status || project.status === 'active') && 'bg-blue-500'}
+                          `}>
+                            {project.status || 'Active'}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
+                    
+                    {(projectReportData?.projects || []).length === 0 && (
+                      <div className="text-center py-6 text-gray-400">
+                        No projects found in the selected period
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -4033,6 +4033,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reports API routes
+  app.get('/api/reports/project-status', async (req, res) => {
+    try {
+      await getProjectStatusReport(req, res);
+    } catch (error) {
+      console.error('Error in project status report route:', error);
+      res.status(500).json({ error: 'Failed to generate project status report' });
+    }
+  });
+  
   app.post('/api/reports/export', simpleAuth, exportReport);
   
   // AI Insights API

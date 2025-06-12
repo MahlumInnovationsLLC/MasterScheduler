@@ -155,9 +155,10 @@ export async function getProjectStatusReport(req: Request, res: Response) {
 
     console.log('Project status report request:', { startDate, endDate, projectId });
 
-    // Get current projects
+    // Get current projects and related data
     const allProjects = await storage.getProjects();
     const allSchedules = await storage.getManufacturingSchedules();
+    const deliveredProjects = await storage.getDeliveredProjects();
 
     // Filter projects
     const filteredProjects = allProjects.filter(project => {
@@ -186,7 +187,113 @@ export async function getProjectStatusReport(req: Request, res: Response) {
       return true;
     });
 
-    // Calculate status distribution
+    // Categorize projects by schedule and delivery status
+    const projectCategories = {
+      delivered: 0,
+      inProgress: 0,
+      scheduled: 0,
+      unscheduled: 0
+    };
+
+    const deliveryMetrics = {
+      totalDelivered: 0,
+      onTimeDeliveries: 0,
+      lateDeliveries: 0,
+      averageDaysLate: 0,
+      totalDaysLate: 0
+    };
+
+    const monthlyDeliveries: Record<string, { month: string, delivered: number, onTime: number, late: number }> = {};
+
+    // Initialize monthly tracking if date range provided
+    if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      let currentMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+
+      while (currentMonth <= end) {
+        const monthKey = format(currentMonth, 'yyyy-MM');
+        monthlyDeliveries[monthKey] = {
+          month: format(currentMonth, 'MMM yyyy'),
+          delivered: 0,
+          onTime: 0,
+          late: 0
+        };
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+      }
+    }
+
+    // Process delivered projects for metrics
+    deliveredProjects.forEach(project => {
+      if (projectId && project.id.toString() !== projectId.toString()) return;
+
+      deliveryMetrics.totalDelivered++;
+      let daysLate = 0;
+
+      if (project.deliveryDate && project.contractDate) {
+        const deliveryDate = new Date(project.deliveryDate);
+        const contractDate = new Date(project.contractDate);
+        daysLate = Math.ceil((deliveryDate.getTime() - contractDate.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      if (daysLate <= 0) {
+        deliveryMetrics.onTimeDeliveries++;
+      } else {
+        deliveryMetrics.lateDeliveries++;
+        deliveryMetrics.totalDaysLate += daysLate;
+      }
+
+      // Track monthly deliveries
+      if (project.deliveryDate && monthlyDeliveries) {
+        const deliveryDate = new Date(project.deliveryDate);
+        const monthKey = format(deliveryDate, 'yyyy-MM');
+        
+        if (monthlyDeliveries[monthKey]) {
+          monthlyDeliveries[monthKey].delivered++;
+          if (daysLate <= 0) {
+            monthlyDeliveries[monthKey].onTime++;
+          } else {
+            monthlyDeliveries[monthKey].late++;
+          }
+        }
+      }
+    });
+
+    // Calculate average days late
+    if (deliveryMetrics.lateDeliveries > 0) {
+      deliveryMetrics.averageDaysLate = Math.round(deliveryMetrics.totalDaysLate / deliveryMetrics.lateDeliveries);
+    }
+
+    // Categorize non-delivered projects
+    filteredProjects.forEach(project => {
+      // Skip delivered projects as they're counted separately
+      if (project.status === 'delivered') {
+        projectCategories.delivered++;
+        return;
+      }
+
+      const projectSchedules = allSchedules.filter(s => s.projectId === project.id);
+      
+      if (projectSchedules.length === 0) {
+        projectCategories.unscheduled++;
+      } else {
+        // Check if any schedule is currently active
+        const now = new Date();
+        const hasActiveSchedule = projectSchedules.some(schedule => {
+          const startDate = new Date(schedule.startDate);
+          const endDate = new Date(schedule.endDate);
+          return startDate <= now && endDate >= now;
+        });
+
+        if (hasActiveSchedule) {
+          projectCategories.inProgress++;
+        } else {
+          projectCategories.scheduled++;
+        }
+      }
+    });
+
+    // Calculate status distribution for active projects
     const statusCounts = {
       active: 0,
       'on-track': 0,
@@ -196,7 +303,7 @@ export async function getProjectStatusReport(req: Request, res: Response) {
       archived: 0
     };
 
-    filteredProjects.forEach(project => {
+    filteredProjects.filter(p => p.status !== 'delivered').forEach(project => {
       const status = project.status?.toLowerCase() || 'active';
       if (statusCounts.hasOwnProperty(status)) {
         statusCounts[status as keyof typeof statusCounts]++;
@@ -209,31 +316,54 @@ export async function getProjectStatusReport(req: Request, res: Response) {
       .filter(([_, count]) => count > 0)
       .map(([name, value]) => ({ name, value }));
 
-    // Calculate metrics
-    const totalProjects = filteredProjects.length;
-    const onTrack = statusCounts.active + statusCounts['on-track'];
-    const atRisk = statusCounts['at-risk'];
-    const delayed = statusCounts.delayed;
-
-    // Get project details with schedules
+    // Get project details with schedules and delivery info
     const projectsWithDetails = filteredProjects.map(project => {
       const projectSchedules = allSchedules.filter(s => s.projectId === project.id);
+      const isDelivered = project.status === 'delivered';
+      
+      let scheduleStatus = 'unscheduled';
+      if (projectSchedules.length > 0) {
+        const now = new Date();
+        const hasActiveSchedule = projectSchedules.some(schedule => {
+          const startDate = new Date(schedule.startDate);
+          const endDate = new Date(schedule.endDate);
+          return startDate <= now && endDate >= now;
+        });
+        scheduleStatus = hasActiveSchedule ? 'in-progress' : 'scheduled';
+      }
 
       return {
         ...project,
         schedules: projectSchedules,
-        totalHours: projectSchedules.reduce((sum, s) => sum + (s.totalHours || 0), 0)
+        totalHours: projectSchedules.reduce((sum, s) => sum + (s.totalHours || 0), 0),
+        scheduleStatus: isDelivered ? 'delivered' : scheduleStatus
       };
     });
 
+    // Calculate on-time delivery rate
+    const onTimeDeliveryRate = deliveryMetrics.totalDelivered > 0 
+      ? Math.round((deliveryMetrics.onTimeDeliveries / deliveryMetrics.totalDelivered) * 100)
+      : 0;
+
     const response = {
       metrics: {
-        totalProjects,
-        onTrack,
-        atRisk,
-        delayed
+        totalProjects: filteredProjects.length,
+        delivered: projectCategories.delivered,
+        inProgress: projectCategories.inProgress,
+        scheduled: projectCategories.scheduled,
+        unscheduled: projectCategories.unscheduled,
+        onTimeDeliveryRate,
+        averageDaysLate: deliveryMetrics.averageDaysLate
+      },
+      deliveryMetrics: {
+        totalDelivered: deliveryMetrics.totalDelivered,
+        onTimeDeliveries: deliveryMetrics.onTimeDeliveries,
+        lateDeliveries: deliveryMetrics.lateDeliveries,
+        onTimePercentage: onTimeDeliveryRate,
+        averageDaysLate: deliveryMetrics.averageDaysLate
       },
       statusDistribution,
+      monthlyDeliveries: Object.values(monthlyDeliveries),
       projects: projectsWithDetails,
       generatedAt: new Date().toISOString()
     };
