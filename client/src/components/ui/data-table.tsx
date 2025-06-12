@@ -276,7 +276,7 @@ export function DataTable<TData, TValue>({
       </div>
 
       <div className="overflow-hidden">
-        <div className="overflow-x-auto" style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }}>
           <div className="grid grid-flow-col" style={{ width: 'fit-content', alignItems: 'stretch' }}>
             {/* Frozen columns - these will stay fixed */}
             <div 
@@ -382,17 +382,12 @@ export function DataTable<TData, TValue>({
                       </td>
                     </tr>
                   )}
-
-                  {/* Dedicated empty row in frozen section to match scrollbar row height */}
-                  <tr className="scrollbar-row">
-                    <td colSpan={frozenColumns.length} style={{ height: '15px', padding: 0 }}></td>
-                  </tr>
                 </tbody>
               </table>
             </div>
 
             {/* Scrollable columns with fixed row heights */}
-            <div className="overflow-x-auto">
+            <div>
               <table className="border-collapse">
                 <thead>
                   <tr className="bg-muted/50">
@@ -492,14 +487,29 @@ export function DataTable<TData, TValue>({
                       </td>
                     </tr>
                   )}
-
-                  {/* Dedicated row for horizontal scrollbar */}
-                  <tr className="scrollbar-row">
-                    <td colSpan={columns.length - frozenColumns.length} style={{ height: '15px', padding: 0 }}></td>
-                  </tr>
                 </tbody>
               </table>
             </div>
+          </div>
+          {/* External scrollbar positioned below both table sections */}
+          <div 
+            className="overflow-x-auto mt-0" 
+            style={{ 
+              height: '15px',
+              width: '100%'
+            }}
+            onScroll={(e) => {
+              // Sync scroll with the scrollable table content
+              const scrollableTable = e.currentTarget.previousElementSibling?.querySelector('div:last-child') as HTMLElement;
+              if (scrollableTable) {
+                scrollableTable.scrollLeft = e.currentTarget.scrollLeft;
+              }
+            }}
+          >
+            <div style={{ 
+              height: '1px', 
+              width: `${(columns.length - frozenColumns.length) * 200}px` // Approximate total width
+            }}></div>
           </div>
         </div>
       </div>
