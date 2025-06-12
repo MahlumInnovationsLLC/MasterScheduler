@@ -396,15 +396,15 @@ export function DataTable<TData, TValue>({
               onScroll={(e) => {
                 // Sync scroll with external scrollbar
                 const scrollLeft = e.currentTarget.scrollLeft;
-                
+
                 // Find the external scrollbar more reliably
                 const mainContainer = e.currentTarget.closest('div[class="overflow-hidden"]') as HTMLElement;
                 const externalScrollbar = mainContainer?.parentElement?.querySelector('div.overflow-x-auto.mt-0') as HTMLElement;
-                
+
                 if (externalScrollbar) {
                   externalScrollbar.scrollLeft = scrollLeft;
                 }
-              }
+              }}
             >
               <style jsx>{`
                 div::-webkit-scrollbar {
@@ -526,12 +526,12 @@ export function DataTable<TData, TValue>({
             onScroll={(e) => {
               // Sync scroll with the scrollable table content
               const scrollLeft = e.currentTarget.scrollLeft;
-              
+
               // Find the scrollable table element more reliably
               const mainContainer = e.currentTarget.parentElement as HTMLElement;
               const gridContainer = mainContainer?.querySelector('div[style*="position: relative"] > div.grid') as HTMLElement;
               const scrollableTable = gridContainer?.querySelector('div.overflow-x-auto') as HTMLElement;
-              
+
               if (scrollableTable) {
                 scrollableTable.scrollLeft = scrollLeft;
               }
