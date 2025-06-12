@@ -661,8 +661,8 @@ const ProjectStatus = () => {
     timeline: true,
     percentComplete: true,
     status: true,
-    contractDate: true,
-    estimatedCompletionDate: true,
+    contractDate: false, // Hidden: Start Date
+    estimatedCompletionDate: false, // Hidden: Est. Completion
     chassisETA: true,
     qcStartDate: true,
     qcDays: true,
@@ -675,7 +675,7 @@ const ProjectStatus = () => {
     ntcTestingDate: true,
     executiveReviewDate: true,
     dpasRating: true,
-    stretchShortenGears: true,
+    stretchShortenGears: false, // Hidden: Stretch/Shorten Gears
     lltsOrdered: true,
     meAssigned: true,
     meDesignOrdersPercent: true,
@@ -684,7 +684,7 @@ const ProjectStatus = () => {
     iteAssigned: true,
     itDesignOrdersPercent: true,
     ntcDesignOrdersPercent: true,
-    hasBillingMilestones: true,
+    hasBillingMilestones: false, // Hidden: Payment Milestones
     // Other columns still hidden
     description: false,
     team: false,
