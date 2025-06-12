@@ -75,7 +75,6 @@ const projectSchema = z.object({
   executiveReviewDate: z.union([z.date(), z.string()]).optional(),
   shipDate: z.union([z.date(), z.string()]).optional(),
   deliveryDate: z.union([z.date(), z.string()]).optional(),
-  mechShop: z.union([z.date(), z.string()]).optional(),
 
   // Project details
   percentComplete: z.number().min(0).max(100).default(0),
@@ -103,9 +102,6 @@ const projectSchema = z.object({
   itPercent: z.number().min(0).max(100).default(7),
   ntcTestingPercent: z.number().min(0).max(100).default(7),
   qcPercent: z.number().min(0).max(100).default(7),
-
-  // MECH Shop progress
-  mechShop: z.number().min(0).max(100).default(0),
 
   // Phase visibility controls
   showFabPhase: z.boolean().default(true),
@@ -244,9 +240,6 @@ function ProjectEdit() {
         ntcTestingPercent: project.ntcPercentage !== undefined && project.ntcPercentage !== null ? Number(project.ntcPercentage) : 7,
         qcPercent: project.qcPercentage !== undefined && project.qcPercentage !== null ? Number(project.qcPercentage) : 7,
 
-        // MECH Shop progress
-        mechShop: project.mechShop !== undefined && project.mechShop !== null ? Number(project.mechShop) : 0,
-
         // Phase visibility controls
         showFabPhase: project.showFabPhase !== undefined ? project.showFabPhase : true,
         showPaintPhase: project.showPaintPhase !== undefined ? project.showPaintPhase : true,
@@ -317,10 +310,6 @@ function ProjectEdit() {
         })() : undefined,
         deliveryDate: project.deliveryDate ? (() => {
           const [year, month, day] = project.deliveryDate.split('-').map(Number);
-          return new Date(year, month - 1, day);
-        })() : undefined,
-        mechShop: project.mechShop ? (() => {
-          const [year, month, day] = project.mechShop.split('-').map(Number);
           return new Date(year, month - 1, day);
         })() : undefined,
 
@@ -750,7 +739,6 @@ function ProjectEdit() {
                             className="min-h-[100px]"
                             {...field}
                           />
-```python
                           </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -771,7 +759,7 @@ function ProjectEdit() {
                       control={form.control}
                       name="totalHours"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem>```python
                           <FormLabel>Manufacturing Hours</FormLabel>
                           <FormControl>
                             <Input 
@@ -1645,8 +1633,6 @@ function ProjectEdit() {
                       />
                     </div>
                   </div>
-
-
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1705,21 +1691,6 @@ function ProjectEdit() {
                           placeholder="Select date or status..."
                           fieldName="chassisETA"
                           textOverride={project?.chassisETAText}
-                        />
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="mechShop"
-                      render={({ field }) => (
-                        <EnhancedDateField
-                          label="MECH Shop Date"
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Select date or status..."
-                          fieldName="mechShop"
-                          textOverride={project?.mechShopText}
                         />
                       )}
                     />
@@ -1842,41 +1813,6 @@ function ProjectEdit() {
                   {/* MECH Shop Progress */}
                   <h3 className="text-md font-medium mb-2">Manufacturing Progress</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="mechShop"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>MECH Shop Progress (%)</FormLabel>
-                          <div className="grid grid-cols-[1fr_80px] gap-2">
-                            <FormControl>
-                              <Slider 
-                                value={[field.value || 0]} 
-                                min={0} 
-                                max={100} 
-                                step={1}
-                                onValueChange={(vals) => field.onChange(vals[0])}
-                              />
-                            </FormControl>
-                            <Input 
-                              type="number" 
-                              value={field.value || 0}
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                if (!isNaN(val) && val >= 0 && val <= 100) {
-                                  field.onChange(val);
-                                }
-                              }} 
-                              className="w-[80px]"
-                            />
-                          </div>
-                          <FormDescription>
-                            Progress percentage for MECH Shop phase
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
                 </CardContent>
               </Card>
