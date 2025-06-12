@@ -95,10 +95,11 @@ import {
   generateTimelineInsights
 } from "./ai";
 import {
-  getFinancialReports,
-  getProjectStatusReports,
-  getManufacturingReports,
-  getDeliveryReports
+  getFinancialReport,
+  getProjectStatusReport,
+  getManufacturingReport,
+  getMechShopReport,
+  getDeliveryReport
 } from "./routes/reports";
 import { handleExportReport } from "./routes/export";
 import {
@@ -4039,6 +4040,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error in project status report route:', error);
       res.status(500).json({ error: 'Failed to generate project status report' });
+    }
+  });
+  
+  app.get('/api/reports/financial', async (req, res) => {
+    try {
+      await getFinancialReport(req, res);
+    } catch (error) {
+      console.error('Error in financial report route:', error);
+      res.status(500).json({ error: 'Failed to generate financial report' });
+    }
+  });
+  
+  app.get('/api/reports/manufacturing', async (req, res) => {
+    try {
+      await getManufacturingReport(req, res);
+    } catch (error) {
+      console.error('Error in manufacturing report route:', error);
+      res.status(500).json({ error: 'Failed to generate manufacturing report' });
+    }
+  });
+  
+  app.get('/api/reports/mech-shop', async (req, res) => {
+    try {
+      await getMechShopReport(req, res);
+    } catch (error) {
+      console.error('Error in mech shop report route:', error);
+      res.status(500).json({ error: 'Failed to generate mech shop report' });
     }
   });
   

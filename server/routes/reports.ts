@@ -223,17 +223,28 @@ export async function getProjectStatusReport(req: Request, res: Response) {
       }
     }
 
-    // Process delivered projects for metrics
-    deliveredProjects.forEach(project => {
+    // Process delivered projects for metrics - use both delivered projects and projects with status 'delivered'
+    const allDeliveredProjects = [
+      ...deliveredProjects,
+      ...filteredProjects.filter(p => p.status === 'delivered')
+    ].filter((project, index, self) => 
+      index === self.findIndex(p => p.id === project.id)
+    ); // Remove duplicates
+
+    allDeliveredProjects.forEach(project => {
       if (projectId && project.id.toString() !== projectId.toString()) return;
 
       deliveryMetrics.totalDelivered++;
       let daysLate = 0;
 
-      if (project.deliveryDate && project.contractDate) {
-        const deliveryDate = new Date(project.deliveryDate);
-        const contractDate = new Date(project.contractDate);
-        daysLate = Math.ceil((deliveryDate.getTime() - contractDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Check multiple date fields for delivery calculation
+      const deliveryDate = project.deliveryDate || project.shipDate || project.actualCompletionDate;
+      const contractDate = project.contractDate || project.estimatedCompletionDate;
+
+      if (deliveryDate && contractDate) {
+        const actualDelivery = new Date(deliveryDate);
+        const plannedDelivery = new Date(contractDate);
+        daysLate = Math.ceil((actualDelivery.getTime() - plannedDelivery.getTime()) / (1000 * 60 * 60 * 24));
       }
 
       if (daysLate <= 0) {
@@ -244,9 +255,9 @@ export async function getProjectStatusReport(req: Request, res: Response) {
       }
 
       // Track monthly deliveries
-      if (project.deliveryDate && monthlyDeliveries) {
-        const deliveryDate = new Date(project.deliveryDate);
-        const monthKey = format(deliveryDate, 'yyyy-MM');
+      if (deliveryDate && monthlyDeliveries) {
+        const actualDeliveryDate = new Date(deliveryDate);
+        const monthKey = format(actualDeliveryDate, 'yyyy-MM');
         
         if (monthlyDeliveries[monthKey]) {
           monthlyDeliveries[monthKey].delivered++;
@@ -264,11 +275,15 @@ export async function getProjectStatusReport(req: Request, res: Response) {
       deliveryMetrics.averageDaysLate = Math.round(deliveryMetrics.totalDaysLate / deliveryMetrics.lateDeliveries);
     }
 
+    // Count delivered projects from multiple sources
+    const deliveredCount = deliveredProjects.length + 
+      filteredProjects.filter(p => p.status === 'delivered').length;
+    projectCategories.delivered = deliveredCount;
+
     // Categorize non-delivered projects
     filteredProjects.forEach(project => {
       // Skip delivered projects as they're counted separately
       if (project.status === 'delivered') {
-        projectCategories.delivered++;
         return;
       }
 
