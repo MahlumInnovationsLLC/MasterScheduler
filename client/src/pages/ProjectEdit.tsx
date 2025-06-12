@@ -103,6 +103,9 @@ const projectSchema = z.object({
   ntcTestingPercent: z.number().min(0).max(100).default(7),
   qcPercent: z.number().min(0).max(100).default(7),
   
+  // MECH Shop progress
+  mechShop: z.number().min(0).max(100).default(0),
+  
   // Phase visibility controls
   showFabPhase: z.boolean().default(true),
   showPaintPhase: z.boolean().default(true),
@@ -239,6 +242,9 @@ function ProjectEdit() {
         itPercent: project.itPercentage !== undefined && project.itPercentage !== null ? Number(project.itPercentage) : 7,
         ntcTestingPercent: project.ntcPercentage !== undefined && project.ntcPercentage !== null ? Number(project.ntcPercentage) : 7,
         qcPercent: project.qcPercentage !== undefined && project.qcPercentage !== null ? Number(project.qcPercentage) : 7,
+        
+        // MECH Shop progress
+        mechShop: project.mechShop !== undefined && project.mechShop !== null ? Number(project.mechShop) : 0,
         
         // Phase visibility controls
         showFabPhase: project.showFabPhase !== undefined ? project.showFabPhase : true,
@@ -1792,6 +1798,46 @@ function ProjectEdit() {
                           fieldName="deliveryDate"
                           textOverride={project?.deliveryDateText}
                         />
+                      )}
+                    />
+                  </div>
+                  
+                  {/* MECH Shop Progress */}
+                  <h3 className="text-md font-medium mb-2">Manufacturing Progress</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="mechShop"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>MECH Shop Progress (%)</FormLabel>
+                          <div className="grid grid-cols-[1fr_80px] gap-2">
+                            <FormControl>
+                              <Slider 
+                                value={[field.value || 0]} 
+                                min={0} 
+                                max={100} 
+                                step={1}
+                                onValueChange={(vals) => field.onChange(vals[0])}
+                              />
+                            </FormControl>
+                            <Input 
+                              type="number" 
+                              value={field.value || 0}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val) && val >= 0 && val <= 100) {
+                                  field.onChange(val);
+                                }
+                              }} 
+                              className="w-[80px]"
+                            />
+                          </div>
+                          <FormDescription>
+                            Progress percentage for MECH Shop phase
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
                       )}
                     />
                   </div>

@@ -185,7 +185,7 @@ const ProjectDetails = () => {
   const updateProjectProgress = useCallback((newValue: number) => {
     updateProgressMutation.mutate(newValue);
   }, [updateProgressMutation]);
-  
+
   // Dialog state
   const [isAssignBayDialogOpen, setIsAssignBayDialogOpen] = useState(false);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
@@ -203,7 +203,7 @@ const ProjectDetails = () => {
   );
   const [equipment, setEquipment] = useState<string>('Standard Equipment');
   const [staffAssigned, setStaffAssigned] = useState<string>('Team Alpha (4)');
-  
+
   // Task editing state
   const [editTaskId, setEditTaskId] = useState<number | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
@@ -221,17 +221,17 @@ const ProjectDetails = () => {
     status: 'In Progress',
     date: new Date().toISOString().split('T')[0]
   });
-  
+
   // Notes editing state
   const [notesForm, setNotesForm] = useState({
     notes: ''
   });
-  
+
   const { data: project, isLoading: isLoadingProject } = useQuery({
     queryKey: [`/api/projects/${projectId}`],
     enabled: !isNaN(projectId)
   });
-  
+
   // Reset task form when dialog closes
   React.useEffect(() => {
     if (!isTaskDialogOpen) {
@@ -244,7 +244,7 @@ const ProjectDetails = () => {
       setEditTaskId(null);
     }
   }, [isTaskDialogOpen]);
-  
+
   // Initialize notes form when dialog opens
   React.useEffect(() => {
     if (isEditNotesDialogOpen && project) {
@@ -253,17 +253,17 @@ const ProjectDetails = () => {
       });
     }
   }, [isEditNotesDialogOpen, project]);
-  
+
   const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
     queryKey: [`/api/projects/${projectId}/tasks`],
     enabled: !isNaN(projectId)
   });
-  
+
   const { data: billingMilestones = [], isLoading: isLoadingBilling } = useQuery({
     queryKey: [`/api/projects/${projectId}/billing-milestones`],
     enabled: !isNaN(projectId)
   });
-  
+
   const { data: manufacturingSchedules = [], isLoading: isLoadingManufacturing } = useQuery({
     queryKey: [`/api/manufacturing-schedules`],
     queryFn: async ({ queryKey }) => {
@@ -275,12 +275,12 @@ const ProjectDetails = () => {
     },
     enabled: !isNaN(projectId)
   });
-  
+
   const { data: manufacturingBays = [] } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
     enabled: !isNaN(projectId)
   });
-  
+
   // Create manufacturing schedule mutation
   const assignBayMutation = useMutation({
     mutationFn: async (scheduleData: {
@@ -311,7 +311,7 @@ const ProjectDetails = () => {
       });
     }
   });
-  
+
   // Archive project mutation
   const archiveProjectMutation = useMutation({
     mutationFn: async ({ reason }: { reason: string }) => {
@@ -335,7 +335,7 @@ const ProjectDetails = () => {
       });
     }
   });
-  
+
   // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: any) => {
@@ -362,7 +362,7 @@ const ProjectDetails = () => {
       });
     }
   });
-  
+
   // Update task mutation
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
@@ -385,7 +385,7 @@ const ProjectDetails = () => {
       });
     }
   });
-  
+
   // Delete task mutation
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
@@ -408,7 +408,7 @@ const ProjectDetails = () => {
       });
     }
   });
-  
+
   // Create/Update milestone mutation
   const saveMilestoneMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -426,7 +426,7 @@ const ProjectDetails = () => {
         description: `Milestone has been successfully ${editMilestoneId ? 'updated' : 'created'}`,
       });
       setIsMilestoneDialogOpen(false);
-      
+
       // In a real app, you'd invalidate the milestone query
       // For demo, we're just closing the dialog
     },
@@ -438,7 +438,7 @@ const ProjectDetails = () => {
       });
     }
   });
-  
+
   // Update project notes mutation
   const updateNotesMutation = useMutation({
     mutationFn: async (notes: string) => {
@@ -465,7 +465,7 @@ const ProjectDetails = () => {
   // Calculate project progress based on tasks and milestones completion
   const calculateProjectProgress = (): number => {
     if (!tasks || tasks.length === 0) return 0;
-    
+
     // Calculate task completion percentage
     const completedTasks = tasks.filter(t => t.isCompleted).length;
     return Math.round((completedTasks / tasks.length) * 100);
@@ -514,17 +514,17 @@ const ProjectDetails = () => {
   // Group tasks by milestone
   const milestones = React.useMemo(() => {
     const currentTasks = Array.isArray(tasks) ? tasks : [];
-    
+
     if (currentTasks.length === 0) {
       return [];
     }
-    
+
     const milestoneGroups = [];
-    
+
     // Group tasks that have milestoneId assignments
     const tasksWithMilestones = currentTasks.filter(task => task.milestoneId);
     const standaloneTasks = currentTasks.filter(task => !task.milestoneId);
-    
+
     // Create milestone groups for tasks with milestone assignments
     const milestoneMap = new Map();
     tasksWithMilestones.forEach(task => {
@@ -542,10 +542,10 @@ const ProjectDetails = () => {
       }
       milestoneMap.get(milestoneId).tasks.push(task);
     });
-    
+
     // Add milestone groups to the result
     milestoneGroups.push(...Array.from(milestoneMap.values()));
-    
+
     // Add standalone tasks group if any exist
     if (standaloneTasks.length > 0) {
       milestoneGroups.push({
@@ -558,7 +558,7 @@ const ProjectDetails = () => {
         isCompleted: false
       });
     }
-    
+
     return milestoneGroups;
   }, [tasks, projectId]);
 
@@ -617,7 +617,7 @@ const ProjectDetails = () => {
         </Link>
         <AIInsightsModal projectId={projectId} />
       </div>
-      
+
       {/* Project Header */}
       <div className="bg-darkCard rounded-xl border border-gray-800 p-5">
         <div className="flex justify-between items-start">
@@ -655,7 +655,7 @@ const ProjectDetails = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <ProgressBadge status={projectStatus} size="md" animatePulse={projectStatus === 'Critical'} />
             <Button 
@@ -693,7 +693,7 @@ const ProjectDetails = () => {
             </Button>
           </div>
         </div>
-        
+
         {/* Project metrics */}
         {/* Department Percentages and Total Hours */}
         <div className="mt-3 mb-2">
@@ -701,66 +701,72 @@ const ProjectDetails = () => {
             <div className="text-md font-semibold text-gray-300 mb-2">TOTAL HOURS</div>
             <div className="text-2xl font-bold">{project.totalHours || 40}</div>
           </div>
-          
+
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
             {(() => {
-              // Use the stored percentages directly since they're already redistributed
-              const showFab = project.showFabPhase !== undefined ? project.showFabPhase : true;
-              const showPaint = project.showPaintPhase !== undefined ? project.showPaintPhase : true;
-              const showProduction = project.showProductionPhase !== undefined ? project.showProductionPhase : true;
-              const showIt = project.showItPhase !== undefined ? project.showItPhase : true;
-              const showNtc = project.showNtcPhase !== undefined ? project.showNtcPhase : true;
-              const showQc = project.showQcPhase !== undefined ? project.showQcPhase : true;
+          // Use the stored percentages directly since they're already redistributed
+          const showFab = project.showFabPhase !== undefined ? project.showFabPhase : true;
+          const showPaint = project.showPaintPhase !== undefined ? project.showPaintPhase : true;
+          const showProduction = project.showProductionPhase !== undefined ? project.showProductionPhase : true;
+          const showIt = project.showItPhase !== undefined ? project.showItPhase : true;
+          const showNtc = project.showNtcPhase !== undefined ? project.showNtcPhase : true;
+          const showQc = project.showQcPhase !== undefined ? project.showQcPhase : true;
 
-              // Get stored percentages (already redistributed)
-              const fabPercentage = parseFloat(project.fabPercentage as any) || 0;
-              const paintPercentage = parseFloat(project.paintPercentage as any) || 0;
-              const productionPercentage = parseFloat(project.productionPercentage as any) || 0;
-              const itPercentage = parseFloat(project.itPercentage as any) || 0;
-              const ntcPercentage = parseFloat(project.ntcPercentage as any) || 0;
-              const qcPercentage = parseFloat(project.qcPercentage as any) || 0;
+          // Get stored percentages (already redistributed)
+          const fabPercentage = parseFloat(project.fabPercentage as any) || 0;
+          const paintPercentage = parseFloat(project.paintPercentage as any) || 0;
+          const productionPercentage = parseFloat(project.productionPercentage as any) || 0;
+          const itPercentage = parseFloat(project.itPercentage as any) || 0;
+          const ntcPercentage = parseFloat(project.ntcPercentage as any) || 0;
+          const qcPercentage = parseFloat(project.qcPercentage as any) || 0;
 
-              return (
-                <>
-                  {showFab && fabPercentage > 0 && (
-                    <div className="bg-dark rounded border border-gray-800 p-2">
-                      <div className="text-xs text-gray-400 mb-1">FABRICATION</div>
-                      <div className="text-lg font-bold">{fabPercentage.toFixed(2)}%</div>
-                    </div>
-                  )}
-                  {showPaint && paintPercentage > 0 && (
-                    <div className="bg-dark rounded border border-gray-800 p-2">
-                      <div className="text-xs text-gray-400 mb-1">PAINT</div>
-                      <div className="text-lg font-bold">{paintPercentage.toFixed(2)}%</div>
-                    </div>
-                  )}
-                  {showProduction && productionPercentage > 0 && (
-                    <div className="bg-dark rounded border border-gray-800 p-2">
-                      <div className="text-xs text-gray-400 mb-1">ASSEMBLY</div>
-                      <div className="text-lg font-bold">{productionPercentage.toFixed(2)}%</div>
-                    </div>
-                  )}
-                  {showIt && itPercentage > 0 && (
-                    <div className="bg-dark rounded border border-gray-800 p-2">
-                      <div className="text-xs text-gray-400 mb-1">IT</div>
-                      <div className="text-lg font-bold">{itPercentage.toFixed(2)}%</div>
-                    </div>
-                  )}
-                  {showNtc && ntcPercentage > 0 && (
-                    <div className="bg-dark rounded border border-gray-800 p-2">
-                      <div className="text-xs text-gray-400 mb-1">NTC TESTING</div>
-                      <div className="text-lg font-bold">{ntcPercentage.toFixed(2)}%</div>
-                    </div>
-                  )}
-                  {showQc && qcPercentage > 0 && (
-                    <div className="bg-dark rounded border border-gray-800 p-2">
-                      <div className="text-xs text-gray-400 mb-1">QC</div>
-                      <div className="text-lg font-bold">{qcPercentage.toFixed(2)}%</div>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
+          return (
+            <>
+              {showFab && fabPercentage > 0 && (
+                <div className="bg-dark rounded border border-gray-800 p-2">
+                  <div className="text-xs text-gray-400 mb-1">FABRICATION</div>
+                  <div className="text-lg font-bold">{fabPercentage.toFixed(2)}%</div>
+                </div>
+              )}
+              {showPaint && paintPercentage > 0 && (
+                <div className="bg-dark rounded border border-gray-800 p-2">
+                  <div className="text-xs text-gray-400 mb-1">PAINT</div>
+                  <div className="text-lg font-bold">{paintPercentage.toFixed(2)}%</div>
+                </div>
+              )}
+              {showProduction && productionPercentage > 0 && (
+                <div className="bg-dark rounded border border-gray-800 p-2">
+                  <div className="text-xs text-gray-400 mb-1">ASSEMBLY</div>
+                  <div className="text-lg font-bold">{productionPercentage.toFixed(2)}%</div>
+                </div>
+              )}
+              {showIt && itPercentage > 0 && (
+                <div className="bg-dark rounded border border-gray-800 p-2">
+                  <div className="text-xs text-gray-400 mb-1">IT</div>
+                  <div className="text-lg font-bold">{itPercentage.toFixed(2)}%</div>
+                </div>
+              )}
+              {showNtc && ntcPercentage > 0 && (
+                <div className="bg-dark rounded border border-gray-800 p-2">
+                  <div className="text-xs text-gray-400 mb-1">NTC TESTING</div>
+                  <div className="text-lg font-bold">{ntcPercentage.toFixed(2)}%</div>
+                </div>
+              )}
+              {showQc && qcPercentage > 0 && (
+                <div className="bg-dark rounded border border-gray-800 p-2">
+                  <div className="text-xs text-gray-400 mb-1">QC</div>
+                  <div className="text-lg font-bold">{qcPercentage.toFixed(2)}%</div>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* MECH Shop Progress */}
+        <div className="bg-dark rounded border border-gray-800 p-2">
+          <div className="text-xs text-gray-400 mb-1">MECH SHOP</div>
+          <div className="text-lg font-bold">{project.mechShop || 0}%</div>
+        </div>
           </div>
         </div>
 
@@ -786,7 +792,7 @@ const ProjectDetails = () => {
               </span>
             </div>
           </div>
-          
+
           <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Progress</div>
             <div className="flex items-center gap-3">
@@ -801,7 +807,7 @@ const ProjectDetails = () => {
               Timeline: {projectHealth.breakdown.timelineAdherence}%
             </div>
           </div>
-          
+
           <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Tasks</div>
             <div className="flex items-center gap-2">
@@ -811,12 +817,13 @@ const ProjectDetails = () => {
               <span className="text-sm text-gray-400">completed</span>
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              {tasks.length === 0 ? 'No tasks defined' : 
+              ```text
+{tasks.length === 0 ? 'No tasks defined' : 
                tasks.filter(t => t.isCompleted).length === tasks.length ? 'All complete' :
                `${tasks.length - tasks.filter(t => t.isCompleted).length} remaining`}
             </div>
           </div>
-          
+
           <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Billing</div>
             <div className="flex items-center gap-2">
@@ -836,7 +843,7 @@ const ProjectDetails = () => {
               Progress: {projectHealth.breakdown.billingProgress}%
             </div>
           </div>
-          
+
           <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Manufacturing</div>
             <div className="flex items-center gap-2">
@@ -857,14 +864,14 @@ const ProjectDetails = () => {
               Status: {projectHealth.breakdown.manufacturingStatus}%
             </div>
           </div>
-          
+
           {/* Timeline Information - Full width row */}
           <div className="col-span-5 -mt-2">
             <ProjectPhaseInfo project={project} />
           </div>
         </div>
       </div>
-      
+
       {/* Task List & Milestones + Sidebar */}
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 bg-darkCard rounded-xl border border-gray-800">
@@ -877,7 +884,7 @@ const ProjectDetails = () => {
               </Button>
             </div>
           </div>
-          
+
           <Tabs defaultValue="tasks" className="w-full">
             <TabsList className="bg-darkCard h-12 border-b border-gray-800 w-full grid grid-cols-3 rounded-none">
               <TabsTrigger 
@@ -899,7 +906,7 @@ const ProjectDetails = () => {
                 Project Cost
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="tasks" className="border-0 m-0 p-0">
               <div className="p-4 flex justify-end border-b border-gray-800">
                 <div className="flex gap-2">
@@ -937,7 +944,7 @@ const ProjectDetails = () => {
                   </Button>
                 </div>
               </div>
-          
+
           <div className="p-4 space-y-3">
             {milestones.map((milestone) => (
               <React.Fragment key={milestone.id}>
@@ -966,7 +973,7 @@ const ProjectDetails = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Tasks for this milestone */}
                 {milestone.tasks.map((task) => (
                   <div key={task.id} className="pl-6 py-2 border-b border-gray-800">
@@ -1040,17 +1047,17 @@ const ProjectDetails = () => {
             ))}
           </div>
             </TabsContent>
-            
+
             <TabsContent value="billing" className="border-0 m-0 p-0">
               <BillingMilestonesList projectId={projectId} />
             </TabsContent>
-            
+
             <TabsContent value="costs" className="border-0 m-0 p-0">
               <ProjectCostsList projectId={projectId} />
             </TabsContent>
           </Tabs>
         </div>
-        
+
         <div className="space-y-6">
           {/* AI-powered Project Health Analysis */}
           <ProjectHealthCard projectId={projectId} />
@@ -1101,7 +1108,7 @@ const ProjectDetails = () => {
                         rows.forEach(row => {
                           const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
                           const fieldValue = row.querySelector('.field-value')?.textContent?.toLowerCase() || '';
-                          
+
                           if (fieldName.includes(searchTerm) || fieldValue.includes(searchTerm)) {
                             (row as HTMLElement).style.display = '';
                           } else {
@@ -1162,7 +1169,7 @@ const ProjectDetails = () => {
                             'executive_review_date', 'ship_date', 'delivery_date', 'dpas_rating', 
                             'stretch_shorten_gears', 'llts_ordered'
                           ];
-                          
+
                           const rows = document.querySelectorAll('.raw-data-row');
                           rows.forEach(row => {
                             const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
@@ -1170,7 +1177,7 @@ const ProjectDetails = () => {
                               fieldName.includes(f.toLowerCase()) || 
                               fieldName.replace(/_/g, ' ').includes(f.replace(/_/g, ' ').toLowerCase())
                             );
-                            
+
                             if (!isStandardField) {
                               (row as HTMLElement).style.display = '';
                             } else {
@@ -1212,7 +1219,7 @@ const ProjectDetails = () => {
                           let formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
                           let typeLabel = typeof value;
                           let typeClass = 'bg-gray-800 text-gray-300';
-                          
+
                           // Format dates
                           if (
                             key.toLowerCase().includes('date') || 
@@ -1228,7 +1235,7 @@ const ProjectDetails = () => {
                               // Keep original if date formatting fails
                             }
                           }
-                          
+
                           // Format percentages
                           if (
                             key.toLowerCase().includes('percent') &&
@@ -1238,7 +1245,7 @@ const ProjectDetails = () => {
                             typeLabel = 'percentage';
                             typeClass = 'bg-green-900/50 text-green-300';
                           }
-                          
+
                           // Format booleans
                           if (typeof value === 'boolean') {
                             formattedValue = value ? 'Yes' : 'No';
@@ -1273,9 +1280,9 @@ const ProjectDetails = () => {
               )}
             </div>
           </Card>
-          
+
           {/* We've moved the Billing Milestones to the tabbed interface */}
-          
+
           {/* Bay Assignment */}
           <Card className="bg-darkCard rounded-xl border border-gray-800">
             <div className="p-4 border-b border-gray-800">
@@ -1319,7 +1326,7 @@ const ProjectDetails = () => {
                   </div>
                 </div>
               )}
-              
+
               <div className="flex gap-2 mt-3">
                 {!activeSchedule ? (
                   <Button 
@@ -1343,7 +1350,7 @@ const ProjectDetails = () => {
           </Card>
         </div>
       </div>
-      
+
       {/* Project Forensics Widget */}
       <div className="mt-6">
         <ProjectForensicsWidget 
@@ -1361,7 +1368,7 @@ const ProjectDetails = () => {
               Schedule production for {project?.name} by assigning a manufacturing bay and time period.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bay" className="text-right">
@@ -1385,7 +1392,7 @@ const ProjectDetails = () => {
                 </Select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="startDate" className="text-right">
                 Start Date
@@ -1399,7 +1406,7 @@ const ProjectDetails = () => {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="endDate" className="text-right">
                 End Date
@@ -1413,7 +1420,7 @@ const ProjectDetails = () => {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="equipment" className="text-right">
                 Equipment
@@ -1427,7 +1434,7 @@ const ProjectDetails = () => {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="staff" className="text-right">
                 Staff
@@ -1442,7 +1449,7 @@ const ProjectDetails = () => {
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAssignBayDialogOpen(false)}>
               Cancel
@@ -1457,7 +1464,7 @@ const ProjectDetails = () => {
                   });
                   return;
                 }
-                
+
                 assignBayMutation.mutate({
                   projectId,
                   bayId: selectedBayId,
@@ -1475,7 +1482,7 @@ const ProjectDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Archive Project Dialog */}
       <Dialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
         <DialogContent className="bg-darkBg border-gray-800 text-white max-w-md">
@@ -1488,7 +1495,7 @@ const ProjectDetails = () => {
               Archived projects can still be viewed but cannot be modified.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="flex items-start">
               <Trash2 className="h-10 w-10 text-destructive mr-4 flex-shrink-0" />
@@ -1502,7 +1509,7 @@ const ProjectDetails = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="bg-gray-900 p-3 rounded-md">
               <Label htmlFor="archiveReason" className="text-sm font-medium mb-2 block">
                 Reason for archiving (optional)
@@ -1516,7 +1523,7 @@ const ProjectDetails = () => {
               />
             </div>
           </div>
-          
+
           <DialogFooter className="sm:justify-between">
             <Button
               type="button"
@@ -1526,7 +1533,7 @@ const ProjectDetails = () => {
             >
               Cancel
             </Button>
-            
+
             <Button
               type="button"
               variant="destructive"
@@ -1552,7 +1559,7 @@ const ProjectDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Task Dialog (Add/Edit) */}
       <Dialog open={isTaskDialogOpen} onOpenChange={setTaskDialogOpen}>
         <DialogContent className="sm:max-w-md bg-darkBg border-gray-800 text-white">
@@ -1582,7 +1589,7 @@ const ProjectDetails = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="taskName" className="text-white">Task Name</Label>
               <Input
@@ -1593,7 +1600,7 @@ const ProjectDetails = () => {
                 placeholder="Test Task"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="taskDescription" className="text-white">Description (optional)</Label>
               <Textarea
@@ -1604,7 +1611,7 @@ const ProjectDetails = () => {
                 placeholder="Enter task description"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="taskDueDate" className="text-white">Due Date</Label>
               <Input
@@ -1631,7 +1638,7 @@ const ProjectDetails = () => {
                   });
                   return;
                 }
-                
+
                 if (editTaskId) {
                   updateTaskMutation.mutate({
                     id: editTaskId,
@@ -1658,7 +1665,7 @@ const ProjectDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Delete Task Confirmation Dialog */}
       <Dialog open={isDeleteTaskDialogOpen} onOpenChange={setDeleteTaskDialogOpen}>
         <DialogContent className="sm:max-w-md bg-darkBg border-gray-800 text-white">
@@ -1705,7 +1712,7 @@ const ProjectDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Add/Edit Milestone Dialog */}
       <Dialog open={isMilestoneDialogOpen} onOpenChange={setIsMilestoneDialogOpen}>
         <DialogContent className="bg-darkBg border-gray-800 text-white">
@@ -1719,7 +1726,7 @@ const ProjectDetails = () => {
                 : 'Create a new milestone to organize project tasks.'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="milestoneName">Milestone Name</Label>
@@ -1731,7 +1738,7 @@ const ProjectDetails = () => {
                 placeholder="Enter milestone name"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="milestoneStatus">Status</Label>
               <Select
@@ -1748,7 +1755,7 @@ const ProjectDetails = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="milestoneDate">Target Date</Label>
               <Input
@@ -1760,7 +1767,7 @@ const ProjectDetails = () => {
               />
             </div>
           </div>
-          
+
           <DialogFooter className="flex space-x-2 sm:space-x-0">
             <Button type="button" variant="outline" onClick={() => setIsMilestoneDialogOpen(false)}>
               Cancel
@@ -1776,7 +1783,7 @@ const ProjectDetails = () => {
                   });
                   return;
                 }
-                
+
                 saveMilestoneMutation.mutate({
                   id: editMilestoneId || Date.now(), // Use timestamp as placeholder ID for demo
                   name: milestoneForm.name,
@@ -1799,7 +1806,7 @@ const ProjectDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Edit Notes Dialog */}
       <Dialog open={isEditNotesDialogOpen} onOpenChange={setIsEditNotesDialogOpen}>
         <DialogContent className="bg-darkBg border-gray-800 text-white max-w-2xl">
@@ -1811,7 +1818,7 @@ const ProjectDetails = () => {
               Update notes and important details for {project?.projectNumber}: {project?.name}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="projectNotes" className="text-white">Notes</Label>
@@ -1827,7 +1834,7 @@ const ProjectDetails = () => {
               </p>
             </div>
           </div>
-          
+
           <DialogFooter className="sm:justify-between">
             <Button
               type="button"
@@ -1837,7 +1844,7 @@ const ProjectDetails = () => {
             >
               Cancel
             </Button>
-            
+
             <Button
               type="button"
               onClick={() => updateNotesMutation.mutate(notesForm.notes)}
