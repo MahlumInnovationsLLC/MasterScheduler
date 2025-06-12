@@ -967,7 +967,7 @@ const Dashboard = () => {
       {/* Projects Table */}
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-xl font-sans font-bold">Next Projects Ready to Ship (Top 10)</h2>
-        <Link href="/project-status">
+        <Link href="/projects">
           <Button variant="outline" size="sm">
             <ArrowUpRight className="h-4 w-4 mr-2" />
             View All Projects
