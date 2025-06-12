@@ -56,10 +56,10 @@ const projectSchema = z.object({
   location: z.string().optional(),
   pmOwner: z.string().optional(),
   team: z.string().optional(),
-  
+
   // New field for auto-calculation of dates
   poDroppedToDeliveryDays: z.number().min(1).default(365),
-  
+
   // Dates (allow Date objects or text values like PENDING/N/A)
   contractDate: z.union([z.date(), z.string()]).optional(),
   startDate: z.union([z.date(), z.string()]).optional(), // This is Assembly Start Date
@@ -75,14 +75,15 @@ const projectSchema = z.object({
   executiveReviewDate: z.union([z.date(), z.string()]).optional(),
   shipDate: z.union([z.date(), z.string()]).optional(),
   deliveryDate: z.union([z.date(), z.string()]).optional(),
-  
+  mechShop: z.union([z.date(), z.string()]).optional(),
+
   // Project details
   percentComplete: z.number().min(0).max(100).default(0),
   dpasRating: z.string().optional(),
   stretchShortenGears: z.string().optional(),
   lltsOrdered: z.boolean().default(false),
   qcDays: z.number().optional(),
-  
+
   // Design assignments
   meAssigned: z.string().optional(),
   meDesignOrdersPercent: z.number().min(0).max(100).optional(),
@@ -91,10 +92,10 @@ const projectSchema = z.object({
   iteAssigned: z.string().optional(),
   itDesignOrdersPercent: z.number().min(0).max(100).optional(),
   ntcDesignOrdersPercent: z.number().min(0).max(100).optional(),
-  
+
   // Manufacturing details
   totalHours: z.number().min(0).optional(),
-  
+
   // Department allocation percentages
   fabricationPercent: z.number().min(0).max(100).default(27),
   paintPercent: z.number().min(0).max(100).default(7),
@@ -102,10 +103,10 @@ const projectSchema = z.object({
   itPercent: z.number().min(0).max(100).default(7),
   ntcTestingPercent: z.number().min(0).max(100).default(7),
   qcPercent: z.number().min(0).max(100).default(7),
-  
+
   // MECH Shop progress
   mechShop: z.number().min(0).max(100).default(0),
-  
+
   // Phase visibility controls
   showFabPhase: z.boolean().default(true),
   showPaintPhase: z.boolean().default(true),
@@ -113,7 +114,7 @@ const projectSchema = z.object({
   showItPhase: z.boolean().default(true),
   showNtcPhase: z.boolean().default(true),
   showQcPhase: z.boolean().default(true),
-  
+
   // Status and notes
   status: z.string().optional(),
   priority: z.string().optional(),
@@ -149,13 +150,13 @@ function ProjectEdit() {
     queryKey: [`/api/projects/${projectId}`],
     enabled: !!projectId,
   });
-  
+
   // Check if project has a manufacturing schedule
   const { data: manufacturingSchedules } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
     enabled: !!projectId,
   });
-  
+
   // Determine if this project is scheduled in a manufacturing bay
   const isProjectScheduled = React.useMemo(() => {
     if (!manufacturingSchedules || !projectId) return false;
@@ -184,7 +185,7 @@ function ProjectEdit() {
   // Watch the PO Dropped Date and ARO days to calculate completion date
   const poDroppedDate = form.watch('poDroppedDate');
   const poDroppedToDeliveryDays = form.watch('poDroppedToDeliveryDays');
-  
+
   // Auto-calculate estimated completion date when PO Dropped Date or ARO days change
   useEffect(() => {
     // Only calculate if both values exist
@@ -195,7 +196,7 @@ function ProjectEdit() {
       form.setValue('estimatedCompletionDate', estimatedDate);
     }
   }, [poDroppedDate, poDroppedToDeliveryDays, form]);
-  
+
   // Update form when project data is loaded
   useEffect(() => {
     if (project) {
@@ -209,20 +210,20 @@ function ProjectEdit() {
         ntc: project.ntcPercentage,
         qc: project.qcPercentage
       });
-      
+
       // Save the original ship date for comparison
       if (project.shipDate) {
         setOriginalShipDate(new Date(project.shipDate));
       }
-      
+
       // Set default ARO days to 365
       let calculatedDays = 365; // Always default to 365 days
-      
+
       // If the project already has a saved value for poDroppedToDeliveryDays, use that
       if (project.poDroppedToDeliveryDays) {
         calculatedDays = project.poDroppedToDeliveryDays;
       }
-      
+
       form.reset({
         projectNumber: project.projectNumber || '',
         name: project.name || '',
@@ -231,10 +232,10 @@ function ProjectEdit() {
         location: project.location || '',
         pmOwner: project.pmOwner || '',
         team: project.team || '',
-        
+
         // Manufacturing details
         totalHours: project.totalHours ? Number(project.totalHours) : 40,
-        
+
         // Department allocation percentages - use database field names
         fabricationPercent: project.fabPercentage !== undefined && project.fabPercentage !== null ? Number(project.fabPercentage) : 27,
         paintPercent: project.paintPercentage !== undefined && project.paintPercentage !== null ? Number(project.paintPercentage) : 7,
@@ -242,10 +243,10 @@ function ProjectEdit() {
         itPercent: project.itPercentage !== undefined && project.itPercentage !== null ? Number(project.itPercentage) : 7,
         ntcTestingPercent: project.ntcPercentage !== undefined && project.ntcPercentage !== null ? Number(project.ntcPercentage) : 7,
         qcPercent: project.qcPercentage !== undefined && project.qcPercentage !== null ? Number(project.qcPercentage) : 7,
-        
+
         // MECH Shop progress
         mechShop: project.mechShop !== undefined && project.mechShop !== null ? Number(project.mechShop) : 0,
-        
+
         // Phase visibility controls
         showFabPhase: project.showFabPhase !== undefined ? project.showFabPhase : true,
         showPaintPhase: project.showPaintPhase !== undefined ? project.showPaintPhase : true,
@@ -253,10 +254,10 @@ function ProjectEdit() {
         showItPhase: project.showItPhase !== undefined ? project.showItPhase : true,
         showNtcPhase: project.showNtcPhase !== undefined ? project.showNtcPhase : true,
         showQcPhase: project.showQcPhase !== undefined ? project.showQcPhase : true,
-        
+
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
-        
+
         // Dates - TIMEZONE FIX: Parse dates safely to prevent day-before display issues
         contractDate: project.contractDate ? (() => {
           // Parse date in local timezone to avoid UTC conversion shifting the day
@@ -318,14 +319,18 @@ function ProjectEdit() {
           const [year, month, day] = project.deliveryDate.split('-').map(Number);
           return new Date(year, month - 1, day);
         })() : undefined,
-        
+        mechShop: project.mechShop ? (() => {
+          const [year, month, day] = project.mechShop.split('-').map(Number);
+          return new Date(year, month - 1, day);
+        })() : undefined,
+
         // Project details
         percentComplete: project.percentComplete ? Number(project.percentComplete) : 0,
         dpasRating: project.dpasRating || '',
         stretchShortenGears: project.stretchShortenGears || '',
         lltsOrdered: project.lltsOrdered || false,
         qcDays: project.qcDays || undefined,
-        
+
         // Design assignments
         meAssigned: project.meAssigned || '',
         meDesignOrdersPercent: project.meDesignOrdersPercent ? Number(project.meDesignOrdersPercent) : undefined,
@@ -334,7 +339,7 @@ function ProjectEdit() {
         iteAssigned: project.iteAssigned || '',
         itDesignOrdersPercent: project.itDesignOrdersPercent ? Number(project.itDesignOrdersPercent) : undefined,
         ntcDesignOrdersPercent: project.ntcDesignOrdersPercent ? Number(project.ntcDesignOrdersPercent) : undefined,
-        
+
         // Status and notes
         status: project.status || 'active',
         priority: project.priority || 'medium',
@@ -354,10 +359,10 @@ function ProjectEdit() {
     const itPercent = form.watch('itPercent') || 0;
     const ntcTestingPercent = form.watch('ntcTestingPercent') || 0;
     const qcPercent = form.watch('qcPercent') || 0;
-    
+
     const total = fabricationPercent + paintPercent + assemblyPercent + 
                   itPercent + ntcTestingPercent + qcPercent;
-    
+
     setTotalPercentage(total);
     return total;
   };
@@ -382,7 +387,7 @@ function ProjectEdit() {
 
     // Check if all phases are visible - if so, return original values without redistribution
     const allPhasesVisible = showFab && showPaint && showProduction && showIt && showNtc && showQc;
-    
+
     if (allPhasesVisible) {
       return {
         fabricationPercent: originalFabPercent,
@@ -428,7 +433,7 @@ function ProjectEdit() {
       qcPercent: showQc ? Math.round(originalQcPercent * redistributionFactor * 100) / 100 : 0
     };
   };
-  
+
   // Watch for changes in percentage fields and phase visibility
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -439,7 +444,7 @@ function ProjectEdit() {
         calculateTotalPercentage();
       }
     });
-    
+
     return () => subscription.unsubscribe();
   }, [form]);
 
@@ -448,7 +453,7 @@ function ProjectEdit() {
     mutationFn: async (data: ProjectFormValues) => {
       // Convert dates to simple YYYY-MM-DD format to prevent timezone issues
       const fixedData = { ...data };
-      
+
       // Process all date fields to send as simple date strings
       Object.keys(fixedData).forEach(key => {
         const value = (fixedData as any)[key];
@@ -463,10 +468,10 @@ function ProjectEdit() {
           (fixedData as any)[key] = value;
         }
       });
-      
+
       // Apply redistribution logic when saving to ensure stored percentages match effective percentages
       const redistributedPercentages = getRedistributedPercentages();
-      
+
       // Map form field names to database field names using redistributed values
       fixedData.fabPercentage = redistributedPercentages.fabricationPercent;
       fixedData.paintPercentage = redistributedPercentages.paintPercent;
@@ -474,7 +479,7 @@ function ProjectEdit() {
       fixedData.itPercentage = redistributedPercentages.itPercent;
       fixedData.ntcPercentage = redistributedPercentages.ntcTestingPercent;
       fixedData.qcPercentage = redistributedPercentages.qcPercent;
-      
+
       // Phase visibility mapping (these names already match database fields)
       fixedData.showFabPhase = fixedData.showFabPhase;
       fixedData.showPaintPhase = fixedData.showPaintPhase;
@@ -482,7 +487,7 @@ function ProjectEdit() {
       fixedData.showItPhase = fixedData.showItPhase;
       fixedData.showNtcPhase = fixedData.showNtcPhase;
       fixedData.showQcPhase = fixedData.showQcPhase;
-      
+
       // Remove the form field names to avoid conflicts
       delete (fixedData as any).fabricationPercent;
       delete (fixedData as any).paintPercent;
@@ -490,7 +495,7 @@ function ProjectEdit() {
       delete (fixedData as any).itPercent;
       delete (fixedData as any).ntcTestingPercent;
       delete (fixedData as any).qcPercent;
-      
+
       const res = await apiRequest('PUT', `/api/projects/${projectId}`, fixedData);
       return await res.json();
     },
@@ -539,7 +544,7 @@ function ProjectEdit() {
 
   function onSubmit(data: ProjectFormValues) {
     console.log('SAVE BUTTON CLICKED - Form submitted with data:', data);
-    
+
     // Check if total percentage exceeds 100%
     const total = calculateTotalPercentage();
     console.log('Total percentage:', total);
@@ -548,7 +553,7 @@ function ProjectEdit() {
       setIsPercentageWarningOpen(true);
       return;
     }
-    
+
     // Check if this is a scheduled project and if ship date has been changed
     if (isProjectScheduled && data.shipDate && originalShipDate && 
         data.shipDate.getTime() !== originalShipDate.getTime()) {
@@ -559,17 +564,17 @@ function ProjectEdit() {
       setIsShipDateWarningOpen(true);
       return;
     }
-    
+
     // Otherwise proceed with normal update
     console.log('Proceeding with mutation');
     updateMutation.mutate(data);
   }
-  
+
   function handlePercentageWarningConfirm() {
     setIsPercentageWarningOpen(false);
     updateMutation.mutate(form.getValues());
   }
-  
+
   function handleShipDateWarningConfirm() {
     setIsShipDateWarningOpen(false);
     // Use the stored pending form data for the update
@@ -621,7 +626,7 @@ function ProjectEdit() {
             <p className="text-gray-400 text-sm">Update project details, timeline, and settings</p>
           </div>
         </div>
-        
+
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogTrigger asChild>
             <Button variant="destructive">Delete Project</Button>
@@ -654,7 +659,7 @@ function ProjectEdit() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
           console.log('FORM VALIDATION ERRORS:', errors);
@@ -668,7 +673,7 @@ function ProjectEdit() {
               <TabsTrigger value="milestones">Milestone Icons</TabsTrigger>
               <TabsTrigger value="notes">Notes & Documentation</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="general">
               <Card>
                 <CardHeader>
@@ -689,7 +694,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="name"
@@ -703,7 +708,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="pmOwner"
@@ -717,7 +722,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="client"
@@ -732,7 +737,7 @@ function ProjectEdit() {
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={form.control}
                     name="description"
@@ -745,7 +750,8 @@ function ProjectEdit() {
                             className="min-h-[100px]"
                             {...field}
                           />
-                        </FormControl>
+```python
+                          </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -753,7 +759,7 @@ function ProjectEdit() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="details">
               <Card>
                 <CardHeader>
@@ -784,7 +790,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <div className="flex justify-between items-center mt-4 mb-2">
                       <h3 className="text-md font-medium">Department Allocation Percentages</h3>
                       <div className="flex gap-2">
@@ -810,7 +816,7 @@ function ProjectEdit() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="mb-4 p-3 bg-blue-950/20 border border-blue-800 rounded-md">
                       <h4 className="text-sm font-medium text-blue-300 mb-2">Effective Percentages (After Phase Redistribution):</h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
@@ -859,7 +865,7 @@ function ProjectEdit() {
                         })()}
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
@@ -906,7 +912,7 @@ function ProjectEdit() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="paintPercent"
@@ -952,7 +958,7 @@ function ProjectEdit() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="assemblyPercent"
@@ -998,7 +1004,7 @@ function ProjectEdit() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="itPercent"
@@ -1044,7 +1050,7 @@ function ProjectEdit() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="ntcTestingPercent"
@@ -1090,7 +1096,7 @@ function ProjectEdit() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="qcPercent"
@@ -1137,7 +1143,7 @@ function ProjectEdit() {
                         )}
                       />
                     </div>
-                    
+
                     <FormField
                       control={form.control}
                       name="status"
@@ -1165,7 +1171,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="priority"
@@ -1192,7 +1198,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="location"
@@ -1218,7 +1224,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="team"
@@ -1232,7 +1238,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="percentComplete"
@@ -1266,14 +1272,14 @@ function ProjectEdit() {
                       )}
                     />
                   </div>
-                  
+
                   <Separator className="my-4" />
                   <h3 className="text-md font-medium mb-2">Phase Visibility Controls</h3>
                   <p className="text-sm text-gray-400 mb-4">
                     Toggle which phases should be displayed in the manufacturing bay schedule for this project.
                     Disabled phases will not appear in the project bar and their percentages will be redistributed.
                   </p>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     <FormField
                       control={form.control}
@@ -1291,7 +1297,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="showPaintPhase"
@@ -1308,7 +1314,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="showProductionPhase"
@@ -1325,7 +1331,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="showItPhase"
@@ -1342,7 +1348,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="showNtcPhase"
@@ -1359,7 +1365,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="showQcPhase"
@@ -1377,10 +1383,10 @@ function ProjectEdit() {
                       )}
                     />
                   </div>
-                  
+
                   <Separator className="my-4" />
                   <h3 className="text-md font-medium mb-2">Design & Manufacturing Details</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <FormField
                       control={form.control}
@@ -1395,7 +1401,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="stretchShortenGears"
@@ -1409,7 +1415,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="lltsOrdered"
@@ -1430,7 +1436,7 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="hasBillingMilestones"
@@ -1452,10 +1458,10 @@ function ProjectEdit() {
                       )}
                     />
                   </div>
-                  
+
                   <Separator className="my-4" />
                   <h3 className="text-md font-medium mb-2">Design Assignments & Progress</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <FormField
@@ -1471,7 +1477,7 @@ function ProjectEdit() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="meDesignOrdersPercent"
@@ -1505,7 +1511,7 @@ function ProjectEdit() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
@@ -1520,7 +1526,7 @@ function ProjectEdit() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="eeDesignOrdersPercent"
@@ -1554,7 +1560,7 @@ function ProjectEdit() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
@@ -1569,7 +1575,7 @@ function ProjectEdit() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="itDesignOrdersPercent"
@@ -1603,7 +1609,7 @@ function ProjectEdit() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
@@ -1639,12 +1645,12 @@ function ProjectEdit() {
                       />
                     </div>
                   </div>
-                  
+
 
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="timeline">
               <Card>
                 <CardHeader>
@@ -1667,7 +1673,7 @@ function ProjectEdit() {
                         />
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="contractDate"
@@ -1677,16 +1683,47 @@ function ProjectEdit() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Select date or status..."
-                          description="The contract delivery date (must be manually entered)"
+                          description="The contract deliverydate (must be manually entered)"
                           fieldName="contractDate"
                         />
                       )}
                     />
                   </div>
-                  
+
                   {/* Production Timeline Dates */}
                   <h3 className="text-md font-medium mb-2">Production Timeline</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <FormField
+                      control={form.control}
+                      name="chassisETA"
+                      render={({ field }) => (
+                        <EnhancedDateField
+                          label="Chassis ETA"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                          fieldName="chassisETA"
+                          textOverride={project?.chassisETAText}
+                        />
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="mechShop"
+                      render={({ field }) => (
+                        <EnhancedDateField
+                          label="MECH Shop Date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                          fieldName="mechShop"
+                          textOverride={project?.mechShopText}
+                        />
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="fabricationStart"
@@ -1701,7 +1738,7 @@ function ProjectEdit() {
                         />
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="assemblyStart"
@@ -1714,7 +1751,7 @@ function ProjectEdit() {
                         />
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="ntcTestingDate"
@@ -1729,7 +1766,7 @@ function ProjectEdit() {
                         />
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="wrapDate"
@@ -1744,7 +1781,7 @@ function ProjectEdit() {
                         />
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="qcStartDate"
@@ -1757,7 +1794,7 @@ function ProjectEdit() {
                         />
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="executiveReviewDate"
@@ -1772,7 +1809,7 @@ function ProjectEdit() {
                         />
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="shipDate"
@@ -1785,7 +1822,7 @@ function ProjectEdit() {
                         />
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="deliveryDate"
@@ -1801,7 +1838,7 @@ function ProjectEdit() {
                       )}
                     />
                   </div>
-                  
+
                   {/* MECH Shop Progress */}
                   <h3 className="text-md font-medium mb-2">Manufacturing Progress</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1844,7 +1881,7 @@ function ProjectEdit() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="milestones">
               <Card>
                 <CardHeader>
@@ -1855,7 +1892,7 @@ function ProjectEdit() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="notes">
               <Card>
                 <CardHeader>
@@ -1879,7 +1916,7 @@ function ProjectEdit() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="isSalesEstimate"
@@ -1902,7 +1939,7 @@ function ProjectEdit() {
               </Card>
             </TabsContent>
           </Tabs>
-          
+
           <div className="flex justify-end space-x-4">
             <Button
               type="button"
@@ -1925,7 +1962,7 @@ function ProjectEdit() {
               )}
             </Button>
           </div>
-          
+
           {/* Percentage Warning Alert Dialog */}
           <AlertDialog open={isPercentageWarningOpen} onOpenChange={setIsPercentageWarningOpen}>
             <AlertDialogContent>
@@ -1962,7 +1999,7 @@ function ProjectEdit() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          
+
           {/* Ship Date Warning Alert Dialog */}
           <AlertDialog open={isShipDateWarningOpen} onOpenChange={setIsShipDateWarningOpen}>
             <AlertDialogContent>
@@ -1978,14 +2015,14 @@ function ProjectEdit() {
                     This project is currently scheduled in a manufacturing bay. Changing the ship date 
                     will automatically update the end date in the manufacturing schedule.
                   </p>
-                  
+
                   <div className="mt-2 p-3 bg-amber-950/30 border border-amber-800 rounded-md">
                     <p className="text-amber-200 font-medium mb-1">Important:</p>
                     <p className="text-sm text-amber-100">
                       This change may affect other projects in the schedule and could create scheduling conflicts.
                     </p>
                   </div>
-                  
+
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div className="p-2 bg-gray-800/50 rounded-md">
                       <p className="text-sm font-medium text-gray-400">Original Ship Date:</p>
@@ -2000,7 +2037,7 @@ function ProjectEdit() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <p className="mt-4">
                     Are you sure you want to continue with this change?
                   </p>
