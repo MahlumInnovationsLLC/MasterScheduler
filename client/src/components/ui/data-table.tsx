@@ -422,6 +422,20 @@ export function DataTable<TData, TValue>({
                             headerText = 'FAB Start';
                         } else if (header.column.id === 'ntcTestingDays') {
                             headerText = 'NTC Days';
+                        } else if (header.column.id === 'meAssigned') {
+                            headerText = 'ME';
+                        } else if (header.column.id === 'eeAssigned') {
+                            headerText = 'EE';
+                        } else if (header.column.id === 'iteAssigned') {
+                            headerText = 'ITE';
+                        } else if (header.column.id === 'meDesignOrdersPercent') {
+                            headerText = 'ME %';
+                        } else if (header.column.id === 'eeDesignOrdersPercent') {
+                            headerText = 'EE %';
+                        } else if (header.column.id === 'itDesignOrdersPercent') {
+                            headerText = 'IT %';
+                        } else if (header.column.id === 'ntcDesignOrdersPercent') {
+                            headerText = 'NTC %';
                         }
                         return (
                           <th 
