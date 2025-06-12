@@ -66,6 +66,13 @@ const Dashboard = () => {
     queryKey: ['/api/manufacturing-bays'],
   });
 
+  // Fetch delivered projects for analytics
+  const { data: deliveredProjects } = useQuery({
+    queryKey: ['/api/delivered-projects'],
+    staleTime: 0,
+    gcTime: 0,
+  });
+
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [selectedMonthData, setSelectedMonthData] = useState<{
     month: number;
@@ -466,6 +473,9 @@ const Dashboard = () => {
     };
   }, [billingMilestones]);
 
+  // Calculate delivered projects count
+  const deliveredProjectsCount = deliveredProjects?.length || 0;
+
   // Calculate upcoming milestones (billing milestones due in next 30 days)
   const upcomingMilestonesData = React.useMemo(() => {
     if (!billingMilestones || !Array.isArray(billingMilestones)) return { count: 0, milestones: [] };
@@ -841,15 +851,6 @@ const Dashboard = () => {
 
       {/* Stats Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Fetch delivered projects for analytics */}
-  const { data: deliveredProjects } = useQuery({
-    queryKey: ['/api/delivered-projects'],
-    staleTime: 0,
-    gcTime: 0,
-  });
-
-  // Calculate delivered projects count
-  const deliveredProjectsCount = deliveredProjects?.length || 0;
         <ProjectStatsCard
           title="Total Projects"
           value={projectStats?.total || 0}
