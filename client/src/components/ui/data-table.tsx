@@ -394,12 +394,14 @@ export function DataTable<TData, TValue>({
                 msOverflowStyle: 'none', /* IE and Edge */
               }}
               onScroll={(e) => {
-                // Sync scroll with external scrollbar
-                const externalScrollbar = e.currentTarget.parentElement?.parentElement?.nextElementSibling as HTMLElement;
-                if (externalScrollbar) {
-                  externalScrollbar.scrollLeft = e.currentTarget.scrollLeft;
-                }
-              }}
+              // Sync scroll with external scrollbar
+              const gridContainer = e.currentTarget.parentElement as HTMLElement;
+              const mainContainer = gridContainer?.parentElement as HTMLElement;
+              const externalScrollbar = mainContainer?.nextElementSibling as HTMLElement;
+              if (externalScrollbar) {
+                externalScrollbar.scrollLeft = e.currentTarget.scrollLeft;
+              }
+            }}
             >
               <style jsx>{`
                 div::-webkit-scrollbar {
