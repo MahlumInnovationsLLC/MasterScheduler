@@ -153,7 +153,7 @@ const Sidebar = () => {
             </h6>
           )}
           <ul>
-            
+
             {isModuleVisible('bay-scheduling') && (
               <li>
                 <SidebarLink href="/bay-scheduling" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -215,7 +215,7 @@ const Sidebar = () => {
             </h6>
           )}
           <ul>
-            {isModuleVisible('import') && (
+            {isModuleVisible('import') && userRole !== 'viewer' && (
               <li>
                 <SidebarLink href="/import" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/import') ? 'active' : ''

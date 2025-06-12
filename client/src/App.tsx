@@ -92,7 +92,7 @@ class ErrorBoundary extends React.Component<
 
 function Router() {
   const [location] = useLocation();
-  
+
   return (
     <Switch>
       <Route path="/auth">
@@ -181,7 +181,7 @@ function MainContent() {
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
             <ProtectedRoute path="/export-reports" component={ExportReports} />
-            <ProtectedRoute path="/import" component={ImportData} />
+            <ViewerRestrictedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
@@ -224,7 +224,7 @@ function MainContent() {
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
             <ProtectedRoute path="/export-reports" component={ExportReports} />
-            <ProtectedRoute path="/import" component={ImportData} />
+            <ViewerRestrictedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/settings/system" component={SystemSettings} />
