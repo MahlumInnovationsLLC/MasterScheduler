@@ -387,7 +387,25 @@ export function DataTable<TData, TValue>({
             </div>
 
             {/* Scrollable columns with fixed row heights */}
-            <div>
+            <div 
+              className="overflow-x-auto"
+              style={{
+                scrollbarWidth: 'none', /* Firefox */
+                msOverflowStyle: 'none', /* IE and Edge */
+              }}
+              onScroll={(e) => {
+                // Sync scroll with external scrollbar
+                const externalScrollbar = e.currentTarget.parentElement?.parentElement?.nextElementSibling as HTMLElement;
+                if (externalScrollbar) {
+                  externalScrollbar.scrollLeft = e.currentTarget.scrollLeft;
+                }
+              }}
+            >
+              <style jsx>{`
+                div::-webkit-scrollbar {
+                  display: none;
+                }
+              `}</style>
               <table className="border-collapse">
                 <thead>
                   <tr className="bg-muted/50">
@@ -500,7 +518,8 @@ export function DataTable<TData, TValue>({
             }}
             onScroll={(e) => {
               // Sync scroll with the scrollable table content
-              const scrollableTable = e.currentTarget.previousElementSibling?.querySelector('div:last-child') as HTMLElement;
+              const gridContainer = e.currentTarget.previousElementSibling as HTMLElement;
+              const scrollableTable = gridContainer?.querySelector('div:last-child') as HTMLElement;
               if (scrollableTable) {
                 scrollableTable.scrollLeft = e.currentTarget.scrollLeft;
               }
