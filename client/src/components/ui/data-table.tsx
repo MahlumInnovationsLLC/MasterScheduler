@@ -538,7 +538,8 @@ export function DataTable<TData, TValue>({
 
                   if (innerTable && el.firstElementChild) {
                     // Add extra padding to ensure the actions column is fully visible
-                    const actualWidth = innerTable.scrollWidth + 20; // Add 20px buffer
+                    // Use a larger buffer to account for the actions column width
+                    const actualWidth = innerTable.scrollWidth + 60; // Increased buffer to 60px
                     (el.firstElementChild as HTMLElement).style.width = `${actualWidth}px`;
                   }
                 };
