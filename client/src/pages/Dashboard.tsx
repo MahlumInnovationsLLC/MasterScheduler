@@ -841,6 +841,15 @@ const Dashboard = () => {
 
       {/* Stats Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Fetch delivered projects for analytics */}
+  const { data: deliveredProjects } = useQuery({
+    queryKey: ['/api/delivered-projects'],
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  // Calculate delivered projects count
+  const deliveredProjectsCount = deliveredProjects?.length || 0;
         <ProjectStatsCard
           title="Total Projects"
           value={projectStats?.total || 0}
@@ -854,7 +863,8 @@ const Dashboard = () => {
             unscheduled: projectStats?.unscheduled || 0,
             scheduled: projectStats?.scheduled || 0,
             inProgress: projectStats?.inProgress || 0,
-            complete: projectStats?.complete || 0
+            complete: projectStats?.complete || 0,
+            delivered: deliveredProjectsCount || 0
           }}
           projectLists={projectStats?.projectLists}
         />
