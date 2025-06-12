@@ -478,36 +478,35 @@ const Dashboard = () => {
 
   // Calculate upcoming milestones (billing milestones due in next 30 days)
   const upcomingMilestonesData = React.useMemo(() => {
-    if (!billingMilestones || !Array.isArray(billingMilestones)) return { count: 0, milestones: [] };
+    if (!billingMilestones || !projects) return [];
 
     const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-    const upcomingMilestones = billingMilestones.filter(milestone => {
-      if (!milestone.targetInvoiceDate) return false;
-
-      try {
-        const dueDate = new Date(milestone.targetInvoiceDate);
-        return (milestone.status === 'upcoming' || milestone.status === 'delayed') && 
-               dueDate >= now && dueDate <= thirtyDaysFromNow;
-      } catch (e) {
-        console.error("Error parsing milestone target invoice date:", e);
-        return false;
-      }
-    });
-
-    // Sort milestones by due date
-    upcomingMilestones.sort((a, b) => {
-      const dateA = new Date(a.targetInvoiceDate);
-      const dateB = new Date(b.targetInvoiceDate);
-      return dateA.getTime() - dateB.getTime();
-    });
-
-    return {
-      count: upcomingMilestones.length,
-      milestones: upcomingMilestones.slice(0, 3) // Get the next 3 upcoming milestones
-    };
-  }, [billingMilestones]);
+    return billingMilestones
+      .filter(milestone => {
+        if (!milestone.targetInvoiceDate) return false;
+        const targetDate = new Date(milestone.targetInvoiceDate);
+        return targetDate >= now && targetDate <= thirtyDaysFromNow && milestone.status !== 'paid';
+      })
+      .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime())
+      .slice(0, 3)
+      .map(milestone => {
+        // Find the associated project to get project name
+        const project = projects.find(p => p.id === milestone.projectId);
+        return {
+          id: milestone.id,
+          name: milestone.name,
+          projectNumber: project?.projectNumber || 'Unknown',
+          projectName: project?.name || 'Unknown Project',
+          amount: milestone.amount?.toString() || '0',
+          dueDate: milestone.targetInvoiceDate,
+          targetInvoiceDate: milestone.targetInvoiceDate,
+          status: milestone.status
+        };
+      });
+  }, [billingMilestones, projects]);
 
 
   // Manufacturing bay stats
