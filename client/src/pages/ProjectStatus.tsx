@@ -91,20 +91,20 @@ interface ProjectRow {
 const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Fetch project labels
   const { data: labels = [] } = useQuery({
     queryKey: [`/api/projects/${projectId}/labels`],
     enabled: !!projectId
   });
-  
+
   // Fetch available labels for assignment
   const { data: availableLabels = [] } = useQuery({
     queryKey: ['/api/project-labels']
   });
-  
+
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Assign label mutation - remove existing label first if any, then assign new one
   const assignMutation = useMutation({
     mutationFn: async (labelId: number) => {
@@ -114,7 +114,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
           await apiRequest('DELETE', `/api/projects/${projectId}/labels/${assignment.labelId}`);
         }
       }
-      
+
       // Then assign the new label
       const response = await apiRequest('POST', `/api/projects/${projectId}/labels/${labelId}`);
       if (!response.ok) throw new Error('Failed to assign label');
@@ -129,7 +129,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
       toast({ title: "Error assigning label", variant: "destructive" });
     }
   });
-  
+
   // Remove label mutation - with optimistic update
   const removeMutation = useMutation({
     mutationFn: async (labelId: number) => {
@@ -139,15 +139,15 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
     onMutate: async (labelId) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
-      
+
       // Snapshot the previous value
       const previousLabels = queryClient.getQueryData([`/api/projects/${projectId}/labels`]);
-      
+
       // Optimistically update to the new value
       queryClient.setQueryData([`/api/projects/${projectId}/labels`], (old: any[]) => 
         old ? old.filter(label => label.labelId !== labelId) : []
       );
-      
+
       return { previousLabels };
     },
     onError: (err, labelId, context) => {
@@ -160,22 +160,22 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
     }
   });
-  
+
   const handleAssignLabel = (labelId: number) => {
     assignMutation.mutate(labelId);
     setIsOpen(false);
   };
-  
+
   const handleRemoveLabel = (labelId: number) => {
     removeMutation.mutate(labelId);
   };
-  
+
   // Current assigned label (should only be one)
   const currentLabel = labels[0];
-  
+
   // Show all labels for selection if no label is assigned
   const showAddButton = !currentLabel;
-  
+
   return (
     <div className="flex flex-wrap gap-1 items-center min-w-0">
       {/* Display current label */}
@@ -196,7 +196,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
           <X className="w-3 h-3 ml-1" />
         </Badge>
       )}
-      
+
       {/* Add/Change label button */}
       {(showAddButton || currentLabel) && (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -258,21 +258,21 @@ const ProjectStatus = () => {
   const { data: projects, isLoading, refetch: refetchProjects } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
-  
+
   const { data: manufacturingSchedules } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
   });
-  
+
   const { data: billingMilestones } = useQuery({
     queryKey: ['/api/billing-milestones'],
   });
-  
+
   const { data: manufacturingBays } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
   });
   // Flag to track if initial auto-filtering has been applied
   const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
-  
+
   // Delivery dialog state
   const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -285,23 +285,23 @@ const ProjectStatus = () => {
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [selectedArchiveProjectId, setSelectedArchiveProjectId] = useState<number | null>(null);
   const [archiveReason, setArchiveReason] = useState('');
-  
+
   // Generate responsibility options from enum
   const responsibilityOptions = Object.values(delayResponsibilityEnum.enumValues);
-  
+
   // Function to handle opening the delivery dialog
   const openDeliveryDialog = (projectId: number) => {
     if (!projects) return;
-    
+
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
-    
+
     setSelectedProjectId(projectId);
-    
+
     // Use existing delivery/ship date if available, otherwise default to today
     const existingDate = project.deliveryDate || project.shipDate || format(new Date(), 'yyyy-MM-dd');
     setDeliveryDate(existingDate);
-    
+
     // Check if delivery is late (comparing to contract date)
     const contractDate = project.contractDate;
     if (contractDate) {
@@ -310,7 +310,7 @@ const ProjectStatus = () => {
     } else {
       setIsLateDelivery(false);
     }
-    
+
     setDeliveryReason('');
     setDelayResponsibility('');
     setDeliveryDialogOpen(true);
@@ -333,12 +333,12 @@ const ProjectStatus = () => {
       };
 
       const response = await apiRequest('POST', `/api/projects/${selectedArchiveProjectId}/archive`, data);
-      
+
       if (response.ok) {
         // Refresh projects list
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
         queryClient.invalidateQueries({ queryKey: ['/api/archived-projects'] });
-        
+
         // Close dialog and show success message
         setArchiveDialogOpen(false);
         const project = projects?.find(p => p.id === selectedArchiveProjectId);
@@ -349,7 +349,7 @@ const ProjectStatus = () => {
       } else {
         throw new Error('Failed to archive project');
       }
-      
+
     } catch (error) {
       console.error('Error archiving project:', error);
       toast({
@@ -359,20 +359,20 @@ const ProjectStatus = () => {
       });
     }
   };
-  
+
   // Function to handle submitting the delivery form
   const handleMarkAsDelivered = async () => {
     if (!selectedProjectId) return;
-    
+
     try {
       // Use the proper API endpoint for marking projects as delivered
       const data: any = {
         deliveryDate: deliveryDate  // Include the user-selected delivery date
       };
-      
+
       console.log("🚀 FRONTEND: Sending delivery request with data:", JSON.stringify(data, null, 2));
       console.log("🚀 FRONTEND: Selected delivery date:", deliveryDate);
-      
+
       // Include late delivery data if provided
       if (isLateDelivery && deliveryReason) {
         data.lateDeliveryReason = deliveryReason;
@@ -380,23 +380,23 @@ const ProjectStatus = () => {
       if (isLateDelivery && delayResponsibility && delayResponsibility !== 'not_applicable') {
         data.delayResponsibility = delayResponsibility;
       }
-      
+
       console.log("🚀 FRONTEND: Final data being sent:", JSON.stringify(data, null, 2));
-      
+
       const response = await apiRequest('POST', `/api/projects/${selectedProjectId}/mark-delivered`, data);
-      
+
       if (response.ok) {
         // Reset dialog state first
         setDeliveryDialogOpen(false);
         setDeliveryReason('');
         setDelayResponsibility('');
-        
+
         // Add a small delay before refreshing to prevent focus issues
         setTimeout(() => {
           queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
           queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
         }, 100);
-        
+
         toast({
           title: 'Project marked as delivered',
           description: 'Project has been moved to Delivered Projects',
@@ -404,7 +404,7 @@ const ProjectStatus = () => {
       } else {
         throw new Error('Failed to mark project as delivered');
       }
-      
+
     } catch (error) {
       console.error('Error marking project as delivered:', error);
       toast({
@@ -414,7 +414,7 @@ const ProjectStatus = () => {
       });
     }
   };
-  
+
   // Create stable callback functions to prevent re-renders
   // Create stable refs for dialog handlers to prevent React.memo from breaking
   const dialogHandlersRef = useRef({
@@ -445,7 +445,7 @@ const ProjectStatus = () => {
         if (isLateDelivery && deliveryReason) {
           updateData.delayReason = deliveryReason;
         }
-        
+
         if (isLateDelivery && delayResponsibility) {
           updateData.delayResponsibility = delayResponsibility;
         }
@@ -482,17 +482,17 @@ const ProjectStatus = () => {
     console.log("🔄 STABLE DIALOG: Date change triggered, value:", e.target.value);
     setDeliveryDate(e.target.value);
   };
-  
+
   dialogHandlersRef.current.onReasonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     console.log("🔄 STABLE DIALOG: Reason change triggered, value:", e.target.value);
     setDeliveryReason(e.target.value);
   };
-  
+
   dialogHandlersRef.current.onResponsibilityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     console.log("🔄 STABLE DIALOG: Responsibility change triggered, value:", e.target.value);
     setDelayResponsibility(e.target.value);
   };
-  
+
   dialogHandlersRef.current.onClose = () => {
     setDeliveryDialogOpen(false);
   };
@@ -509,7 +509,7 @@ const ProjectStatus = () => {
       if (isLateDelivery && deliveryReason) {
         updateData.delayReason = deliveryReason;
       }
-      
+
       if (isLateDelivery && delayResponsibility) {
         updateData.delayResponsibility = delayResponsibility;
       }
@@ -575,7 +575,7 @@ const ProjectStatus = () => {
               Archived projects can still be viewed in System Settings but cannot be modified.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="flex items-start">
               <Archive className="h-10 w-10 text-destructive mr-4 flex-shrink-0" />
@@ -592,7 +592,7 @@ const ProjectStatus = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="bg-gray-900 p-3 rounded-md">
               <Label htmlFor="archiveReason" className="text-sm font-medium mb-2 block">
                 Reason for archiving (optional)
@@ -606,7 +606,7 @@ const ProjectStatus = () => {
               />
             </div>
           </div>
-          
+
           <DialogFooter className="sm:justify-between">
             <Button
               type="button"
@@ -616,7 +616,7 @@ const ProjectStatus = () => {
             >
               Cancel
             </Button>
-            
+
             <Button
               type="button"
               variant="destructive"
@@ -631,16 +631,16 @@ const ProjectStatus = () => {
       </Dialog>
     );
   }, [archiveDialogOpen, selectedArchiveProject, archiveReason, handleArchiveReasonChange, handleCloseArchiveDialog, handleArchiveProject]);
-  
+
   // DISABLED auto-filtering - show ALL projects by default
   useEffect(() => {
     if (!projects || hasAppliedInitialFilter) return;
-    
+
     // Simply mark that we've processed the initial state
     // without applying any filters - this ensures ALL projects are visible
     console.log(`Initialized with ${projects.length} total projects - NO auto-filtering`);
     setHasAppliedInitialFilter(true);
-    
+
     // Clear any existing date filters to ensure all projects are shown
     setDateFilters({
       shipDateMin: '',
@@ -650,9 +650,9 @@ const ProjectStatus = () => {
       estimatedCompletionDateMin: '',
       estimatedCompletionDateMax: ''
     });
-    
+
   }, [projects, hasAppliedInitialFilter]);
-  
+
   // State for visible columns
   const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>({
     projectNumber: true,
@@ -714,7 +714,7 @@ const ProjectStatus = () => {
     rawData_Delivery: false,
     rawData_Progress: false,
   });
-  
+
   // Date filter state
   const [dateFilters, setDateFilters] = useState({
     startDateMin: '',
@@ -726,11 +726,11 @@ const ProjectStatus = () => {
     shipDateMin: '',
     shipDateMax: '',
   });
-  
+
   // Location filter state
   const [locationFilter, setLocationFilter] = useState<string>('');
   const [sortableColumns, setSortableColumns] = useState<boolean>(false);
-  
+
   // Filter dialog state
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
 
@@ -754,17 +754,17 @@ const ProjectStatus = () => {
       avgCompletion
     };
   }, [projects]);
-  
+
   // Calculate project state breakdown
   const projectStateBreakdown = React.useMemo(() => {
     if (!projects || projects.length === 0) return null;
-    
+
     // Initialize counters
     let unscheduled = 0;
     let scheduled = 0;
     let inProgress = 0;
     let complete = 0;
-    
+
     // Count projects by schedule state
     projects.forEach(project => {
       // If project is completed, add to complete count
@@ -772,10 +772,10 @@ const ProjectStatus = () => {
         complete++;
         return;
       }
-      
+
       // For all other projects, categorize by their schedule state
       const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
-      
+
       if (scheduleState === 'Unscheduled') {
         unscheduled++;
       } else if (scheduleState === 'Scheduled') {
@@ -786,7 +786,7 @@ const ProjectStatus = () => {
         complete++;
       }
     });
-    
+
     return {
       unscheduled,
       scheduled,
@@ -798,11 +798,11 @@ const ProjectStatus = () => {
   // Apply date filters and location filters to projects
   const filteredProjects = React.useMemo(() => {
     if (!projects) return [];
-    
+
     // Helper to safely parse dates
     const parseDate = (dateString: string | null | undefined): Date | null => {
       if (!dateString) return null;
-      
+
       try {
         const date = new Date(dateString);
         // Check if date is valid
@@ -812,25 +812,25 @@ const ProjectStatus = () => {
         return null;
       }
     };
-    
+
     // Helper to check date range
     const isInDateRange = (dateValue: string | null | undefined, minDate: string, maxDate: string): boolean => {
       if (!dateValue) return true; // Skip filtering if no date value
-      
+
       const parsedDate = parseDate(dateValue);
       if (!parsedDate) return true; // Skip if unparseable
-      
+
       if (minDate && parseDate(minDate) && parsedDate < parseDate(minDate)!) {
         return false;
       }
-      
+
       if (maxDate && parseDate(maxDate) && parsedDate > parseDate(maxDate)!) {
         return false;
       }
-      
+
       return true;
     };
-    
+
     // Cast projects to ProjectWithRawData[] to ensure rawData is available
     const filtered = (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
       // Now we'll only filter out archived projects if showArchived is false
@@ -838,48 +838,48 @@ const ProjectStatus = () => {
       if (project.status === 'archived' && !showArchived) {
         return false;
       }
-      
+
       // Check if any filter is active
       const hasActiveFilters = Object.values(dateFilters).some(val => val !== '') || locationFilter !== '';
-      
+
       // If no filters, return all projects (archived ones only if showArchived is true)
       if (!hasActiveFilters) {
         // Keep sorting enabled for all columns
         setSortableColumns(true);
         return true;
       }
-      
+
       // Location filtering
       if (locationFilter && project.location) {
         // Enable sorting when a location filter is applied
         setSortableColumns(true);
-        
+
         // If the project location doesn't match the filter, exclude it
         if (project.location.toLowerCase() !== locationFilter.toLowerCase()) {
           return false;
         }
       }
-      
+
       // Start Date Filtering
       if (!isInDateRange(project.startDate, dateFilters.startDateMin, dateFilters.startDateMax)) {
         return false;
       }
-      
+
       // End Date Filtering
       if (!isInDateRange(project.estimatedCompletionDate, dateFilters.endDateMin, dateFilters.endDateMax)) {
         return false;
       }
-      
+
       // QC Start Date Filtering
       if (!isInDateRange(project.qcStartDate, dateFilters.qcStartDateMin, dateFilters.qcStartDateMax)) {
         return false;
       }
-      
+
       // Ship Date Filtering
       if (!isInDateRange(project.shipDate, dateFilters.shipDateMin, dateFilters.shipDateMax)) {
         return false;
       }
-      
+
       return true;
     });
 
@@ -888,41 +888,41 @@ const ProjectStatus = () => {
       // First priority: delivered projects always go to the bottom
       const aDelivered = a.status === 'delivered';
       const bDelivered = b.status === 'delivered';
-      
+
       if (aDelivered && !bDelivered) return 1;  // a goes to bottom
       if (!aDelivered && bDelivered) return -1; // b goes to bottom
-      
+
       // If both or neither are delivered, maintain existing order
       return 0;
     });
   }, [projects, dateFilters, locationFilter, showArchived]);
-  
+
   // Effect to move filter buttons into table header
   useEffect(() => {
     // Wait for the DOM to be ready
     const moveFilterButtons = () => {
       const source = document.getElementById('custom-filter-buttons-source');
       const target = document.getElementById('custom-filter-buttons');
-      
+
       if (source && target) {
         // Clear previous content
         while (target.firstChild) {
           target.firstChild.remove();
         }
-        
+
         // Clone the buttons but not as a deep clone to preserve event handlers
         const buttons = source.cloneNode(false);
-        
+
         // Copy each child individually to preserve event handlers
         Array.from(source.children).forEach(child => {
           const clone = child.cloneNode(true);
           buttons.appendChild(clone);
-          
+
           // Restore event listeners for the Show Archived button
           if (clone.textContent?.includes('Archived')) {
             clone.addEventListener('click', () => setShowArchived(!showArchived));
           }
-          
+
           // Add event listeners for location filter items
           if (clone.querySelector('[data-location-filter]')) {
             const items = clone.querySelectorAll('[data-location-filter]');
@@ -934,33 +934,33 @@ const ProjectStatus = () => {
             });
           }
         });
-        
+
         // Make the buttons visible and enable pointer events
         buttons.classList.remove('opacity-0');
         buttons.classList.remove('pointer-events-none');
-        
+
         // Move the content
         target.appendChild(buttons);
       }
     };
-    
+
     // Run after a short delay to ensure both elements exist
     const timer = setTimeout(moveFilterButtons, 300);
-    
+
     return () => clearTimeout(timer);
   }, [locationFilter, showArchived]); // Re-run when filter state changes
 
   // Calculate upcoming milestones within the next 30 days
   const upcomingMilestones = React.useMemo(() => {
     if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
-    
+
     const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
 
     return billingMilestones.filter(milestone => {
       if (!milestone.dueDate) return false;
-      
+
       try {
         const dueDate = new Date(milestone.dueDate);
         return !milestone.isPaid && dueDate >= now && dueDate <= thirtyDaysFromNow;
@@ -970,17 +970,17 @@ const ProjectStatus = () => {
       }
     }).length;
   }, [billingMilestones]);
-  
+
   // Calculate manufacturing bay statistics
   const manufacturingStats = React.useMemo(() => {
     if (!manufacturingBays || !Array.isArray(manufacturingBays)) return { active: 0, available: 0, total: 0 };
-    
+
     const total = manufacturingBays.length;
     const active = manufacturingBays.filter(bay => bay.isActive && 
       Array.isArray(manufacturingSchedules) && 
       manufacturingSchedules.some(schedule => schedule.bayId === bay.id)
     ).length;
-    
+
     return {
       active,
       available: total - active,
@@ -1001,7 +1001,7 @@ const ProjectStatus = () => {
       shipDateMax: '',
     });
   };
-  
+
   // Function to update a project date field
   const updateProjectDate = async (projectId: number, field: string, value: string | null) => {
     try {
@@ -1010,7 +1010,7 @@ const ProjectStatus = () => {
         `/api/projects/${projectId}`,
         { [field]: value }
       );
-      
+
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
         toast({
@@ -1031,43 +1031,43 @@ const ProjectStatus = () => {
       return false;
     }
   };
-  
+
   // Remove comment that was causing issues
   // Adding Mark as Delivered option in project context menu
-  
+
   // Function to mark a project as delivered
   const markProjectAsDelivered = async (projectId: number, lateReason?: string, responsibility?: string) => {
     try {
       // Use our new API endpoint for marking projects as delivered
       const data: any = {};
-      
+
       // Only include late delivery data if it's provided
       if (lateReason) {
         data.lateDeliveryReason = lateReason;
       }
-      
+
       if (responsibility && responsibility !== 'not_applicable') {
         data.delayResponsibility = responsibility;
       }
-      
+
       const response = await apiRequest(
         "POST",
         `/api/projects/${projectId}/mark-delivered`,
         data
       );
-      
+
       if (response.ok) {
         // Refresh projects list
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
         queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
-        
+
         // Show success notification
         toast({
           title: "Project Delivered",
           description: `Project has been successfully marked as delivered`,
           variant: "default"
         });
-        
+
         return true;
       } else {
         throw new Error(`Failed to mark project as delivered`);
@@ -1081,7 +1081,7 @@ const ProjectStatus = () => {
       return false;
     }
   };
-  
+
   // Component for editable notes field
   const EditableNotesField = ({
     projectId,
@@ -1093,7 +1093,7 @@ const ProjectStatus = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [noteValue, setNoteValue] = useState<string>(value || '');
     const [isUpdating, setIsUpdating] = useState(false);
-    
+
     // Function to handle saving the notes
     const handleSave = async () => {
       setIsUpdating(true);
@@ -1103,7 +1103,7 @@ const ProjectStatus = () => {
           `/api/projects/${projectId}`,
           { notes: noteValue }
         );
-        
+
         if (response.ok) {
           queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
           toast({
@@ -1125,7 +1125,7 @@ const ProjectStatus = () => {
         setIsUpdating(false);
       }
     };
-    
+
     // Display editor if in edit mode
     if (isEditing) {
       return (
@@ -1161,7 +1161,7 @@ const ProjectStatus = () => {
         </div>
       );
     }
-    
+
     // Regular display mode
     return (
       <div 
@@ -1182,7 +1182,7 @@ const ProjectStatus = () => {
       </div>
     );
   };
-  
+
   // Use the imported EditableDateField component instead
 
   // Toggle column visibility
@@ -1192,7 +1192,7 @@ const ProjectStatus = () => {
       [column]: !prev[column]
     }));
   };
-  
+
   // Helper function to create column definitions with proper typing
   const createColumn = <T extends keyof ProjectWithRawData>(
     id: string,
@@ -1207,7 +1207,7 @@ const ProjectStatus = () => {
       id.toLowerCase().includes('eta') || 
       id.toLowerCase().includes('start') ||
       id.toLowerCase().includes('completion');
-    
+
     return {
       id,
       accessorKey,
@@ -1230,37 +1230,37 @@ const ProjectStatus = () => {
       }
     };
   };
-  
+
   // Helper function to safely access raw data fields
   const getRawDataField = (project: ProjectWithRawData, field: string, defaultValue: any = 'N/A'): any => {
     try {
       if (!project.rawData) return defaultValue;
-      
+
       // If the field exists directly in rawData, return it
       if (project.rawData[field] !== undefined && project.rawData[field] !== null) {
         return project.rawData[field];
       }
-      
+
       // Search for case-insensitive match if no exact match
       const keys = Object.keys(project.rawData);
       const matchingKey = keys.find(key => key.toLowerCase() === field.toLowerCase());
-      
+
       if (matchingKey) {
         return project.rawData[matchingKey];
       }
-      
+
       // Try replacements of spaces with underscores and vice versa
       const spaceKey = field.replace(/_/g, ' ');
       const underscoreKey = field.replace(/ /g, '_');
-      
+
       if (project.rawData[spaceKey] !== undefined) {
         return project.rawData[spaceKey];
       }
-      
+
       if (project.rawData[underscoreKey] !== undefined) {
         return project.rawData[underscoreKey];
       }
-      
+
       // Return default if no match found
       return defaultValue;
     } catch (error) {
@@ -1268,7 +1268,7 @@ const ProjectStatus = () => {
       return defaultValue;
     }
   };
-  
+
   // Now all columns directly access the appropriate data from the project object
 
   // Define all available columns
@@ -1300,7 +1300,7 @@ const ProjectStatus = () => {
         const isPastDue = project.shipDate ? new Date(project.shipDate) < new Date() : false;
         // Check if this is a sales estimate
         const isSalesEstimate = project.isSalesEstimate;
-        
+
         return (
           <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : isSalesEstimate ? 'bg-yellow-500/10 rounded' : ''}`}>
             <div className="ml-2 p-1">
@@ -1335,7 +1335,7 @@ const ProjectStatus = () => {
           (new Date(project.estimatedCompletionDate).getTime() - new Date(project.startDate).getTime()) / 
           (1000 * 60 * 60 * 24)
         );
-        
+
         return (
           <div>
             <div className="text-sm">
@@ -1441,13 +1441,13 @@ const ProjectStatus = () => {
         // Calculate weekdays between NTC Testing Date and QC Start Date
         const ntcTestingDate = project.ntcTestingDate;
         const qcStartDate = project.qcStartDate;
-        
+
         // Calculate weekdays
         const weekdays = calculateWeekdaysBetween(ntcTestingDate, qcStartDate);
-        
+
         // If no calculation could be made
         if (weekdays === null) return 'N/A';
-        
+
         // Style based on weekday count
         let style = '';
         if (weekdays < 3) {
@@ -1457,7 +1457,7 @@ const ProjectStatus = () => {
         } else {
           style = 'bg-green-200 text-green-800 px-2 py-1 rounded';
         }
-        
+
         return <div className={style}>{weekdays}</div>;
       },
       size: 100
@@ -1475,16 +1475,16 @@ const ProjectStatus = () => {
         const qcStartDate = project.qcStartDate;
         const execReviewDate = project.executiveReviewDate;
         const shipDate = project.shipDate;
-        
+
         // Use Exec Review Date if available, otherwise fall back to Ship Date
         const endDate = execReviewDate || shipDate;
-        
+
         // Calculate weekdays
         const weekdays = calculateWeekdaysBetween(qcStartDate, endDate);
-        
+
         // If no calculation could be made
         if (weekdays === null) return 'N/A';
-        
+
         // Style based on weekday count
         let style = '';
         if (weekdays < 3) {
@@ -1494,7 +1494,7 @@ const ProjectStatus = () => {
         } else {
           style = 'bg-green-200 text-green-800 px-2 py-1 rounded';
         }
-        
+
         return <div className={style}>{weekdays}</div>;
       },
       size: 100
@@ -1511,16 +1511,16 @@ const ProjectStatus = () => {
       cell: ({ row }) => {
         const project = row.original;
         const [isChecked, setIsChecked] = useState(project.photosTaken === true);
-        
+
         const handleToggle = async () => {
           const newValue = !isChecked;
           setIsChecked(newValue);
-          
+
           try {
             await apiRequest('PATCH', `/api/projects/${project.id}`, {
               photosTaken: newValue
             });
-            
+
             // Update the cache
             queryClient.setQueryData(['/api/projects'], (oldData: Project[] | undefined) => {
               if (!oldData) return oldData;
@@ -1539,7 +1539,7 @@ const ProjectStatus = () => {
             });
           }
         };
-        
+
         // Wrap with CellHighlighter component
         return (
           <CellHighlighter rowId={project.id} columnId="photosTaken">
@@ -1570,7 +1570,7 @@ const ProjectStatus = () => {
       (value, project) => {
         // Check if ship date is past due
         const isPastDue = value ? new Date(value) < new Date() : false;
-        
+
         return (
           <div className={isPastDue ? 'bg-red-900/30 rounded p-1' : ''}>
             <EditableDateField 
@@ -1603,17 +1603,8 @@ const ProjectStatus = () => {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }: { row: ProjectRow }) => (
-        <div className="text-right space-x-2">
-          <Link to={`/project/${row.original.id}`}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Eye className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link to={`/project/${row.original.id}/edit`}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Edit className="h-4 w-4" />
-            </Button>
-          </Link>
+        
+        <div className="flex items-center justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1622,15 +1613,18 @@ const ProjectStatus = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}`)}>
+                <Eye className="h-4 w-4 mr-2" />
                 View Details
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}/edit`)}>
+                <Edit className="h-4 w-4 mr-2" />
                 Edit Project
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
                 const projectId = row.original.id;
                 navigate(`/project/${projectId}/task/new`);
               }}>
+                <Plus className="h-4 w-4 mr-2" />
                 Add Task
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openArchiveDialog(row.original.id)}>
@@ -1651,18 +1645,18 @@ const ProjectStatus = () => {
       ),
     },
   ];
-  
+
     // Create dynamic columns based on rawData fields found in the first project
   const dynamicRawDataColumns = React.useMemo(() => {
     if (!filteredProjects || filteredProjects.length === 0) return [];
-    
+
     const sampleProject = filteredProjects[0];
     if (!sampleProject.rawData) return [];
-    
+
     // Get unique keys from rawData that aren't already in our column set
     const rawDataKeys = Object.keys(sampleProject.rawData);
     const existingColumnIds = allColumns.map(col => col.id);
-    
+
     // Map common field names to nicer display names
     const friendlyNames: Record<string, string> = {
       'chassis_eta': 'Chassis ETA',
@@ -1675,7 +1669,7 @@ const ProjectStatus = () => {
       'executive_review_date': 'Exec Review',
       'ship_date': 'Ship Date',
     };
-    
+
     // Create columns for rawData fields
     return rawDataKeys
       .filter(key => 
@@ -1685,26 +1679,26 @@ const ProjectStatus = () => {
       .map(key => {
         // Determine if this is a numeric column
         const isNumeric = typeof sampleProject.rawData[key] === 'number';
-        
+
         // Determine if this is a date column - check if it contains "date" in the name
         const isDate = key.toLowerCase().includes('date') || 
                       key.toLowerCase().includes('eta') ||
                       key.toLowerCase().includes('start') ||
                       key.toLowerCase().includes('completion');
-        
+
         // Format the header with friendly names and proper capitalization
         const formattedHeader = friendlyNames[key] || 
           key.split('_')
              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
              .join(' ');
-             
+
         return {
           id: `raw_${key}`,
           header: formattedHeader,
           accessorFn: (row: ProjectWithRawData) => getRawDataField(row, key),
           cell: ({ row }: { row: ProjectRow }) => {
             const value = getRawDataField(row.original, key);
-            
+
             // Format based on detected type
             if (isDate) {
               return formatDate(value);
@@ -1718,19 +1712,19 @@ const ProjectStatus = () => {
             } else if (typeof value === 'boolean') {
               return value ? 'Yes' : 'No';
             }
-            
+
             return value || 'N/A';
           }
         };
       });
   }, [filteredProjects, allColumns]);
-  
+
   // Only use standard columns - raw data will be loaded from the project data directly
   const allAvailableColumns = React.useMemo(() => {
     // We're only using the core columns for display consistency
     return allColumns;
   }, [allColumns]);
-  
+
   // Filter columns based on visibility settings
   const columns = allAvailableColumns.filter(col => 
     // If the column is new (not in visibleColumns yet), show it by default
@@ -1768,7 +1762,7 @@ const ProjectStatus = () => {
           <h1 className="text-2xl font-sans font-bold">Project Status</h1>
           <p className="text-gray-400 text-sm">Manage and track all your project timelines and progress</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {/* Location Filter Dropdown */}
           <DropdownMenu>
@@ -1804,7 +1798,7 @@ const ProjectStatus = () => {
               }
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           {/* Date Filter Dialog */}
           <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
             <DialogTrigger asChild>
@@ -1817,7 +1811,7 @@ const ProjectStatus = () => {
               <DialogHeader>
                 <DialogTitle>Filter Projects by Date</DialogTitle>
               </DialogHeader>
-              
+
               <div className="grid grid-cols-2 gap-6 pt-4">
                 <div>
                   <h3 className="font-semibold mb-3">Start Date</h3>
@@ -1844,7 +1838,7 @@ const ProjectStatus = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold mb-3">Estimated Completion</h3>
                   <div className="space-y-4">
@@ -1870,7 +1864,7 @@ const ProjectStatus = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold mb-3">QC Start Date</h3>
                   <div className="space-y-4">
@@ -1896,7 +1890,7 @@ const ProjectStatus = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold mb-3">Ship Date</h3>
                   <div className="space-y-4">
@@ -1923,7 +1917,7 @@ const ProjectStatus = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-between mt-6">
                 <div className="text-sm text-gray-400">
                   {filteredProjects.length} projects match filter criteria
@@ -1939,7 +1933,7 @@ const ProjectStatus = () => {
               </div>
             </DialogContent>
           </Dialog>
-          
+
           {/* Column Selector */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1963,7 +1957,7 @@ const ProjectStatus = () => {
                 Show All Columns
               </DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
-              
+
               {/* List all columns */}
               {allColumns.map(column => (
                 <DropdownMenuCheckboxItem
@@ -1976,19 +1970,19 @@ const ProjectStatus = () => {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           <Button variant="outline" size="sm">
             <SortDesc className="mr-2 h-4 w-4" />
             Sort
           </Button>
-          
+
           <Button size="sm" onClick={() => navigate('/projects/new')}>
             <Plus className="mr-2 h-4 w-4" />
             New Project
           </Button>
         </div>
       </div>
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
         {/* Total Projects - Wider (5 columns) */}
@@ -2006,7 +2000,7 @@ const ProjectStatus = () => {
             className="h-72"
           />
         </div>
-        
+
         {/* Upcoming Milestones (2 columns) */}
         <div className="md:col-span-2">
           <ProjectStatsCard 
@@ -2022,12 +2016,12 @@ const ProjectStatus = () => {
             className="h-72"
           />
         </div>
-        
+
         {/* AI Insights (3 columns) */}
         <div className="md:col-span-3 h-72 overflow-hidden">
           <AIInsightsWidget projects={projects || []} />
         </div>
-        
+
         {/* Manufacturing - Narrower (2 columns) */}
         <div className="md:col-span-2">
           <ProjectStatsCard 
@@ -2042,14 +2036,14 @@ const ProjectStatus = () => {
           />
         </div>
       </div>
-      
+
       {/* Project Status Breakdown now part of Total Projects card */}
-      
+
       {/* Current Production Status - Horizontal Card */}
       <div className="mb-6">
         <HighRiskProjectsCard projects={projects || []} />
       </div>
-      
+
       {/* Project List Table */}
       <div className="relative">
         <DataTable
@@ -2062,7 +2056,7 @@ const ProjectStatus = () => {
           enableSorting={true} // Always enable sorting on all columns
           initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)
         />
-        
+
         {/* Custom Filter Buttons - Will be moved to the results header using portal/DOM manipulation */}
         {/* Filter buttons source div - HIDDEN 
             These buttons are not displayed at the top of the results window
@@ -2074,7 +2068,7 @@ const ProjectStatus = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Filters Info */}
       {Object.values(dateFilters).some(v => v !== '') && (
         <div className="mt-4 bg-gray-900 p-3 rounded-lg flex items-center justify-between">
@@ -2089,7 +2083,7 @@ const ProjectStatus = () => {
           </Button>
         </div>
       )}
-      
+
       {/* Delivery Dialog - Only render when open to prevent unnecessary re-renders */}
       {deliveryDialogOpen && (
         <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
@@ -2102,7 +2096,7 @@ const ProjectStatus = () => {
                 ) : 'Mark project as delivered'}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="delivery-date" className="text-right">
@@ -2122,7 +2116,7 @@ const ProjectStatus = () => {
                   className="col-span-3"
                 />
               </div>
-              
+
               {isLateDelivery && (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -2136,7 +2130,7 @@ const ProjectStatus = () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="delay-reason" className="text-right">
                       Delay Reason
@@ -2158,7 +2152,7 @@ const ProjectStatus = () => {
                       rows={3}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="delay-responsibility" className="text-right">
                       Responsibility
@@ -2186,7 +2180,7 @@ const ProjectStatus = () => {
                 </>
               )}
             </div>
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeliveryDialogOpen(false)}>Cancel</Button>
               <Button onClick={async () => {
@@ -2212,7 +2206,7 @@ const ProjectStatus = () => {
                     title: "Success",
                     description: `Project ${selectedProject.name} marked as delivered`,
                   });
-                  
+
                   queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
                   setDeliveryDialogOpen(false);
                   setSelectedProjectId(null);
