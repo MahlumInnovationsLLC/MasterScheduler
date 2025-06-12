@@ -491,7 +491,6 @@ const Dashboard = () => {
         return targetDate >= now && targetDate <= thirtyDaysFromNow && milestone.status !== 'paid';
       })
       .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime())
-      .slice(0, 3)
       .map(milestone => {
         // Find the associated project to get project name
         const project = projects.find(p => p.id === milestone.projectId);
@@ -849,7 +848,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <ProjectStatsCard
           title="Total Projects"
           value={projectStats?.total || 0}
@@ -877,17 +876,6 @@ const Dashboard = () => {
             { label: "due in 30 days", value: upcomingMilestonesData.length, status: "Upcoming" }
           ]}
           upcomingMilestones={upcomingMilestonesData}
-        />
-
-        <BillingStatusCard
-          title="Billing Status"
-          value={formatCurrency(billingStats?.amounts.pending || 0)}
-          type="cashflow"
-          stats={[
-            { label: "Received", value: formatCurrency(billingStats?.amounts.received || 0) },
-            { label: "Pending", value: formatCurrency(billingStats?.amounts.pending || 0) },
-            { label: "Overdue", value: formatCurrency(billingStats?.amounts.overdue || 0) }
-          ]}
         />
 
         <BillingStatusCard
