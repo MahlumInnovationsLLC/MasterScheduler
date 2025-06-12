@@ -871,12 +871,12 @@ const Dashboard = () => {
 
         <ProjectStatsCard
           title="Upcoming Milestones"
-          value={upcomingMilestonesData.count}
+          value={upcomingMilestonesData.length}
           icon={<Calendar className="text-primary" />}
           tags={[
-            { label: "due in 30 days", value: upcomingMilestonesData.count, status: "Upcoming" }
+            { label: "due in 30 days", value: upcomingMilestonesData.length, status: "Upcoming" }
           ]}
-          upcomingMilestones={upcomingMilestonesData.milestones}
+          upcomingMilestones={upcomingMilestonesData}
         />
 
         <BillingStatusCard
