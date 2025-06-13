@@ -23,7 +23,6 @@ import {
 import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
 import { useRolePermissions } from '@/hooks/use-role-permissions';
-import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
 import { useModuleVisibility } from '@/hooks/use-module-visibility';
 
 // Custom Link component that adds sidebar-item class for view-only mode support

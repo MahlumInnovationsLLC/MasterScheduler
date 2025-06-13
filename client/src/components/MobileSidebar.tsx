@@ -19,6 +19,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const [location] = useLocation();
   const { hasAccess } = usePermissions();
   const { isModuleVisible } = useModuleVisibility();
+  const { user } = useAuth();
 
   const navigationItems = [
     { id: "dashboard", icon: Home, label: 'Dashboard', path: '/' },
@@ -35,6 +36,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     { id: "supply-chain", icon: Truck, label: 'Supply Chain', path: '/supply-chain' },
     { id: "archived-projects", icon: Archive, label: 'Archived Projects', path: '/archived-projects' },
     { id: "delivered-projects", icon: CheckCircle, label: 'Delivered Projects', path: '/delivered-projects' },
+    { id: "quality-assurance", icon: CheckCircle, label: 'Quality Assurance', path: '/quality-assurance' },
   ];
 
   const isActive = (path: string) => {
@@ -45,8 +47,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const filteredNavItems = navigationItems.filter(item => {
     // For mobile sidebar, we'll use the module visibility check
     // since hasAccess might not be available in this context
-    const isVisible = isModuleVisible(item.id);
-    return isVisible;
+    return isModuleVisible(item.id);
   });
 
   return (
@@ -144,3 +145,4 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     </>
   );
 }
+```
