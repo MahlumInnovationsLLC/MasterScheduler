@@ -196,13 +196,14 @@ export default function QualityAssurance() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="ncr">NCRs</TabsTrigger>
           <TabsTrigger value="capa">CAPA</TabsTrigger>
           <TabsTrigger value="scar">SCAR</TabsTrigger>
           <TabsTrigger value="audits">Audits</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         {/* Dashboard Tab */}

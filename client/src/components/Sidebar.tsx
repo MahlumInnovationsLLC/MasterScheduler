@@ -133,16 +133,7 @@ const Sidebar = () => {
                 </SidebarLink>
               </li>
             )}
-            {isModuleVisible('quality-assurance') && (
-              <li>
-                <SidebarLink href="/quality-assurance" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive('/quality-assurance') ? 'active' : ''
-                } ${isCollapsed ? 'justify-center' : ''}`} title="Quality Assurance">
-                  <Shield size={20} className={`${isActive('/quality-assurance') ? 'text-primary' : ''}`} />
-                  {!isCollapsed && <span>Quality Assurance</span>}
-                </SidebarLink>
-              </li>
-            )}
+
             {isModuleVisible('reports') && (
               <li>
                 <SidebarLink href="/reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -164,7 +155,16 @@ const Sidebar = () => {
             </h6>
           )}
           <ul>
-
+            {isModuleVisible('quality-assurance') && (
+              <li>
+                <SidebarLink href="/quality-assurance" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/quality-assurance') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Quality Assurance">
+                  <Shield size={20} className={`${isActive('/quality-assurance') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Quality Assurance</span>}
+                </SidebarLink>
+              </li>
+            )}
             {isModuleVisible('bay-scheduling') && (
               <li>
                 <SidebarLink href="/bay-scheduling" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
