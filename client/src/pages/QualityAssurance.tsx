@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   AlertCircle, 
   CheckCircle, 
@@ -503,6 +507,32 @@ export default function QualityAssurance() {
     enabled: true
   });
 
+  const { data: projects = [] } = useQuery({
+    queryKey: ["/api/projects"],
+    enabled: true
+  });
+
+  // Create NCR mutation
+  const createNCRMutation = useMutation({
+    mutationFn: async (ncrData: any) => {
+      const response = await fetch('/api/ncrs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ncrData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create NCR');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ncrs"] });
+      setShowCreateNCR(false);
+    },
+  });
+
   const { data: analytics } = useQuery({
     queryKey: ["/api/qa/analytics"],
     enabled: true
@@ -794,7 +824,7 @@ export default function QualityAssurance() {
                 </SelectContent>
               </Select>
             </div>
-            <Button>
+            <Button onClick={() => setShowCreateNCR(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create NCR
             </Button>
@@ -1830,6 +1860,166 @@ export default function QualityAssurance() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Create NCR Modal */}
+      <Dialog open={showCreateNCR} onOpenChange={setShowCreateNCR}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create Non-Conformance Report</DialogTitle>
+            <DialogDescription>
+              Report a quality issue or non-conformance for investigation and resolution.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateNCRForm 
+            projects={projects}
+            onSubmit={createNCRMutation.mutate}
+            onCancel={() => setShowCreateNCR(false)}
+            isLoading={createNCRMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// Create NCR Form Component
+function CreateNCRForm({ 
+  projects, 
+  onSubmit, 
+  onCancel, 
+  isLoading 
+}: { 
+  projects: any[];
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    projectId: '',
+    title: '',
+    description: '',
+    severity: 'medium',
+    reportedBy: '',
+    dateIdentified: new Date().toISOString().split('T')[0]
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      projectId: parseInt(formData.projectId),
+      title: formData.title,
+      description: formData.description,
+      severity: formData.severity,
+      reportedBy: formData.reportedBy,
+      dateIdentified: formData.dateIdentified
+    });
+  };
+
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Project Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="project">Project *</Label>
+          <Select value={formData.projectId} onValueChange={(value) => handleChange('projectId', value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select project" />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id.toString()}>
+                  {project.projectNumber} - {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Severity */}
+        <div className="space-y-2">
+          <Label htmlFor="severity">Severity *</Label>
+          <Select value={formData.severity} onValueChange={(value) => handleChange('severity', value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Issue Title */}
+      <div className="space-y-2">
+        <Label htmlFor="title">Issue Title *</Label>
+        <Input
+          id="title"
+          value={formData.title}
+          onChange={(e) => handleChange('title', e.target.value)}
+          placeholder="Brief description of the non-conformance"
+          required
+        />
+      </div>
+
+      {/* Description */}
+      <div className="space-y-2">
+        <Label htmlFor="description">Description *</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => handleChange('description', e.target.value)}
+          placeholder="Detailed description of the issue, impact, and any immediate actions taken"
+          rows={4}
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Reported By */}
+        <div className="space-y-2">
+          <Label htmlFor="reportedBy">Reported By *</Label>
+          <Input
+            id="reportedBy"
+            value={formData.reportedBy}
+            onChange={(e) => handleChange('reportedBy', e.target.value)}
+            placeholder="Your name"
+            required
+          />
+        </div>
+
+        {/* Date Identified */}
+        <div className="space-y-2">
+          <Label htmlFor="dateIdentified">Date Identified *</Label>
+          <Input
+            id="dateIdentified"
+            type="date"
+            value={formData.dateIdentified}
+            onChange={(e) => handleChange('dateIdentified', e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      {/* Form Actions */}
+      <div className="flex justify-end space-x-4 pt-6 border-t">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={isLoading || !formData.projectId || !formData.title || !formData.description}
+          className="min-w-[120px]"
+        >
+          {isLoading ? "Creating..." : "Create NCR"}
+        </Button>
+      </div>
+    </form>
   );
 }
