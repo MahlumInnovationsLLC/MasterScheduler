@@ -1,0 +1,200 @@
+You are building a full-featured Quality Assurance Module to be added to our app. This module will ensure traceability, compliance, corrective actions, audit controls, document integrity, and training accountability across all vehicle projects. It must tightly integrate with the rest of the app (including Projects, Manufacturing, Scheduling, and Reporting modules).
+
+🧱 Module Name: Quality Assurance Center
+Each of the following sub-modules must work independently but remain cross-linked through shared Project Numbers, Bays, User Roles, and Document References.
+
+1. 🔧 Non-Conformance Reports (NCRs)
+Create and manage NCRs tied to specific:
+
+Project Number
+
+Vehicle/Module Section
+
+Bay or Station
+
+NCR Fields:
+
+Issue Title
+
+Description of Non-Conformance
+
+Date Identified
+
+Identified By (user)
+
+Part/Subsystem Involved
+
+Severity Level (Low/Med/High/Critical)
+
+Attach images/documents
+
+Status (Open, Under Review, Resolved)
+
+Include auto-tagging to initiate CAPA if severity is above Medium
+
+2. 🔁 Corrective and Preventive Action (CAPA)
+Triggered by NCR, Audit Findings, or manually
+
+Fields:
+
+Linked NCR or Audit Finding
+
+Root Cause Analysis (5 Whys, Fishbone options)
+
+Corrective Actions Taken
+
+Preventive Measures Instituted
+
+Owner (Responsible Party)
+
+Due Date
+
+Effectiveness Review Date
+
+Status (Draft, In Progress, Complete)
+
+Exportable CAPA Summary PDF
+
+3. 📦 Supplier Corrective Action Requests (SCAR)
+Issued to suppliers for quality defects or late deliveries
+
+SCAR Fields:
+
+Supplier Name
+
+Linked PO or Part Number
+
+Description of Defect or Issue
+
+Date Reported
+
+Supplier Response Required By
+
+Attach evidence or photos
+
+Fields for Supplier Response (within portal or email link)
+
+Internal Review & Closure Notes
+
+Include escalation tracker and SCAR effectiveness check
+
+4. ✅ Audit Management
+Internal or External Audits (ISO, DOT, Customer, etc.)
+
+Fields:
+
+Audit Type
+
+Audit Date & Auditor
+
+Area/Function Audited (e.g., Electrical Install, Chassis Fabrication)
+
+Findings (Major/Minor)
+
+Linked NCR/CAPA Records
+
+Corrective Action Status
+
+Calendar View for Scheduled Audits
+
+PDF Export of Full Audit Report
+
+5. 📁 Document Control
+Upload, version, and manage quality documents:
+
+SOPs, Work Instructions, Forms, Calibration Records
+
+Features:
+
+Tag by Department, Project Type, or Compliance Category
+
+Version Control (with comments and changelog)
+
+Approval Workflow (Draft > Submitted > Reviewed > Approved)
+
+Expiry Notifications & Revalidation Tracker
+
+Only Admins/QC Managers can publish
+
+Users can “Acknowledge” documents to verify reading
+
+6. 🧠 Training Center
+Assign training modules or documents to users
+
+Types of Training:
+
+Onboarding (Safety, QMS Overview)
+
+Equipment Certification
+
+SOP Familiarity
+
+Features:
+
+Upload Training Content (PDFs, videos, slides)
+
+Quiz Capability (Multiple Choice, Score Threshold)
+
+Completion Tracker
+
+Recertification Date Management
+
+Reporting per user, per department
+
+🔗 Integration with Existing App
+Project Linkage: Every NCR, CAPA, Audit, or Training record can be linked to a Project Number
+
+User Roles:
+
+QA Manager: Full Access
+
+Project Leads: Can create/view NCRs, initiate CAPAs
+
+Operators: Can log NCRs, acknowledge documents, take training
+
+Manufacturing Integration: NCRs can be launched from Bay or Station screen
+
+Meetings Module: NCRs and CAPAs can be pulled into Meeting Reports
+
+Dashboard Widgets:
+
+Open NCRs by Project
+
+CAPA Status Tracker
+
+Overdue SCARs
+
+Audit Readiness Score
+
+Document Expiration Alerts
+
+Training Completion Rate by Team
+
+📄 Reports & Exports
+All sections should support:
+
+PDF and Word Exports
+
+Filter/Sort by Project, Date, Status, etc.
+
+Dashboard Summary Printouts
+
+Auto-numbering format (e.g., NCR-2025-001)
+
+💾 Database Structure
+Use Neon DB or Replit DB with tables:
+
+ncrs, capas, scars, audits, documents, trainings, acknowledgements, users
+
+Ensure foreign key linking via project_id, user_id, document_id
+
+🛠 Optional Enhancements
+Digital Signatures (for Approvals)
+
+Email Notifications & Daily Digest
+
+AI Assistant to Suggest Root Causes based on past data
+
+Mobile-responsive interface for shop floor use
+
+Let me know if you'd like this converted into a downloadable implementation plan or added to a Word document for SOP use.
