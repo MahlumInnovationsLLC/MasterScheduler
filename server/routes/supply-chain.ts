@@ -403,4 +403,208 @@ router.post('/project-supply-chain-benchmarks/add-defaults/:projectId', async (r
   }
 });
 
+// Generate PDF report of all projects with their benchmarks
+router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
+  try {
+    // Get all active projects
+    const projects = await storage.getActiveProjects();
+    
+    // Get all project benchmarks
+    const allProjectBenchmarks = await storage.getProjectSupplyChainBenchmarks();
+    
+    // Create a map of project benchmarks by project ID
+    const benchmarksByProject = new Map<number, any[]>();
+    allProjectBenchmarks.forEach(benchmark => {
+      if (!benchmarksByProject.has(benchmark.projectId)) {
+        benchmarksByProject.set(benchmark.projectId, []);
+      }
+      benchmarksByProject.get(benchmark.projectId)!.push(benchmark);
+    });
+
+    // Generate HTML content for the PDF
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Benchmarks Report</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                color: #333; 
+                line-height: 1.4;
+            }
+            .header { 
+                text-align: center; 
+                border-bottom: 2px solid #333; 
+                padding-bottom: 10px; 
+                margin-bottom: 30px; 
+            }
+            .project { 
+                margin-bottom: 40px; 
+                page-break-inside: avoid; 
+            }
+            .project-header { 
+                background-color: #f5f5f5; 
+                padding: 10px; 
+                border: 1px solid #ddd; 
+                margin-bottom: 10px; 
+            }
+            .project-title { 
+                font-size: 16px; 
+                font-weight: bold; 
+                margin: 0; 
+            }
+            .project-number { 
+                color: #666; 
+                margin: 0; 
+            }
+            .benchmarks-table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-top: 10px; 
+            }
+            .benchmarks-table th, .benchmarks-table td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+                font-size: 12px; 
+            }
+            .benchmarks-table th { 
+                background-color: #f9f9f9; 
+                font-weight: bold; 
+            }
+            .status-completed { 
+                color: #22c55e; 
+                font-weight: bold; 
+            }
+            .status-pending { 
+                color: #f59e0b; 
+            }
+            .status-overdue { 
+                color: #ef4444; 
+                font-weight: bold; 
+            }
+            .no-benchmarks { 
+                color: #666; 
+                font-style: italic; 
+                text-align: center; 
+                padding: 20px; 
+            }
+            .summary { 
+                background-color: #f0f9ff; 
+                padding: 15px; 
+                border: 1px solid #bae6fd; 
+                margin-bottom: 30px; 
+            }
+            .page-break { 
+                page-break-before: always; 
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>Benchmarks Report</h1>
+            <p>Generated on ${new Date().toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}</p>
+        </div>
+
+        <div class="summary">
+            <h2>Summary</h2>
+            <p><strong>Total Active Projects:</strong> ${projects.length}</p>
+            <p><strong>Total Benchmarks:</strong> ${allProjectBenchmarks.length}</p>
+            <p><strong>Completed Benchmarks:</strong> ${allProjectBenchmarks.filter(b => b.isCompleted).length}</p>
+            <p><strong>Pending Benchmarks:</strong> ${allProjectBenchmarks.filter(b => !b.isCompleted).length}</p>
+        </div>
+
+        ${projects.map((project, index) => {
+          const projectBenchmarks = benchmarksByProject.get(project.id) || [];
+          const completedCount = projectBenchmarks.filter(b => b.isCompleted).length;
+          
+          return `
+            <div class="project ${index > 0 && index % 3 === 0 ? 'page-break' : ''}">
+                <div class="project-header">
+                    <h3 class="project-title">${project.name}</h3>
+                    <p class="project-number">Project Number: ${project.projectNumber}</p>
+                    <p class="project-number">Status: ${project.status} | Benchmarks: ${completedCount}/${projectBenchmarks.length} completed</p>
+                </div>
+                
+                ${projectBenchmarks.length > 0 ? `
+                    <table class="benchmarks-table">
+                        <thead>
+                            <tr>
+                                <th>Benchmark Name</th>
+                                <th>Target Phase</th>
+                                <th>Timeline</th>
+                                <th>Target Date</th>
+                                <th>Status</th>
+                                <th>Completed Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${projectBenchmarks.map(benchmark => {
+                              const targetDate = benchmark.targetDate 
+                                ? new Date(benchmark.targetDate).toLocaleDateString()
+                                : 'Not set';
+                              const completedDate = benchmark.completedDate 
+                                ? new Date(benchmark.completedDate).toLocaleDateString()
+                                : '';
+                              
+                              let statusClass = 'status-pending';
+                              let statusText = 'Pending';
+                              
+                              if (benchmark.isCompleted) {
+                                statusClass = 'status-completed';
+                                statusText = 'Completed';
+                              } else if (benchmark.targetDate && new Date(benchmark.targetDate) < new Date()) {
+                                statusClass = 'status-overdue';
+                                statusText = 'Overdue';
+                              }
+                              
+                              return `
+                                <tr>
+                                    <td>${benchmark.name}</td>
+                                    <td>${benchmark.targetPhase}</td>
+                                    <td>${benchmark.weeksBeforePhase} weeks before</td>
+                                    <td>${targetDate}</td>
+                                    <td class="${statusClass}">${statusText}</td>
+                                    <td>${completedDate}</td>
+                                </tr>
+                              `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                ` : `
+                    <div class="no-benchmarks">
+                        No benchmarks defined for this project
+                    </div>
+                `}
+            </div>
+          `;
+        }).join('')}
+    </body>
+    </html>
+    `;
+
+    // Set response headers for PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="benchmarks-report-${new Date().toISOString().split('T')[0]}.pdf"`);
+    
+    // For now, we'll send the HTML content. In a production environment, 
+    // you would use a library like puppeteer or similar to convert HTML to PDF
+    // Since we're in a simple environment, we'll return HTML that can be printed as PDF
+    res.setHeader('Content-Type', 'text/html');
+    res.send(htmlContent);
+    
+  } catch (error) {
+    console.error("Error generating PDF report:", error);
+    res.status(500).json({ error: "Failed to generate PDF report" });
+  }
+});
+
 export default router;

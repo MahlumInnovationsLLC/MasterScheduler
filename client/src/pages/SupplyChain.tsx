@@ -138,6 +138,7 @@ const SupplyChain = () => {
   const [selectedBenchmarkTemplate, setSelectedBenchmarkTemplate] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Query for all benchmarks
   const { data: benchmarks, isLoading: loadingBenchmarks } = useQuery({
@@ -163,14 +164,14 @@ const SupplyChain = () => {
       apiRequest('POST', '/api/supply-chain-benchmarks', data),
     onSuccess: async (response, data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/supply-chain-benchmarks'] });
-      
+
       // Check if there's a pending project ID to add this benchmark to
       if (pendingBenchmarkProjectId) {
         console.log("Adding benchmark to project:", pendingBenchmarkProjectId);
-        
+
         // Get the newly created benchmark ID from the response
         const newBenchmarkId = response?.id;
-        
+
         if (newBenchmarkId) {
           // Create data for the project benchmark
           const projectBenchmarkData = {
@@ -182,14 +183,14 @@ const SupplyChain = () => {
             targetPhase: data.targetPhase,
             isCompleted: false
           };
-          
+
           // Add this benchmark to the project
           try {
             await apiRequest('POST', '/api/project-supply-chain-benchmarks', projectBenchmarkData);
-            
+
             // Invalidate project benchmarks query to refresh the list
             queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
-            
+
             toast({
               title: "Benchmark added to project",
               description: "The new benchmark has been added to the project successfully."
@@ -201,7 +202,7 @@ const SupplyChain = () => {
               variant: "destructive"
             });
           }
-          
+
           // Clear the pending project ID
           setPendingBenchmarkProjectId(null);
         }
@@ -211,13 +212,13 @@ const SupplyChain = () => {
           description: "The supply chain benchmark has been created successfully."
         });
       }
-      
+
       setOpenBenchmarkDialog(false);
     },
     onError: (error) => {
       // Clear the pending project ID to prevent issues on retry
       setPendingBenchmarkProjectId(null);
-      
+
       toast({
         title: "Error creating benchmark",
         description: "There was an error creating the benchmark. Please try again.",
@@ -303,16 +304,16 @@ const SupplyChain = () => {
       });
     }
   });
-  
+
   const addTemplateBenchmarkMutation = useMutation({
     mutationFn: ({ projectId, benchmarkId }: { projectId: number, benchmarkId: number }) => {
       // Find the benchmark template to get its details
       const benchmark = benchmarks?.find(b => b.id === benchmarkId);
-      
+
       if (!benchmark) {
         throw new Error("Benchmark template not found");
       }
-      
+
       // Create the project benchmark data
       const projectBenchmarkData = {
         projectId: projectId,
@@ -323,7 +324,7 @@ const SupplyChain = () => {
         targetPhase: benchmark.targetPhase,
         isCompleted: false
       };
-      
+
       // Add this benchmark to the project
       return apiRequest('POST', '/api/project-supply-chain-benchmarks', projectBenchmarkData);
     },
@@ -345,299 +346,101 @@ const SupplyChain = () => {
     }
   });
 
-  // Form for benchmark creation/editing
-  const benchmarkForm = useForm<z.infer<typeof benchmarkFormSchema>>({
-    resolver: zodResolver(benchmarkFormSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      weeksBeforePhase: 3,
-      targetPhase: 'FABRICATION',
-      isDefault: false,
-      isActive: true
-    }
-  });
-
-  // Handle opening the form dialog for creating or editing a benchmark
-  const handleEditBenchmark = (benchmark: SupplyChainBenchmark) => {
-    setEditingBenchmark(benchmark);
-    benchmarkForm.reset({
-      name: benchmark.name,
-      description: benchmark.description || '',
-      weeksBeforePhase: benchmark.weeksBeforePhase,
-      targetPhase: benchmark.targetPhase,
-      isDefault: benchmark.isDefault,
-      isActive: benchmark.isActive
-    });
-    setOpenBenchmarkDialog(true);
+  const handlePermanentDeleteProject = (projectId: number) => {
   };
 
-  // Handle creating a new benchmark
-  const handleNewBenchmark = (forProjectId: number | null = null) => {
-    setEditingBenchmark(null);
-    
-    // Store the project ID if provided (for automatically adding to that project later)
-    setPendingBenchmarkProjectId(forProjectId);
-    
-    benchmarkForm.reset({
-      name: '',
-      description: '',
-      weeksBeforePhase: 3,
-      targetPhase: 'FABRICATION',
-      isDefault: false,
-      isActive: true
-    });
-    setOpenBenchmarkDialog(true);
-  };
-  
-  // Handle opening the project details dialog
-  const handleOpenProjectDetails = (project: Project) => {
-    setSelectedProjectDetails(project);
-    setProjectDetailsOpen(true);
-  };
+  // PDF Generation function
+  const generatePDFReport = async () => {
+    setIsGeneratingPDF(true);
 
-  // Handle form submission for benchmark creation/editing
-  const onBenchmarkSubmit = (values: z.infer<typeof benchmarkFormSchema>) => {
-    if (editingBenchmark) {
-      updateBenchmarkMutation.mutate({ 
-        id: editingBenchmark.id, 
-        data: values 
-      });
-    } else {
-      createBenchmarkMutation.mutate(values);
-    }
-  };
-
-  // Calculate target date based on project data and benchmark settings
-  const getPhaseDate = (project: Project, phase: string): string | null => {
-    switch (phase.toUpperCase()) {
-      case 'CONTRACT':
-        return project.contractDate;
-      case 'START':
-        return project.startDate;
-      case 'CHASSIS':
-        return project.chassisETA;
-      case 'FABRICATION':
-        return project.fabricationStart;
-      case 'ASSEMBLY':
-        return project.assemblyStart;
-      case 'WRAP':
-        return project.wrapDate;
-      case 'PAINT': 
-        // Paint typically happens between fabrication and assembly
-        return project.fabricationStart ? 
-          format(addWeeks(parseISO(project.fabricationStart), 1), 'yyyy-MM-dd') : 
-          null;
-      case 'PRODUCTION':
-        return project.assemblyStart;
-      case 'IT':
-        // IT typically happens near the end of production
-        return project.ntcTestingDate ? 
-          format(subWeeks(parseISO(project.ntcTestingDate), 1), 'yyyy-MM-dd') : 
-          null;
-      case 'NTC':
-        return project.ntcTestingDate;
-      case 'QC':
-        return project.qcStartDate;
-      case 'EXEC_REVIEW':
-        return project.executiveReviewDate;
-      case 'SHIP':
-        return project.shipDate;
-      case 'DELIVERY':
-        return project.deliveryDate;
-      case 'COMPLETION':
-        return project.estimatedCompletionDate;
-      default:
-        return null;
-    }
-  };
-
-  // Calculate benchmark target date based on project phase date and weeks before
-  const calculateTargetDate = (project: Project | undefined, benchmark: ProjectSupplyChainBenchmark): string => {
-    if (!project) return 'No project data';
-    
-    const phaseDate = getPhaseDate(project, benchmark.targetPhase);
-    if (!phaseDate) return 'Phase date not set';
-    
     try {
-      const phaseDateObj = parseISO(phaseDate);
-      const targetDateObj = subWeeks(phaseDateObj, benchmark.weeksBeforePhase);
-      return format(targetDateObj, 'MMM d, yyyy');
-    } catch (error) {
-      return 'Invalid date';
-    }
-  };
-
-  // Get status badge for a benchmark
-  const getBenchmarkStatus = (benchmark: ProjectSupplyChainBenchmark): { label: string; color: string } => {
-    if (benchmark.isCompleted) {
-      return { label: 'Completed', color: 'bg-green-500' };
-    }
-    
-    if (!benchmark.targetDate) return { label: 'Pending', color: 'bg-gray-500' };
-    
-    try {
-      const today = new Date();
-      const targetDate = parseISO(benchmark.targetDate);
-      
-      if (targetDate < today) {
-        return { label: 'Overdue', color: 'bg-red-500' };
-      } else {
-        // Check if within 2 weeks
-        const twoWeeksFromNow = addWeeks(today, 2);
-        if (targetDate <= twoWeeksFromNow) {
-          return { label: 'Upcoming', color: 'bg-amber-500' };
-        }
-      }
-      
-      return { label: 'Scheduled', color: 'bg-blue-500' };
-    } catch (error) {
-      return { label: 'Error', color: 'bg-gray-500' };
-    }
-  };
-
-  // Track which benchmark is currently being updated
-  const [updatingBenchmarkId, setUpdatingBenchmarkId] = useState<number | null>(null);
-  
-  // Get mock username for development mode
-  const getCurrentUser = () => {
-    // In production, this would come from an authentication context
-    // For now, we'll use a mock username for demonstration
-    return "John Doe";
-  };
-
-  // Toggle completion status of a project benchmark
-  const toggleBenchmarkCompletion = (benchmark: ProjectSupplyChainBenchmark) => {
-    // Set the updating benchmark ID to show loading state
-    setUpdatingBenchmarkId(benchmark.id);
-    
-    const newStatus = !benchmark.isCompleted;
-    
-    // For debugging
-    console.log("Toggling benchmark completion:", {
-      benchmarkId: benchmark.id,
-      oldStatus: benchmark.isCompleted,
-      newStatus: newStatus,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Use our new dedicated endpoint for toggling benchmark completion
-    apiRequest('POST', `/api/project-supply-chain-benchmarks/${benchmark.id}/toggle-completion`, {
-      isCompleted: newStatus,
-      completedBy: getCurrentUser()
-    })
-      .then(() => {
-        // Invalidate query to refresh data
-        queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
-        toast({
-          title: newStatus ? "Benchmark completed" : "Benchmark reopened",
-          description: newStatus 
-            ? "The benchmark has been marked as completed." 
-            : "The benchmark has been reopened."
-        });
-      })
-      .catch(error => {
-        console.error("Error updating benchmark:", error);
-        toast({
-          title: "Error updating benchmark",
-          description: "There was an error updating the benchmark status. Please try again.",
-          variant: "destructive"
-        });
-      })
-      .finally(() => {
-        // Clear the updating state when completed (success or error)
-        setUpdatingBenchmarkId(null);
+      const response = await fetch('/api/benchmarks/pdf-report', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/pdf',
+        },
       });
-  };
 
-  // Filter project benchmarks by selected project
-  const filteredProjectBenchmarks = selectedProjectId
-    ? projectBenchmarks?.filter(pb => pb.projectId === selectedProjectId)
-    : projectBenchmarks;
-
-  // Get active projects only
-  const activeProjects = projects?.filter(p => Array.isArray(p.status) ? p.status.includes('active') : p.status === 'active') || [];
-  
-  // Calculate upcoming purchase needs in different time periods
-  const getUpcomingPurchaseNeeds = (timeframe: 'week' | 'month' | 'quarter') => {
-    if (!projectBenchmarks || projectBenchmarks.length === 0) return [];
-    
-    const today = new Date();
-    let periodEnd: Date;
-    
-    switch (timeframe) {
-      case 'week':
-        periodEnd = endOfWeek(today);
-        break;
-      case 'month':
-        periodEnd = endOfMonth(today);
-        break;
-      case 'quarter':
-        periodEnd = endOfQuarter(today);
-        break;
-    }
-    
-    return projectBenchmarks.filter(benchmark => {
-      if (benchmark.isCompleted) return false;
-      
-      try {
-        const targetDate = benchmark.targetDate 
-          ? parseISO(benchmark.targetDate)
-          : null;
-        
-        if (!targetDate) {
-          // If no explicit target date, calculate from project phase
-          const project = projects?.find(p => p.id === benchmark.projectId);
-          if (!project) return false;
-          
-          const phaseDate = getPhaseDate(project, benchmark.targetPhase);
-          if (!phaseDate) return false;
-          
-          const calculatedDate = subWeeks(parseISO(phaseDate), benchmark.weeksBeforePhase);
-          return isAfter(calculatedDate, today) && isBefore(calculatedDate, periodEnd);
-        }
-        
-        return isAfter(targetDate, today) && isBefore(targetDate, periodEnd);
-      } catch (error) {
-        return false;
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF report');
       }
-    });
-  };
 
-  if (loadingBenchmarks || loadingProjects || loadingProjectBenchmarks) {
-    return <LoadingSpinner />;
-  }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `benchmarks-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "PDF Generated",
+        description: "Benchmarks report has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF report. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
-      <h1 className="text-2xl font-bold mb-6">Supply Chain Management</h1>
-      
+      <h1 className="text-2xl font-bold mb-6">Benchmarks Management</h1>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex justify-between items-center mb-8">
           <TabsList>
             <TabsTrigger value="project-benchmarks">Project Benchmarks</TabsTrigger>
           </TabsList>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setActiveTab('benchmarks')} 
-            className="flex items-center gap-2"
-          >
-            <Settings className="h-4 w-4" />
-            <span>Settings</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generatePDFReport}
+              disabled={isGeneratingPDF}
+              className="flex items-center gap-2"
+            >
+              {isGeneratingPDF ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-800 border-t-transparent" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <span>Generate PDF</span>
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveTab('benchmarks')}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </Button>
+          </div>
         </div>
-        
+
         {/* Benchmark Settings Tab */}
         <TabsContent value="benchmarks" className="mt-4">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Supply Chain Benchmarks</h2>
+            <h2 className="text-xl font-semibold">Benchmarks</h2>
             <Button onClick={handleNewBenchmark}>
               <PlusCircle className="mr-2 h-4 w-4" />
               New Benchmark
             </Button>
           </div>
-          
+
           <Card>
             <CardContent className="pt-6">
               <Table>
@@ -696,7 +499,7 @@ const SupplyChain = () => {
                       <TableCell colSpan={6} className="text-center py-4">
                         <div className="flex flex-col items-center gap-2">
                           <AlertCircle className="h-8 w-8 text-amber-500 mb-2" />
-                          <p>No supply chain benchmarks defined yet.</p>
+                          <p>No benchmarks defined yet.</p>
                           <Button 
                             onClick={handleNewBenchmark} 
                             variant="outline" 
@@ -715,12 +518,12 @@ const SupplyChain = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Project Benchmarks Tab */}
         <TabsContent value="project-benchmarks" className="mt-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <h2 className="text-xl font-semibold">Project Supply Chain Benchmarks</h2>
-            
+            <h2 className="text-xl font-semibold">Project Benchmarks</h2>
+
             <div className="flex flex-col md:flex-row gap-4">
               <Select
                 value={selectedProjectId?.toString() || ""}
@@ -740,7 +543,7 @@ const SupplyChain = () => {
               </Select>
             </div>
           </div>
-          
+
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card>
@@ -754,7 +557,7 @@ const SupplyChain = () => {
                 <p className="text-xs text-muted-foreground mt-1">Active projects requiring supply chain management</p>
               </CardContent>
             </Card>
-            
+
             {/* Combined purchasing widget with toggle buttons */}
             <Card className="md:col-span-2 border border-slate-200">
               <div className="p-4 pb-1">
@@ -787,7 +590,7 @@ const SupplyChain = () => {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 mb-2">
                   <div className="text-3xl font-bold">
                     {getUpcomingPurchaseNeeds(purchaseTimeframe).length}
@@ -798,7 +601,7 @@ const SupplyChain = () => {
                     {purchaseTimeframe === 'quarter' && "Purchasing benchmarks due this quarter"}
                   </p>
                 </div>
-                
+
                 {/* Display upcoming purchase items */}
                 {getUpcomingPurchaseNeeds(purchaseTimeframe).length > 0 ? (
                   <div className="border-t border-slate-200 mt-3 pt-3 pb-1">
@@ -832,12 +635,12 @@ const SupplyChain = () => {
               </div>
             </Card>
           </div>
-          
+
           {/* Additional Widgets Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Supply Chain Benchmarks</CardTitle>
+                <CardTitle className="text-sm font-medium">Benchmarks</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -846,7 +649,7 @@ const SupplyChain = () => {
                 <p className="text-xs text-muted-foreground mt-1">Available benchmark templates</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Tracked Benchmarks</CardTitle>
@@ -859,7 +662,7 @@ const SupplyChain = () => {
               </CardContent>
             </Card>
           </div>
-          
+
           {/* Display all projects with their benchmarks */}
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium">Active Projects</h3>
@@ -884,7 +687,7 @@ const SupplyChain = () => {
               </Button>
             </div>
           </div>
-          
+
           {/* Grid View */}
           {viewMode === 'grid' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -895,7 +698,7 @@ const SupplyChain = () => {
                   const totalBenchmarks = projectBenchmarks.length;
                   const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
                   const progressPercentage = totalBenchmarks > 0 ? (completedBenchmarks / totalBenchmarks) * 100 : 0;
-                  
+
                   return (
                     <Card key={project.id} className="overflow-hidden">
                       <CardHeader className="bg-slate-50 dark:bg-slate-800 pb-3">
@@ -913,7 +716,7 @@ const SupplyChain = () => {
                             <Edit className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         {/* Progress bar for benchmark completion */}
                         {totalBenchmarks > 0 && (
                           <div className="w-full mt-2">
@@ -933,7 +736,7 @@ const SupplyChain = () => {
                                 ? format(parseISO(benchmark.targetDate), 'MMM d, yyyy')
                                 : calculateTargetDate(project, benchmark);
                               const status = getBenchmarkStatus(benchmark);
-                              
+
                               return (
                                 <li key={benchmark.id} className="flex justify-between items-start mb-3">
                                   <div>
@@ -997,7 +800,7 @@ const SupplyChain = () => {
                 })}
             </div>
           )}
-          
+
           {/* List View */}
           {viewMode === 'list' && (
             <Card>
@@ -1023,7 +826,7 @@ const SupplyChain = () => {
                             const totalBenchmarks = projectBenchmarks.length;
                             const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
                             const progressPercentage = totalBenchmarks > 0 ? (completedBenchmarks / totalBenchmarks) * 100 : 0;
-                            
+
                             // Get upcoming (incomplete) benchmarks sorted by date
                             const upcomingBenchmarks = projectBenchmarks
                               .filter(b => !b.isCompleted)
@@ -1032,7 +835,7 @@ const SupplyChain = () => {
                                 const dateB = b.targetDate ? new Date(b.targetDate) : new Date();
                                 return dateA.getTime() - dateB.getTime();
                               });
-                            
+
                             return (
                               <TableRow key={project.id}>
                                 <TableCell>
@@ -1105,7 +908,7 @@ const SupplyChain = () => {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Show this when there are no filtered projects */}
           {activeProjects.length === 0 && (
             <Card>
@@ -1116,7 +919,7 @@ const SupplyChain = () => {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Show when there are projects but none match the filter */}
           {activeProjects.length > 0 && 
            activeProjects.filter(p => selectedProjectId ? p.id === selectedProjectId : true).length === 0 && (
@@ -1128,7 +931,7 @@ const SupplyChain = () => {
           )}
         </TabsContent>
       </Tabs>
-      
+
       {/* Benchmark Form Dialog */}
       <Dialog open={openBenchmarkDialog} onOpenChange={setOpenBenchmarkDialog}>
         <DialogContent className="sm:max-w-[500px]">
@@ -1136,11 +939,11 @@ const SupplyChain = () => {
             <DialogTitle>{editingBenchmark ? 'Edit Benchmark' : 'Create New Benchmark'}</DialogTitle>
             <DialogDescription>
               {editingBenchmark
-                ? 'Update the supply chain benchmark details below.'
-                : 'Fill in the details to create a new supply chain benchmark.'}
+                ? 'Update the benchmark details below.'
+                : 'Fill in the details to create a new benchmark.'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <Form {...benchmarkForm}>
             <form
               onSubmit={benchmarkForm.handleSubmit(onBenchmarkSubmit)}
@@ -1159,7 +962,7 @@ const SupplyChain = () => {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={benchmarkForm.control}
                 name="description"
@@ -1177,7 +980,7 @@ const SupplyChain = () => {
                   </FormItem>
                 )}
               />
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={benchmarkForm.control}
@@ -1197,7 +1000,7 @@ const SupplyChain = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={benchmarkForm.control}
                   name="targetPhase"
@@ -1236,7 +1039,7 @@ const SupplyChain = () => {
                   )}
                 />
               </div>
-              
+
               <div className="flex flex-col md:flex-row gap-6">
                 <FormField
                   control={benchmarkForm.control}
@@ -1258,7 +1061,7 @@ const SupplyChain = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={benchmarkForm.control}
                   name="isActive"
@@ -1280,7 +1083,7 @@ const SupplyChain = () => {
                   )}
                 />
               </div>
-              
+
               <DialogFooter>
                 {(createBenchmarkMutation.isPending || updateBenchmarkMutation.isPending) ? (
                   <Button disabled className="relative">
@@ -1297,7 +1100,7 @@ const SupplyChain = () => {
                   </Button>
                 )}
               </DialogFooter>
-              
+
               {/* Loading notification message */}
               {(createBenchmarkMutation.isPending || updateBenchmarkMutation.isPending) && (
                 <div className="flex items-center justify-center text-sm text-blue-600 pt-2">
@@ -1311,7 +1114,7 @@ const SupplyChain = () => {
           </Form>
         </DialogContent>
       </Dialog>
-      
+
       {/* Project Benchmarks Dialog */}
       <Dialog open={projectDetailsOpen} onOpenChange={setProjectDetailsOpen}>
         <DialogContent className="sm:max-w-[650px]">
@@ -1320,10 +1123,10 @@ const SupplyChain = () => {
               {selectedProjectDetails?.projectNumber} - {selectedProjectDetails?.name}
             </DialogTitle>
             <DialogDescription>
-              Manage supply chain benchmarks for this project
+              Manage benchmarks for this project
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedProjectDetails && (
             <div className="mt-4">
               {/* Show current benchmarks for the project */}
@@ -1336,7 +1139,7 @@ const SupplyChain = () => {
                       const targetDateDisplay = benchmark.targetDate 
                         ? format(parseISO(benchmark.targetDate), 'MMM d, yyyy')
                         : calculateTargetDate(selectedProjectDetails, benchmark);
-                      
+
                       return (
                         <div key={benchmark.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
                           <div className="w-3/4">
@@ -1385,7 +1188,7 @@ const SupplyChain = () => {
                                   title: "Deleting benchmark...",
                                   description: "Removing benchmark from this project"
                                 });
-                                
+
                                 apiRequest('DELETE', `/api/project-supply-chain-benchmarks/${benchmark.id}`)
                                   .then(() => {
                                     queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
@@ -1421,11 +1224,11 @@ const SupplyChain = () => {
                   </div>
                 )}
               </div>
-              
+
               {/* Add default benchmarks option */}
               <div className="mt-6 flex justify-between items-center">
                 <p className="text-sm text-muted-foreground">
-                  Add default supply chain benchmarks to this project.
+                  Add default benchmarks to this project.
                 </p>
                 <Button
                   onClick={() => {
@@ -1449,7 +1252,7 @@ const SupplyChain = () => {
                   )}
                 </Button>
               </div>
-              
+
               {/* Add benchmark from templates */}
               <div className="mt-4 flex justify-between space-x-2">
                 <Button
@@ -1463,7 +1266,7 @@ const SupplyChain = () => {
                   <ListFilter className="h-4 w-4 mr-2" />
                   Add from Templates
                 </Button>
-                
+
                 <Button
                   onClick={() => {
                     setProjectDetailsOpen(false);
@@ -1484,7 +1287,7 @@ const SupplyChain = () => {
           )}
         </DialogContent>
       </Dialog>
-      
+
       {/* Template Benchmark Selection Dialog */}
       <Dialog open={templateBenchmarkDialogOpen} onOpenChange={setTemplateBenchmarkDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
@@ -1494,7 +1297,7 @@ const SupplyChain = () => {
               Choose a benchmark template to add to this project.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             {loadingBenchmarks ? (
               <div className="flex items-center justify-center py-8">
@@ -1522,13 +1325,13 @@ const SupplyChain = () => {
                         {benchmark.isDefault ? "Default" : "Template"}
                       </Badge>
                     </div>
-                    
+
                     {benchmark.description && (
                       <p className="text-sm text-muted-foreground mt-1">
                         {benchmark.description}
                       </p>
                     )}
-                    
+
                     <div className="flex items-center mt-2 text-sm">
                       <Clock className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                       <span>{benchmark.weeksBeforePhase} weeks before {benchmark.targetPhase}</span>
@@ -1538,7 +1341,7 @@ const SupplyChain = () => {
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button
               variant="outline"

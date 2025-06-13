@@ -198,9 +198,9 @@ const Sidebar = () => {
               <li>
                 <SidebarLink href="/supply-chain" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/supply-chain') ? 'active' : ''
-                } ${isCollapsed ? 'justify-center' : ''}`} title="Supply Chain">
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Benchmarks">
                   <ShoppingCart size={20} className={`${isActive('/supply-chain') ? 'text-primary' : ''}`} />
-                  {!isCollapsed && <span>Supply Chain</span>}
+                  {!isCollapsed && <span>Benchmarks</span>}
                 </SidebarLink>
               </li>
             )}
