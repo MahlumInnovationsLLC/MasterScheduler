@@ -2855,6 +2855,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai/project-health/:projectId", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+      
       const project = await storage.getProject(projectId);
       
       if (!project) {
