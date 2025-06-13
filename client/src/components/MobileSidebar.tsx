@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, Link } from 'wouter';
-import { X, Home, FolderOpen, Calendar, BarChart3, Settings, Package, Truck, Calculator, FileText, Archive, CheckCircle, Clock, DollarSign, Building2, TrendingUp, Package2 } from 'lucide-react';
+import { X, Home, FolderOpen, Calendar, BarChart3, Settings, Package, Truck, Calculator, FileText, Archive, CheckCircle, Clock, DollarSign, Building2, TrendingUp, Package2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -36,7 +36,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     { id: "supply-chain", icon: Truck, label: 'Supply Chain', path: '/supply-chain' },
     { id: "archived-projects", icon: Archive, label: 'Archived Projects', path: '/archived-projects' },
     { id: "delivered-projects", icon: CheckCircle, label: 'Delivered Projects', path: '/delivered-projects' },
-    { id: "quality-assurance", icon: CheckCircle, label: 'Quality Assurance', path: '/quality-assurance' },
+    { id: "quality-assurance", icon: Shield, label: 'Quality Assurance', path: '/quality-assurance' },
   ];
 
   const isActive = (path: string) => {

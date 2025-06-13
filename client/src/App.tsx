@@ -179,7 +179,7 @@ function MainContent() {
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/meetings" component={Meetings} />
             <ProtectedRoute path="/meetings/:id" component={MeetingView} />
-            <ProtectedRoute path="/quality-assurance" component={QualityAssurance} />
+            <ViewerRestrictedRoute path="/quality-assurance" component={QualityAssurance} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
@@ -223,7 +223,7 @@ function MainContent() {
             <ProtectedRoute path="/meetings/:id" component={MeetingView} />
             <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
-            <ProtectedRoute path="/quality-assurance" component={QualityAssurance} />
+            <ViewerRestrictedRoute path="/quality-assurance" component={QualityAssurance} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
