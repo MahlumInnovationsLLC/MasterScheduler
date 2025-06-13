@@ -425,7 +425,7 @@ const SupplyChain = () => {
       const updateData = {
         isCompleted: !benchmark.isCompleted,
         completedDate: !benchmark.isCompleted ? new Date() : null,
-        completedBy: !benchmark.isCompleted ? getCurrentUser() : null
+        completedBy: !benchmark.isCompleted ? user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.email || 'Unknown User' : null
       };
 
       await updateProjectBenchmarkMutation.mutateAsync({ id: benchmark.id, data: updateData });
@@ -942,9 +942,8 @@ const SupplyChain = () => {
                                             new Date(benchmark.completedDate),
                                             'h:mm a'
                                           )}</>}
-                                        {benchmark.completedBy ? 
-                                          <span className="ml-1">by {benchmark.completedBy}</span> : 
-                                          <span className="ml-1">by {getCurrentUser()}</span>}
+                                        {benchmark.completedBy && 
+                                          <span className="ml-1">by {benchmark.completedBy}</span>}
                                       </div>
                                     )}
                                   </div>
@@ -1348,9 +1347,8 @@ const SupplyChain = () => {
                                     new Date(benchmark.completedDate),
                                     'h:mm a'
                                   )}</>}
-                                {benchmark.completedBy ? 
-                                  <span className="ml-1">by {benchmark.completedBy}</span> : 
-                                  <span className="ml-1">by {getCurrentUser()}</span>}
+                                {benchmark.completedBy && 
+                                  <span className="ml-1">by {benchmark.completedBy}</span>}
                               </div>
                             )}
                           </div>
