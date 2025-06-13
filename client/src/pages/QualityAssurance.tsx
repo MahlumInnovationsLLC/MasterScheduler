@@ -584,36 +584,36 @@ export default function QualityAssurance() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <span className="text-sm">Critical</span>
-                    </div>
-                    <span className="text-sm font-medium">2 (16%)</span>
+                {analytics?.ncrs ? (
+                  <div className="space-y-3">
+                    {['critical', 'high', 'medium', 'low'].map((severity) => {
+                      const count = analytics.ncrs.bySeverity[severity] || 0;
+                      const total = analytics.ncrs.total || 0;
+                      const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                      const colors = {
+                        critical: 'bg-red-500',
+                        high: 'bg-orange-500',
+                        medium: 'bg-yellow-500',
+                        low: 'bg-green-500'
+                      };
+                      
+                      return (
+                        <div key={severity} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-3 h-3 ${colors[severity]} rounded-full`}></div>
+                            <span className="text-sm capitalize">{severity}</span>
+                          </div>
+                          <span className="text-sm font-medium">{count} ({percentage}%)</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                      <span className="text-sm">High</span>
-                    </div>
-                    <span className="text-sm font-medium">4 (34%)</span>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <p>Loading severity data...</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                      <span className="text-sm">Medium</span>
-                    </div>
-                    <span className="text-sm font-medium">4 (34%)</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Low</span>
-                    </div>
-                    <span className="text-sm font-medium">2 (16%)</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -626,29 +626,44 @@ export default function QualityAssurance() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <div>
-                      <p className="font-medium text-sm">Project 804487</p>
-                      <p className="text-xs text-gray-500">2 NCRs, 1 CAPA</p>
-                    </div>
-                    <Badge variant="outline">Active</Badge>
+                {analytics?.projectQuality ? (
+                  <div className="space-y-4">
+                    {analytics.projectQuality.slice(0, 5).map((project) => {
+                      const getStatusVariant = (score: number) => {
+                        if (score >= 90) return "default";
+                        if (score >= 70) return "secondary";
+                        if (score >= 50) return "outline";
+                        return "destructive";
+                      };
+                      
+                      const getStatusText = (score: number) => {
+                        if (score >= 90) return "Excellent";
+                        if (score >= 70) return "Good";
+                        if (score >= 50) return "Fair";
+                        return "Needs Attention";
+                      };
+                      
+                      return (
+                        <div key={project.projectNumber} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                          <div>
+                            <p className="font-medium text-sm">Project {project.projectNumber}</p>
+                            <p className="text-xs text-gray-500">
+                              {project.ncrCount} NCRs • Quality Score: {project.qualityScore}
+                            </p>
+                          </div>
+                          <Badge variant={getStatusVariant(project.qualityScore)}>
+                            {getStatusText(project.qualityScore)}
+                          </Badge>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <div>
-                      <p className="font-medium text-sm">Project 805517</p>
-                      <p className="text-xs text-gray-500">1 NCR, 0 CAPAs</p>
-                    </div>
-                    <Badge variant="secondary">Resolved</Badge>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <p>Loading project quality data...</p>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <div>
-                      <p className="font-medium text-sm">Project 805642</p>
-                      <p className="text-xs text-gray-500">0 NCRs</p>
-                    </div>
-                    <Badge variant="default">Clean</Badge>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
