@@ -590,11 +590,15 @@ export default function QualityAssurance() {
   };
 
   const handleDocumentDownload = (doc: QualityDocument) => {
-    // Simulate document download
     const link = document.createElement('a');
     link.href = doc.fileUrl;
     link.download = doc.fileName;
     link.click();
+  };
+
+  const handleDocumentPreviewClose = () => {
+    setShowDocumentPreview(false);
+    setSelectedDocument(null);
   };
 
   // Calculate metrics from real data
