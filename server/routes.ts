@@ -4583,6 +4583,81 @@ Response format:
     }
   });
 
+  // Quality Assurance Analytics API
+  app.get("/api/qa/analytics", simpleAuth, async (req, res) => {
+    try {
+      const ncrs = await storage.getNcrs();
+      const projects = await storage.getProjects();
+
+      // Calculate NCR metrics
+      const ncrMetrics = {
+        total: ncrs.length,
+        byStatus: ncrs.reduce((acc, ncr) => {
+          acc[ncr.status] = (acc[ncr.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        bySeverity: ncrs.reduce((acc, ncr) => {
+          acc[ncr.severity] = (acc[ncr.severity] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        byProject: ncrs.reduce((acc, ncr) => {
+          const project = projects.find(p => p.id === ncr.projectId);
+          if (project) {
+            acc[project.projectNumber] = (acc[project.projectNumber] || 0) + 1;
+          }
+          return acc;
+        }, {} as Record<string, number>)
+      };
+
+      // Calculate trend data (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const recentNcrs = ncrs.filter(ncr => new Date(ncr.createdAt) >= thirtyDaysAgo);
+      const trendData = recentNcrs.reduce((acc, ncr) => {
+        const date = new Date(ncr.createdAt).toISOString().split('T')[0];
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Project quality scores
+      const projectQualityScores = projects.map(project => {
+        const projectNcrs = ncrs.filter(ncr => ncr.projectId === project.id);
+        const criticalCount = projectNcrs.filter(ncr => ncr.severity === 'critical').length;
+        const highCount = projectNcrs.filter(ncr => ncr.severity === 'high').length;
+        const totalCount = projectNcrs.length;
+        
+        // Calculate quality score (higher is better)
+        const qualityScore = Math.max(0, 100 - (criticalCount * 20 + highCount * 10 + totalCount * 5));
+        
+        return {
+          projectNumber: project.projectNumber,
+          projectName: project.name,
+          ncrCount: totalCount,
+          qualityScore,
+          status: project.status
+        };
+      }).sort((a, b) => b.qualityScore - a.qualityScore);
+
+      res.json({
+        ncrs: ncrMetrics,
+        trends: trendData,
+        projectQuality: projectQualityScores.slice(0, 10), // Top 10 projects
+        summary: {
+          totalNcrs: ncrs.length,
+          openNcrs: ncrMetrics.byStatus['open'] || 0,
+          criticalNcrs: ncrMetrics.bySeverity['critical'] || 0,
+          averageQualityScore: projectQualityScores.length > 0 
+            ? Math.round(projectQualityScores.reduce((sum, p) => sum + p.qualityScore, 0) / projectQualityScores.length)
+            : 100
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching QA analytics:", error);
+      res.status(500).json({ message: "Error fetching QA analytics" });
+    }
+  });
+
   // Meetings Module Routes
   
   // Get all meetings
