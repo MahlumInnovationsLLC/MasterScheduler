@@ -349,6 +349,162 @@ const SupplyChain = () => {
   const handlePermanentDeleteProject = (projectId: number) => {
   };
 
+  // Form instances
+  const benchmarkForm = useForm<z.infer<typeof benchmarkFormSchema>>({
+    resolver: zodResolver(benchmarkFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      weeksBeforePhase: 1,
+      targetPhase: "",
+      isDefault: false,
+      isActive: true
+    }
+  });
+
+  const projectBenchmarkForm = useForm<z.infer<typeof projectBenchmarkFormSchema>>({
+    resolver: zodResolver(projectBenchmarkFormSchema),
+    defaultValues: {
+      projectId: 0,
+      benchmarkId: 0,
+      name: "",
+      description: "",
+      targetDate: "",
+      isCompleted: false,
+      completedDate: "",
+      weeksBeforePhase: 1,
+      targetPhase: "",
+      notes: ""
+    }
+  });
+
+  // Handle new benchmark creation
+  const handleNewBenchmark = (projectId?: number) => {
+    benchmarkForm.reset();
+    setEditingBenchmark(null);
+    
+    // If a project ID is provided, set it as pending to add to this project after creation
+    if (projectId) {
+      setPendingBenchmarkProjectId(projectId);
+    }
+    
+    setOpenBenchmarkDialog(true);
+  };
+
+  // Handle edit benchmark
+  const handleEditBenchmark = (benchmark: SupplyChainBenchmark) => {
+    setEditingBenchmark(benchmark);
+    benchmarkForm.reset({
+      name: benchmark.name,
+      description: benchmark.description,
+      weeksBeforePhase: benchmark.weeksBeforePhase,
+      targetPhase: benchmark.targetPhase,
+      isDefault: benchmark.isDefault,
+      isActive: benchmark.isActive
+    });
+    setOpenBenchmarkDialog(true);
+  };
+
+  // Handle form submission
+  const onBenchmarkSubmit = (data: z.infer<typeof benchmarkFormSchema>) => {
+    if (editingBenchmark) {
+      updateBenchmarkMutation.mutate({ id: editingBenchmark.id, data });
+    } else {
+      createBenchmarkMutation.mutate(data);
+    }
+  };
+
+  // State for tracking benchmark updates
+  const [updatingBenchmarkId, setUpdatingBenchmarkId] = useState<number | null>(null);
+
+  // Toggle benchmark completion
+  const toggleBenchmarkCompletion = async (benchmark: ProjectSupplyChainBenchmark) => {
+    setUpdatingBenchmarkId(benchmark.id);
+    
+    try {
+      const updateData = {
+        isCompleted: !benchmark.isCompleted,
+        completedDate: !benchmark.isCompleted ? new Date().toISOString() : null,
+        completedBy: !benchmark.isCompleted ? getCurrentUser() : null
+      };
+
+      await updateProjectBenchmarkMutation.mutateAsync({ id: benchmark.id, data: updateData });
+    } catch (error) {
+      console.error("Error toggling benchmark completion:", error);
+    } finally {
+      setUpdatingBenchmarkId(null);
+    }
+  };
+
+  // Get current user function
+  const getCurrentUser = () => {
+    // This should return the current user's name/email
+    // You might want to get this from your auth context
+    return "Current User";
+  };
+
+  // Handle opening project details
+  const handleOpenProjectDetails = (project: Project) => {
+    setSelectedProjectDetails(project);
+    setProjectDetailsOpen(true);
+  };
+
+  // Calculate target date for a benchmark
+  const calculateTargetDate = (project: Project, benchmark: ProjectSupplyChainBenchmark) => {
+    // This is a simplified calculation - you might want to implement more complex logic
+    const baseDate = project.startDate ? new Date(project.startDate) : new Date();
+    const targetDate = new Date(baseDate);
+    targetDate.setDate(targetDate.getDate() + (benchmark.weeksBeforePhase * 7));
+    return format(targetDate, 'MMM d, yyyy');
+  };
+
+  // Get benchmark status
+  const getBenchmarkStatus = (benchmark: ProjectSupplyChainBenchmark) => {
+    if (benchmark.isCompleted) {
+      return { label: 'Completed', color: 'bg-green-500 text-white' };
+    }
+    
+    if (benchmark.targetDate && new Date(benchmark.targetDate) < new Date()) {
+      return { label: 'Overdue', color: 'bg-red-500 text-white' };
+    }
+    
+    return { label: 'Pending', color: 'bg-yellow-500 text-white' };
+  };
+
+  // Get active projects
+  const activeProjects = projects?.filter(p => p.status !== 'DELIVERED' && p.status !== 'CANCELLED') || [];
+
+  // Get filtered project benchmarks
+  const filteredProjectBenchmarks = projectBenchmarks || [];
+
+  // Get upcoming purchase needs
+  const getUpcomingPurchaseNeeds = (timeframe: 'week' | 'month' | 'quarter') => {
+    if (!projectBenchmarks) return [];
+    
+    const now = new Date();
+    let endDate: Date;
+    
+    switch (timeframe) {
+      case 'week':
+        endDate = endOfWeek(now);
+        break;
+      case 'month':
+        endDate = endOfMonth(now);
+        break;
+      case 'quarter':
+        endDate = endOfQuarter(now);
+        break;
+    }
+    
+    return projectBenchmarks.filter(benchmark => {
+      if (benchmark.isCompleted) return false;
+      if (!benchmark.targetDate) return false;
+      
+      const targetDate = new Date(benchmark.targetDate);
+      return targetDate >= now && targetDate <= endDate;
+    });
+  };
+
   // PDF Generation function
   const generatePDFReport = async () => {
     setIsGeneratingPDF(true);
