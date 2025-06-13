@@ -478,7 +478,18 @@ const SupplyChain = () => {
     return projects
       .filter(p => p.status !== 'DELIVERED' && p.status !== 'CANCELLED')
       .sort((a, b) => {
-        // Projects with ship dates come first, sorted by earliest date
+        // Get benchmark completion status for both projects
+        const aBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === a.id) || [];
+        const bBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === b.id) || [];
+        
+        const aAllComplete = aBenchmarks.length > 0 && aBenchmarks.every(benchmark => benchmark.isCompleted);
+        const bAllComplete = bBenchmarks.length > 0 && bBenchmarks.every(benchmark => benchmark.isCompleted);
+        
+        // Projects with all benchmarks complete go to the bottom
+        if (aAllComplete && !bAllComplete) return 1;
+        if (!aAllComplete && bAllComplete) return -1;
+        
+        // If both have same completion status, sort by ship date
         const dateA = a.shipDate ? new Date(a.shipDate) : null;
         const dateB = b.shipDate ? new Date(b.shipDate) : null;
         
@@ -495,7 +506,7 @@ const SupplyChain = () => {
         const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
         return numB - numA;
       });
-  }, [projects]);
+  }, [projects, filteredProjectBenchmarks]);
 
   // Get filtered project benchmarks
   const filteredProjectBenchmarks = projectBenchmarks || [];
