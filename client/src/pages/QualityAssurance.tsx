@@ -21,7 +21,26 @@ import {
   AlertTriangle,
   TrendingUp,
   BookOpen,
-  Award
+  Award,
+  Upload,
+  Eye,
+  Edit,
+  Trash2,
+  Star,
+  History,
+  User,
+  Building,
+  Tag,
+  Archive,
+  CheckCircle2,
+  UserCheck,
+  PlayCircle,
+  GraduationCap,
+  BarChart3,
+  RefreshCw,
+  ExternalLink,
+  PlusCircle,
+  MoreVertical
 } from "lucide-react";
 
 interface QAMetrics {
@@ -53,6 +72,82 @@ interface CAPASummary {
   ownerId: string;
   dueDate: string;
   linkedNCR?: string;
+}
+
+interface QualityDocument {
+  id: number;
+  documentNumber: string;
+  title: string;
+  description?: string;
+  category: "sop" | "work_instruction" | "form" | "calibration_record" | "quality_plan" | "specification";
+  department?: string;
+  version: string;
+  status: "draft" | "pending_review" | "under_review" | "approved" | "archived";
+  effectiveDate?: string;
+  expiryDate?: string;
+  authorId: string;
+  authorName: string;
+  reviewerId?: string;
+  reviewerName?: string;
+  approverId?: string;
+  approverName?: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize?: number;
+  mimeType?: string;
+  tags?: string[];
+  complianceCategory?: string;
+  submittedDate?: string;
+  reviewedDate?: string;
+  approvedDate?: string;
+  acknowledgedCount: number;
+  totalRequiredAcknowledgments: number;
+  isExpiringSoon: boolean;
+}
+
+interface TrainingModule {
+  id: number;
+  title: string;
+  description?: string;
+  type: "onboarding" | "equipment_certification" | "sop_familiarization" | "safety" | "quality_system";
+  department?: string;
+  estimatedDuration: number; // in minutes
+  content?: string;
+  isActive: boolean;
+  createdById: string;
+  createdByName: string;
+  lastUpdatedById?: string;
+  lastUpdatedByName?: string;
+  createdAt: string;
+  updatedAt: string;
+  assignmentCount: number;
+  completionRate: number;
+}
+
+interface TrainingAssignment {
+  id: number;
+  moduleId: number;
+  moduleTitle: string;
+  userId: string;
+  userName: string;
+  status: "not_started" | "in_progress" | "completed" | "expired";
+  assignedById: string;
+  assignedByName: string;
+  assignedDate: string;
+  dueDate?: string;
+  startedDate?: string;
+  completedDate?: string;
+  score?: number;
+  notes?: string;
+}
+
+interface DocumentAcknowledgment {
+  id: number;
+  documentId: number;
+  userId: string;
+  userName: string;
+  acknowledgedDate: string;
+  comments?: string;
 }
 
 const mockMetrics: QAMetrics = {
@@ -97,6 +192,191 @@ const mockCAPAs: CAPASummary[] = [
     ownerId: "john.smith",
     dueDate: "2025-06-20",
     linkedNCR: "NCR-2025-001"
+  }
+];
+
+const mockDocuments: QualityDocument[] = [
+  {
+    id: 1,
+    documentNumber: "DOC-2025-001",
+    title: "Electrical Assembly SOP",
+    description: "Standard operating procedure for electrical assembly processes",
+    category: "sop",
+    department: "production",
+    version: "2.1",
+    status: "approved",
+    effectiveDate: "2025-01-15",
+    expiryDate: "2026-01-15",
+    authorId: "john.smith",
+    authorName: "John Smith",
+    reviewerId: "sarah.johnson",
+    reviewerName: "Sarah Johnson",
+    approverId: "mike.wilson",
+    approverName: "Mike Wilson",
+    fileUrl: "/documents/electrical-assembly-sop-v2.1.pdf",
+    fileName: "electrical-assembly-sop-v2.1.pdf",
+    fileSize: 2048000,
+    mimeType: "application/pdf",
+    tags: ["electrical", "assembly", "production"],
+    complianceCategory: "ISO 9001",
+    submittedDate: "2025-01-01",
+    reviewedDate: "2025-01-10",
+    approvedDate: "2025-01-15",
+    acknowledgedCount: 8,
+    totalRequiredAcknowledgments: 12,
+    isExpiringSoon: false
+  },
+  {
+    id: 2,
+    documentNumber: "DOC-2025-002",
+    title: "Quality Inspection Checklist",
+    description: "Daily quality inspection checklist for manufacturing processes",
+    category: "form",
+    department: "quality",
+    version: "1.3",
+    status: "approved",
+    effectiveDate: "2025-02-01",
+    expiryDate: "2025-08-01",
+    authorId: "sarah.johnson",
+    authorName: "Sarah Johnson",
+    reviewerId: "mike.wilson",
+    reviewerName: "Mike Wilson",
+    approverId: "jane.doe",
+    approverName: "Jane Doe",
+    fileUrl: "/documents/quality-inspection-checklist-v1.3.pdf",
+    fileName: "quality-inspection-checklist-v1.3.pdf",
+    fileSize: 512000,
+    mimeType: "application/pdf",
+    tags: ["quality", "inspection", "checklist"],
+    complianceCategory: "Customer Requirements",
+    submittedDate: "2025-01-20",
+    reviewedDate: "2025-01-28",
+    approvedDate: "2025-02-01",
+    acknowledgedCount: 15,
+    totalRequiredAcknowledgments: 15,
+    isExpiringSoon: true
+  },
+  {
+    id: 3,
+    documentNumber: "DOC-2025-003",
+    title: "Paint Booth Calibration Procedure",
+    description: "Calibration procedure for paint booth equipment",
+    category: "calibration_record",
+    department: "paint",
+    version: "1.0",
+    status: "under_review",
+    effectiveDate: undefined,
+    expiryDate: undefined,
+    authorId: "tom.brown",
+    authorName: "Tom Brown",
+    reviewerId: "sarah.johnson",
+    reviewerName: "Sarah Johnson",
+    approverId: undefined,
+    approverName: undefined,
+    fileUrl: "/documents/paint-booth-calibration-v1.0.pdf",
+    fileName: "paint-booth-calibration-v1.0.pdf",
+    fileSize: 1024000,
+    mimeType: "application/pdf",
+    tags: ["paint", "calibration", "equipment"],
+    complianceCategory: "DOT Requirements",
+    submittedDate: "2025-06-01",
+    reviewedDate: undefined,
+    approvedDate: undefined,
+    acknowledgedCount: 0,
+    totalRequiredAcknowledgments: 8,
+    isExpiringSoon: false
+  }
+];
+
+const mockTrainingModules: TrainingModule[] = [
+  {
+    id: 1,
+    title: "Electrical Safety Fundamentals",
+    description: "Basic electrical safety procedures and protocols for manufacturing environments",
+    type: "safety",
+    department: "production",
+    estimatedDuration: 45,
+    content: "This module covers basic electrical safety principles...",
+    isActive: true,
+    createdById: "admin",
+    createdByName: "System Administrator",
+    lastUpdatedById: "john.smith",
+    lastUpdatedByName: "John Smith",
+    createdAt: "2025-01-01T00:00:00Z",
+    updatedAt: "2025-05-15T10:30:00Z",
+    assignmentCount: 25,
+    completionRate: 88
+  },
+  {
+    id: 2,
+    title: "Quality System Overview",
+    description: "Introduction to our quality management system and procedures",
+    type: "quality_system",
+    department: undefined,
+    estimatedDuration: 60,
+    content: "This comprehensive module introduces new employees...",
+    isActive: true,
+    createdById: "sarah.johnson",
+    createdByName: "Sarah Johnson",
+    lastUpdatedById: "sarah.johnson",
+    lastUpdatedByName: "Sarah Johnson",
+    createdAt: "2025-02-01T00:00:00Z",
+    updatedAt: "2025-02-01T00:00:00Z",
+    assignmentCount: 35,
+    completionRate: 71
+  },
+  {
+    id: 3,
+    title: "Paint Booth Equipment Certification",
+    description: "Certification training for paint booth equipment operation",
+    type: "equipment_certification",
+    department: "paint",
+    estimatedDuration: 120,
+    content: "This hands-on certification module covers...",
+    isActive: true,
+    createdById: "tom.brown",
+    createdByName: "Tom Brown",
+    lastUpdatedById: "tom.brown",
+    lastUpdatedByName: "Tom Brown",
+    createdAt: "2025-03-01T00:00:00Z",
+    updatedAt: "2025-03-15T14:20:00Z",
+    assignmentCount: 8,
+    completionRate: 100
+  }
+];
+
+const mockTrainingAssignments: TrainingAssignment[] = [
+  {
+    id: 1,
+    moduleId: 1,
+    moduleTitle: "Electrical Safety Fundamentals",
+    userId: "new.employee",
+    userName: "New Employee",
+    status: "in_progress",
+    assignedById: "john.smith",
+    assignedByName: "John Smith",
+    assignedDate: "2025-06-01",
+    dueDate: "2025-06-15",
+    startedDate: "2025-06-03",
+    completedDate: undefined,
+    score: undefined,
+    notes: "Started training on schedule"
+  },
+  {
+    id: 2,
+    moduleId: 2,
+    moduleTitle: "Quality System Overview",
+    userId: "new.employee",
+    userName: "New Employee",
+    status: "not_started",
+    assignedById: "sarah.johnson",
+    assignedByName: "Sarah Johnson",
+    assignedDate: "2025-06-01",
+    dueDate: "2025-06-20",
+    startedDate: undefined,
+    completedDate: undefined,
+    score: undefined,
+    notes: "Pending completion of safety training"
   }
 ];
 
@@ -502,27 +782,571 @@ export default function QualityAssurance() {
         </TabsContent>
 
         {/* Documents Tab */}
-        <TabsContent value="documents" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>Document Control</CardTitle>
-                <CardDescription>
-                  Manage SOPs, work instructions, and quality documents
-                </CardDescription>
-              </div>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Upload Document
+        <TabsContent value="documents" className="space-y-6">
+          {/* Document Management Header */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Document Management & Training Center</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage quality documents, SOPs, training modules, and track completion
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export Reports
               </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p>No documents found. Upload your first quality document.</p>
+              <Button size="sm">
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Content
+              </Button>
+            </div>
+          </div>
+
+          {/* Sub-navigation for Documents */}
+          <Tabs defaultValue="documents-list" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="documents-list" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Documents
+              </TabsTrigger>
+              <TabsTrigger value="training-modules" className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" />
+                Training
+              </TabsTrigger>
+              <TabsTrigger value="my-assignments" className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4" />
+                My Tasks
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Documents List */}
+            <TabsContent value="documents-list" className="space-y-4">
+              {/* Document Controls */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="flex gap-2 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                    <Input
+                      placeholder="Search documents..."
+                      className="pl-8"
+                    />
+                  </div>
+                  <Select defaultValue="all">
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="sop">SOPs</SelectItem>
+                      <SelectItem value="work_instruction">Work Instructions</SelectItem>
+                      <SelectItem value="form">Forms</SelectItem>
+                      <SelectItem value="calibration_record">Calibration</SelectItem>
+                      <SelectItem value="quality_plan">Quality Plans</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select defaultValue="approved">
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="under_review">Under Review</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Document
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Documents Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {mockDocuments.map((doc) => (
+                  <Card key={doc.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-base font-medium line-clamp-2">
+                            {doc.title}
+                          </CardTitle>
+                          <CardDescription className="text-xs mt-1">
+                            {doc.documentNumber} • v{doc.version}
+                          </CardDescription>
+                        </div>
+                        <div className="ml-2">
+                          <Badge 
+                            variant={
+                              doc.status === "approved" ? "default" : 
+                              doc.status === "under_review" ? "secondary" : 
+                              "outline"
+                            }
+                            className="text-xs"
+                          >
+                            {doc.status.replace('_', ' ').toUpperCase()}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-3">
+                      {/* Category and Department */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Tag className="h-3 w-3" />
+                        <span className="capitalize">{doc.category.replace('_', ' ')}</span>
+                        {doc.department && (
+                          <>
+                            <span>•</span>
+                            <Building className="h-3 w-3" />
+                            <span className="capitalize">{doc.department}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Acknowledgment Progress */}
+                      {doc.status === "approved" && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>Acknowledged</span>
+                            <span>{doc.acknowledgedCount}/{doc.totalRequiredAcknowledgments}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className="bg-blue-600 h-1.5 rounded-full" 
+                              style={{ 
+                                width: `${(doc.acknowledgedCount / doc.totalRequiredAcknowledgments) * 100}%` 
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Expiry Warning */}
+                      {doc.isExpiringSoon && (
+                        <div className="flex items-center gap-1 text-xs text-amber-600">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span>Expires Soon</span>
+                        </div>
+                      )}
+
+                      {/* Document Info */}
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          <span>Author: {doc.authorName}</span>
+                        </div>
+                        {doc.effectiveDate && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>Effective: {new Date(doc.effectiveDate).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Tags */}
+                      {doc.tags && doc.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {doc.tags.slice(0, 3).map((tag, index) => (
+                            <Badge key={index} variant="outline" className="text-xs px-1 py-0">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {doc.tags.length > 3 && (
+                            <Badge variant="outline" className="text-xs px-1 py-0">
+                              +{doc.tags.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-1 pt-2">
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Download className="h-3 w-3 mr-1" />
+                          Download
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <MoreVertical className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Training Modules */}
+            <TabsContent value="training-modules" className="space-y-4">
+              {/* Training Controls */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="flex gap-2 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                    <Input
+                      placeholder="Search training modules..."
+                      className="pl-8"
+                    />
+                  </div>
+                  <Select defaultValue="all">
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="onboarding">Onboarding</SelectItem>
+                      <SelectItem value="safety">Safety</SelectItem>
+                      <SelectItem value="equipment_certification">Equipment</SelectItem>
+                      <SelectItem value="quality_system">Quality System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Module
+                </Button>
+              </div>
+
+              {/* Training Modules Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {mockTrainingModules.map((module) => (
+                  <Card key={module.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                          <CardDescription className="mt-1">
+                            {module.description}
+                          </CardDescription>
+                        </div>
+                        <div className="ml-4 text-right">
+                          <Badge 
+                            variant={module.isActive ? "default" : "secondary"}
+                            className="mb-2"
+                          >
+                            {module.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          <div className="text-xs text-muted-foreground">
+                            {module.estimatedDuration} min
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Module Type and Department */}
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1">
+                          <BookOpen className="h-4 w-4 text-blue-600" />
+                          <span className="capitalize">{module.type.replace('_', ' ')}</span>
+                        </div>
+                        {module.department && (
+                          <div className="flex items-center gap-1">
+                            <Building className="h-4 w-4 text-gray-500" />
+                            <span className="capitalize">{module.department}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Progress Statistics */}
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-bold text-blue-600">{module.assignmentCount}</div>
+                          <div className="text-xs text-muted-foreground">Assigned</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-green-600">{module.completionRate}%</div>
+                          <div className="text-xs text-muted-foreground">Complete</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-amber-600">
+                            {Math.round((module.assignmentCount * module.completionRate) / 100)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Completed</div>
+                        </div>
+                      </div>
+
+                      {/* Completion Progress Bar */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span>Completion Rate</span>
+                          <span>{module.completionRate}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full" 
+                            style={{ width: `${module.completionRate}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Module Info */}
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>Created by {module.createdByName}</div>
+                        <div>Last updated: {new Date(module.updatedAt).toLocaleDateString()}</div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <PlayCircle className="h-4 w-4 mr-2" />
+                          Preview
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Users className="h-4 w-4 mr-2" />
+                          Assign
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* My Assignments */}
+            <TabsContent value="my-assignments" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Training Assignments</CardTitle>
+                  <CardDescription>
+                    Track your assigned training modules and document acknowledgments
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {mockTrainingAssignments.map((assignment) => (
+                    <div key={assignment.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-medium">{assignment.moduleTitle}</h3>
+                          <Badge 
+                            variant={
+                              assignment.status === "completed" ? "default" : 
+                              assignment.status === "in_progress" ? "secondary" : 
+                              assignment.status === "expired" ? "destructive" :
+                              "outline"
+                            }
+                          >
+                            {assignment.status.replace('_', ' ').toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-4 text-sm text-muted-foreground">
+                          <span>Assigned: {new Date(assignment.assignedDate).toLocaleDateString()}</span>
+                          {assignment.dueDate && (
+                            <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                          )}
+                          <span>Assigned by: {assignment.assignedByName}</span>
+                        </div>
+                        {assignment.notes && (
+                          <p className="text-sm text-gray-600 mt-1">{assignment.notes}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {assignment.status === "not_started" && (
+                          <Button size="sm">
+                            <PlayCircle className="h-4 w-4 mr-2" />
+                            Start
+                          </Button>
+                        )}
+                        {assignment.status === "in_progress" && (
+                          <Button size="sm" variant="outline">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Continue
+                          </Button>
+                        )}
+                        {assignment.status === "completed" && (
+                          <Button size="sm" variant="outline">
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Review
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Document Acknowledgments Needed */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Documents Requiring Acknowledgment</CardTitle>
+                  <CardDescription>
+                    Review and acknowledge the following documents
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {mockDocuments
+                    .filter(doc => doc.status === "approved" && doc.acknowledgedCount < doc.totalRequiredAcknowledgments)
+                    .map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{doc.title}</span>
+                            <Badge variant="outline" className="text-xs">
+                              v{doc.version}
+                            </Badge>
+                            {doc.isExpiringSoon && (
+                              <Badge variant="destructive" className="text-xs">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Expires Soon
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {doc.documentNumber} • {doc.category.replace('_', ' ').toUpperCase()}
+                          </p>
+                          {doc.effectiveDate && (
+                            <p className="text-xs text-muted-foreground">
+                              Effective: {new Date(doc.effectiveDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Review
+                          </Button>
+                          <Button size="sm">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Acknowledge
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  {mockDocuments.filter(doc => doc.status === "approved" && doc.acknowledgedCount < doc.totalRequiredAcknowledgments).length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p>All documents are acknowledged. Great work!</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Analytics */}
+            <TabsContent value="analytics" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+                {/* Quick Stats */}
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{mockDocuments.length}</div>
+                      <div className="text-sm text-muted-foreground">Total Documents</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {mockDocuments.filter(d => d.status === "approved").length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Approved</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-amber-600">
+                        {mockDocuments.filter(d => d.isExpiringSoon).length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Expiring Soon</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">{mockTrainingModules.length}</div>
+                      <div className="text-sm text-muted-foreground">Training Modules</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Training Completion Rates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Training Completion Overview</CardTitle>
+                  <CardDescription>
+                    Completion rates across all training modules
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {mockTrainingModules.map((module) => (
+                    <div key={module.id} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">{module.title}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {Math.round((module.assignmentCount * module.completionRate) / 100)}/{module.assignmentCount} completed
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${module.completionRate}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {module.completionRate}% completion rate
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Document Acknowledgment Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Document Acknowledgment Status</CardTitle>
+                  <CardDescription>
+                    Track document acknowledgment progress
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {mockDocuments
+                    .filter(doc => doc.status === "approved")
+                    .map((doc) => (
+                      <div key={doc.id} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{doc.title}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {doc.acknowledgedCount}/{doc.totalRequiredAcknowledgments} acknowledged
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full" 
+                            style={{ 
+                              width: `${(doc.acknowledgedCount / doc.totalRequiredAcknowledgments) * 100}%` 
+                            }}
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {Math.round((doc.acknowledgedCount / doc.totalRequiredAcknowledgments) * 100)}% acknowledged
+                        </div>
+                      </div>
+                    ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         {/* Analytics Tab */}
