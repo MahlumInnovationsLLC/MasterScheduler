@@ -1790,6 +1790,8 @@ function ProjectEdit() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Select date or status..."
+                          fieldName="shipDate"
+                          textOverride={project?.shipDateText}
                         />
                       )}
                     />
@@ -1969,7 +1971,29 @@ function ProjectEdit() {
                     <div className="p-2 bg-gray-800/50 rounded-md">
                       <p className="text-sm font-medium text-gray-400">New Ship Date:</p>
                       <p className="font-medium">
-                        {form.watch('shipDate') ? format(form.watch('shipDate'), 'MMM d, yyyy') : 'None'}
+                        {(() => {
+                          const shipDate = form.watch('shipDate');
+                          if (!shipDate) return 'None';
+                          if (typeof shipDate === 'string') {
+                            if (shipDate === 'PENDING' || shipDate === 'N/A' || shipDate === 'TBD') {
+                              return shipDate;
+                            }
+                            try {
+                              const date = new Date(shipDate);
+                              return isNaN(date.getTime()) ? shipDate : format(date, 'MMM d, yyyy');
+                            } catch {
+                              return shipDate;
+                            }
+                          }
+                          if (shipDate instanceof Date) {
+                            try {
+                              return format(shipDate, 'MMM d, yyyy');
+                            } catch {
+                              return 'Invalid date';
+                            }
+                          }
+                          return 'None';
+                        })()}
                       </p>
                     </div>
                   </div>

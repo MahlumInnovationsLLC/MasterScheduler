@@ -19,16 +19,16 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
   // Determine if current value is a text value or if we have a text override from database
   const isTextValue = typeof value === 'string' && (value === 'PENDING' || value === 'N/A');
   const hasTextOverride = textOverride && (textOverride === 'PENDING' || textOverride === 'N/A');
-  
+
   const [inputMode, setInputMode] = useState<'date' | 'text'>(
     isTextValue || hasTextOverride ? 'text' : 'date'
   );
-  
+
   // Convert date to string for input
   const dateValueString = value instanceof Date ? 
     value.toISOString().split('T')[0] : 
     (typeof value === 'string' && value !== 'PENDING' && value !== 'N/A') ? value : '';
-  
+
   // Handle text value display - prioritize text override from database
   const textValue = isTextValue ? (value as string) : (hasTextOverride ? textOverride : '');
 
@@ -59,7 +59,7 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
         console.warn('Failed to clear text selection from localStorage:', error);
       }
     }
-    
+
     if (textValue === "CLEAR") {
       onChange(undefined);
     } else if (textValue) {
@@ -72,7 +72,7 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
   const toggleMode = () => {
     const newMode = inputMode === 'date' ? 'text' : 'date';
     setInputMode(newMode);
-    
+
     // Clear value when switching modes
     onChange(undefined);
   };
@@ -101,7 +101,7 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
           )}
         </Button>
       </div>
-      
+
       <FormControl>
         {inputMode === 'date' ? (
           <Input
@@ -127,11 +127,11 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
           </Select>
         )}
       </FormControl>
-      
+
       {description && (
         <p className="text-xs text-muted-foreground">{description}</p>
       )}
-      
+
       <FormMessage />
     </FormItem>
   );
