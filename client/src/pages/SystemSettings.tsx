@@ -1707,8 +1707,8 @@ const SystemSettings = () => {
 
                                 // Fallback to role-based defaults
                                 if (user.role === 'admin') return true;
-                                if (user.role === 'editor') return !['system-settings', 'import'].includes(module.id);
-                                if (user.role === 'viewer') return !['sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(module.id);
+                                if (user.role === 'editor') return !['quality-assurance', 'system-settings', 'import'].includes(module.id);
+                                if (user.role === 'viewer') return !['quality-assurance', 'sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(module.id);
                                 return false;
                               };
 

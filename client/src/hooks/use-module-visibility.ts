@@ -43,14 +43,14 @@ export const useModuleVisibility = () => {
     // Admin can see everything by default
     if (user.role === 'admin') return true;
     
-    // Editor defaults - can see everything except system-settings and import
+    // Editor defaults - can see everything except quality-assurance, system-settings and import
     if (user.role === 'editor') {
-      return !['system-settings', 'import'].includes(moduleId);
+      return !['quality-assurance', 'system-settings', 'import'].includes(moduleId);
     }
     
-    // Viewer defaults - can see everything except sales-forecast, bay-scheduling, system-settings, and import
+    // Viewer defaults - can see everything except quality-assurance, sales-forecast, bay-scheduling, system-settings, and import
     if (user.role === 'viewer') {
-      return !['sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(moduleId);
+      return !['quality-assurance', 'sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(moduleId);
     }
     
     return true; // Default to visible for any other case
