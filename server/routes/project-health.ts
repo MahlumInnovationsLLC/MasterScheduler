@@ -1,5 +1,6 @@
 import { Express } from 'express';
 import { storage } from '../storage';
+import { analyzeProjectHealth } from '../ai';
 
 export function setupProjectHealthRoutes(app: Express) {
   // Get comprehensive project health data
@@ -41,6 +42,88 @@ export function setupProjectHealthRoutes(app: Express) {
     } catch (error) {
       console.error('Error calculating project health:', error);
       res.status(500).json({ error: "Failed to calculate project health" });
+    }
+  });
+
+  // AI-powered project health analysis
+  app.get("/api/ai/project-health/:projectId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID" });
+      }
+
+      // Get project data
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      // Get related data for AI analysis
+      const [allTasks, allMilestones, manufacturingSchedules] = await Promise.all([
+        storage.getTasks(),
+        storage.getBillingMilestones(),
+        storage.getManufacturingSchedules()
+      ]);
+
+      const tasks = allTasks?.filter((t: any) => t.projectId === projectId) || [];
+      const billingMilestones = allMilestones?.filter((m: any) => m.projectId === projectId) || [];
+      const projectSchedules = manufacturingSchedules?.filter(s => s.projectId === projectId) || [];
+
+      // Try AI analysis first, fall back to rule-based analysis
+      try {
+        const aiAnalysis = await analyzeProjectHealth(project, tasks, billingMilestones, projectSchedules);
+        res.json(aiAnalysis);
+      } catch (aiError) {
+        console.error('AI analysis failed, using fallback:', aiError);
+        
+        // Return a structured fallback response that matches the expected format
+        const fallbackAnalysis = generateFallbackAnalysis(project, tasks, billingMilestones, projectSchedules);
+        res.json(fallbackAnalysis);
+      }
+    } catch (error) {
+      console.error('Error in AI project health analysis:', error);
+      
+      // Return a minimal fallback response to prevent crashes
+      const minimalFallback = {
+        overallHealth: {
+          score: 50,
+          status: 'caution' as const,
+          summary: 'Unable to analyze project health at this time.'
+        },
+        timeline: {
+          status: 'on-track' as const,
+          score: 50,
+          analysis: 'Timeline analysis unavailable.',
+          recommendations: ['Check project timeline manually', 'Review task completion status']
+        },
+        budget: {
+          status: 'on-budget' as const,
+          score: 50,
+          analysis: 'Budget analysis unavailable.',
+          recommendations: ['Review billing milestones', 'Check project costs']
+        },
+        resources: {
+          status: 'adequate' as const,
+          score: 50,
+          analysis: 'Resource analysis unavailable.',
+          recommendations: ['Review team allocation', 'Check manufacturing schedules']
+        },
+        quality: {
+          score: 50,
+          analysis: 'Quality analysis unavailable.',
+          recommendations: ['Monitor task completion', 'Review project progress']
+        },
+        risks: {
+          severity: 'medium' as const,
+          items: ['Analysis temporarily unavailable'],
+          mitigation: ['Manual review recommended', 'Check all project metrics']
+        },
+        confidenceScore: 0.1
+      };
+      
+      res.json(minimalFallback);
     }
   });
 
@@ -294,4 +377,137 @@ function isProjectOnTrack(project: any, tasks: any[]) {
   const actualProgress = calculateOverallProgress(project, tasks);
   
   return actualProgress >= (expectedProgress - 10); // 10% tolerance
+}
+
+function generateFallbackAnalysis(project: any, tasks: any[], billingMilestones: any[], manufacturingSchedules: any[]) {
+  const today = new Date();
+
+  // Calculate timeline score
+  let timelineScore = 75;
+  let timelineStatus: 'delayed' | 'on-track' | 'ahead' = 'on-track';
+
+  if (project.estimatedCompletionDate) {
+    const dueDate = new Date(project.estimatedCompletionDate);
+    const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const progress = parseFloat(project.percentComplete || '0');
+
+    if (daysUntilDue < 0) {
+      timelineScore = 30;
+      timelineStatus = 'delayed';
+    } else if (daysUntilDue < 7 && progress < 90) {
+      timelineScore = 50;
+      timelineStatus = 'delayed';
+    } else if (progress > 80 && daysUntilDue > 30) {
+      timelineScore = 90;
+      timelineStatus = 'ahead';
+    }
+  }
+
+  // Calculate budget score
+  let budgetScore = 70;
+  let budgetStatus: 'over-budget' | 'on-budget' | 'under-budget' = 'on-budget';
+
+  if (billingMilestones.length > 0) {
+    const totalBudget = billingMilestones.reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+    const paidAmount = billingMilestones
+      .filter(m => m.status === 'paid')
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+    const progress = parseFloat(project.percentComplete || '0');
+    const expectedBilling = (progress / 100) * totalBudget;
+
+    if (paidAmount >= expectedBilling * 0.9) {
+      budgetScore = 85;
+      budgetStatus = 'on-budget';
+    } else if (paidAmount < expectedBilling * 0.7) {
+      budgetScore = 45;
+      budgetStatus = 'under-budget';
+    }
+  }
+
+  // Calculate resource score
+  let resourceScore = 65;
+  let resourceStatus: 'insufficient' | 'adequate' | 'optimal' = 'adequate';
+
+  if (manufacturingSchedules.length > 0) {
+    const activeSchedules = manufacturingSchedules.filter(s => s.status === 'in_progress');
+    if (activeSchedules.length > 0) {
+      resourceScore = 80;
+      resourceStatus = 'optimal';
+    } else if (manufacturingSchedules.some(s => s.status === 'scheduled')) {
+      resourceScore = 70;
+      resourceStatus = 'adequate';
+    }
+  }
+
+  // Calculate quality score
+  let qualityScore = 70;
+  if (tasks.length > 0) {
+    const completedTasks = tasks.filter(t => t.isCompleted).length;
+    qualityScore = Math.round((completedTasks / tasks.length) * 100);
+  }
+
+  // Calculate overall score
+  const overallScore = Math.round((timelineScore + budgetScore + resourceScore + qualityScore) / 4);
+
+  // Determine overall status
+  let overallStatus: 'critical' | 'at-risk' | 'caution' | 'healthy' | 'excellent' = 'healthy';
+  if (overallScore < 40) overallStatus = 'critical';
+  else if (overallScore < 60) overallStatus = 'at-risk';
+  else if (overallScore < 75) overallStatus = 'caution';
+  else if (overallScore >= 90) overallStatus = 'excellent';
+
+  // Generate risks
+  const risks: string[] = [];
+  if (timelineScore < 60) risks.push('Timeline delays may impact delivery');
+  if (budgetScore < 60) risks.push('Budget concerns with billing milestones');
+  if (resourceScore < 60) risks.push('Resource allocation needs attention');
+  if (qualityScore < 70) risks.push('Task completion rate below target');
+
+  return {
+    overallHealth: {
+      score: overallScore,
+      status: overallStatus,
+      summary: `Project is ${overallStatus} with a score of ${overallScore}/100. ${risks.length > 0 ? 'Some areas need attention.' : 'Performance is on track.'}`
+    },
+    timeline: {
+      status: timelineStatus,
+      score: timelineScore,
+      analysis: `Timeline assessment based on completion progress and due dates. Current status: ${timelineStatus}.`,
+      recommendations: timelineScore < 60 ? 
+        ['Review project schedule', 'Identify bottlenecks', 'Consider resource reallocation'] :
+        ['Continue current pace', 'Monitor progress weekly']
+    },
+    budget: {
+      status: budgetStatus,
+      score: budgetScore,
+      analysis: `Budget analysis based on billing milestone completion. Status: ${budgetStatus}.`,
+      recommendations: budgetScore < 60 ?
+        ['Review billing schedule', 'Follow up on pending invoices', 'Assess cost overruns'] :
+        ['Maintain current billing pace', 'Monitor cash flow']
+    },
+    resources: {
+      status: resourceStatus,
+      score: resourceScore,
+      analysis: `Resource assessment based on manufacturing schedules and team allocation. Status: ${resourceStatus}.`,
+      recommendations: resourceScore < 60 ?
+        ['Review resource allocation', 'Consider additional team members', 'Optimize workflows'] :
+        ['Maintain resource allocation', 'Monitor team capacity']
+    },
+    quality: {
+      score: qualityScore,
+      analysis: `Quality assessment based on task completion rates and project progress. Score: ${qualityScore}/100.`,
+      recommendations: qualityScore < 70 ?
+        ['Review task completion processes', 'Implement quality checkpoints', 'Provide additional training'] :
+        ['Continue quality practices', 'Regular quality reviews']
+    },
+    risks: {
+      severity: risks.length > 2 ? 'high' as const : risks.length > 0 ? 'medium' as const : 'low' as const,
+      items: risks.length > 0 ? risks : ['No significant risks identified'],
+      mitigation: risks.length > 0 ?
+        ['Regular status reviews', 'Proactive communication', 'Resource monitoring'] :
+        ['Continue monitoring', 'Maintain current practices']
+    },
+    confidenceScore: 0.8
+  };
 }

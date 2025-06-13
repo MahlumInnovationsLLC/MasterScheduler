@@ -13,9 +13,11 @@ interface ProjectHealthCardProps {
 }
 
 export function ProjectHealthCard({ projectId }: ProjectHealthCardProps) {
-  const { data: health, isLoading, isError } = useQuery({
+  const { data: health, isLoading, isError, refetch, error } = useQuery({
     queryKey: ['/api/ai/project-health', projectId],
     enabled: !!projectId,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const getStatusColor = (status: string) => {
@@ -79,6 +81,8 @@ export function ProjectHealthCard({ projectId }: ProjectHealthCardProps) {
   }
 
   if (isError || !health) {
+    const errorMessage = error?.message || 'Unknown error occurred';
+    
     return (
       <Card>
         <CardHeader className="pb-2">
@@ -90,8 +94,18 @@ export function ProjectHealthCard({ projectId }: ProjectHealthCardProps) {
           <p className="text-muted-foreground mb-4">
             We couldn't generate a health analysis for this project. This could be due to missing data or a temporary API issue.
           </p>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            Try Again
+          {errorMessage.includes('API key') && (
+            <p className="text-sm text-red-500 mb-4">
+              AI analysis requires an OpenAI API key to be configured.
+            </p>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Retrying...' : 'Try Again'}
           </Button>
         </CardContent>
       </Card>
