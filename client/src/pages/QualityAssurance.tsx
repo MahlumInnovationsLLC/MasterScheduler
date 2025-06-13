@@ -40,7 +40,34 @@ import {
   RefreshCw,
   ExternalLink,
   PlusCircle,
-  MoreVertical
+  MoreVertical,
+  FolderOpen,
+  FilePlus,
+  FileImage,
+  FileVideo,
+  FileSpreadsheet,
+  FileCode,
+  Copy,
+  Share2,
+  Lock,
+  Unlock,
+  RotateCcw,
+  Settings,
+  Grid,
+  List,
+  SortAsc,
+  SortDesc,
+  Clock3,
+  UserX,
+  Globe,
+  ShieldCheck,
+  AlertOctagon,
+  Target,
+  Zap,
+  TrendingDown,
+  Maximize2,
+  Bell,
+  BellOff
 } from "lucide-react";
 
 interface QAMetrics {
@@ -447,6 +474,23 @@ export default function QualityAssurance() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("dashboard");
+  
+  // Document management state
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<"name" | "date" | "status" | "category">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("approved");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [documentSearchTerm, setDocumentSearchTerm] = useState("");
+  const [selectedDocument, setSelectedDocument] = useState<QualityDocument | null>(null);
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  
+  // Training state
+  const [trainingSearchTerm, setTrainingSearchTerm] = useState("");
+  const [trainingTypeFilter, setTrainingTypeFilter] = useState<string>("all");
+  const [selectedTrainingModule, setSelectedTrainingModule] = useState<TrainingModule | null>(null);
 
   // Fetch real data from API
   const { data: ncrs = [] } = useQuery({
@@ -458,6 +502,100 @@ export default function QualityAssurance() {
     queryKey: ["/api/qa/analytics"],
     enabled: true
   });
+
+  // Helper functions for document management
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType?.includes('image')) return FileImage;
+    if (mimeType?.includes('video')) return FileVideo;
+    if (mimeType?.includes('spreadsheet') || mimeType?.includes('excel')) return FileSpreadsheet;
+    if (mimeType?.includes('code')) return FileCode;
+    return FileText;
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return 'Unknown size';
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "approved": return "bg-green-100 text-green-800 border-green-200";
+      case "under_review": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "pending_review": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "draft": return "bg-gray-100 text-gray-800 border-gray-200";
+      case "archived": return "bg-red-100 text-red-800 border-red-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "sop": return BookOpen;
+      case "work_instruction": return Settings;
+      case "form": return FileText;
+      case "calibration_record": return Target;
+      case "quality_plan": return ShieldCheck;
+      case "specification": return FileCode;
+      default: return FileText;
+    }
+  };
+
+  const filterAndSortDocuments = (documents: QualityDocument[]) => {
+    let filtered = documents.filter(doc => {
+      const matchesSearch = documentSearchTerm === "" || 
+        doc.title.toLowerCase().includes(documentSearchTerm.toLowerCase()) ||
+        doc.documentNumber.toLowerCase().includes(documentSearchTerm.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(documentSearchTerm.toLowerCase()) ||
+        doc.tags?.some(tag => tag.toLowerCase().includes(documentSearchTerm.toLowerCase()));
+      
+      const matchesCategory = categoryFilter === "all" || doc.category === categoryFilter;
+      const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
+      const matchesDepartment = departmentFilter === "all" || doc.department === departmentFilter;
+
+      return matchesSearch && matchesCategory && matchesStatus && matchesDepartment;
+    });
+
+    // Sort documents
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "name":
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case "date":
+          const dateA = new Date(a.effectiveDate || a.submittedDate || 0);
+          const dateB = new Date(b.effectiveDate || b.submittedDate || 0);
+          comparison = dateA.getTime() - dateB.getTime();
+          break;
+        case "status":
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case "category":
+          comparison = a.category.localeCompare(b.category);
+          break;
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    return filtered;
+  };
+
+  const filteredDocuments = filterAndSortDocuments(mockDocuments);
+
+  const handleDocumentView = (doc: QualityDocument) => {
+    setSelectedDocument(doc);
+    setShowDocumentPreview(true);
+  };
+
+  const handleDocumentDownload = (doc: QualityDocument) => {
+    // Simulate document download
+    const link = document.createElement('a');
+    link.href = doc.fileUrl;
+    link.download = doc.fileName;
+    link.click();
+  };
 
   // Calculate metrics from real data
   const metrics: QAMetrics = {
@@ -826,18 +964,52 @@ export default function QualityAssurance() {
 
             {/* Documents List */}
             <TabsContent value="documents-list" className="space-y-4">
-              {/* Document Controls */}
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="flex gap-2 flex-1">
-                  <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                    <Input
-                      placeholder="Search documents..."
-                      className="pl-8"
-                    />
+              {/* Advanced Document Controls */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search documents by title, number, description, or tags..."
+                        className="pl-10"
+                        value={documentSearchTerm}
+                        onChange={(e) => setDocumentSearchTerm(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <Select defaultValue="all">
-                    <SelectTrigger className="w-[150px]">
+                  <div className="flex items-center gap-2">
+                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
+                        <SelectItem value="category">Category</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                    >
+                      {sortOrder === "asc" ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+                    </Button>
+                    <Button variant="outline" onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}>
+                      {viewMode === "grid" ? <List className="h-4 w-4" /> : <Grid className="h-4 w-4" />}
+                    </Button>
+                    <Button onClick={() => setShowUploadDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-3">
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[160px]">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -845,145 +1017,267 @@ export default function QualityAssurance() {
                       <SelectItem value="sop">SOPs</SelectItem>
                       <SelectItem value="work_instruction">Work Instructions</SelectItem>
                       <SelectItem value="form">Forms</SelectItem>
-                      <SelectItem value="calibration_record">Calibration</SelectItem>
+                      <SelectItem value="calibration_record">Calibration Records</SelectItem>
                       <SelectItem value="quality_plan">Quality Plans</SelectItem>
+                      <SelectItem value="specification">Specifications</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select defaultValue="approved">
-                    <SelectTrigger className="w-[120px]">
+                  
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[140px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
                       <SelectItem value="under_review">Under Review</SelectItem>
+                      <SelectItem value="pending_review">Pending Review</SelectItem>
                       <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="archived">Archived</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      <SelectItem value="Production">Production</SelectItem>
+                      <SelectItem value="Quality">Quality</SelectItem>
+                      <SelectItem value="Engineering">Engineering</SelectItem>
+                      <SelectItem value="Safety">Safety</SelectItem>
+                      <SelectItem value="Operations">Operations</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <div className="text-sm text-gray-600 flex items-center">
+                    Showing {filteredDocuments.length} of {mockDocuments.length} documents
+                  </div>
                 </div>
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Document
-                </Button>
               </div>
 
-              {/* Documents Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {mockDocuments.map((doc) => (
-                  <Card key={doc.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-base font-medium line-clamp-2">
-                            {doc.title}
-                          </CardTitle>
-                          <CardDescription className="text-xs mt-1">
-                            {doc.documentNumber} • v{doc.version}
-                          </CardDescription>
-                        </div>
-                        <div className="ml-2">
-                          <Badge 
-                            variant={
-                              doc.status === "approved" ? "default" : 
-                              doc.status === "under_review" ? "secondary" : 
-                              "outline"
-                            }
-                            className="text-xs"
-                          >
-                            {doc.status.replace('_', ' ').toUpperCase()}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0 space-y-3">
-                      {/* Category and Department */}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Tag className="h-3 w-3" />
-                        <span className="capitalize">{doc.category.replace('_', ' ')}</span>
-                        {doc.department && (
-                          <>
-                            <span>•</span>
-                            <Building className="h-3 w-3" />
-                            <span className="capitalize">{doc.department}</span>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Acknowledgment Progress */}
-                      {doc.status === "approved" && (
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span>Acknowledged</span>
-                            <span>{doc.acknowledgedCount}/{doc.totalRequiredAcknowledgments}</span>
+              {/* Document Display */}
+              {viewMode === "grid" ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredDocuments.map((doc) => {
+                    const IconComponent = getCategoryIcon(doc.category);
+                    const FileIcon = getFileIcon(doc.mimeType || '');
+                    
+                    return (
+                      <Card key={doc.id} className="hover:shadow-lg transition-all duration-200 group">
+                        <div className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2.5 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
+                                <IconComponent className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="font-medium text-sm truncate" title={doc.title}>{doc.title}</h4>
+                                <p className="text-xs text-gray-500">{doc.documentNumber}</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(doc.status)}`}>
+                                {doc.status.replace('_', ' ').toUpperCase()}
+                              </div>
+                              {doc.isExpiringSoon && (
+                                <div className="flex items-center gap-1 text-xs text-amber-600">
+                                  <Clock3 className="h-3 w-3" />
+                                  Expiring
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div 
-                              className="bg-blue-600 h-1.5 rounded-full" 
-                              style={{ 
-                                width: `${(doc.acknowledgedCount / doc.totalRequiredAcknowledgments) * 100}%` 
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Expiry Warning */}
-                      {doc.isExpiringSoon && (
-                        <div className="flex items-center gap-1 text-xs text-amber-600">
-                          <AlertTriangle className="h-3 w-3" />
-                          <span>Expires Soon</span>
-                        </div>
-                      )}
-
-                      {/* Document Info */}
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          <span>Author: {doc.authorName}</span>
-                        </div>
-                        {doc.effectiveDate && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>Effective: {new Date(doc.effectiveDate).toLocaleDateString()}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Tags */}
-                      {doc.tags && doc.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {doc.tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="outline" className="text-xs px-1 py-0">
-                              {tag}
+                          
+                          <div className="mb-4">
+                            <Badge variant="secondary" className="text-xs mb-2">
+                              {doc.category.replace('_', ' ').toUpperCase()}
                             </Badge>
-                          ))}
-                          {doc.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs px-1 py-0">
-                              +{doc.tags.length - 3}
-                            </Badge>
+                            {doc.department && (
+                              <Badge variant="outline" className="text-xs ml-2">
+                                {doc.department}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-2" title={doc.description}>
+                            {doc.description || "No description available"}
+                          </p>
+                          
+                          <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                            <div className="flex items-center gap-2">
+                              <FileIcon className="h-3 w-3" />
+                              <span>v{doc.version}</span>
+                              <span>•</span>
+                              <span>{formatFileSize(doc.fileSize)}</span>
+                            </div>
+                            <span>{doc.effectiveDate || doc.submittedDate}</span>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <UserCheck className="h-3 w-3" />
+                              <span>{doc.acknowledgedCount}/{doc.totalRequiredAcknowledgments}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDocumentView(doc)}
+                                className="h-8 w-8 p-0 hover:bg-blue-50"
+                              >
+                                <Eye className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDocumentDownload(doc)}
+                                className="h-8 w-8 p-0 hover:bg-green-50"
+                              >
+                                <Download className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 w-8 p-0 hover:bg-gray-50"
+                              >
+                                <MoreVertical className="h-4 w-4 text-gray-500" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {doc.tags && doc.tags.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <div className="flex flex-wrap gap-1">
+                                {doc.tags.slice(0, 3).map((tag, index) => (
+                                  <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                                    <Tag className="h-2 w-2 mr-1" />
+                                    {tag}
+                                  </span>
+                                ))}
+                                {doc.tags.length > 3 && (
+                                  <span className="text-xs text-gray-500">+{doc.tags.length - 3} more</span>
+                                )}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex gap-1 pt-2">
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Eye className="h-3 w-3 mr-1" />
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Download className="h-3 w-3 mr-1" />
-                          Download
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <MoreVertical className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Version</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acknowledgments</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredDocuments.map((doc) => {
+                          const IconComponent = getCategoryIcon(doc.category);
+                          const FileIcon = getFileIcon(doc.mimeType || '');
+                          
+                          return (
+                            <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="p-2 bg-blue-50 rounded-lg mr-3">
+                                    <IconComponent className="h-4 w-4 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-medium text-gray-900">{doc.title}</div>
+                                    <div className="text-sm text-gray-500">{doc.documentNumber}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant="secondary" className="text-xs">
+                                  {doc.category.replace('_', ' ').toUpperCase()}
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(doc.status)}`}>
+                                  {doc.status.replace('_', ' ').toUpperCase()}
+                                </div>
+                                {doc.isExpiringSoon && (
+                                  <div className="flex items-center gap-1 text-xs text-amber-600 mt-1">
+                                    <Clock3 className="h-3 w-3" />
+                                    Expiring Soon
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {doc.department || '-'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center gap-2 text-sm text-gray-900">
+                                  <FileIcon className="h-4 w-4" />
+                                  v{doc.version}
+                                </div>
+                                <div className="text-xs text-gray-500">{formatFileSize(doc.fileSize)}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {doc.effectiveDate || doc.submittedDate}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="bg-blue-600 h-2 rounded-full" 
+                                      style={{ width: `${(doc.acknowledgedCount / doc.totalRequiredAcknowledgments) * 100}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs text-gray-600 whitespace-nowrap">
+                                    {doc.acknowledgedCount}/{doc.totalRequiredAcknowledgments}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleDocumentView(doc)}
+                                    className="h-8 w-8 p-0 hover:bg-blue-50"
+                                  >
+                                    <Eye className="h-4 w-4 text-blue-600" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleDocumentDownload(doc)}
+                                    className="h-8 w-8 p-0 hover:bg-green-50"
+                                  >
+                                    <Download className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    className="h-8 w-8 p-0 hover:bg-gray-50"
+                                  >
+                                    <MoreVertical className="h-4 w-4 text-gray-500" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             {/* Training Modules */}
