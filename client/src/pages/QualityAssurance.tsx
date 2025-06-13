@@ -491,6 +491,11 @@ export default function QualityAssurance() {
   const [trainingSearchTerm, setTrainingSearchTerm] = useState("");
   const [trainingTypeFilter, setTrainingTypeFilter] = useState<string>("all");
   const [selectedTrainingModule, setSelectedTrainingModule] = useState<TrainingModule | null>(null);
+  
+  // NCR state
+  const [showCreateNCR, setShowCreateNCR] = useState(false);
+  const [selectedNCR, setSelectedNCR] = useState<any>(null);
+  const [showNCRDetails, setShowNCRDetails] = useState(false);
 
   // Fetch real data from API
   const { data: ncrs = [] } = useQuery({

@@ -3780,7 +3780,29 @@ export class DatabaseStorage implements IStorage {
   // Quality Assurance methods
   async getNcrs(): Promise<NonConformanceReport[]> {
     try {
-      return await db.select().from(nonConformanceReports).orderBy(desc(nonConformanceReports.createdAt));
+      const results = await db.execute(sql`
+        SELECT 
+          id,
+          ncr_number as "ncrNumber",
+          project_id as "projectId",
+          title as "issueTitle",
+          description,
+          severity,
+          status,
+          reported_by as "reportedBy",
+          assigned_to as "assignedTo",
+          date_reported as "dateIdentified",
+          date_resolved as "resolutionDate",
+          root_cause as "rootCause",
+          corrective_action as "correctiveAction",
+          preventive_action as "preventiveAction",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM non_conformance_reports 
+        ORDER BY created_at DESC
+      `);
+      
+      return results.rows as NonConformanceReport[];
     } catch (error) {
       console.error("Error fetching NCRs:", error);
       return [];
@@ -3789,33 +3811,134 @@ export class DatabaseStorage implements IStorage {
 
   async getNcr(id: number): Promise<NonConformanceReport | undefined> {
     try {
-      const results = await db.select().from(nonConformanceReports).where(eq(nonConformanceReports.id, id)).limit(1);
-      return results[0];
+      const result = await db.execute(sql`
+        SELECT 
+          id,
+          ncr_number as "ncrNumber",
+          project_id as "projectId",
+          title as "issueTitle",
+          description,
+          severity,
+          status,
+          reported_by as "reportedBy",
+          assigned_to as "assignedTo",
+          date_reported as "dateIdentified",
+          date_resolved as "resolutionDate",
+          root_cause as "rootCause",
+          corrective_action as "correctiveAction",
+          preventive_action as "preventiveAction",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM non_conformance_reports 
+        WHERE id = ${id}
+        LIMIT 1
+      `);
+      
+      return result.rows[0] as NonConformanceReport;
     } catch (error) {
       console.error("Error fetching NCR:", error);
       return undefined;
     }
   }
 
-  async createNcr(ncr: InsertNonConformanceReport): Promise<NonConformanceReport> {
+  async createNcr(ncrData: any): Promise<NonConformanceReport> {
     try {
       // Generate NCR number
-      const count = await db.select({ count: count() }).from(nonConformanceReports);
-      const ncrNumber = `NCR-${String(count[0].count + 1).padStart(6, '0')}`;
+      const countResult = await db.execute(sql`SELECT COUNT(*) as count FROM non_conformance_reports`);
+      const count = countResult.rows[0].count as number;
+      const ncrNumber = `NCR-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
       
-      const [result] = await db.insert(nonConformanceReports)
-        .values({
-          ...ncr,
-          ncrNumber,
-          status: 'open'
-        })
-        .returning();
-      return result;
+      const result = await db.execute(sql`
+        INSERT INTO non_conformance_reports (
+          ncr_number,
+          project_id,
+          title,
+          description,
+          severity,
+          status,
+          reported_by,
+          assigned_to,
+          date_reported,
+          created_at,
+          updated_at
+        ) VALUES (
+          ${ncrNumber},
+          ${ncrData.projectId},
+          ${ncrData.issueTitle || ncrData.title},
+          ${ncrData.description},
+          ${ncrData.severity || 'medium'},
+          ${ncrData.status || 'open'},
+          ${ncrData.reportedBy || ncrData.identifiedBy},
+          ${ncrData.assignedTo || null},
+          ${ncrData.dateIdentified || new Date().toISOString()},
+          ${new Date().toISOString()},
+          ${new Date().toISOString()}
+        )
+        RETURNING 
+          id,
+          ncr_number as "ncrNumber",
+          project_id as "projectId",
+          title as "issueTitle",
+          description,
+          severity,
+          status,
+          reported_by as "reportedBy",
+          assigned_to as "assignedTo",
+          date_reported as "dateIdentified",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+      `);
+      
+      return result.rows[0] as NonConformanceReport;
     } catch (error) {
       console.error("Error creating NCR:", error);
       throw error;
     }
   }
+
+  async updateNcr(id: number, ncrData: any): Promise<NonConformanceReport | undefined> {
+    try {
+      const result = await db.execute(sql`
+        UPDATE non_conformance_reports 
+        SET 
+          title = ${ncrData.issueTitle || ncrData.title},
+          description = ${ncrData.description},
+          severity = ${ncrData.severity},
+          status = ${ncrData.status},
+          assigned_to = ${ncrData.assignedTo},
+          date_resolved = ${ncrData.resolutionDate || null},
+          root_cause = ${ncrData.rootCause || null},
+          corrective_action = ${ncrData.correctiveAction || null},
+          preventive_action = ${ncrData.preventiveAction || null},
+          updated_at = ${new Date().toISOString()}
+        WHERE id = ${id}
+        RETURNING 
+          id,
+          ncr_number as "ncrNumber",
+          project_id as "projectId",
+          title as "issueTitle",
+          description,
+          severity,
+          status,
+          reported_by as "reportedBy",
+          assigned_to as "assignedTo",
+          date_reported as "dateIdentified",
+          date_resolved as "resolutionDate",
+          root_cause as "rootCause",
+          corrective_action as "correctiveAction",
+          preventive_action as "preventiveAction",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+      `);
+      
+      return result.rows[0] as NonConformanceReport;
+    } catch (error) {
+      console.error("Error updating NCR:", error);
+      return undefined;
+    }
+  }
+
+
 
   async updateNcr(id: number, ncr: Partial<InsertNonConformanceReport>): Promise<NonConformanceReport | undefined> {
     try {
