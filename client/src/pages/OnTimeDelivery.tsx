@@ -26,6 +26,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Area,
   AreaChart,
@@ -372,6 +379,17 @@ const AIInsightsTab: React.FC<AIInsightsTabProps> = ({ filteredProjects, selecte
 const OnTimeDeliveryPage: React.FC = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>("all");
   const [selectedResponsibility, setSelectedResponsibility] = useState<string>("all");
+  const [drillDownModal, setDrillDownModal] = useState<{
+    isOpen: boolean;
+    period: string;
+    periodType: 'month' | 'quarter' | 'year';
+    projects: DeliveredProject[];
+  }>({
+    isOpen: false,
+    period: '',
+    periodType: 'month',
+    projects: []
+  });
 
   // Fetch delivered projects analytics
   const { data: analytics, isLoading: isLoadingAnalytics } = useQuery({
@@ -397,6 +415,65 @@ const OnTimeDeliveryPage: React.FC = () => {
     } catch {
       return "N/A";
     }
+  };
+
+  // Drill-down helper functions
+  const getProjectsForPeriod = (period: string, periodType: 'month' | 'quarter' | 'year'): DeliveredProject[] => {
+    if (!deliveredProjects) return [];
+
+    return deliveredProjects.filter(project => {
+      const projectDate = project.actualDeliveryDate || project.deliveryDate;
+      if (!projectDate) return false;
+
+      const date = new Date(projectDate);
+      
+      if (periodType === 'month') {
+        // For monthly periods like "Jan 2024"
+        try {
+          const periodDate = parse(period, 'MMM yyyy', new Date());
+          return date.getFullYear() === periodDate.getFullYear() && 
+                 date.getMonth() === periodDate.getMonth();
+        } catch {
+          return false;
+        }
+      } else if (periodType === 'quarter') {
+        // For quarterly periods like "Q1 2024"
+        const [quarter, year] = period.split(' ');
+        const quarterNum = parseInt(quarter.replace('Q', ''));
+        const yearNum = parseInt(year);
+        const projectQuarter = Math.ceil((date.getMonth() + 1) / 3);
+        
+        return date.getFullYear() === yearNum && projectQuarter === quarterNum;
+      } else if (periodType === 'year') {
+        // For yearly periods like "2024"
+        return date.getFullYear() === parseInt(period);
+      }
+      
+      return false;
+    });
+  };
+
+  const handleChartClick = (data: any, periodType: 'month' | 'quarter' | 'year') => {
+    if (!data || !data.activeLabel) return;
+    
+    const period = data.activeLabel;
+    const projects = getProjectsForPeriod(period, periodType);
+    
+    setDrillDownModal({
+      isOpen: true,
+      period,
+      periodType,
+      projects
+    });
+  };
+
+  const closeDrillDownModal = () => {
+    setDrillDownModal({
+      isOpen: false,
+      period: '',
+      periodType: 'month',
+      projects: []
+    });
   };
 
   const getResponsibilityColor = (responsibility: string) => {
@@ -993,8 +1070,15 @@ const OnTimeDeliveryPage: React.FC = () => {
               <CardDescription>On-time delivery performance over time</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-2 text-sm text-muted-foreground">
+                💡 Click on any time period to see detailed project data
+              </div>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={prepareMonthlyTrendsData()}>
+                <LineChart 
+                  data={prepareMonthlyTrendsData()}
+                  onClick={(data) => handleChartClick(data, 'month')}
+                  style={{ cursor: 'pointer' }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis yAxisId="left" />
@@ -1016,8 +1100,15 @@ const OnTimeDeliveryPage: React.FC = () => {
               <CardDescription>Quarterly on-time delivery trends</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-2 text-sm text-muted-foreground">
+                💡 Click on any quarter to see detailed project data
+              </div>
               <ResponsiveContainer width="100%" height={300}>
-                <ComposedChart data={prepareQuarterlyData()}>
+                <ComposedChart 
+                  data={prepareQuarterlyData()}
+                  onClick={(data) => handleChartClick(data, 'quarter')}
+                  style={{ cursor: 'pointer' }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="quarter" />
                   <YAxis yAxisId="left" />
@@ -1039,8 +1130,15 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <CardDescription>Year-over-year performance comparison</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-2 text-sm text-muted-foreground">
+                  💡 Click on any year to see detailed project data
+                </div>
                 <ResponsiveContainer width="100%" height={300}>
-                  <ComposedChart data={analytics.yearlyComparison}>
+                  <ComposedChart 
+                    data={analytics.yearlyComparison}
+                    onClick={(data) => handleChartClick(data, 'year')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" />
                     <YAxis yAxisId="left" />
@@ -1249,6 +1347,129 @@ const OnTimeDeliveryPage: React.FC = () => {
           <AIInsightsTab filteredProjects={filteredProjects} selectedTimeframe={selectedTimeframe} />
         </TabsContent>
       </Tabs>
+
+      {/* Drill-down Modal */}
+      <Dialog open={drillDownModal.isOpen} onOpenChange={closeDrillDownModal}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Project Details for {drillDownModal.period}
+            </DialogTitle>
+            <DialogDescription>
+              Detailed breakdown of {drillDownModal.projects.length} projects delivered in {drillDownModal.period}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Summary Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {drillDownModal.projects.length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Projects</div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {drillDownModal.projects.filter(p => p.daysLate <= 0).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">On Time</div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-600">
+                      {drillDownModal.projects.filter(p => p.daysLate > 0).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Late</div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-amber-600">
+                      {drillDownModal.projects.length > 0 
+                        ? Math.round((drillDownModal.projects.filter(p => p.daysLate <= 0).length / drillDownModal.projects.length) * 100)
+                        : 0}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">On Time Rate</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Projects Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Projects List</CardTitle>
+                <CardDescription>All projects delivered in {drillDownModal.period}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Project</TableHead>
+                        <TableHead>Contract Date</TableHead>
+                        <TableHead>Delivery Date</TableHead>
+                        <TableHead>Performance</TableHead>
+                        <TableHead>Responsibility</TableHead>
+                        <TableHead>Extensions</TableHead>
+                        <TableHead>Reason</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {drillDownModal.projects.map((project) => (
+                        <TableRow key={project.id}>
+                          <TableCell className="font-medium">
+                            <div>
+                              <div className="font-medium">{project.projectNumber}</div>
+                              <div className="text-sm text-muted-foreground truncate max-w-48">
+                                {project.name}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatDate(project.contractDate)}</TableCell>
+                          <TableCell>{formatDate(project.deliveryDate || project.actualDeliveryDate)}</TableCell>
+                          <TableCell>{getDaysLateBadge(project.daysLate)}</TableCell>
+                          <TableCell>{getResponsibilityBadge(project.delayResponsibility)}</TableCell>
+                          <TableCell>
+                            <Badge variant={project.contractExtensions > 0 ? "destructive" : "secondary"}>
+                              {project.contractExtensions || 0}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-48 truncate">
+                            {project.lateDeliveryReason || project.reason || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {drillDownModal.projects.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No projects found for {drillDownModal.period}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
