@@ -425,22 +425,34 @@ const SupplyChain = () => {
       const updateData = {
         isCompleted: !benchmark.isCompleted,
         completedDate: !benchmark.isCompleted ? new Date() : null,
-        completedBy: !benchmark.isCompleted ? user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.email || 'Unknown User' : null
+        completedBy: !benchmark.isCompleted ? getCurrentUser() : null
       };
 
       await updateProjectBenchmarkMutation.mutateAsync({ id: benchmark.id, data: updateData });
     } catch (error) {
       console.error("Error toggling benchmark completion:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update benchmark status. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setUpdatingBenchmarkId(null);
     }
   };
 
+  // Get current user from the user query
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/user'],
+    select: (data) => data as { id: string; email: string; firstName?: string; lastName?: string; role: string; }
+  });
+
   // Get current user function
   const getCurrentUser = () => {
-    // This should return the current user's name/email
-    // You might want to get this from your auth context
-    return "Current User";
+    if (currentUser?.firstName && currentUser?.lastName) {
+      return `${currentUser.firstName} ${currentUser.lastName}`;
+    }
+    return currentUser?.email || 'Unknown User';
   };
 
   // Handle opening project details
