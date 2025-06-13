@@ -424,7 +424,7 @@ const SupplyChain = () => {
     try {
       const updateData = {
         isCompleted: !benchmark.isCompleted,
-        completedDate: !benchmark.isCompleted ? new Date().toISOString() : null,
+        completedDate: !benchmark.isCompleted ? new Date() : null,
         completedBy: !benchmark.isCompleted ? getCurrentUser() : null
       };
 
