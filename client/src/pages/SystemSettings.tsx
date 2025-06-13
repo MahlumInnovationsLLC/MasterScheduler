@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
+import ExternalConnectionsManager from "@/components/ExternalConnectionsManager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2190,6 +2191,11 @@ const SystemSettings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* External Connections Tab */}
+          <TabsContent value="externalConnections" className="space-y-6">
+            <ExternalConnectionsManager />
           </TabsContent>
 
           {/* System Maintenance Tab */}

@@ -39,6 +39,8 @@ import {
   documentAcknowledgments,
   trainingModules,
   trainingAssignments,
+  externalConnections,
+  externalConnectionLogs,
   type User,
   type InsertUser,
   type Project,
@@ -114,6 +116,10 @@ import {
   type InsertTrainingModule,
   type TrainingAssignment,
   type InsertTrainingAssignment,
+  type ExternalConnection,
+  type InsertExternalConnection,
+  type ExternalConnectionLog,
+  type InsertExternalConnectionLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
@@ -402,6 +408,16 @@ export interface IStorage {
   deleteNcr(id: number): Promise<boolean>;
   getQualityDocuments(): Promise<QualityDocument[]>;
   createQualityDocument(document: InsertQualityDocument): Promise<QualityDocument>;
+
+  // External Connections methods
+  getExternalConnections(): Promise<ExternalConnection[]>;
+  getExternalConnection(id: number): Promise<ExternalConnection | undefined>;
+  createExternalConnection(connection: InsertExternalConnection): Promise<ExternalConnection>;
+  updateExternalConnection(id: number, connection: Partial<InsertExternalConnection>): Promise<ExternalConnection | undefined>;
+  deleteExternalConnection(id: number): Promise<boolean>;
+  testExternalConnection(id: number): Promise<{ success: boolean; error?: string; responseTime?: number }>;
+  logExternalConnectionTest(log: InsertExternalConnectionLog): Promise<ExternalConnectionLog>;
+  getExternalConnectionLogs(connectionId: number): Promise<ExternalConnectionLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
