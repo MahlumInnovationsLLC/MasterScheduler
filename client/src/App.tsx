@@ -31,6 +31,7 @@ import SupplyChain from "@/pages/SupplyChain";
 import RoleTestPage from "@/pages/RoleTestPage";
 import Meetings from "@/pages/Meetings";
 import MeetingView from "@/pages/MeetingView";
+import QualityAssurance from "@/pages/QualityAssurance";
 import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -136,6 +137,7 @@ function MainContent() {
     if (location === '/calendar') return 'Calendar';
     if (location === '/meetings') return 'Meetings';
     if (location.startsWith('/meetings/')) return 'Meeting Details';
+    if (location === '/quality-assurance') return 'Quality Assurance';
     if (location === '/sales-forecast') return 'Sales Forecast';
     if (location === '/reports') return 'Reports';
     if (location === '/export-reports') return 'Export Reports';
@@ -177,6 +179,7 @@ function MainContent() {
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/meetings" component={Meetings} />
             <ProtectedRoute path="/meetings/:id" component={MeetingView} />
+            <ProtectedRoute path="/quality-assurance" component={QualityAssurance} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
@@ -220,6 +223,7 @@ function MainContent() {
             <ProtectedRoute path="/meetings/:id" component={MeetingView} />
             <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
+            <ProtectedRoute path="/quality-assurance" component={QualityAssurance} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />

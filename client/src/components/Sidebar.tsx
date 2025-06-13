@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ShoppingCart,
-  MessageSquare
+  MessageSquare,
+  Shield
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
@@ -129,6 +130,16 @@ const Sidebar = () => {
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Meetings">
                   <MessageSquare size={20} className={`${isActive('/meetings') || locationStartsWith('/meetings/') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Meetings</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('quality-assurance') && (
+              <li>
+                <SidebarLink href="/quality-assurance" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/quality-assurance') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Quality Assurance">
+                  <Shield size={20} className={`${isActive('/quality-assurance') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Quality Assurance</span>}
                 </SidebarLink>
               </li>
             )}
