@@ -1123,11 +1123,12 @@ const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="accessControl">Access Control</TabsTrigger>
           <TabsTrigger value="roleControls">Role Controls</TabsTrigger>
           <TabsTrigger value="moduleVisibility">Module Visibility</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="externalConnections">External Connections</TabsTrigger>
           <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
           <TabsTrigger value="maintenance">System Maintenance</TabsTrigger>
         </TabsList>
@@ -2063,6 +2064,11 @@ const SystemSettings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* External Connections Tab */}
+          <TabsContent value="externalConnections" className="space-y-6">
+            <ExternalConnectionsManager />
           </TabsContent>
 
           {/* Archive Management Tab */}

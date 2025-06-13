@@ -2196,11 +2196,74 @@ export const insertTrainingModuleSchema = createInsertSchema(trainingModules).om
   updatedAt: true,
 });
 
+// External Connections
+export const externalConnections = pgTable("external_connections", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // "webhook", "api", "database", etc.
+  method: text("method").notNull().default("POST"), // GET, POST, PUT, DELETE
+  url: text("url").notNull(),
+  headers: jsonb("headers").$type<Record<string, string>>().default({}),
+  authentication: jsonb("authentication").$type<{
+    type: 'none' | 'basic' | 'bearer' | 'apikey';
+    username?: string;
+    password?: string;
+    token?: string;
+    apiKey?: string;
+    apiKeyHeader?: string;
+  }>().default({ type: 'none' }),
+  requestBody: text("request_body"), // Template for request body
+  responseMapping: jsonb("response_mapping").$type<Record<string, string>>().default({}),
+  retryConfig: jsonb("retry_config").$type<{
+    maxRetries: number;
+    retryDelay: number;
+    backoffMultiplier: number;
+  }>().default({ maxRetries: 3, retryDelay: 1000, backoffMultiplier: 2 }),
+  isActive: boolean("is_active").default(true),
+  lastTestedAt: timestamp("last_tested_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  lastErrorAt: timestamp("last_error_at"),
+  lastErrorMessage: text("last_error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// External Connection Logs
+export const externalConnectionLogs = pgTable("external_connection_logs", {
+  id: serial("id").primaryKey(),
+  connectionId: integer("connection_id").references(() => externalConnections.id),
+  requestData: jsonb("request_data"),
+  responseData: jsonb("response_data"),
+  statusCode: integer("status_code"),
+  responseTime: integer("response_time"), // in milliseconds
+  success: boolean("success").notNull(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertTrainingAssignmentSchema = createInsertSchema(trainingAssignments).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
+
+// External Connections Insert Schemas
+export const insertExternalConnectionSchema = createInsertSchema(externalConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertExternalConnectionLogSchema = createInsertSchema(externalConnectionLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types
+export type ExternalConnection = typeof externalConnections.$inferSelect;
+export type InsertExternalConnection = z.infer<typeof insertExternalConnectionSchema>;
+export type ExternalConnectionLog = typeof externalConnectionLogs.$inferSelect;
 
 // Quality Assurance Types
 export type NonConformanceReport = typeof nonConformanceReports.$inferSelect;
