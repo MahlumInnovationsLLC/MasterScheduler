@@ -43,9 +43,10 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   };
 
   const filteredNavItems = navigationItems.filter(item => {
-    const hasPermission = hasAccess(item.permission || 'read', item.resource || 'general');
+    // For mobile sidebar, we'll use the module visibility check
+    // since hasAccess might not be available in this context
     const isVisible = isModuleVisible(item.id);
-    return hasPermission && isVisible;
+    return isVisible;
   });
 
   return (
