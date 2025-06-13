@@ -471,6 +471,9 @@ const SupplyChain = () => {
     return { label: 'Pending', color: 'bg-yellow-500 text-white' };
   };
 
+  // Get filtered project benchmarks
+  const filteredProjectBenchmarks = projectBenchmarks || [];
+
   // Get active projects sorted by ship date
   const activeProjects = React.useMemo(() => {
     if (!projects) return [];
@@ -507,9 +510,6 @@ const SupplyChain = () => {
         return numB - numA;
       });
   }, [projects, filteredProjectBenchmarks]);
-
-  // Get filtered project benchmarks
-  const filteredProjectBenchmarks = projectBenchmarks || [];
 
   // Get upcoming purchase needs
   const getUpcomingPurchaseNeeds = (timeframe: 'week' | 'month' | 'quarter') => {
