@@ -1034,6 +1034,8 @@ const SystemSettings = () => {
                     <SelectItem value="sales">Sales</SelectItem>
                     <SelectItem value="executive">Executive</SelectItem>
                     <SelectItem value="planning_analysis">Planning & Analysis</SelectItem>
+                    <SelectItem value="supply_chain">Supply Chain</SelectItem>
+                    <SelectItem value="isg">ISG</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
