@@ -1561,3 +1561,665 @@ export type ProjectLabel = typeof projectLabels.$inferSelect;
 export type InsertProjectLabel = z.infer<typeof insertProjectLabelSchema>;
 export type ProjectLabelAssignment = typeof projectLabelAssignments.$inferSelect;
 export type InsertProjectLabelAssignment = z.infer<typeof insertProjectLabelAssignmentSchema>;
+
+// Quality Assurance Module Enums
+export const ncrSeverityEnum = pgEnum("ncr_severity", [
+  "low",
+  "medium", 
+  "high",
+  "critical"
+]);
+
+export const ncrStatusEnum = pgEnum("ncr_status", [
+  "open",
+  "under_review",
+  "resolved",
+  "closed"
+]);
+
+export const capaStatusEnum = pgEnum("capa_status", [
+  "draft",
+  "in_progress",
+  "complete",
+  "verified"
+]);
+
+export const scarStatusEnum = pgEnum("scar_status", [
+  "issued",
+  "supplier_responded",
+  "under_review",
+  "closed",
+  "escalated"
+]);
+
+export const auditTypeEnum = pgEnum("audit_type", [
+  "internal",
+  "external",
+  "iso",
+  "dot",
+  "customer",
+  "supplier"
+]);
+
+export const auditFindingTypeEnum = pgEnum("audit_finding_type", [
+  "major",
+  "minor",
+  "observation",
+  "opportunity"
+]);
+
+export const documentStatusEnum = pgEnum("document_status", [
+  "draft",
+  "submitted",
+  "reviewed",
+  "approved",
+  "obsolete"
+]);
+
+export const documentCategoryEnum = pgEnum("document_category", [
+  "sop",
+  "work_instruction",
+  "form",
+  "calibration_record",
+  "quality_plan",
+  "specification"
+]);
+
+export const trainingStatusEnum = pgEnum("training_status", [
+  "not_started",
+  "in_progress",
+  "completed",
+  "expired"
+]);
+
+export const trainingTypeEnum = pgEnum("training_type", [
+  "onboarding",
+  "equipment_certification",
+  "sop_familiarization",
+  "safety",
+  "quality_system"
+]);
+
+// Quality Assurance Tables
+
+// 1. Non-Conformance Reports (NCRs)
+export const nonConformanceReports = pgTable("non_conformance_reports", {
+  id: serial("id").primaryKey(),
+  ncrNumber: text("ncr_number").notNull().unique(), // Auto-generated NCR-YYYY-###
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  bayId: integer("bay_id").references(() => manufacturingBays.id),
+  
+  // Core NCR Information
+  issueTitle: text("issue_title").notNull(),
+  description: text("description").notNull(),
+  vehicleModuleSection: text("vehicle_module_section"),
+  partSubsystemInvolved: text("part_subsystem_involved"),
+  
+  // Identification Details
+  dateIdentified: timestamp("date_identified").notNull(),
+  identifiedById: varchar("identified_by_id").references(() => users.id).notNull(),
+  severity: ncrSeverityEnum("severity").notNull(),
+  status: ncrStatusEnum("status").default("open").notNull(),
+  
+  // Attachments and Evidence
+  attachmentUrls: text("attachment_urls").array(),
+  imageUrls: text("image_urls").array(),
+  
+  // Resolution
+  resolutionDescription: text("resolution_description"),
+  resolutionDate: timestamp("resolution_date"),
+  resolvedById: varchar("resolved_by_id").references(() => users.id),
+  
+  // Auto-trigger CAPA flag
+  requiresCapa: boolean("requires_capa").default(false),
+  capaTriggered: boolean("capa_triggered").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 2. Corrective and Preventive Actions (CAPA)
+export const correctiveActions = pgTable("corrective_actions", {
+  id: serial("id").primaryKey(),
+  capaNumber: text("capa_number").notNull().unique(), // Auto-generated CAPA-YYYY-###
+  
+  // Linkages
+  ncrId: integer("ncr_id"), // Will add foreign key after table creation
+  auditFindingId: integer("audit_finding_id"), // Will add foreign key after table creation
+  projectId: integer("project_id").references(() => projects.id),
+  
+  // CAPA Details
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  rootCauseAnalysis: text("root_cause_analysis").notNull(),
+  analysisMethod: text("analysis_method"), // "5_whys", "fishbone", "other"
+  
+  // Actions
+  correctiveActions: text("corrective_actions").notNull(),
+  preventiveMeasures: text("preventive_measures").notNull(),
+  
+  // Ownership and Timeline
+  ownerId: varchar("owner_id").references(() => users.id).notNull(),
+  dueDate: date("due_date").notNull(),
+  effectivenessReviewDate: date("effectiveness_review_date"),
+  
+  // Status and Verification
+  status: capaStatusEnum("status").default("draft").notNull(),
+  implementationDate: timestamp("implementation_date"),
+  verificationDate: timestamp("verification_date"),
+  verifiedById: varchar("verified_by_id").references(() => users.id),
+  effectivenessVerified: boolean("effectiveness_verified").default(false),
+  
+  // Attachments
+  attachmentUrls: text("attachment_urls").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 3. Supplier Corrective Action Requests (SCAR)
+export const supplierCorrectiveActions = pgTable("supplier_corrective_actions", {
+  id: serial("id").primaryKey(),
+  scarNumber: text("scar_number").notNull().unique(), // Auto-generated SCAR-YYYY-###
+  
+  // Supplier Information
+  supplierName: text("supplier_name").notNull(),
+  supplierContact: text("supplier_contact"),
+  supplierEmail: text("supplier_email"),
+  
+  // Issue Details
+  linkedPoNumber: text("linked_po_number"),
+  partNumber: text("part_number"),
+  defectDescription: text("defect_description").notNull(),
+  
+  // Dates and Timeline
+  dateReported: timestamp("date_reported").notNull(),
+  supplierResponseDue: date("supplier_response_due").notNull(),
+  supplierResponseDate: date("supplier_response_date"),
+  
+  // Evidence and Attachments
+  evidenceUrls: text("evidence_urls").array(),
+  photoUrls: text("photo_urls").array(),
+  
+  // Supplier Response
+  supplierResponse: text("supplier_response"),
+  supplierCorrectiveActions: text("supplier_corrective_actions"),
+  supplierPreventiveMeasures: text("supplier_preventive_measures"),
+  
+  // Internal Review
+  internalReviewNotes: text("internal_review_notes"),
+  closureNotes: text("closure_notes"),
+  closureDate: timestamp("closure_date"),
+  closedById: varchar("closed_by_id").references(() => users.id),
+  
+  // Status and Escalation
+  status: scarStatusEnum("status").default("issued").notNull(),
+  escalationLevel: integer("escalation_level").default(1),
+  effectivenessVerified: boolean("effectiveness_verified").default(false),
+  
+  // Project Linkage
+  projectId: integer("project_id").references(() => projects.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 4. Audit Management
+export const audits = pgTable("audits", {
+  id: serial("id").primaryKey(),
+  auditNumber: text("audit_number").notNull().unique(), // Auto-generated AUD-YYYY-###
+  
+  // Audit Details
+  auditType: auditTypeEnum("audit_type").notNull(),
+  auditTitle: text("audit_title").notNull(),
+  auditDate: date("audit_date").notNull(),
+  auditorName: text("auditor_name").notNull(),
+  auditorOrganization: text("auditor_organization"),
+  
+  // Scope
+  areaFunction: text("area_function").notNull(), // e.g., "Electrical Install", "Chassis Fabrication"
+  scope: text("scope").notNull(),
+  
+  // Planning
+  plannedDate: date("planned_date"),
+  plannedById: varchar("planned_by_id").references(() => users.id),
+  
+  // Completion
+  completedDate: timestamp("completed_date"),
+  completedById: varchar("completed_by_id").references(() => users.id),
+  
+  // Summary
+  auditSummary: text("audit_summary"),
+  overallRating: text("overall_rating"), // "satisfactory", "needs_improvement", "unsatisfactory"
+  
+  // Attachments
+  reportUrl: text("report_url"),
+  attachmentUrls: text("attachment_urls").array(),
+  
+  // Project Linkage
+  projectId: integer("project_id").references(() => projects.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 5. Audit Findings
+export const auditFindings = pgTable("audit_findings", {
+  id: serial("id").primaryKey(),
+  auditId: integer("audit_id").references(() => audits.id).notNull(),
+  
+  // Finding Details
+  findingNumber: text("finding_number").notNull(), // e.g., "F001", "F002"
+  findingType: auditFindingTypeEnum("finding_type").notNull(),
+  clauseReference: text("clause_reference"), // ISO clause or standard reference
+  
+  // Description
+  findingDescription: text("finding_description").notNull(),
+  evidence: text("evidence"),
+  requirement: text("requirement"),
+  
+  // Response and Correction
+  responseRequired: boolean("response_required").default(true),
+  targetCloseDate: date("target_close_date"),
+  actualCloseDate: date("actual_close_date"),
+  
+  // Status
+  status: text("status").default("open").notNull(), // "open", "responded", "verified", "closed"
+  
+  // Linkages
+  linkedNcrId: integer("linked_ncr_id").references(() => nonConformanceReports.id),
+  linkedCapaId: integer("linked_capa_id"), // Will add foreign key after table creation
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 6. Document Control
+export const qualityDocuments = pgTable("quality_documents", {
+  id: serial("id").primaryKey(),
+  documentNumber: text("document_number").notNull().unique(), // Auto-generated DOC-YYYY-###
+  
+  // Document Information
+  title: text("title").notNull(),
+  description: text("description"),
+  category: documentCategoryEnum("category").notNull(),
+  department: userDepartmentEnum("department"),
+  
+  // Version Control
+  version: text("version").default("1.0").notNull(),
+  previousVersionId: integer("previous_version_id"), // Will add self-reference after table creation
+  versionNotes: text("version_notes"),
+  
+  // File Information
+  fileUrl: text("file_url").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  
+  // Lifecycle
+  status: documentStatusEnum("status").default("draft").notNull(),
+  effectiveDate: date("effective_date"),
+  expiryDate: date("expiry_date"),
+  
+  // Ownership and Approval
+  authorId: varchar("author_id").references(() => users.id).notNull(),
+  reviewerId: varchar("reviewer_id").references(() => users.id),
+  approverId: varchar("approver_id").references(() => users.id),
+  
+  // Dates
+  submittedDate: timestamp("submitted_date"),
+  reviewedDate: timestamp("reviewed_date"),
+  approvedDate: timestamp("approved_date"),
+  
+  // Tags and Classification
+  tags: text("tags").array(),
+  complianceCategory: text("compliance_category"), // "ISO", "DOT", "Customer", etc.
+  
+  // Project Linkage
+  projectId: integer("project_id").references(() => projects.id),
+  projectType: text("project_type"), // For filtering by project type
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 7. Document Acknowledgments
+export const documentAcknowledgments = pgTable("document_acknowledgments", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").references(() => qualityDocuments.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Acknowledgment Details
+  acknowledgedDate: timestamp("acknowledged_date").defaultNow(),
+  comments: text("comments"),
+  
+  // Digital signature equivalent
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  // Ensure one acknowledgment per user per document version
+  unique("unique_user_document_ack").on(table.documentId, table.userId)
+]);
+
+// 8. Training Center
+export const trainingModules = pgTable("training_modules", {
+  id: serial("id").primaryKey(),
+  moduleNumber: text("module_number").notNull().unique(), // Auto-generated TRN-YYYY-###
+  
+  // Module Information
+  title: text("title").notNull(),
+  description: text("description"),
+  type: trainingTypeEnum("type").notNull(),
+  category: text("category"), // "Safety", "Quality", "Equipment", etc.
+  
+  // Content
+  contentUrl: text("content_url"), // PDF, video, slides
+  contentType: text("content_type"), // "pdf", "video", "slideshow", "quiz"
+  duration: integer("duration"), // Duration in minutes
+  
+  // Requirements
+  requiredForDepartments: userDepartmentEnum("required_for_departments").array(),
+  requiredForRoles: text("required_for_roles").array(),
+  prerequisiteModuleIds: integer("prerequisite_module_ids").array(),
+  
+  // Certification
+  requiresCertification: boolean("requires_certification").default(false),
+  certificationValidityDays: integer("certification_validity_days"),
+  passingScore: integer("passing_score"), // Percentage required to pass
+  
+  // Quiz Configuration
+  hasQuiz: boolean("has_quiz").default(false),
+  quizQuestions: jsonb("quiz_questions"), // JSON array of questions
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  
+  // Ownership
+  createdById: varchar("created_by_id").references(() => users.id).notNull(),
+  lastUpdatedById: varchar("last_updated_by_id").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 9. Training Assignments
+export const trainingAssignments = pgTable("training_assignments", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").references(() => trainingModules.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Assignment Details
+  assignedDate: timestamp("assigned_date").defaultNow(),
+  assignedById: varchar("assigned_by_id").references(() => users.id).notNull(),
+  dueDate: date("due_date"),
+  
+  // Progress and Completion
+  status: trainingStatusEnum("status").default("not_started").notNull(),
+  startedDate: timestamp("started_date"),
+  completedDate: timestamp("completed_date"),
+  
+  // Quiz Results
+  quizAttempts: integer("quiz_attempts").default(0),
+  bestScore: integer("best_score"), // Best quiz score percentage
+  lastAttemptScore: integer("last_attempt_score"),
+  quizResults: jsonb("quiz_results"), // Detailed quiz attempt history
+  
+  // Certification
+  certified: boolean("certified").default(false),
+  certificationDate: timestamp("certification_date"),
+  certificationExpiryDate: date("certification_expiry_date"),
+  recertificationRequired: boolean("recertification_required").default(false),
+  
+  // Comments and Notes
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  // Ensure one assignment per user per module
+  unique("unique_user_module_assignment").on(table.moduleId, table.userId)
+]);
+
+// Quality Assurance Relations
+export const nonConformanceReportsRelations = relations(nonConformanceReports, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [nonConformanceReports.projectId],
+    references: [projects.id],
+  }),
+  bay: one(manufacturingBays, {
+    fields: [nonConformanceReports.bayId],
+    references: [manufacturingBays.id],
+  }),
+  identifiedBy: one(users, {
+    fields: [nonConformanceReports.identifiedById],
+    references: [users.id],
+    relationName: "ncrIdentifiedBy"
+  }),
+  resolvedBy: one(users, {
+    fields: [nonConformanceReports.resolvedById],
+    references: [users.id],
+    relationName: "ncrResolvedBy"
+  }),
+  correctiveActions: many(correctiveActions),
+}));
+
+export const correctiveActionsRelations = relations(correctiveActions, ({ one }) => ({
+  ncr: one(nonConformanceReports, {
+    fields: [correctiveActions.ncrId],
+    references: [nonConformanceReports.id],
+  }),
+  auditFinding: one(auditFindings, {
+    fields: [correctiveActions.auditFindingId],
+    references: [auditFindings.id],
+  }),
+  project: one(projects, {
+    fields: [correctiveActions.projectId],
+    references: [projects.id],
+  }),
+  owner: one(users, {
+    fields: [correctiveActions.ownerId],
+    references: [users.id],
+    relationName: "capaOwner"
+  }),
+  verifiedBy: one(users, {
+    fields: [correctiveActions.verifiedById],
+    references: [users.id],
+    relationName: "capaVerifiedBy"
+  }),
+}));
+
+export const supplierCorrectiveActionsRelations = relations(supplierCorrectiveActions, ({ one }) => ({
+  project: one(projects, {
+    fields: [supplierCorrectiveActions.projectId],
+    references: [projects.id],
+  }),
+  closedBy: one(users, {
+    fields: [supplierCorrectiveActions.closedById],
+    references: [users.id],
+  }),
+}));
+
+export const auditsRelations = relations(audits, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [audits.projectId],
+    references: [projects.id],
+  }),
+  plannedBy: one(users, {
+    fields: [audits.plannedById],
+    references: [users.id],
+    relationName: "auditPlannedBy"
+  }),
+  completedBy: one(users, {
+    fields: [audits.completedById],
+    references: [users.id],
+    relationName: "auditCompletedBy"
+  }),
+  findings: many(auditFindings),
+}));
+
+export const auditFindingsRelations = relations(auditFindings, ({ one }) => ({
+  audit: one(audits, {
+    fields: [auditFindings.auditId],
+    references: [audits.id],
+  }),
+  linkedNcr: one(nonConformanceReports, {
+    fields: [auditFindings.linkedNcrId],
+    references: [nonConformanceReports.id],
+  }),
+  linkedCapa: one(correctiveActions, {
+    fields: [auditFindings.linkedCapaId],
+    references: [correctiveActions.id],
+  }),
+}));
+
+export const qualityDocumentsRelations = relations(qualityDocuments, ({ one, many }) => ({
+  author: one(users, {
+    fields: [qualityDocuments.authorId],
+    references: [users.id],
+    relationName: "documentAuthor"
+  }),
+  reviewer: one(users, {
+    fields: [qualityDocuments.reviewerId],
+    references: [users.id],
+    relationName: "documentReviewer"
+  }),
+  approver: one(users, {
+    fields: [qualityDocuments.approverId],
+    references: [users.id],
+    relationName: "documentApprover"
+  }),
+  project: one(projects, {
+    fields: [qualityDocuments.projectId],
+    references: [projects.id],
+  }),
+  previousVersion: one(qualityDocuments, {
+    fields: [qualityDocuments.previousVersionId],
+    references: [qualityDocuments.id],
+    relationName: "documentVersions"
+  }),
+  acknowledgments: many(documentAcknowledgments),
+}));
+
+export const documentAcknowledgmentsRelations = relations(documentAcknowledgments, ({ one }) => ({
+  document: one(qualityDocuments, {
+    fields: [documentAcknowledgments.documentId],
+    references: [qualityDocuments.id],
+  }),
+  user: one(users, {
+    fields: [documentAcknowledgments.userId],
+    references: [users.id],
+  }),
+}));
+
+export const trainingModulesRelations = relations(trainingModules, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [trainingModules.createdById],
+    references: [users.id],
+    relationName: "trainingModuleCreator"
+  }),
+  lastUpdatedBy: one(users, {
+    fields: [trainingModules.lastUpdatedById],
+    references: [users.id],
+    relationName: "trainingModuleUpdater"
+  }),
+  assignments: many(trainingAssignments),
+}));
+
+export const trainingAssignmentsRelations = relations(trainingAssignments, ({ one }) => ({
+  module: one(trainingModules, {
+    fields: [trainingAssignments.moduleId],
+    references: [trainingModules.id],
+  }),
+  user: one(users, {
+    fields: [trainingAssignments.userId],
+    references: [users.id],
+    relationName: "trainingAssignee"
+  }),
+  assignedBy: one(users, {
+    fields: [trainingAssignments.assignedById],
+    references: [users.id],
+    relationName: "trainingAssigner"
+  }),
+}));
+
+// Quality Assurance Insert Schemas
+export const insertNonConformanceReportSchema = createInsertSchema(nonConformanceReports).omit({
+  id: true,
+  ncrNumber: true, // Auto-generated
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCorrectiveActionSchema = createInsertSchema(correctiveActions).omit({
+  id: true,
+  capaNumber: true, // Auto-generated
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSupplierCorrectiveActionSchema = createInsertSchema(supplierCorrectiveActions).omit({
+  id: true,
+  scarNumber: true, // Auto-generated
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAuditSchema = createInsertSchema(audits).omit({
+  id: true,
+  auditNumber: true, // Auto-generated
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAuditFindingSchema = createInsertSchema(auditFindings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertQualityDocumentSchema = createInsertSchema(qualityDocuments).omit({
+  id: true,
+  documentNumber: true, // Auto-generated
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDocumentAcknowledgmentSchema = createInsertSchema(documentAcknowledgments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTrainingModuleSchema = createInsertSchema(trainingModules).omit({
+  id: true,
+  moduleNumber: true, // Auto-generated
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTrainingAssignmentSchema = createInsertSchema(trainingAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Quality Assurance Types
+export type NonConformanceReport = typeof nonConformanceReports.$inferSelect;
+export type InsertNonConformanceReport = z.infer<typeof insertNonConformanceReportSchema>;
+export type CorrectiveAction = typeof correctiveActions.$inferSelect;
+export type InsertCorrectiveAction = z.infer<typeof insertCorrectiveActionSchema>;
+export type SupplierCorrectiveAction = typeof supplierCorrectiveActions.$inferSelect;
+export type InsertSupplierCorrectiveAction = z.infer<typeof insertSupplierCorrectiveActionSchema>;
+export type Audit = typeof audits.$inferSelect;
+export type InsertAudit = z.infer<typeof insertAuditSchema>;
+export type AuditFinding = typeof auditFindings.$inferSelect;
+export type InsertAuditFinding = z.infer<typeof insertAuditFindingSchema>;
+export type QualityDocument = typeof qualityDocuments.$inferSelect;
+export type InsertQualityDocument = z.infer<typeof insertQualityDocumentSchema>;
+export type DocumentAcknowledgment = typeof documentAcknowledgments.$inferSelect;
+export type InsertDocumentAcknowledgment = z.infer<typeof insertDocumentAcknowledgmentSchema>;
+export type TrainingModule = typeof trainingModules.$inferSelect;
+export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
+export type TrainingAssignment = typeof trainingAssignments.$inferSelect;
+export type InsertTrainingAssignment = z.infer<typeof insertTrainingAssignmentSchema>;
