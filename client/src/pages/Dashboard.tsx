@@ -793,33 +793,7 @@ const Dashboard = () => {
         );
       },
     },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => {
-        const { status } = getProjectStatusColor(
-          row.original.percentComplete,
-          row.original.estimatedCompletionDate
-        );
-        const scheduleState = getProjectScheduleState(manufacturingSchedules, row.original.id);
-
-        return (
-          <div className="flex flex-wrap gap-1">
-            <ProgressBadge status={status} animatePulse={status === 'Critical'} size="sm" />
-            <ProgressBadge 
-              status={scheduleState} 
-              size="sm"
-              className={
-                scheduleState === 'Unscheduled' ? 'bg-gray-100 text-gray-800 border border-gray-600' :
-                scheduleState === 'Scheduled' ? 'bg-green-100 text-green-800 border border-green-600' :
-                scheduleState === 'In Progress' ? 'bg-blue-100 text-blue-800 border border-blue-600' :
-                'bg-green-100 text-green-800 border border-green-600'
-              }
-            />
-          </div>
-        );
-      },
-    },
+    
   ];
 
   if (isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays) {
