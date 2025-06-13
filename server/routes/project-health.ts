@@ -45,12 +45,23 @@ export function setupProjectHealthRoutes(app: Express) {
     }
   });
 
+  // Handle missing project ID
+  app.get("/api/ai/project-health", async (req, res) => {
+    console.log('❌ AI Health Route - No project ID provided');
+    return res.status(400).json({ error: "Project ID is required" });
+  });
+
   // AI-powered project health analysis
   app.get("/api/ai/project-health/:projectId", async (req, res) => {
     try {
+      console.log('🤖 AI Health Route - Raw params:', req.params);
+      console.log('🤖 AI Health Route - Project ID param:', req.params.projectId);
+      
       const projectId = parseInt(req.params.projectId);
+      console.log('🤖 AI Health Route - Parsed project ID:', projectId);
       
       if (isNaN(projectId)) {
+        console.error('❌ AI Health Route - Invalid project ID');
         return res.status(400).json({ error: "Invalid project ID" });
       }
 
@@ -71,15 +82,26 @@ export function setupProjectHealthRoutes(app: Express) {
       const billingMilestones = allMilestones?.filter((m: any) => m.projectId === projectId) || [];
       const projectSchedules = manufacturingSchedules?.filter(s => s.projectId === projectId) || [];
 
+      console.log('🤖 AI Health Route - Project found:', project.name, project.projectNumber);
+      console.log('🤖 AI Health Route - Data counts:', {
+        tasks: tasks.length,
+        billingMilestones: billingMilestones.length,
+        projectSchedules: projectSchedules.length
+      });
+
       // Try AI analysis first, fall back to rule-based analysis
       try {
+        console.log('🤖 AI Health Route - Attempting AI analysis...');
         const aiAnalysis = await analyzeProjectHealth(project, tasks, billingMilestones, projectSchedules);
+        console.log('✅ AI Health Route - AI analysis successful');
         res.json(aiAnalysis);
       } catch (aiError) {
-        console.error('AI analysis failed, using fallback:', aiError);
+        console.error('❌ AI analysis failed, using fallback:', aiError);
         
         // Return a structured fallback response that matches the expected format
+        console.log('🔄 AI Health Route - Generating fallback analysis...');
         const fallbackAnalysis = generateFallbackAnalysis(project, tasks, billingMilestones, projectSchedules);
+        console.log('✅ AI Health Route - Fallback analysis generated');
         res.json(fallbackAnalysis);
       }
     } catch (error) {

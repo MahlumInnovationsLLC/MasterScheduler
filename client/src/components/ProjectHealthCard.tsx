@@ -14,7 +14,7 @@ interface ProjectHealthCardProps {
 
 export function ProjectHealthCard({ projectId }: ProjectHealthCardProps) {
   const { data: health, isLoading, isError, refetch, error } = useQuery({
-    queryKey: ['/api/ai/project-health', projectId],
+    queryKey: [`/api/ai/project-health/${projectId}`],
     enabled: !!projectId,
     retry: 2,
     retryDelay: 1000,
