@@ -2193,11 +2193,6 @@ const SystemSettings = () => {
             </Card>
           </TabsContent>
 
-          {/* External Connections Tab */}
-          <TabsContent value="externalConnections" className="space-y-6">
-            <ExternalConnectionsManager />
-          </TabsContent>
-
           {/* System Maintenance Tab */}
           <TabsContent value="maintenance" className="space-y-6">
             <Card>
