@@ -5440,5 +5440,99 @@ Response format:
     }
   });
 
+  // External Connections API Routes
+  
+  // Get all external connections
+  app.get("/api/external-connections", simpleAuth, async (req, res) => {
+    try {
+      const connections = await storage.getExternalConnections();
+      res.json(connections);
+    } catch (error) {
+      console.error("Error fetching external connections:", error);
+      res.status(500).json({ message: "Error fetching external connections" });
+    }
+  });
+
+  // Get single external connection
+  app.get("/api/external-connections/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const connection = await storage.getExternalConnection(id);
+      
+      if (!connection) {
+        return res.status(404).json({ message: "External connection not found" });
+      }
+      
+      res.json(connection);
+    } catch (error) {
+      console.error("Error fetching external connection:", error);
+      res.status(500).json({ message: "Error fetching external connection" });
+    }
+  });
+
+  // Create external connection
+  app.post("/api/external-connections", validateRequest(insertExternalConnectionSchema), async (req, res) => {
+    try {
+      const connection = await storage.createExternalConnection(req.body);
+      res.status(201).json(connection);
+    } catch (error) {
+      console.error("Error creating external connection:", error);
+      res.status(500).json({ message: "Error creating external connection" });
+    }
+  });
+
+  // Update external connection
+  app.put("/api/external-connections/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const connection = await storage.updateExternalConnection(id, req.body);
+      
+      if (!connection) {
+        return res.status(404).json({ message: "External connection not found" });
+      }
+      
+      res.json(connection);
+    } catch (error) {
+      console.error("Error updating external connection:", error);
+      res.status(500).json({ message: "Error updating external connection" });
+    }
+  });
+
+  // Delete external connection
+  app.delete("/api/external-connections/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteExternalConnection(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting external connection:", error);
+      res.status(500).json({ message: "Error deleting external connection" });
+    }
+  });
+
+  // Test external connection
+  app.post("/api/external-connections/:id/test", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.testExternalConnection(id);
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing external connection:", error);
+      res.status(500).json({ message: "Error testing external connection" });
+    }
+  });
+
+  // Get external connection logs
+  app.get("/api/external-connections/:id/logs", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const logs = await storage.getExternalConnectionLogs(id);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching external connection logs:", error);
+      res.status(500).json({ message: "Error fetching external connection logs" });
+    }
+  });
+
   return httpServer;
 }
