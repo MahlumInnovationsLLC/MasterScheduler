@@ -471,8 +471,31 @@ const SupplyChain = () => {
     return { label: 'Pending', color: 'bg-yellow-500 text-white' };
   };
 
-  // Get active projects
-  const activeProjects = projects?.filter(p => p.status !== 'DELIVERED' && p.status !== 'CANCELLED') || [];
+  // Get active projects sorted by ship date
+  const activeProjects = React.useMemo(() => {
+    if (!projects) return [];
+    
+    return projects
+      .filter(p => p.status !== 'DELIVERED' && p.status !== 'CANCELLED')
+      .sort((a, b) => {
+        // Projects with ship dates come first, sorted by earliest date
+        const dateA = a.shipDate ? new Date(a.shipDate) : null;
+        const dateB = b.shipDate ? new Date(b.shipDate) : null;
+        
+        if (dateA && dateB) {
+          return dateA.getTime() - dateB.getTime();
+        }
+        
+        // Projects with ship dates come before those without
+        if (dateA && !dateB) return -1;
+        if (!dateA && dateB) return 1;
+        
+        // For projects without ship dates, sort by project number (most recent first)
+        const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
+        return numB - numA;
+      });
+  }, [projects]);
 
   // Get filtered project benchmarks
   const filteredProjectBenchmarks = projectBenchmarks || [];
@@ -877,7 +900,7 @@ const SupplyChain = () => {
                         {totalBenchmarks > 0 && (
                           <div className="w-full mt-2">
                             <div className="flex justify-between text-xs mb-1">
-                              <span>Supply Chain Progress</span>
+                              <span>Benchmark Progress</span>
                               <span>{completedBenchmarks}/{totalBenchmarks}</span>
                             </div>
                             <Progress value={progressPercentage} className="h-2" />
