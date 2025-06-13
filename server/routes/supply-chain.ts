@@ -31,12 +31,12 @@ router.get('/supply-chain-benchmarks/:id', async (req: Request, res: Response) =
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
-    
+
     const benchmark = await storage.getSupplyChainBenchmarkById(id);
     if (!benchmark) {
       return res.status(404).json({ error: "Benchmark not found" });
     }
-    
+
     res.json(benchmark);
   } catch (error) {
     console.error("Error fetching supply chain benchmark:", error);
@@ -54,14 +54,14 @@ router.post('/supply-chain-benchmarks', async (req: Request, res: Response) => {
         details: validationResult.error.format() 
       });
     }
-    
+
     const benchmarkData = validationResult.data;
     const newBenchmark = await storage.createSupplyChainBenchmark(benchmarkData);
-    
+
     // If this is a default benchmark, automatically add it to all active projects
     if (benchmarkData.isDefault) {
       const activeProjects = await storage.getActiveProjects();
-      
+
       for (const project of activeProjects) {
         await storage.createProjectSupplyChainBenchmark({
           projectId: project.id,
@@ -74,7 +74,7 @@ router.post('/supply-chain-benchmarks', async (req: Request, res: Response) => {
         });
       }
     }
-    
+
     res.status(201).json(newBenchmark);
   } catch (error) {
     console.error("Error creating supply chain benchmark:", error);
@@ -89,12 +89,12 @@ router.patch('/supply-chain-benchmarks/:id', async (req: Request, res: Response)
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
-    
+
     const benchmark = await storage.getSupplyChainBenchmarkById(id);
     if (!benchmark) {
       return res.status(404).json({ error: "Benchmark not found" });
     }
-    
+
     // Partial update schema
     const updateSchema = insertSupplyChainBenchmarkSchema.partial();
     const validationResult = updateSchema.safeParse(req.body);
@@ -104,10 +104,10 @@ router.patch('/supply-chain-benchmarks/:id', async (req: Request, res: Response)
         details: validationResult.error.format() 
       });
     }
-    
+
     const updateData = validationResult.data;
     const updatedBenchmark = await storage.updateSupplyChainBenchmark(id, updateData);
-    
+
     res.json(updatedBenchmark);
   } catch (error) {
     console.error("Error updating supply chain benchmark:", error);
@@ -122,15 +122,15 @@ router.delete('/supply-chain-benchmarks/:id', async (req: Request, res: Response
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
-    
+
     const benchmark = await storage.getSupplyChainBenchmarkById(id);
     if (!benchmark) {
       return res.status(404).json({ error: "Benchmark not found" });
     }
-    
+
     // Delete the benchmark and its associated project benchmarks
     await storage.deleteSupplyChainBenchmarkWithRelated(id);
-    
+
     res.json({ success: true, message: "Benchmark deleted successfully" });
   } catch (error) {
     console.error("Error deleting supply chain benchmark:", error);
@@ -143,30 +143,30 @@ router.get('/project-supply-chain-benchmarks', async (req: Request, res: Respons
   try {
     // Handle optional filtering by project ID
     const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
-    
+
     // Handle including project data
     const includeProject = req.query.include === 'project';
-    
+
     let benchmarks = await storage.getProjectSupplyChainBenchmarks();
-    
+
     // Filter by project if specified
     if (projectId && !isNaN(projectId)) {
       benchmarks = benchmarks.filter(benchmark => benchmark.projectId === projectId);
     }
-    
+
     // Include project data if requested
     if (includeProject) {
       const projectIds = benchmarks.map(benchmark => benchmark.projectId);
       const projectsData = await storage.getProjectsByIds(projectIds);
-      
+
       const projectsMap = new Map(projectsData.map(project => [project.id, project]));
-      
+
       benchmarks = benchmarks.map(benchmark => ({
         ...benchmark,
         project: projectsMap.get(benchmark.projectId)
       }));
     }
-    
+
     res.json(benchmarks);
   } catch (error) {
     console.error("Error fetching project supply chain benchmarks:", error);
@@ -181,16 +181,16 @@ router.get('/project-supply-chain-benchmarks/:id', async (req: Request, res: Res
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
-    
+
     const benchmark = await storage.getProjectSupplyChainBenchmarkById(id);
     if (!benchmark) {
       return res.status(404).json({ error: "Project benchmark not found" });
     }
-    
+
     // Handle including project data
     if (req.query.include === 'project') {
       const project = await storage.getProjectById(benchmark.projectId);
-      
+
       if (project) {
         return res.json({
           ...benchmark,
@@ -198,7 +198,7 @@ router.get('/project-supply-chain-benchmarks/:id', async (req: Request, res: Res
         });
       }
     }
-    
+
     res.json(benchmark);
   } catch (error) {
     console.error("Error fetching project supply chain benchmark:", error);
@@ -216,16 +216,16 @@ router.post('/project-supply-chain-benchmarks', async (req: Request, res: Respon
         details: validationResult.error.format() 
       });
     }
-    
+
     const benchmarkData = validationResult.data;
-    
+
     // Verify the project exists
     const project = await storage.getProjectById(benchmarkData.projectId);
-    
+
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
-    
+
     const newBenchmark = await storage.createProjectSupplyChainBenchmark(benchmarkData);
     res.status(201).json(newBenchmark);
   } catch (error) {
@@ -234,53 +234,48 @@ router.post('/project-supply-chain-benchmarks', async (req: Request, res: Respon
   }
 });
 
-// UPDATE a project supply chain benchmark
-router.patch('/project-supply-chain-benchmarks/:id', async (req: Request, res: Response) => {
+// PATCH /api/project-supply-chain-benchmarks/:id
+router.patch('/project-supply-chain-benchmarks/:id', async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid ID format" });
+    const { id } = req.params;
+    const updateData = req.body;
+
+    console.log("Update benchmark request:", updateData);
+
+    // Convert string dates to Date objects for Drizzle
+    const processedData = { ...updateData };
+    if (processedData.completedDate) {
+      if (typeof processedData.completedDate === 'string') {
+        processedData.completedDate = new Date(processedData.completedDate);
+      }
     }
-    
-    const benchmark = await storage.getProjectSupplyChainBenchmarkById(id);
-    if (!benchmark) {
-      return res.status(404).json({ error: "Project benchmark not found" });
+    if (processedData.targetDate) {
+      if (typeof processedData.targetDate === 'string') {
+        processedData.targetDate = new Date(processedData.targetDate);
+      }
     }
-    
-    // Log the request data for debugging
-    console.log("Update benchmark request:", JSON.stringify(req.body, null, 2));
-    
-    // Extract data directly without schema validation
-    // since we're having issues with the partial schema
-    const updateData: any = {
-      isCompleted: req.body.isCompleted
-    };
-    
-    // Only set these fields if they are present
-    if (req.body.completedDate !== undefined) {
-      updateData.completedDate = req.body.completedDate;
+
+    console.log("Processed data for DB:", processedData);
+
+    const updatedBenchmark = await db
+      .update(projectSupplyChainBenchmarks)
+      .set(processedData)
+      .where(eq(projectSupplyChainBenchmarks.id, parseInt(id)))
+      .returning();
+
+    console.log("Updated benchmark:", updatedBenchmark);
+
+    if (!updatedBenchmark || updatedBenchmark.length === 0) {
+      return res.status(404).json({ error: "Benchmark not found" });
     }
-    
-    if (req.body.completedBy !== undefined) {
-      updateData.completedBy = req.body.completedBy;
-    }
-    
-    // Other fields that might be updated
-    if (req.body.name) updateData.name = req.body.name;
-    if (req.body.description !== undefined) updateData.description = req.body.description;
-    if (req.body.targetDate !== undefined) updateData.targetDate = req.body.targetDate;
-    if (req.body.notes !== undefined) updateData.notes = req.body.notes;
-    
-    // Update the benchmark
-    const updatedBenchmark = await storage.updateProjectSupplyChainBenchmark(id, updateData);
-    
-    // Log the updated benchmark for verification
-    console.log("Updated benchmark:", JSON.stringify(updatedBenchmark, null, 2));
-    
-    res.json(updatedBenchmark);
+
+    res.json({
+      success: true,
+      benchmark: updatedBenchmark[0]
+    });
   } catch (error) {
     console.error("Error updating project supply chain benchmark:", error);
-    res.status(500).json({ error: "Failed to update project supply chain benchmark" });
+    res.status(500).json({ error: "Failed to update benchmark completion status" });
   }
 });
 
@@ -291,14 +286,14 @@ router.delete('/project-supply-chain-benchmarks/:id', async (req: Request, res: 
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
-    
+
     const benchmark = await storage.getProjectSupplyChainBenchmarkById(id);
     if (!benchmark) {
       return res.status(404).json({ error: "Project benchmark not found" });
     }
-    
+
     await storage.deleteProjectSupplyChainBenchmark(id);
-    
+
     res.json({ success: true, message: "Project benchmark deleted successfully" });
   } catch (error) {
     console.error("Error deleting project supply chain benchmark:", error);
@@ -313,14 +308,14 @@ router.post('/project-supply-chain-benchmarks/:id/toggle-completion', async (req
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
-    
+
     const benchmark = await storage.getProjectSupplyChainBenchmarkById(id);
     if (!benchmark) {
       return res.status(404).json({ error: "Project benchmark not found" });
     }
-    
+
     const { isCompleted, completedBy } = req.body;
-    
+
     // Directly update the benchmark using known columns
     if (isCompleted) {
       // Mark as completed
@@ -343,10 +338,10 @@ router.post('/project-supply-chain-benchmarks/:id/toggle-completion', async (req
         })
         .where(eq(projectSupplyChainBenchmarks.id, id));
     }
-    
+
     // Get the updated benchmark
     const updatedBenchmark = await storage.getProjectSupplyChainBenchmarkById(id);
-    
+
     res.json({
       success: true,
       message: isCompleted ? "Benchmark marked as completed" : "Benchmark marked as incomplete",
@@ -365,17 +360,17 @@ router.post('/project-supply-chain-benchmarks/add-defaults/:projectId', async (r
     if (isNaN(projectId)) {
       return res.status(400).json({ error: "Invalid project ID format" });
     }
-    
+
     // Verify the project exists
     const project = await storage.getProjectById(projectId);
-    
+
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
-    
+
     // Get all default benchmarks
     const defaultBenchmarks = await storage.getDefaultSupplyChainBenchmarks();
-    
+
     // Add each default benchmark to the project
     const createdBenchmarks = [];
     for (const benchmark of defaultBenchmarks) {
@@ -388,10 +383,10 @@ router.post('/project-supply-chain-benchmarks/add-defaults/:projectId', async (r
         targetPhase: benchmark.targetPhase,
         isCompleted: false
       });
-      
+
       createdBenchmarks.push(projectBenchmark);
     }
-    
+
     res.status(201).json({
       success: true,
       message: `${createdBenchmarks.length} default benchmarks added to project`,
@@ -408,10 +403,10 @@ router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
   try {
     // Get all active projects
     const projects = await storage.getActiveProjects();
-    
+
     // Get all project benchmarks
     const allProjectBenchmarks = await storage.getProjectSupplyChainBenchmarks();
-    
+
     // Create a map of project benchmarks by project ID
     const benchmarksByProject = new Map<number, any[]>();
     allProjectBenchmarks.forEach(benchmark => {
@@ -525,7 +520,7 @@ router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
         ${projects.map((project, index) => {
           const projectBenchmarks = benchmarksByProject.get(project.id) || [];
           const completedCount = projectBenchmarks.filter(b => b.isCompleted).length;
-          
+
           return `
             <div class="project ${index > 0 && index % 3 === 0 ? 'page-break' : ''}">
                 <div class="project-header">
@@ -533,7 +528,7 @@ router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
                     <p class="project-number">Project Number: ${project.projectNumber}</p>
                     <p class="project-number">Status: ${project.status} | Benchmarks: ${completedCount}/${projectBenchmarks.length} completed</p>
                 </div>
-                
+
                 ${projectBenchmarks.length > 0 ? `
                     <table class="benchmarks-table">
                         <thead>
@@ -554,10 +549,10 @@ router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
                               const completedDate = benchmark.completedDate 
                                 ? new Date(benchmark.completedDate).toLocaleDateString()
                                 : '';
-                              
+
                               let statusClass = 'status-pending';
                               let statusText = 'Pending';
-                              
+
                               if (benchmark.isCompleted) {
                                 statusClass = 'status-completed';
                                 statusText = 'Completed';
@@ -565,7 +560,7 @@ router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
                                 statusClass = 'status-overdue';
                                 statusText = 'Overdue';
                               }
-                              
+
                               return `
                                 <tr>
                                     <td>${benchmark.name}</td>
@@ -594,13 +589,13 @@ router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
     // Set response headers for PDF
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="benchmarks-report-${new Date().toISOString().split('T')[0]}.pdf"`);
-    
+
     // For now, we'll send the HTML content. In a production environment, 
     // you would use a library like puppeteer or similar to convert HTML to PDF
     // Since we're in a simple environment, we'll return HTML that can be printed as PDF
     res.setHeader('Content-Type', 'text/html');
     res.send(htmlContent);
-    
+
   } catch (error) {
     console.error("Error generating PDF report:", error);
     res.status(500).json({ error: "Failed to generate PDF report" });
