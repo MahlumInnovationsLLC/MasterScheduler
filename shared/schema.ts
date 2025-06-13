@@ -2264,6 +2264,7 @@ export const insertExternalConnectionLogSchema = createInsertSchema(externalConn
 export type ExternalConnection = typeof externalConnections.$inferSelect;
 export type InsertExternalConnection = z.infer<typeof insertExternalConnectionSchema>;
 export type ExternalConnectionLog = typeof externalConnectionLogs.$inferSelect;
+export type InsertExternalConnectionLog = z.infer<typeof insertExternalConnectionLogSchema>;
 
 // Quality Assurance Types
 export type NonConformanceReport = typeof nonConformanceReports.$inferSelect;

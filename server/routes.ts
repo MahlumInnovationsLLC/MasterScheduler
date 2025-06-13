@@ -30,7 +30,8 @@ import {
   insertMeetingTemplateSchema,
   insertMeetingEmailNotificationSchema,
   insertNcrSchema,
-  insertQualityDocumentSchema
+  insertQualityDocumentSchema,
+  insertExternalConnectionSchema
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";

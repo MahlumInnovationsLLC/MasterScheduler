@@ -4008,6 +4008,186 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // External Connections methods
+  async getExternalConnections(): Promise<ExternalConnection[]> {
+    return await safeQuery<ExternalConnection>(() =>
+      db.select().from(externalConnections)
+        .orderBy(desc(externalConnections.createdAt))
+    );
+  }
+
+  async getExternalConnection(id: number): Promise<ExternalConnection | undefined> {
+    return await safeSingleQuery<ExternalConnection>(() =>
+      db.select().from(externalConnections)
+        .where(eq(externalConnections.id, id))
+        .limit(1)
+    );
+  }
+
+  async createExternalConnection(connection: InsertExternalConnection): Promise<ExternalConnection> {
+    try {
+      const [result] = await db.insert(externalConnections)
+        .values(connection)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating external connection:", error);
+      throw error;
+    }
+  }
+
+  async updateExternalConnection(id: number, connection: Partial<InsertExternalConnection>): Promise<ExternalConnection | undefined> {
+    try {
+      const [result] = await db.update(externalConnections)
+        .set({ ...connection, updatedAt: new Date() })
+        .where(eq(externalConnections.id, id))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error updating external connection:", error);
+      return undefined;
+    }
+  }
+
+  async deleteExternalConnection(id: number): Promise<boolean> {
+    try {
+      // Delete related logs first
+      await db.delete(externalConnectionLogs)
+        .where(eq(externalConnectionLogs.connectionId, id));
+      
+      // Delete the connection
+      await db.delete(externalConnections)
+        .where(eq(externalConnections.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting external connection:", error);
+      return false;
+    }
+  }
+
+  async testExternalConnection(id: number): Promise<{ success: boolean; error?: string; responseTime?: number }> {
+    try {
+      const connection = await this.getExternalConnection(id);
+      if (!connection) {
+        return { success: false, error: 'Connection not found' };
+      }
+
+      const startTime = Date.now();
+      
+      // Prepare headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...connection.headers
+      };
+
+      // Add authentication headers
+      if (connection.authentication.type === 'basic' && connection.authentication.username && connection.authentication.password) {
+        const encoded = Buffer.from(`${connection.authentication.username}:${connection.authentication.password}`).toString('base64');
+        headers['Authorization'] = `Basic ${encoded}`;
+      } else if (connection.authentication.type === 'bearer' && connection.authentication.token) {
+        headers['Authorization'] = `Bearer ${connection.authentication.token}`;
+      } else if (connection.authentication.type === 'apikey' && connection.authentication.apiKey && connection.authentication.apiKeyHeader) {
+        headers[connection.authentication.apiKeyHeader] = connection.authentication.apiKey;
+      }
+
+      // Make the request
+      const response = await fetch(connection.url, {
+        method: connection.method,
+        headers,
+        body: connection.method !== 'GET' ? connection.requestBody : undefined,
+      });
+
+      const responseTime = Date.now() - startTime;
+      const success = response.ok;
+
+      // Update connection test timestamps
+      const updateData: any = {
+        lastTestedAt: new Date(),
+        lastErrorMessage: null
+      };
+
+      if (success) {
+        updateData.lastSuccessAt = new Date();
+      } else {
+        updateData.lastErrorAt = new Date();
+        updateData.lastErrorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+
+      await this.updateExternalConnection(id, updateData);
+
+      // Log the test
+      await this.logExternalConnectionTest({
+        connectionId: id,
+        requestData: {
+          method: connection.method,
+          url: connection.url,
+          headers: Object.keys(headers)
+        },
+        responseData: {
+          status: response.status,
+          statusText: response.statusText
+        },
+        statusCode: response.status,
+        responseTime,
+        success,
+        errorMessage: success ? null : `HTTP ${response.status}: ${response.statusText}`
+      });
+
+      return {
+        success,
+        error: success ? undefined : `HTTP ${response.status}: ${response.statusText}`,
+        responseTime
+      };
+    } catch (error) {
+      console.error("Error testing external connection:", error);
+      
+      // Update error timestamp
+      await this.updateExternalConnection(id, {
+        lastTestedAt: new Date(),
+        lastErrorAt: new Date(),
+        lastErrorMessage: (error as Error).message
+      });
+
+      // Log the failed test
+      await this.logExternalConnectionTest({
+        connectionId: id,
+        requestData: { error: 'Test failed' },
+        responseData: { error: (error as Error).message },
+        statusCode: 0,
+        responseTime: 0,
+        success: false,
+        errorMessage: (error as Error).message
+      });
+
+      return {
+        success: false,
+        error: (error as Error).message
+      };
+    }
+  }
+
+  async logExternalConnectionTest(log: InsertExternalConnectionLog): Promise<ExternalConnectionLog> {
+    try {
+      const [result] = await db.insert(externalConnectionLogs)
+        .values(log)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error logging external connection test:", error);
+      throw error;
+    }
+  }
+
+  async getExternalConnectionLogs(connectionId: number): Promise<ExternalConnectionLog[]> {
+    return await safeQuery<ExternalConnectionLog>(() =>
+      db.select().from(externalConnectionLogs)
+        .where(eq(externalConnectionLogs.connectionId, connectionId))
+        .orderBy(desc(externalConnectionLogs.createdAt))
+        .limit(50)
+    );
+  }
+
 }
 
 export const storage = new DatabaseStorage();
