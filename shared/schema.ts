@@ -231,14 +231,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     relationName: "userPreferences",
   }),
   auditLogs: many(userAuditLogs, { 
-    relationName: "userAuditLogs",
-    fields: [users.id],
-    references: [userAuditLogs.userId] 
+    relationName: "userAuditLogs"
   }),
   actionsPerformed: many(userAuditLogs, { 
-    relationName: "actionsPerformed", 
-    fields: [users.id],
-    references: [userAuditLogs.performedBy] 
+    relationName: "actionsPerformed"
   }),
   projects: many(projects),
   salesDeals: many(salesDeals),
@@ -2151,6 +2147,8 @@ export const insertNonConformanceReportSchema = createInsertSchema(nonConformanc
   createdAt: true,
   updatedAt: true,
 });
+
+export const insertNcrSchema = insertNonConformanceReportSchema;
 
 export const insertCorrectiveActionSchema = createInsertSchema(correctiveActions).omit({
   id: true,

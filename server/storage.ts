@@ -393,6 +393,15 @@ export interface IStorage {
   getMeetingsByProject(projectId: number): Promise<Meeting[]>;
   getMeetingTasksByProjectTask(projectTaskId: number): Promise<MeetingTask[]>;
   updateMeeting(id: number, meeting: Partial<InsertMeeting>): Promise<Meeting | undefined>;
+
+  // Quality Assurance methods
+  getNcrs(): Promise<NonConformanceReport[]>;
+  getNcr(id: number): Promise<NonConformanceReport | undefined>;
+  createNcr(ncr: InsertNonConformanceReport): Promise<NonConformanceReport>;
+  updateNcr(id: number, ncr: Partial<InsertNonConformanceReport>): Promise<NonConformanceReport | undefined>;
+  deleteNcr(id: number): Promise<boolean>;
+  getQualityDocuments(): Promise<QualityDocument[]>;
+  createQualityDocument(document: InsertQualityDocument): Promise<QualityDocument>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3765,6 +3774,98 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error removing label from project:", error);
       return false;
+    }
+  }
+
+  // Quality Assurance methods
+  async getNcrs(): Promise<NonConformanceReport[]> {
+    try {
+      return await db.select().from(nonConformanceReports).orderBy(desc(nonConformanceReports.createdAt));
+    } catch (error) {
+      console.error("Error fetching NCRs:", error);
+      return [];
+    }
+  }
+
+  async getNcr(id: number): Promise<NonConformanceReport | undefined> {
+    try {
+      const results = await db.select().from(nonConformanceReports).where(eq(nonConformanceReports.id, id)).limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching NCR:", error);
+      return undefined;
+    }
+  }
+
+  async createNcr(ncr: InsertNonConformanceReport): Promise<NonConformanceReport> {
+    try {
+      // Generate NCR number
+      const count = await db.select({ count: count() }).from(nonConformanceReports);
+      const ncrNumber = `NCR-${String(count[0].count + 1).padStart(6, '0')}`;
+      
+      const [result] = await db.insert(nonConformanceReports)
+        .values({
+          ...ncr,
+          ncrNumber,
+          status: 'open'
+        })
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating NCR:", error);
+      throw error;
+    }
+  }
+
+  async updateNcr(id: number, ncr: Partial<InsertNonConformanceReport>): Promise<NonConformanceReport | undefined> {
+    try {
+      const [result] = await db.update(nonConformanceReports)
+        .set({ ...ncr, updatedAt: new Date() })
+        .where(eq(nonConformanceReports.id, id))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error updating NCR:", error);
+      return undefined;
+    }
+  }
+
+  async deleteNcr(id: number): Promise<boolean> {
+    try {
+      await db.delete(nonConformanceReports).where(eq(nonConformanceReports.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting NCR:", error);
+      return false;
+    }
+  }
+
+  async getQualityDocuments(): Promise<QualityDocument[]> {
+    try {
+      return await db.select().from(qualityDocuments).orderBy(desc(qualityDocuments.createdAt));
+    } catch (error) {
+      console.error("Error fetching quality documents:", error);
+      return [];
+    }
+  }
+
+  async createQualityDocument(document: InsertQualityDocument): Promise<QualityDocument> {
+    try {
+      // Generate document number
+      const count = await db.select({ count: count() }).from(qualityDocuments);
+      const documentNumber = `QD-${String(count[0].count + 1).padStart(6, '0')}`;
+      
+      const [result] = await db.insert(qualityDocuments)
+        .values({
+          ...document,
+          documentNumber,
+          status: 'draft'
+        })
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating quality document:", error);
+      throw error;
     }
   }
 

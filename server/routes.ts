@@ -28,7 +28,9 @@ import {
   insertMeetingNoteSchema,
   insertMeetingTaskSchema,
   insertMeetingTemplateSchema,
-  insertMeetingEmailNotificationSchema
+  insertMeetingEmailNotificationSchema,
+  insertNcrSchema,
+  insertQualityDocumentSchema
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
@@ -5254,5 +5256,108 @@ Response format:
   setupProjectHealthRoutes(app);
 
   const httpServer = createServer(app);
+  // Quality Assurance API routes
+  
+  // Get all NCRs
+  app.get("/api/ncrs", simpleAuth, async (req, res) => {
+    try {
+      const ncrs = await storage.getNcrs();
+      res.json(ncrs);
+    } catch (error) {
+      console.error("Error fetching NCRs:", error);
+      res.status(500).json({ message: "Error fetching NCRs" });
+    }
+  });
+
+  // Get single NCR
+  app.get("/api/ncrs/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const ncr = await storage.getNcr(id);
+      
+      if (!ncr) {
+        return res.status(404).json({ message: "NCR not found" });
+      }
+      
+      res.json(ncr);
+    } catch (error) {
+      console.error("Error fetching NCR:", error);
+      res.status(500).json({ message: "Error fetching NCR" });
+    }
+  });
+
+  // Create NCR
+  app.post("/api/ncrs", validateRequest(insertNcrSchema), async (req, res) => {
+    try {
+      const ncrData = {
+        ...req.body,
+        reportedByUserId: req.user?.id || "",
+        dateIdentified: new Date(req.body.dateIdentified)
+      };
+      
+      const ncr = await storage.createNcr(ncrData);
+      res.status(201).json(ncr);
+    } catch (error) {
+      console.error("Error creating NCR:", error);
+      res.status(500).json({ message: "Error creating NCR" });
+    }
+  });
+
+  // Update NCR
+  app.put("/api/ncrs/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const ncr = await storage.updateNcr(id, req.body);
+      
+      if (!ncr) {
+        return res.status(404).json({ message: "NCR not found" });
+      }
+      
+      res.json(ncr);
+    } catch (error) {
+      console.error("Error updating NCR:", error);
+      res.status(500).json({ message: "Error updating NCR" });
+    }
+  });
+
+  // Delete NCR
+  app.delete("/api/ncrs/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteNcr(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting NCR:", error);
+      res.status(500).json({ message: "Error deleting NCR" });
+    }
+  });
+
+  // Get all quality documents
+  app.get("/api/quality-documents", simpleAuth, async (req, res) => {
+    try {
+      const documents = await storage.getQualityDocuments();
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching quality documents:", error);
+      res.status(500).json({ message: "Error fetching quality documents" });
+    }
+  });
+
+  // Create quality document
+  app.post("/api/quality-documents", validateRequest(insertQualityDocumentSchema), async (req, res) => {
+    try {
+      const documentData = {
+        ...req.body,
+        uploadedByUserId: req.user?.id || ""
+      };
+      
+      const document = await storage.createQualityDocument(documentData);
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Error creating quality document:", error);
+      res.status(500).json({ message: "Error creating quality document" });
+    }
+  });
+
   return httpServer;
 }
