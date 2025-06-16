@@ -1197,7 +1197,7 @@ export default function Meetings() {
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {nextTierIIIProjects.map((project: Project) => (
+                  {tierIIIProjects.map((project: Project) => (
                     <SelectItem key={project.id} value={project.id.toString()}>
                       {project.name} ({project.projectNumber})
                     </SelectItem>
