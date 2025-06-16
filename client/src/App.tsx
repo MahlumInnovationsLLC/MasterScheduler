@@ -33,6 +33,7 @@ import Meetings from "@/pages/Meetings";
 import MeetingView from "@/pages/MeetingView";
 import QualityAssurance from "@/pages/QualityAssurance";
 import MetricsManagement from "@/pages/MetricsManagement";
+import Priorities from "@/pages/Priorities";
 import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -180,6 +181,7 @@ function MainContent() {
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/meetings" component={Meetings} />
             <ProtectedRoute path="/meetings/:id" component={MeetingView} />
+            <ProtectedRoute path="/priorities" component={Priorities} />
             <ViewerRestrictedRoute path="/quality-assurance" component={QualityAssurance} />
             <ProtectedRoute path="/metrics" component={MetricsManagement} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
@@ -223,6 +225,7 @@ function MainContent() {
             <ViewerRestrictedRoute path="/bay-scheduling" component={BaySchedulingPage} redirectPath="/" />
             <ProtectedRoute path="/meetings" component={Meetings} />
             <ProtectedRoute path="/meetings/:id" component={MeetingView} />
+            <ProtectedRoute path="/priorities" component={Priorities} />
             <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ViewerRestrictedRoute path="/quality-assurance" component={QualityAssurance} />

@@ -1129,7 +1129,7 @@ const SystemSettings = () => {
         <TabsList className="grid grid-cols-9 w-full">
           <TabsTrigger value="accessControl">Access Control</TabsTrigger>
           <TabsTrigger value="roleControls">Role Controls</TabsTrigger>
-          <TabsTrigger value="moduleVisibility">Module Visibility</TabsTrigger>
+          <TabsTrigger value="priorityVisibility">Priority Visibility</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="projectMetrics">Project Metrics</TabsTrigger>
           <TabsTrigger value="ptnMetrics">PTN Metrics</TabsTrigger>
