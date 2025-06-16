@@ -40,6 +40,7 @@ import { hashPassword } from "./auth";
 import { sendEmail, generatePasswordResetEmail } from "./email";
 import { randomBytes } from "crypto";
 import { trackChanges, createForensicsRecord, getForensicsContext } from "./forensics";
+import { triggerMetricsSync, getSchedulerStatus, updateScheduler } from "./routes/metricsSync";
 
 // Helper functions for forensics tracking
 function normalizeValueForComparison(value: any): string {
