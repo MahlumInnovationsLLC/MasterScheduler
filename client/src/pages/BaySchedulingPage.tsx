@@ -653,6 +653,42 @@ const BaySchedulingPage = () => {
     return uniqueProjectIds.size;
   }, [manufacturingSchedules]);
   
+  // Calculate unassigned projects count (excluding delivered projects)
+  const unassignedProjectsCount = React.useMemo(() => {
+    if (!projects.length) return 0;
+    
+    // Filter out delivered projects and Field/FSW category projects
+    const eligibleProjects = projects.filter(project => {
+      // Exclude delivered projects
+      if (project.status === 'delivered') {
+        return false;
+      }
+      
+      // Exclude Field or FSW category projects
+      if (project.team === 'Field' || project.team === 'FSW') {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Get scheduled project IDs
+    const scheduledProjectIds = new Set(manufacturingSchedules.map(s => s.projectId));
+    
+    // Count eligible projects that are not scheduled
+    const unassignedCount = eligibleProjects.filter(project => 
+      !scheduledProjectIds.has(project.id)
+    ).length;
+    
+    console.log(`🔢 Manufacturing Capacity calculation:
+      - Total projects: ${projects.length}
+      - Eligible projects (non-delivered, non-Field/FSW): ${eligibleProjects.length}
+      - Scheduled projects: ${scheduledProjectsCount}
+      - Unassigned eligible projects: ${unassignedCount}`);
+    
+    return unassignedCount;
+  }, [projects, manufacturingSchedules, scheduledProjectsCount]);
+  
   // Count visible bay rows in the schedule
   const visibleBayRowsCount = React.useMemo(() => {
     if (!manufacturingBays.length) return 0;
@@ -1370,7 +1406,7 @@ const BaySchedulingPage = () => {
               { label: "Total Hours", value: totalCapacityHours },
               { label: "Total Bays", value: visibleBayRowsCount },
               { label: "Active Projects", value: scheduledProjectsCount },
-              { label: "Unassigned", value: projects.length - scheduledProjectsCount },
+              { label: "Unassigned", value: unassignedProjectsCount },
             ]}
           />
         </div>
