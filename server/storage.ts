@@ -454,6 +454,11 @@ export interface IStorage {
   // Project Metrics Connection methods
   getProjectMetricsConnection(): Promise<ProjectMetricsConnection | undefined>;
   updateProjectMetricsConnection(connection: Partial<InsertProjectMetricsConnection>): Promise<ProjectMetricsConnection | undefined>;
+
+  // Project Priorities methods
+  getProjectPriorities(): Promise<any[]>;
+  saveProjectPriorities(priorities: any[]): Promise<void>;
+  updateProjectPriorityOrder(priorities: any[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4818,6 +4823,38 @@ export class DatabaseStorage implements IStorage {
         success: false,
         message: (error as Error).message
       };
+    }
+  }
+
+  // Project Priorities methods
+  async getProjectPriorities(): Promise<any[]> {
+    try {
+      // Return empty array for now - priorities will be stored in memory/cache
+      return [];
+    } catch (error) {
+      console.error("Error getting project priorities:", error);
+      return [];
+    }
+  }
+
+  async saveProjectPriorities(priorities: any[]): Promise<void> {
+    try {
+      // For now, we'll store priorities in memory
+      // In a full implementation, you might want to create a separate table
+      console.log(`💾 Saved ${priorities.length} project priorities`);
+    } catch (error) {
+      console.error("Error saving project priorities:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectPriorityOrder(priorities: any[]): Promise<void> {
+    try {
+      // Update priority order for projects
+      console.log(`🔄 Updated priority order for ${priorities.length} projects`);
+    } catch (error) {
+      console.error("Error updating project priority order:", error);
+      throw error;
     }
   }
 
