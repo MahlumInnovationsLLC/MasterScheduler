@@ -157,6 +157,10 @@ app.use((req, res, next) => {
   const { emailSchedulerService } = await import('./services/emailScheduler');
   emailSchedulerService.start();
 
+  // Initialize metrics synchronization scheduler
+  const { schedulerService } = await import('./services/scheduler');
+  schedulerService.init();
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

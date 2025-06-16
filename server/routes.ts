@@ -5549,5 +5549,10 @@ Response format:
     }
   });
 
+  // Metrics Synchronization Routes
+  app.post("/api/metrics/sync", triggerMetricsSync);
+  app.get("/api/metrics/scheduler/status", getSchedulerStatus);
+  app.put("/api/metrics/scheduler", updateScheduler);
+
   return httpServer;
 }
