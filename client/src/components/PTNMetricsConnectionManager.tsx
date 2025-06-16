@@ -57,7 +57,7 @@ const PTNMetricsConnectionManager = () => {
 
   // Fetch PTN connection
   const { data: connection, isLoading, error } = useQuery<PTNConnection>({
-    queryKey: ['/api/settings/ptn-connection'],
+    queryKey: ['/api/ptn-connection'],
     retry: false
   });
 
@@ -72,12 +72,12 @@ const PTNMetricsConnectionManager = () => {
   const saveConnectionMutation = useMutation({
     mutationFn: async (data: Partial<PTNConnection>) => {
       const method = connection ? 'PUT' : 'POST';
-      const url = connection ? `/api/settings/ptn-connection/${connection.id}` : '/api/settings/ptn-connection';
+      const url = connection ? `/api/ptn-connection/${connection.id}` : '/api/ptn-connection';
       const response = await apiRequest(method, url, data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/settings/ptn-connection'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ptn-connection'] });
       toast({
         title: "Connection Saved",
         description: "PTN connection settings have been saved successfully.",
@@ -95,16 +95,17 @@ const PTNMetricsConnectionManager = () => {
   // Test connection
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/settings/ptn-connection/test');
+      if (!connection?.id) throw new Error('No connection to test');
+      const response = await apiRequest('POST', `/api/ptn-connection/${connection.id}/test`);
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/settings/ptn-connection'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ptn-connection'] });
       toast({
         title: "Connection Test Complete",
         description: data.success ? 
           `Connection successful! Response time: ${data.responseTime}ms` : 
-          `Test failed: ${data.error}`,
+          `Test failed: ${data.message}`,
         variant: data.success ? "default" : "destructive"
       });
     },
@@ -120,11 +121,12 @@ const PTNMetricsConnectionManager = () => {
   // Manual sync
   const manualSyncMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/settings/ptn-connection/sync');
+      if (!connection?.id) throw new Error('No connection to sync');
+      const response = await apiRequest('POST', `/api/ptn-connection/${connection.id}/sync`);
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/settings/ptn-connection'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ptn-connection'] });
       toast({
         title: "Manual Sync Complete",
         description: `Successfully synced ${data.recordsUpdated || 0} production metrics.`,
