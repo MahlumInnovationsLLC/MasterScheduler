@@ -6066,5 +6066,101 @@ Response format:
     }
   });
 
+  // Project Priorities API routes
+  app.get("/api/project-priorities", simpleAuth, async (req, res) => {
+    try {
+      const priorities = await storage.getProjectPriorities();
+      res.json(priorities);
+    } catch (error) {
+      console.error("Error fetching project priorities:", error);
+      res.status(500).json({ message: "Error fetching project priorities" });
+    }
+  });
+
+  // Import top 50 projects by earliest ship date with billing milestones
+  app.post("/api/priorities/import-top-projects", simpleAuth, async (req, res) => {
+    try {
+      console.log("🎯 Importing top 50 projects by ship date...");
+      
+      // Get all active projects with ship dates
+      const allProjects = await storage.getAllProjects();
+      const billingMilestones = await storage.getAllBillingMilestones();
+      
+      // Filter active projects with ship dates and sort by earliest ship date
+      const projectsWithShipDates = allProjects
+        .filter(project => 
+          project.shipDate && 
+          project.status !== 'delivered' && 
+          project.status !== 'completed' &&
+          project.status !== 'archived'
+        )
+        .sort((a, b) => {
+          const dateA = new Date(a.shipDate!);
+          const dateB = new Date(b.shipDate!);
+          return dateA.getTime() - dateB.getTime();
+        })
+        .slice(0, 50); // Top 50 projects
+
+      console.log(`📊 Found ${projectsWithShipDates.length} projects with ship dates`);
+
+      // Transform projects into priority format with billing milestones
+      const projectPriorities = projectsWithShipDates.map((project, index) => {
+        const projectMilestones = billingMilestones.filter(m => m.projectId === project.id);
+        const totalValue = projectMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
+        
+        const shipDate = new Date(project.shipDate!);
+        const today = new Date();
+        const daysUntilShip = Math.ceil((shipDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        return {
+          id: project.id,
+          projectId: project.id,
+          priorityOrder: index + 1,
+          projectNumber: project.projectNumber,
+          projectName: project.name,
+          shipDate: project.shipDate,
+          status: project.status,
+          totalValue,
+          daysUntilShip,
+          billingMilestones: projectMilestones.map(milestone => ({
+            id: milestone.id,
+            projectId: milestone.projectId,
+            name: milestone.name,
+            percentage: milestone.percentage || 0,
+            amount: milestone.amount || 0,
+            dueDate: milestone.dueDate,
+            isPaid: milestone.isPaid || false,
+            description: milestone.description
+          }))
+        };
+      });
+
+      console.log(`✅ Created ${projectPriorities.length} project priorities`);
+      
+      // Store the priority rankings
+      await storage.saveProjectPriorities(projectPriorities);
+
+      res.json(projectPriorities);
+    } catch (error) {
+      console.error("Error importing top projects:", error);
+      res.status(500).json({ message: "Error importing top projects" });
+    }
+  });
+
+  // Update priority order after drag and drop
+  app.post("/api/priorities/update-order", simpleAuth, async (req, res) => {
+    try {
+      const { priorities } = req.body;
+      console.log(`🔄 Updating priority order for ${priorities.length} projects`);
+      
+      await storage.updateProjectPriorityOrder(priorities);
+      
+      res.json({ success: true, message: "Priority order updated successfully" });
+    } catch (error) {
+      console.error("Error updating priority order:", error);
+      res.status(500).json({ message: "Error updating priority order" });
+    }
+  });
+
   return httpServer;
 }
