@@ -2447,6 +2447,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/delivery-tracking/:id", simpleAuth, deleteDeliveryTracking);
   
   // User Preferences routes
+  // Get all project label assignments for statistics
+  app.get("/api/all-project-label-assignments", async (req, res) => {
+    try {
+      console.log('📊 Fetching all project label assignments for statistics');
+      const assignments = await storage.getAllProjectLabelAssignments();
+      console.log(`📊 Found ${assignments.length} project label assignments`);
+      console.log('📊 Sample assignments:', assignments.slice(0, 3));
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching all project label assignments:", error);
+      res.status(500).json({ message: "Error fetching project label assignments" });
+    }
+  });
+
   app.get("/api/user-preferences", simpleAuth, async (req: any, res) => {
     try {
       // Get user ID from the authenticated user

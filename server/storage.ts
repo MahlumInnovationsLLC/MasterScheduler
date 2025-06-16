@@ -3793,6 +3793,32 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAllProjectLabelAssignments(): Promise<ProjectLabelAssignment[]> {
+    try {
+      console.log('📊 STORAGE: Getting all project label assignments');
+      const assignments = await db.select({
+        id: projectLabelAssignments.id,
+        projectId: projectLabelAssignments.projectId,
+        labelId: projectLabelAssignments.labelId,
+        assignedAt: projectLabelAssignments.assignedAt,
+        // Include label details for reference
+        labelName: projectLabels.name,
+        labelType: projectLabels.type,
+        labelColor: projectLabels.color,
+        backgroundColor: projectLabels.backgroundColor,
+        textColor: projectLabels.textColor,
+      })
+      .from(projectLabelAssignments)
+      .leftJoin(projectLabels, eq(projectLabelAssignments.labelId, projectLabels.id));
+      
+      console.log(`📊 STORAGE: Found ${assignments.length} assignments`);
+      return assignments;
+    } catch (error) {
+      console.error("Error getting all project label assignments:", error);
+      return [];
+    }
+  }
+
   // Quality Assurance methods
   async getNcrs(): Promise<NonConformanceReport[]> {
     try {
