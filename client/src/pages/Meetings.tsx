@@ -82,6 +82,17 @@ export default function Meetings() {
     dueDate: ""
   });
 
+  // State for task creation
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [taskForm, setTaskForm] = useState({
+    projectId: "",
+    name: "",
+    description: "",
+    dueDate: "",
+    assignedToUserId: "",
+    department: ""
+  });
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -113,6 +124,12 @@ export default function Meetings() {
   // Fetch users
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
+  });
+
+  // Fetch all project tasks for real-time task display
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ['/api/tasks'],
+    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
   });
 
   // Create elevated concern mutation
@@ -154,6 +171,32 @@ export default function Meetings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/elevated-concerns'] });
       toast({ title: "Concern escalated to Tier IV successfully" });
+    }
+  });
+
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to create task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      setShowTaskDialog(false);
+      setTaskForm({
+        projectId: "",
+        name: "",
+        description: "",
+        dueDate: "",
+        assignedToUserId: "",
+        department: ""
+      });
+      toast({ title: "Task created successfully" });
     }
   });
 
@@ -734,37 +777,69 @@ export default function Meetings() {
 
                     {/* TASK Section */}
                     <div className="text-sm">
-                      <span className="font-medium">TASK:</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">TASK:</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setTaskForm({ ...taskForm, projectId: project.id.toString() });
+                            setShowTaskDialog(true);
+                          }}
+                          className="text-xs h-6 px-2"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Task
+                        </Button>
+                      </div>
                       <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-l-yellow-500 dark:border-l-yellow-400">
                         <div className="space-y-2">
-                          {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id && c.type === "task").length > 0 ? (
-                            <>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">Active Tasks</span>
-                                <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-800 dark:border-yellow-400 dark:text-yellow-200">
-                                  {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id && c.type === "task").length} Tasks
-                                </Badge>
-                              </div>
-                              {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id && c.type === "task").slice(0, 2).map((task: ElevatedConcern) => (
-                                <div key={task.id} className="text-xs">
-                                  <div className="font-medium text-gray-900 dark:text-gray-100">{task.title}</div>
-                                  <div className="text-gray-700 dark:text-gray-300 mt-1">{task.description}</div>
-                                  {task.dueDate && (
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <span className="font-medium text-gray-600 dark:text-gray-400">Due:</span>
-                                      <span className="text-red-600 dark:text-red-400">
-                                        {format(new Date(task.dueDate), 'MMM d, yyyy')}
-                                      </span>
-                                    </div>
-                                  )}
+                          {(() => {
+                            const projectTasks = (allTasks as any[]).filter((task: any) => task.projectId === project.id && !task.isCompleted);
+                            return projectTasks.length > 0 ? (
+                              <>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">Active Tasks</span>
+                                  <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-800 dark:border-yellow-400 dark:text-yellow-200">
+                                    {projectTasks.length} Tasks
+                                  </Badge>
                                 </div>
-                              ))}
-                            </>
-                          ) : (
-                            <div className="text-center py-2">
-                              <span className="text-xs text-gray-600 dark:text-gray-400">NO TASKS</span>
-                            </div>
-                          )}
+                                {projectTasks.slice(0, 2).map((task: any) => (
+                                  <div key={task.id} className="text-xs">
+                                    <div className="font-medium text-gray-900 dark:text-gray-100">{task.name}</div>
+                                    {task.description && (
+                                      <div className="text-gray-700 dark:text-gray-300 mt-1">{task.description}</div>
+                                    )}
+                                    {task.dueDate && (
+                                      <div className="flex items-center gap-1 mt-1">
+                                        <span className="font-medium text-gray-600 dark:text-gray-400">Due:</span>
+                                        <span className="text-red-600 dark:text-red-400">
+                                          {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {task.assignedToUserId && (
+                                      <div className="flex items-center gap-1 mt-1">
+                                        <span className="font-medium text-gray-600 dark:text-gray-400">Assigned:</span>
+                                        <span className="text-gray-700 dark:text-gray-300">
+                                          {(users as any[]).find(u => u.id === task.assignedToUserId)?.firstName || 'Unknown'}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                                {projectTasks.length > 2 && (
+                                  <div className="text-xs text-center text-gray-600 dark:text-gray-400 mt-2">
+                                    +{projectTasks.length - 2} more tasks
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="text-center py-2">
+                                <span className="text-xs text-gray-600 dark:text-gray-400">NO TASKS</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -926,6 +1001,115 @@ export default function Meetings() {
             </Button>
             <Button onClick={handleCreateConcern} disabled={createConcernMutation.isPending}>
               {createConcernMutation.isPending ? "Creating..." : "Create Concern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Creation Dialog */}
+      <Dialog open={showTaskDialog} onOpenChange={setShowTaskDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+            <DialogDescription>
+              Create a new task for this project that will sync with the project details page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task-name" className="text-right">
+                Task Name
+              </Label>
+              <Input
+                id="task-name"
+                value={taskForm.name}
+                onChange={(e) => setTaskForm({ ...taskForm, name: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter task name"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task-description" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="task-description"
+                value={taskForm.description}
+                onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                className="col-span-3"
+                placeholder="Task description"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task-due-date" className="text-right">
+                Due Date
+              </Label>
+              <Input
+                id="task-due-date"
+                type="date"
+                value={taskForm.dueDate}
+                onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task-assigned" className="text-right">
+                Assigned To
+              </Label>
+              <Select value={taskForm.assignedToUserId} onValueChange={(value) => setTaskForm({ ...taskForm, assignedToUserId: value })}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(users as any[]).map((user: any) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task-department" className="text-right">
+                Department
+              </Label>
+              <Select value={taskForm.department} onValueChange={(value) => setTaskForm({ ...taskForm, department: value })}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="engineering">Engineering</SelectItem>
+                  <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                  <SelectItem value="finance">Finance</SelectItem>
+                  <SelectItem value="project_management">Project Management</SelectItem>
+                  <SelectItem value="quality_control">Quality Control</SelectItem>
+                  <SelectItem value="it">IT</SelectItem>
+                  <SelectItem value="sales">Sales</SelectItem>
+                  <SelectItem value="executive">Executive</SelectItem>
+                  <SelectItem value="planning_analysis">Planning & Analysis</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTaskDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                createTaskMutation.mutate({
+                  projectId: parseInt(taskForm.projectId),
+                  name: taskForm.name,
+                  description: taskForm.description,
+                  dueDate: taskForm.dueDate || null,
+                  assignedToUserId: taskForm.assignedToUserId || null,
+                });
+              }} 
+              disabled={createTaskMutation.isPending || !taskForm.name}
+            >
+              {createTaskMutation.isPending ? "Creating..." : "Create Task"}
             </Button>
           </DialogFooter>
         </DialogContent>
