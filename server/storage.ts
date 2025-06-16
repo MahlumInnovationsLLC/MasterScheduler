@@ -44,6 +44,7 @@ import {
   externalConnectionLogs,
   projectMetricsConnection,
   ptnConnection,
+  priorities,
   type User,
   type InsertUser,
   type Project,
@@ -4829,8 +4830,50 @@ export class DatabaseStorage implements IStorage {
   // Project Priorities methods
   async getProjectPriorities(): Promise<any[]> {
     try {
-      // Return empty array for now - priorities will be stored in memory/cache
-      return [];
+      const result = await this.db
+        .select({
+          id: priorities.projectId,
+          projectId: priorities.projectId,
+          priorityOrder: priorities.id, // Using priority ID as order
+          projectNumber: projects.projectNumber,
+          projectName: projects.name,
+          shipDate: projects.shipDate,
+          status: projects.status,
+          totalValue: sql<number>`COALESCE((
+            SELECT SUM(amount) 
+            FROM ${billingMilestones} 
+            WHERE project_id = ${projects.id}
+          ), 0)`,
+          daysUntilShip: sql<number>`CASE 
+            WHEN ${projects.shipDate} IS NULL THEN 0
+            ELSE EXTRACT(DAY FROM ${projects.shipDate} - CURRENT_DATE)
+          END`,
+        })
+        .from(priorities)
+        .innerJoin(projects, eq(priorities.projectId, projects.id))
+        .orderBy(priorities.id);
+
+      // Get billing milestones for each project
+      const milestones = await this.db
+        .select()
+        .from(billingMilestones);
+
+      // Combine data
+      return result.map(priority => ({
+        ...priority,
+        billingMilestones: milestones
+          .filter(m => m.projectId === priority.projectId)
+          .map(m => ({
+            id: m.id,
+            projectId: m.projectId,
+            name: m.name,
+            percentage: m.percentage,
+            amount: m.amount,
+            dueDate: m.dueDate,
+            isPaid: m.isPaid || false,
+            description: m.description
+          }))
+      }));
     } catch (error) {
       console.error("Error getting project priorities:", error);
       return [];
