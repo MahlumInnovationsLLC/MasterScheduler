@@ -627,8 +627,8 @@ export default function Meetings() {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{project.name}</div>
                       <Link 
-                        href={`/projects/${project.id}`}
-                        className="text-xs text-blue-600 hover:text-blue-800 underline truncate block"
+                        href={`/project/${project.id}`}
+                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline truncate block"
                       >
                         {project.projectNumber}
                       </Link>
@@ -662,8 +662,8 @@ export default function Meetings() {
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-xl">{project.name}</CardTitle>
                         <Link 
-                          href={`/projects/${project.id}`}
-                          className="text-base text-blue-600 hover:text-blue-800 underline"
+                          href={`/project/${project.id}`}
+                          className="text-base text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
                         >
                           {project.projectNumber}
                         </Link>
@@ -735,26 +735,36 @@ export default function Meetings() {
                     {/* TASK Section */}
                     <div className="text-sm">
                       <span className="font-medium">TASK:</span>
-                      <div className="mt-2 p-3 bg-gray-50 rounded-lg border-l-4 border-l-yellow-500">
+                      <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-l-yellow-500 dark:border-l-yellow-400">
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-gray-600">Priority Action Required</span>
-                            <Badge variant="outline" className="text-xs">
-                              {hasLabel(project.id, 'MAJOR ISSUE') ? 'URGENT' : 'HIGH'}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-gray-700">
-                            {hasLabel(project.id, 'MAJOR ISSUE') 
-                              ? 'Immediate resolution required for critical project issues. Escalate to management if not resolved within 24 hours.'
-                              : 'Address minor issues and monitor progress closely. Update status within 48 hours.'
-                            }
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs font-medium">Due:</span>
-                            <span className="text-xs text-red-600">
-                              {hasLabel(project.id, 'MAJOR ISSUE') ? '24 hours' : '48 hours'}
-                            </span>
-                          </div>
+                          {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id && c.type === "task").length > 0 ? (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">Active Tasks</span>
+                                <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-800 dark:border-yellow-400 dark:text-yellow-200">
+                                  {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id && c.type === "task").length} Tasks
+                                </Badge>
+                              </div>
+                              {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id && c.type === "task").slice(0, 2).map((task: ElevatedConcern) => (
+                                <div key={task.id} className="text-xs">
+                                  <div className="font-medium text-gray-900 dark:text-gray-100">{task.title}</div>
+                                  <div className="text-gray-700 dark:text-gray-300 mt-1">{task.description}</div>
+                                  {task.dueDate && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <span className="font-medium text-gray-600 dark:text-gray-400">Due:</span>
+                                      <span className="text-red-600 dark:text-red-400">
+                                        {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </>
+                          ) : (
+                            <div className="text-center py-2">
+                              <span className="text-xs text-gray-600 dark:text-gray-400">NO TASKS</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
