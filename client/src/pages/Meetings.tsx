@@ -1289,15 +1289,25 @@ export default function Meetings() {
                       const project = (projects as Project[]).find((p: Project) => p.id === concern.projectId);
                       return (
                         <Card key={concern.id} className="border-green-200 bg-green-50">
-                          <CardContent className="py-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                <span className="font-medium text-sm">{concern.title}</span>
-                                <Badge variant="secondary" className="text-xs">CLOSED</Badge>
+                          <CardContent className="py-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <span className="font-medium text-sm text-gray-900">{concern.title}</span>
+                                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-300">CLOSED</Badge>
+                                </div>
+                                <div className="text-xs text-gray-600 font-medium">
+                                  {project?.projectNumber}
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {project?.projectNumber}
+                              <div className="text-xs text-gray-700 ml-6">
+                                <p className="mb-1">{concern.description}</p>
+                                <div className="flex items-center gap-4 text-gray-600">
+                                  <span>Project: {project?.name}</span>
+                                  <span>Priority: {concern.priority}</span>
+                                  <span>Closed: {concern.updatedAt ? format(new Date(concern.updatedAt), 'MMM d, h:mm a') : 'Recently'}</span>
+                                </div>
                               </div>
                             </div>
                           </CardContent>
