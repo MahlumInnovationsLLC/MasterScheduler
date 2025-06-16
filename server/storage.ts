@@ -98,6 +98,18 @@ import {
   type InsertMeetingEmailNotification,
   type ElevatedConcern,
   type InsertElevatedConcern,
+  type Priority,
+  type InsertPriority,
+  type PriorityComment,
+  type InsertPriorityComment,
+  type PriorityActivityLog,
+  type InsertPriorityActivityLog,
+  type UserPriorityVisibility,
+  type InsertUserPriorityVisibility,
+  priorities,
+  priorityComments,
+  priorityActivityLog,
+  userPriorityVisibility,
   type ProjectLabel,
   type InsertProjectLabel,
   type ProjectLabelAssignment,
@@ -3987,6 +3999,245 @@ export class DatabaseStorage implements IStorage {
         .where(eq(elevatedConcerns.projectId, projectId))
         .orderBy(desc(elevatedConcerns.createdAt))
     );
+  }
+
+  // Priority System Methods
+  async getPriorities(): Promise<Priority[]> {
+    return await safeQuery<Priority>(() =>
+      db.select().from(priorities)
+        .orderBy(desc(priorities.createdAt))
+    );
+  }
+
+  async getPriority(id: number): Promise<Priority | undefined> {
+    return await safeSingleQuery<Priority>(() =>
+      db.select().from(priorities).where(eq(priorities.id, id))
+    );
+  }
+
+  async createPriority(priority: InsertPriority): Promise<Priority> {
+    try {
+      const [newPriority] = await db.insert(priorities).values(priority).returning();
+      
+      // Log activity
+      await this.createPriorityActivityLog(newPriority.id, priority.createdById, "created", null, newPriority, "Priority created");
+      
+      return newPriority;
+    } catch (error) {
+      console.error("Error creating priority:", error);
+      throw error;
+    }
+  }
+
+  async updatePriority(id: number, priority: Partial<InsertPriority>, userId: string): Promise<Priority | undefined> {
+    try {
+      const oldPriority = await this.getPriority(id);
+      
+      const [updatedPriority] = await db.update(priorities)
+        .set({ ...priority, updatedAt: new Date() })
+        .where(eq(priorities.id, id))
+        .returning();
+      
+      if (updatedPriority && oldPriority) {
+        // Log activity
+        await this.createPriorityActivityLog(id, userId, "updated", oldPriority, updatedPriority, "Priority updated");
+      }
+      
+      return updatedPriority;
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      return undefined;
+    }
+  }
+
+  async deletePriority(id: number, userId: string): Promise<boolean> {
+    try {
+      const priority = await this.getPriority(id);
+      
+      await db.delete(priorities).where(eq(priorities.id, id));
+      
+      if (priority) {
+        await this.createPriorityActivityLog(id, userId, "deleted", priority, null, "Priority deleted");
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting priority:", error);
+      return false;
+    }
+  }
+
+  async getPrioritiesByType(type: string): Promise<Priority[]> {
+    return await safeQuery<Priority>(() =>
+      db.select().from(priorities)
+        .where(eq(priorities.type, type))
+        .orderBy(desc(priorities.createdAt))
+    );
+  }
+
+  async getPrioritiesByProject(projectId: number): Promise<Priority[]> {
+    return await safeQuery<Priority>(() =>
+      db.select().from(priorities)
+        .where(eq(priorities.projectId, projectId))
+        .orderBy(desc(priorities.createdAt))
+    );
+  }
+
+  async getPrioritiesByAssignee(userId: string): Promise<Priority[]> {
+    return await safeQuery<Priority>(() =>
+      db.select().from(priorities)
+        .where(eq(priorities.assignedToId, userId))
+        .orderBy(desc(priorities.createdAt))
+    );
+  }
+
+  // Priority Comments Methods
+  async getPriorityComments(priorityId: number): Promise<PriorityComment[]> {
+    return await safeQuery<PriorityComment>(() =>
+      db.select().from(priorityComments)
+        .where(eq(priorityComments.priorityId, priorityId))
+        .orderBy(priorityComments.createdAt)
+    );
+  }
+
+  async createPriorityComment(comment: InsertPriorityComment): Promise<PriorityComment> {
+    try {
+      const [newComment] = await db.insert(priorityComments).values(comment).returning();
+      
+      // Log activity
+      await this.createPriorityActivityLog(comment.priorityId, comment.authorId, "commented", null, { content: comment.content }, "Comment added");
+      
+      return newComment;
+    } catch (error) {
+      console.error("Error creating priority comment:", error);
+      throw error;
+    }
+  }
+
+  async updatePriorityComment(id: number, content: string, userId: string): Promise<PriorityComment | undefined> {
+    try {
+      const [updatedComment] = await db.update(priorityComments)
+        .set({ content, updatedAt: new Date() })
+        .where(eq(priorityComments.id, id))
+        .returning();
+      
+      if (updatedComment) {
+        await this.createPriorityActivityLog(updatedComment.priorityId, userId, "comment_updated", null, { content }, "Comment updated");
+      }
+      
+      return updatedComment;
+    } catch (error) {
+      console.error("Error updating priority comment:", error);
+      return undefined;
+    }
+  }
+
+  async deletePriorityComment(id: number, userId: string): Promise<boolean> {
+    try {
+      const comment = await safeSingleQuery<PriorityComment>(() =>
+        db.select().from(priorityComments).where(eq(priorityComments.id, id))
+      );
+      
+      await db.delete(priorityComments).where(eq(priorityComments.id, id));
+      
+      if (comment) {
+        await this.createPriorityActivityLog(comment.priorityId, userId, "comment_deleted", { content: comment.content }, null, "Comment deleted");
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting priority comment:", error);
+      return false;
+    }
+  }
+
+  // Priority Activity Log Methods
+  async getPriorityActivityLog(priorityId: number): Promise<PriorityActivityLog[]> {
+    return await safeQuery<PriorityActivityLog>(() =>
+      db.select().from(priorityActivityLog)
+        .where(eq(priorityActivityLog.priorityId, priorityId))
+        .orderBy(desc(priorityActivityLog.createdAt))
+    );
+  }
+
+  async createPriorityActivityLog(
+    priorityId: number, 
+    userId: string, 
+    action: string, 
+    oldValue: any, 
+    newValue: any, 
+    description: string
+  ): Promise<PriorityActivityLog> {
+    try {
+      const [log] = await db.insert(priorityActivityLog)
+        .values({
+          priorityId,
+          userId,
+          action,
+          oldValue,
+          newValue,
+          description
+        })
+        .returning();
+      return log;
+    } catch (error) {
+      console.error("Error creating priority activity log:", error);
+      throw error;
+    }
+  }
+
+  // User Priority Visibility Methods
+  async getUserPriorityVisibility(userId: string): Promise<UserPriorityVisibility | undefined> {
+    return await safeSingleQuery<UserPriorityVisibility>(() =>
+      db.select().from(userPriorityVisibility).where(eq(userPriorityVisibility.userId, userId))
+    );
+  }
+
+  async getAllUserPriorityVisibility(): Promise<UserPriorityVisibility[]> {
+    return await safeQuery<UserPriorityVisibility>(() =>
+      db.select().from(userPriorityVisibility)
+    );
+  }
+
+  async updateUserPriorityVisibility(userId: string, visibility: Partial<InsertUserPriorityVisibility>): Promise<UserPriorityVisibility> {
+    try {
+      // Try to update existing record first
+      const [updated] = await db
+        .update(userPriorityVisibility)
+        .set({ ...visibility, updatedAt: new Date() })
+        .where(eq(userPriorityVisibility.userId, userId))
+        .returning();
+
+      if (updated) {
+        return updated;
+      }
+
+      // If no record exists, create a new one
+      const [created] = await db
+        .insert(userPriorityVisibility)
+        .values({ 
+          userId, 
+          ...visibility,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      return created;
+    } catch (error) {
+      console.error("Error updating user priority visibility:", error);
+      throw error;
+    }
+  }
+
+  async removeUserPriorityVisibility(userId: string): Promise<boolean> {
+    try {
+      await db.delete(userPriorityVisibility).where(eq(userPriorityVisibility.userId, userId));
+      return true;
+    } catch (error) {
+      console.error("Error removing user priority visibility:", error);
+      return false;
+    }
   }
 
   async escalateToTierIV(id: number, escalatedBy: string): Promise<ElevatedConcern | undefined> {

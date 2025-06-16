@@ -32,7 +32,11 @@ import {
   insertNcrSchema,
   insertQualityDocumentSchema,
   insertExternalConnectionSchema,
-  insertPtnConnectionSchema
+  insertPtnConnectionSchema,
+  insertPrioritySchema,
+  insertPriorityCommentSchema,
+  insertPriorityActivityLogSchema,
+  insertUserPriorityVisibilitySchema
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
@@ -5340,6 +5344,231 @@ Response format:
     } catch (error) {
       console.error("Error creating meeting template:", error);
       res.status(500).json({ message: "Error creating meeting template" });
+    }
+  });
+
+  // Priority System Routes
+  
+  // Get all priorities
+  app.get("/api/priorities", simpleAuth, async (req, res) => {
+    try {
+      const { type, assignee, project } = req.query;
+      
+      let priorities;
+      if (type) {
+        priorities = await storage.getPrioritiesByType(type as string);
+      } else if (assignee) {
+        priorities = await storage.getPrioritiesByAssignee(assignee as string);
+      } else if (project) {
+        priorities = await storage.getPrioritiesByProject(parseInt(project as string));
+      } else {
+        priorities = await storage.getPriorities();
+      }
+      
+      res.json(priorities);
+    } catch (error) {
+      console.error("Error fetching priorities:", error);
+      res.status(500).json({ message: "Error fetching priorities" });
+    }
+  });
+
+  // Get single priority
+  app.get("/api/priorities/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const priority = await storage.getPriority(id);
+      
+      if (!priority) {
+        return res.status(404).json({ message: "Priority not found" });
+      }
+      
+      res.json(priority);
+    } catch (error) {
+      console.error("Error fetching priority:", error);
+      res.status(500).json({ message: "Error fetching priority" });
+    }
+  });
+
+  // Create priority
+  app.post("/api/priorities", simpleAuth, validateRequest(insertPrioritySchema), async (req, res) => {
+    try {
+      const priorityData = {
+        ...req.body,
+        createdById: req.user?.id || 'system'
+      };
+      
+      const priority = await storage.createPriority(priorityData);
+      res.status(201).json(priority);
+    } catch (error) {
+      console.error("Error creating priority:", error);
+      res.status(500).json({ message: "Error creating priority" });
+    }
+  });
+
+  // Update priority
+  app.patch("/api/priorities/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user?.id || 'system';
+      
+      const priority = await storage.updatePriority(id, req.body, userId);
+      
+      if (!priority) {
+        return res.status(404).json({ message: "Priority not found" });
+      }
+      
+      res.json(priority);
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      res.status(500).json({ message: "Error updating priority" });
+    }
+  });
+
+  // Delete priority
+  app.delete("/api/priorities/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user?.id || 'system';
+      
+      const success = await storage.deletePriority(id, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Priority not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting priority:", error);
+      res.status(500).json({ message: "Error deleting priority" });
+    }
+  });
+
+  // Priority Comments Routes
+  app.get("/api/priorities/:id/comments", simpleAuth, async (req, res) => {
+    try {
+      const priorityId = parseInt(req.params.id);
+      const comments = await storage.getPriorityComments(priorityId);
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching priority comments:", error);
+      res.status(500).json({ message: "Error fetching priority comments" });
+    }
+  });
+
+  app.post("/api/priorities/:id/comments", simpleAuth, validateRequest(insertPriorityCommentSchema), async (req, res) => {
+    try {
+      const priorityId = parseInt(req.params.id);
+      const commentData = {
+        ...req.body,
+        priorityId,
+        authorId: req.user?.id || 'system'
+      };
+      
+      const comment = await storage.createPriorityComment(commentData);
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating priority comment:", error);
+      res.status(500).json({ message: "Error creating priority comment" });
+    }
+  });
+
+  app.patch("/api/priorities/comments/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user?.id || 'system';
+      const { content } = req.body;
+      
+      const comment = await storage.updatePriorityComment(id, content, userId);
+      
+      if (!comment) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+      
+      res.json(comment);
+    } catch (error) {
+      console.error("Error updating priority comment:", error);
+      res.status(500).json({ message: "Error updating priority comment" });
+    }
+  });
+
+  app.delete("/api/priorities/comments/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user?.id || 'system';
+      
+      const success = await storage.deletePriorityComment(id, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting priority comment:", error);
+      res.status(500).json({ message: "Error deleting priority comment" });
+    }
+  });
+
+  // Priority Activity Log Route
+  app.get("/api/priorities/:id/activity", simpleAuth, async (req, res) => {
+    try {
+      const priorityId = parseInt(req.params.id);
+      const activityLog = await storage.getPriorityActivityLog(priorityId);
+      res.json(activityLog);
+    } catch (error) {
+      console.error("Error fetching priority activity log:", error);
+      res.status(500).json({ message: "Error fetching priority activity log" });
+    }
+  });
+
+  // User Priority Visibility Routes
+  app.get("/api/users/:userId/priority-visibility", simpleAuth, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const visibility = await storage.getUserPriorityVisibility(userId);
+      res.json(visibility || {
+        canView: false,
+        canCreate: false,
+        canEdit: false,
+        canDelete: false,
+        canAssign: false,
+        priorityTypes: []
+      });
+    } catch (error) {
+      console.error("Error fetching user priority visibility:", error);
+      res.status(500).json({ message: "Error fetching user priority visibility" });
+    }
+  });
+
+  app.get("/api/priority-visibility", requireAdmin, async (req, res) => {
+    try {
+      const allVisibility = await storage.getAllUserPriorityVisibility();
+      res.json(allVisibility);
+    } catch (error) {
+      console.error("Error fetching all priority visibility:", error);
+      res.status(500).json({ message: "Error fetching all priority visibility" });
+    }
+  });
+
+  app.patch("/api/users/:userId/priority-visibility", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const visibility = await storage.updateUserPriorityVisibility(userId, req.body);
+      res.json(visibility);
+    } catch (error) {
+      console.error("Error updating user priority visibility:", error);
+      res.status(500).json({ message: "Error updating user priority visibility" });
+    }
+  });
+
+  app.delete("/api/users/:userId/priority-visibility", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const success = await storage.removeUserPriorityVisibility(userId);
+      res.json({ success });
+    } catch (error) {
+      console.error("Error removing user priority visibility:", error);
+      res.status(500).json({ message: "Error removing user priority visibility" });
     }
   });
 

@@ -1599,6 +1599,182 @@ export type InsertMeetingEmailNotification = z.infer<typeof insertMeetingEmailNo
 export type ElevatedConcern = typeof elevatedConcerns.$inferSelect;
 export type InsertElevatedConcern = z.infer<typeof insertElevatedConcernSchema>;
 
+// Priority System Enums
+export const priorityTypeEnum = pgEnum("priority_type", [
+  "production",
+  "supply_chain",
+  "quality",
+  "engineering",
+  "logistics",
+  "maintenance"
+]);
+
+export const priorityLevelEnum = pgEnum("priority_level", [
+  "critical",
+  "high", 
+  "medium",
+  "low"
+]);
+
+export const priorityStatusEnum = pgEnum("priority_status", [
+  "new",
+  "in_progress",
+  "blocked",
+  "review",
+  "completed",
+  "cancelled"
+]);
+
+// Priority Items Table
+export const priorities = pgTable("priorities", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: priorityTypeEnum("type").notNull(),
+  level: priorityLevelEnum("level").notNull().default("medium"),
+  status: priorityStatusEnum("status").notNull().default("new"),
+  projectId: integer("project_id").references(() => projects.id),
+  assignedToId: text("assigned_to_id").references(() => users.id),
+  createdById: text("created_by_id").notNull().references(() => users.id),
+  dueDate: date("due_date"),
+  estimatedHours: decimal("estimated_hours", { precision: 10, scale: 2 }),
+  actualHours: decimal("actual_hours", { precision: 10, scale: 2 }),
+  tags: text("tags").array().default([]),
+  attachments: jsonb("attachments").$type<Array<{
+    name: string;
+    url: string;
+    size: number;
+    type: string;
+  }>>().default([]),
+  metadata: jsonb("metadata").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Priority Comments Table
+export const priorityComments = pgTable("priority_comments", {
+  id: serial("id").primaryKey(),
+  priorityId: integer("priority_id").notNull().references(() => priorities.id, { onDelete: "cascade" }),
+  authorId: text("author_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  isInternal: boolean("is_internal").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Priority Activity Log Table
+export const priorityActivityLog = pgTable("priority_activity_log", {
+  id: serial("id").primaryKey(),
+  priorityId: integer("priority_id").notNull().references(() => priorities.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id),
+  action: text("action").notNull(), // created, updated, status_changed, assigned, commented, etc.
+  oldValue: jsonb("old_value"),
+  newValue: jsonb("new_value"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User Priority Visibility Table
+export const userPriorityVisibility = pgTable("user_priority_visibility", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  canView: boolean("can_view").default(false),
+  canCreate: boolean("can_create").default(false),
+  canEdit: boolean("can_edit").default(false),
+  canDelete: boolean("can_delete").default(false),
+  canAssign: boolean("can_assign").default(false),
+  priorityTypes: priorityTypeEnum("priority_types").array().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  uniqueUser: unique().on(table.userId),
+}));
+
+// Priority Relations
+export const prioritiesRelations = relations(priorities, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [priorities.projectId],
+    references: [projects.id],
+  }),
+  assignedTo: one(users, {
+    fields: [priorities.assignedToId],
+    references: [users.id],
+  }),
+  createdBy: one(users, {
+    fields: [priorities.createdById],
+    references: [users.id],
+  }),
+  comments: many(priorityComments),
+  activityLogs: many(priorityActivityLog),
+}));
+
+export const priorityCommentsRelations = relations(priorityComments, ({ one }) => ({
+  priority: one(priorities, {
+    fields: [priorityComments.priorityId],
+    references: [priorities.id],
+  }),
+  author: one(users, {
+    fields: [priorityComments.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const priorityActivityLogRelations = relations(priorityActivityLog, ({ one }) => ({
+  priority: one(priorities, {
+    fields: [priorityActivityLog.priorityId],
+    references: [priorities.id],
+  }),
+  user: one(users, {
+    fields: [priorityActivityLog.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userPriorityVisibilityRelations = relations(userPriorityVisibility, ({ one }) => ({
+  user: one(users, {
+    fields: [userPriorityVisibility.userId],
+    references: [users.id],
+  }),
+}));
+
+// Priority Insert Schemas
+export const insertPrioritySchema = createInsertSchema(priorities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+}).extend({
+  dueDate: z.string().optional().transform((str) => str ? new Date(str) : undefined),
+});
+
+export const insertPriorityCommentSchema = createInsertSchema(priorityComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPriorityActivityLogSchema = createInsertSchema(priorityActivityLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserPriorityVisibilitySchema = createInsertSchema(userPriorityVisibility).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Priority Types
+export type Priority = typeof priorities.$inferSelect;
+export type InsertPriority = z.infer<typeof insertPrioritySchema>;
+export type PriorityComment = typeof priorityComments.$inferSelect;
+export type InsertPriorityComment = z.infer<typeof insertPriorityCommentSchema>;
+export type PriorityActivityLog = typeof priorityActivityLog.$inferSelect;
+export type InsertPriorityActivityLog = z.infer<typeof insertPriorityActivityLogSchema>;
+export type UserPriorityVisibility = typeof userPriorityVisibility.$inferSelect;
+export type InsertUserPriorityVisibility = z.infer<typeof insertUserPriorityVisibilitySchema>;
+
 // Project Labels Schemas
 export const insertProjectLabelSchema = createInsertSchema(projectLabels).omit({
   id: true,
