@@ -406,6 +406,15 @@ export interface IStorage {
   getMeetingTasksByProjectTask(projectTaskId: number): Promise<MeetingTask[]>;
   updateMeeting(id: number, meeting: Partial<InsertMeeting>): Promise<Meeting | undefined>;
 
+  // Elevated Concerns methods
+  getElevatedConcerns(): Promise<ElevatedConcern[]>;
+  getElevatedConcern(id: number): Promise<ElevatedConcern | undefined>;
+  createElevatedConcern(concern: InsertElevatedConcern): Promise<ElevatedConcern>;
+  updateElevatedConcern(id: number, concern: Partial<InsertElevatedConcern>): Promise<ElevatedConcern | undefined>;
+  deleteElevatedConcern(id: number): Promise<boolean>;
+  getElevatedConcernsByProject(projectId: number): Promise<ElevatedConcern[]>;
+  escalateToTierIV(id: number, escalatedBy: string): Promise<ElevatedConcern | undefined>;
+
   // Quality Assurance methods
   getNcrs(): Promise<NonConformanceReport[]>;
   getNcr(id: number): Promise<NonConformanceReport | undefined>;
@@ -3800,6 +3809,79 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error removing label from project:", error);
       return false;
+    }
+  }
+
+  // Elevated Concerns methods
+  async getElevatedConcerns(): Promise<ElevatedConcern[]> {
+    return await safeQuery<ElevatedConcern>(() =>
+      db.select().from(elevatedConcerns)
+        .orderBy(desc(elevatedConcerns.createdAt))
+    );
+  }
+
+  async getElevatedConcern(id: number): Promise<ElevatedConcern | undefined> {
+    return await safeSingleQuery<ElevatedConcern>(() =>
+      db.select().from(elevatedConcerns).where(eq(elevatedConcerns.id, id))
+    );
+  }
+
+  async createElevatedConcern(concern: InsertElevatedConcern): Promise<ElevatedConcern> {
+    try {
+      const [newConcern] = await db.insert(elevatedConcerns).values(concern).returning();
+      return newConcern;
+    } catch (error) {
+      console.error("Error creating elevated concern:", error);
+      throw error;
+    }
+  }
+
+  async updateElevatedConcern(id: number, concern: Partial<InsertElevatedConcern>): Promise<ElevatedConcern | undefined> {
+    try {
+      const [updatedConcern] = await db.update(elevatedConcerns)
+        .set({ ...concern, updatedAt: new Date() })
+        .where(eq(elevatedConcerns.id, id))
+        .returning();
+      return updatedConcern;
+    } catch (error) {
+      console.error("Error updating elevated concern:", error);
+      return undefined;
+    }
+  }
+
+  async deleteElevatedConcern(id: number): Promise<boolean> {
+    try {
+      await db.delete(elevatedConcerns).where(eq(elevatedConcerns.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting elevated concern:", error);
+      return false;
+    }
+  }
+
+  async getElevatedConcernsByProject(projectId: number): Promise<ElevatedConcern[]> {
+    return await safeQuery<ElevatedConcern>(() =>
+      db.select().from(elevatedConcerns)
+        .where(eq(elevatedConcerns.projectId, projectId))
+        .orderBy(desc(elevatedConcerns.createdAt))
+    );
+  }
+
+  async escalateToTierIV(id: number, escalatedBy: string): Promise<ElevatedConcern | undefined> {
+    try {
+      const [updatedConcern] = await db.update(elevatedConcerns)
+        .set({ 
+          isEscalatedToTierIV: true, 
+          escalatedAt: new Date(),
+          escalatedBy: escalatedBy,
+          updatedAt: new Date() 
+        })
+        .where(eq(elevatedConcerns.id, id))
+        .returning();
+      return updatedConcern;
+    } catch (error) {
+      console.error("Error escalating concern to Tier IV:", error);
+      return undefined;
     }
   }
 

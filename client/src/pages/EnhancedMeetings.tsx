@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import CreateMeetingDialog from "@/components/meetings/CreateMeetingDialog";
 import { format } from "date-fns";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Project {
   id: number;
@@ -67,7 +68,7 @@ interface Meeting {
   updatedAt: string;
 }
 
-export default function Meetings() {
+export default function EnhancedMeetings() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -113,13 +114,10 @@ export default function Meetings() {
   // Create elevated concern mutation
   const createConcernMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch('/api/elevated-concerns', {
+      return await apiRequest('/api/elevated-concerns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error('Failed to create concern');
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/elevated-concerns'] });
@@ -140,11 +138,9 @@ export default function Meetings() {
   // Escalate to Tier IV mutation
   const escalateMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/elevated-concerns/${id}/escalate`, {
+      return await apiRequest(`/api/elevated-concerns/${id}/escalate`, {
         method: 'POST'
       });
-      if (!response.ok) throw new Error('Failed to escalate concern');
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/elevated-concerns'] });
@@ -153,18 +149,18 @@ export default function Meetings() {
   });
 
   // Filter projects for Tier III (top 20 ready to ship, earliest first)
-  const tierIIIProjects = (projects as Project[])
+  const tierIIIProjects = projects
     .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
     .slice(0, 20);
 
   // Filter projects for Tier IV (MAJOR and MINOR issues only)
-  const tierIVProjects = (projects as Project[]).filter((p: Project) => 
+  const tierIVProjects = projects.filter((p: Project) => 
     p.status === "critical" || p.notes?.toLowerCase().includes("major") || p.notes?.toLowerCase().includes("minor")
   );
 
   // Get concerns escalated to Tier IV
-  const tierIVConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.isEscalatedToTierIV);
+  const tierIVConcerns = elevatedConcerns.filter((c: ElevatedConcern) => c.isEscalatedToTierIV);
 
   const handleCreateConcern = () => {
     createConcernMutation.mutate(concernForm);
@@ -175,7 +171,7 @@ export default function Meetings() {
   };
 
   const ProjectCard = ({ project, showConcerns = false }: { project: Project; showConcerns?: boolean }) => {
-    const projectConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id);
+    const projectConcerns = elevatedConcerns.filter((c: ElevatedConcern) => c.projectId === project.id);
     
     return (
       <Card className="w-full">
@@ -297,14 +293,14 @@ export default function Meetings() {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{(meetings as Meeting[]).length}</div>
+                <div className="text-2xl font-bold">{meetings.length}</div>
               </CardContent>
             </Card>
           </div>
 
           {/* Meetings List */}
           <div className="grid gap-4">
-            {(meetings as Meeting[]).map((meeting: Meeting) => (
+            {meetings.map((meeting: Meeting) => (
               <Card key={meeting.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -375,7 +371,7 @@ export default function Meetings() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => !c.isEscalatedToTierIV).length}
+                  {elevatedConcerns.filter((c: ElevatedConcern) => !c.isEscalatedToTierIV).length}
                 </div>
               </CardContent>
             </Card>
@@ -401,10 +397,10 @@ export default function Meetings() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Elevated Concerns</h3>
             <div className="grid gap-4">
-              {(elevatedConcerns as ElevatedConcern[])
+              {elevatedConcerns
                 .filter((c: ElevatedConcern) => !c.isEscalatedToTierIV)
                 .map((concern: ElevatedConcern) => {
-                  const project = (projects as Project[]).find((p: Project) => p.id === concern.projectId);
+                  const project = projects.find((p: Project) => p.id === concern.projectId);
                   return (
                     <Card key={concern.id}>
                       <CardContent className="pt-6">
@@ -488,7 +484,7 @@ export default function Meetings() {
             <h3 className="text-lg font-semibold">Escalated Concerns from Tier III</h3>
             <div className="grid gap-4">
               {tierIVConcerns.map((concern: ElevatedConcern) => {
-                const project = (projects as Project[]).find((p: Project) => p.id === concern.projectId);
+                const project = projects.find((p: Project) => p.id === concern.projectId);
                 return (
                   <Card key={concern.id} className="border-red-200">
                     <CardContent className="pt-6">
@@ -539,7 +535,7 @@ export default function Meetings() {
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(projects as Project[]).map((project: Project) => (
+                  {projects.map((project: Project) => (
                     <SelectItem key={project.id} value={project.id.toString()}>
                       {project.name} ({project.projectNumber})
                     </SelectItem>

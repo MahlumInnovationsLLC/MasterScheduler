@@ -4575,6 +4575,108 @@ Response format:
   // System Routes
   app.use('/api/system', systemRoutes);
 
+  // Elevated Concerns Routes
+  app.get("/api/elevated-concerns", simpleAuth, async (req, res) => {
+    try {
+      const concerns = await storage.getElevatedConcerns();
+      res.json(concerns);
+    } catch (error) {
+      console.error("Error fetching elevated concerns:", error);
+      res.status(500).json({ message: "Error fetching elevated concerns" });
+    }
+  });
+
+  app.get("/api/elevated-concerns/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const concern = await storage.getElevatedConcern(id);
+      
+      if (!concern) {
+        return res.status(404).json({ message: "Elevated concern not found" });
+      }
+      
+      res.json(concern);
+    } catch (error) {
+      console.error("Error fetching elevated concern:", error);
+      res.status(500).json({ message: "Error fetching elevated concern" });
+    }
+  });
+
+  app.post("/api/elevated-concerns", simpleAuth, async (req, res) => {
+    try {
+      const concernData = {
+        ...req.body,
+        createdBy: req.user?.id
+      };
+      
+      const concern = await storage.createElevatedConcern(concernData);
+      res.status(201).json(concern);
+    } catch (error) {
+      console.error("Error creating elevated concern:", error);
+      res.status(500).json({ message: "Error creating elevated concern" });
+    }
+  });
+
+  app.put("/api/elevated-concerns/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const concern = await storage.updateElevatedConcern(id, req.body);
+      
+      if (!concern) {
+        return res.status(404).json({ message: "Elevated concern not found" });
+      }
+      
+      res.json(concern);
+    } catch (error) {
+      console.error("Error updating elevated concern:", error);
+      res.status(500).json({ message: "Error updating elevated concern" });
+    }
+  });
+
+  app.delete("/api/elevated-concerns/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteElevatedConcern(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting elevated concern:", error);
+      res.status(500).json({ message: "Error deleting elevated concern" });
+    }
+  });
+
+  app.post("/api/elevated-concerns/:id/escalate", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const escalatedBy = req.user?.id;
+      
+      if (!escalatedBy) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const concern = await storage.escalateToTierIV(id, escalatedBy);
+      
+      if (!concern) {
+        return res.status(404).json({ message: "Elevated concern not found" });
+      }
+      
+      res.json(concern);
+    } catch (error) {
+      console.error("Error escalating concern to Tier IV:", error);
+      res.status(500).json({ message: "Error escalating concern to Tier IV" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/elevated-concerns", simpleAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const concerns = await storage.getElevatedConcernsByProject(projectId);
+      res.json(concerns);
+    } catch (error) {
+      console.error("Error fetching project elevated concerns:", error);
+      res.status(500).json({ message: "Error fetching project elevated concerns" });
+    }
+  });
+
   // Forensics Routes
   app.get("/api/projects/:id/forensics", async (req, res) => {
     try {
