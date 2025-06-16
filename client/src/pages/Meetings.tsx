@@ -574,8 +574,8 @@ export default function Meetings() {
               <Card key={project.id} className="w-full border-l-4 border-l-green-500">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-xl">{project.name}</CardTitle>
+                    <div className="flex-1 min-w-0 pr-2">
+                      <CardTitle className="text-xl break-words">{project.name}</CardTitle>
                       <Link 
                         href={`/project/${project.id}`}
                         className="text-base text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
@@ -637,12 +637,12 @@ export default function Meetings() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Progress</span>
-                      <span>{Math.round((project as any).progress || 0)}%</span>
+                      <span>{Math.round((project as any).percentComplete || 0)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
                       <div 
                         className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                        style={{ width: `${(project as any).progress || 0}%` }}
+                        style={{ width: `${(project as any).percentComplete || 0}%` }}
                       ></div>
                     </div>
                   </div>
@@ -748,7 +748,7 @@ export default function Meetings() {
                 <Card key={project.id} className="w-full border-l-4 border-l-blue-500">
                   <CardHeader className="pb-2">
                     <div className="space-y-1">
-                      <CardTitle className="text-sm font-medium truncate">{project.name}</CardTitle>
+                      <CardTitle className="text-sm font-medium break-words">{project.name}</CardTitle>
                       <Link 
                         href={`/project/${project.id}`}
                         className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
@@ -774,12 +774,12 @@ export default function Meetings() {
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span>Progress</span>
-                        <span>{Math.round((project as any).progress || 0)}%</span>
+                        <span>{Math.round((project as any).percentComplete || 0)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
                         <div 
                           className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
-                          style={{ width: `${(project as any).progress || 0}%` }}
+                          style={{ width: `${(project as any).percentComplete || 0}%` }}
                         ></div>
                       </div>
                     </div>
@@ -914,11 +914,11 @@ export default function Meetings() {
               {goodProjects.map((project: Project) => (
                 <Card key={project.id} className="w-full h-20 border-l-4 border-l-green-500">
                   <CardContent className="p-3 h-full flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{project.name}</div>
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="font-medium text-sm break-words">{project.name}</div>
                       <Link 
                         href={`/project/${project.id}`}
-                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline truncate block"
+                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline break-words block"
                       >
                         {project.projectNumber}
                       </Link>
@@ -952,8 +952,8 @@ export default function Meetings() {
                 <Card key={project.id} className="w-full border-l-4 border-l-red-500">
                   <CardHeader>
                     <div className="flex justify-between items-start">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-xl">{project.name}</CardTitle>
+                      <div className="flex-1 min-w-0 pr-2">
+                        <CardTitle className="text-xl break-words">{project.name}</CardTitle>
                         <Link 
                           href={`/project/${project.id}`}
                           className="text-base text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
@@ -988,12 +988,12 @@ export default function Meetings() {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="font-medium">Progress</span>
-                        <span>{calculateProgress(project)}%</span>
+                        <span>{Math.round((project as any).percentComplete || 0)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div 
                           className="bg-red-600 h-3 rounded-full transition-all duration-300" 
-                          style={{ width: `${calculateProgress(project)}%` }}
+                          style={{ width: `${(project as any).percentComplete || 0}%` }}
                         ></div>
                       </div>
                     </div>
