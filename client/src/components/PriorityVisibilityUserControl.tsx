@@ -82,6 +82,7 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
             checked={userAccess.canViewPriorities}
             onCheckedChange={(checked) => handleAccessChange('canViewPriorities', checked)}
             disabled={updateAccessMutation.isPending}
+            className="priority-switch"
           />
         </div>
 
@@ -97,6 +98,7 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
             checked={userAccess.canEditPriorities}
             onCheckedChange={(checked) => handleAccessChange('canEditPriorities', checked)}
             disabled={updateAccessMutation.isPending || !userAccess.canViewPriorities}
+            className="priority-switch"
           />
         </div>
 
@@ -112,6 +114,7 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
             checked={userAccess.canDragReorder}
             onCheckedChange={(checked) => handleAccessChange('canDragReorder', checked)}
             disabled={updateAccessMutation.isPending || !userAccess.canViewPriorities}
+            className="priority-switch"
           />
         </div>
 

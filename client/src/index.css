@@ -76,6 +76,50 @@
   --accent-foreground: 240 5.9% 10%;
 }
 
+/* Enhanced toggle switch styling for better visibility */
+.toggle-switch-enhanced {
+  /* Base switch styling */
+  --switch-bg-off: #e5e7eb;
+  --switch-bg-on: #22c55e;
+  --switch-thumb-bg: #ffffff;
+  --switch-thumb-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Override default switch styling */
+[data-state="checked"] .toggle-switch-thumb {
+  background-color: var(--switch-thumb-bg) !important;
+  box-shadow: var(--switch-thumb-shadow) !important;
+}
+
+[data-state="unchecked"] .toggle-switch-thumb {
+  background-color: var(--switch-thumb-bg) !important;
+  box-shadow: var(--switch-thumb-shadow) !important;
+}
+
+/* Priority visibility switch enhancements */
+.priority-switch {
+  position: relative;
+}
+
+.priority-switch[data-state="checked"] {
+  background-color: #22c55e !important;
+}
+
+.priority-switch[data-state="unchecked"] {
+  background-color: #e5e7eb !important;
+}
+
+.priority-switch .switch-thumb {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.priority-switch[data-state="checked"] .switch-thumb {
+  background-color: #ffffff !important;
+  border-color: #22c55e;
+}
+
 .dark {
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
