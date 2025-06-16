@@ -342,8 +342,23 @@ export function DataTable<TData, TValue>({
                     table.getRowModel().rows.map((row) => (
                       <tr
                         key={row.id}
-                        className="hover:bg-muted/50 border-b border-border"
+                        className="hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-border transition-colors duration-150"
                         style={{ height: ROW_HEIGHT }} // Explicitly set height for all rows
+                        onMouseEnter={() => {
+                          // Highlight corresponding row in scrollable section
+                          const scrollableRow = document.querySelector(`[data-row-id="scrollable-${row.id}"]`);
+                          if (scrollableRow) {
+                            scrollableRow.classList.add('bg-gray-100', 'dark:bg-gray-800');
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          // Remove highlight from corresponding row in scrollable section
+                          const scrollableRow = document.querySelector(`[data-row-id="scrollable-${row.id}"]`);
+                          if (scrollableRow) {
+                            scrollableRow.classList.remove('bg-gray-100', 'dark:bg-gray-800');
+                          }
+                        }}
+                        data-row-id={row.id}
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (frozenColumns.includes(cell.column.id)) {
@@ -491,8 +506,23 @@ export function DataTable<TData, TValue>({
                     table.getRowModel().rows.map((row) => (
                       <tr
                         key={row.id}
-                        className="hover:bg-muted/50 border-b border-border"
+                        data-row-id={`scrollable-${row.id}`}
+                        className="hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-border transition-colors duration-150"
                         style={{ height: ROW_HEIGHT }} // Explicitly set height for all rows
+                        onMouseEnter={() => {
+                          // Highlight corresponding row in frozen section
+                          const frozenRows = document.querySelectorAll(`tr[data-row-id="${row.id}"]`);
+                          frozenRows.forEach(frozenRow => {
+                            frozenRow.classList.add('bg-gray-100', 'dark:bg-gray-800');
+                          });
+                        }}
+                        onMouseLeave={() => {
+                          // Remove highlight from corresponding row in frozen section
+                          const frozenRows = document.querySelectorAll(`tr[data-row-id="${row.id}"]`);
+                          frozenRows.forEach(frozenRow => {
+                            frozenRow.classList.remove('bg-gray-100', 'dark:bg-gray-800');
+                          });
+                        }}
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (!frozenColumns.includes(cell.column.id)) {
