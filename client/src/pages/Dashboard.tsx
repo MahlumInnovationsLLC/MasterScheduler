@@ -883,7 +883,7 @@ const Dashboard = () => {
                 amount: ytdAmount,
                 milestones: ytdMilestones
               });
-              console.log(`YTD ${currentYear}: $${ytdAmount} from ${ytdMilestones.length} milestones`);
+              // YTD data logged
               return;
             }
 
@@ -902,7 +902,7 @@ const Dashboard = () => {
                 amount: twelveMonthAmount,
                 milestones: next12Months
               });
-              console.log(`Next 12 months: $${twelveMonthAmount} from ${next12Months.length} milestones`);
+              console.log("Next 12 months: $" + twelveMonthAmount + " from " + next12Months.length + " milestones");
               return;
             }
 
@@ -925,7 +925,7 @@ const Dashboard = () => {
               milestones: selectedMonthMilestones
             });
 
-            console.log(`Month ${month + 1}/${year}: $${monthlyAmount} from ${selectedMonthMilestones.length} milestones`);
+            // Monthly data processed
           }}
         />
       </div>
@@ -1034,112 +1034,7 @@ const Dashboard = () => {
                 onDragStart={(e) => e.preventDefault()}
                 onDrop={(e) => e.preventDefault()}
               >
-                <style>{`
-                  .bay-schedule-readonly * {
-                    pointer-events: none !important;
-                    user-select: none !important;
-                    cursor: default !important;
-                  }
-                  .bay-schedule-readonly .scrollable-area {
-                    pointer-events: auto !important;
-                    overflow: auto !important;
-                  }
-                  .bay-schedule-readonly .project-bar {
-                    cursor: default !important;
-                  }
-                  .bay-schedule-readonly .project-bar:hover {
-                    cursor: default !important;
-                    transform: none !important;
-                  }
-                  .bay-schedule-readonly button {
-                    pointer-events: none !important;
-                    cursor: default !important;
-                  }
-                  /* Enable only left/right scroll navigation buttons */
-                  .bay-schedule-readonly button[aria-label="Scroll timeline left"],
-                  .bay-schedule-readonly button[aria-label="Scroll timeline right"] {
-                    pointer-events: auto !important;
-                    cursor: pointer !important;
-                  }
-                  .bay-schedule-readonly button[aria-label="Scroll timeline left"]:hover,
-                  .bay-schedule-readonly button[aria-label="Scroll timeline right"]:hover {
-                    pointer-events: auto !important;
-                    cursor: pointer !important;
-                    background-color: rgba(0, 0, 0, 0.8) !important;
-                  }
-                  .bay-schedule-readonly .drag-handle {
-                    display: none !important;
-                  }
-                  .bay-schedule-readonly .resize-handle {
-                    display: none !important;
-                  }
-                  /* Hide specific delete buttons with X icons and trash can icons */
-                  .bay-schedule-readonly .delete-button,
-                  .bay-schedule-readonly button[title="Delete Row"],
-                  .bay-schedule-readonly button[title="Add Row"],
-                  .bay-schedule-readonly .row-delete-button,
-                  .bay-schedule-readonly .row-management-buttons,
-                  .bay-schedule-readonly button[title*="Delete"],
-                  .bay-schedule-readonly button[title*="Remove"],
-                  .bay-schedule-readonly .trash-icon,
-                  .bay-schedule-readonly [data-testid*="delete"],
-                  .bay-schedule-readonly [data-testid*="trash"],
-                  .bay-schedule-readonly svg[class*="trash"],
-                  .bay-schedule-readonly .lucide-trash,
-                  .bay-schedule-readonly .lucide-trash-2 {
-                    display: none !important;
-                  }
-                  /* Hide ONLY the "+" icon and team management buttons */
-                  .bay-schedule-readonly .bg-green-700,
-                  .bay-schedule-readonly .bg-blue-700,
-                  .bay-schedule-readonly .bg-orange-700,
-                  .bay-schedule-readonly .bg-purple-700,
-                  .bay-schedule-readonly .bg-gray-700:not([aria-label]) {
-                    display: none !important;
-                  }
-                  /* Hide ALL red elements including delete team buttons */
-                  .bay-schedule-readonly .bg-red-500,
-                  .bay-schedule-readonly .bg-red-600,
-                  .bay-schedule-readonly .bg-red-700,
-                  .bay-schedule-readonly button[class*="bg-red"],
-                  .bay-schedule-readonly .text-red-500,
-                  .bay-schedule-readonly .text-red-600,
-                  .bay-schedule-readonly .text-red-700 {
-                    display: none !important;
-                  }
-                  /* Keep only today marker visible */
-                  .bay-schedule-readonly .today-marker,
-                  .bay-schedule-readonly [class*="today"] {
-                    display: block !important;
-                  }
-                  /* Ensure phases (FAB, PROD, NTC, QC) remain visible */
-                  .bay-schedule-readonly .dept-fab-phase,
-                  .bay-schedule-readonly .dept-prod-phase,
-                  .bay-schedule-readonly .dept-production-phase,
-                  .bay-schedule-readonly .dept-ntc-phase,
-                  .bay-schedule-readonly .dept-qc-phase,
-                  .bay-schedule-readonly .dept-paint-phase,
-                  .bay-schedule-readonly .dept-it-phase,
-                  .bay-schedule-readonly .fab-phase,
-                  .bay-schedule-readonly .production-phase,
-                  .bay-schedule-readonly .ntc-phase,
-                  .bay-schedule-readonly .qc-phase,
-                  .bay-schedule-readonly .paint-phase,
-                  .bay-schedule-readonly .it-phase {
-                    display: block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                  }
-                  /* Ensure TODAY marker remains visible */
-                  .bay-schedule-readonly .today-marker,
-                  .bay-schedule-readonly .bg-red-500 {
-                    display: block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    pointer-events: none !important;
-                  }
 
-                `}</style>
                 <ResizableBaySchedule
                   schedules={manufacturingSchedules}
                   projects={projects}
