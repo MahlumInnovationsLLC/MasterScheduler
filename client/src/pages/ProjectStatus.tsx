@@ -842,6 +842,7 @@ const ProjectStatus = () => {
     let scheduled = 0;
     let inProgress = 0;
     let complete = 0;
+    let delivered = 0;
 
     // Count projects by schedule state
     projects.forEach(project => {
@@ -851,8 +852,9 @@ const ProjectStatus = () => {
         return;
       }
 
-      // If project is delivered, don't count it in any category
+      // If project is delivered, count it in delivered category
       if (project.status === 'delivered') {
+        delivered++;
         return;
       }
 
@@ -879,7 +881,8 @@ const ProjectStatus = () => {
       unscheduled,
       scheduled,
       inProgress,
-      complete
+      complete,
+      delivered
     };
   }, [projects, manufacturingSchedules]);
 
