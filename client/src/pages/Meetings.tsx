@@ -100,6 +100,11 @@ export default function Meetings() {
     queryKey: ['/api/projects'],
   });
 
+  // Fetch project label assignments
+  const { data: labelAssignments = [], isLoading: labelsLoading } = useQuery({
+    queryKey: ['/api/all-project-label-assignments'],
+  });
+
   // Fetch elevated concerns
   const { data: elevatedConcerns = [], isLoading: concernsLoading } = useQuery({
     queryKey: ['/api/elevated-concerns'],
@@ -152,15 +157,54 @@ export default function Meetings() {
     }
   });
 
+  // Helper function to get project labels
+  const getProjectLabels = (projectId: number) => {
+    return (labelAssignments as any[]).filter((assignment: any) => assignment.projectId === projectId);
+  };
+
+  // Helper function to check if project has specific label
+  const hasLabel = (projectId: number, labelName: string) => {
+    const labels = getProjectLabels(projectId);
+    return labels.some((label: any) => label.labelName?.toUpperCase() === labelName.toUpperCase());
+  };
+
+  // Helper function to calculate project progress (simplified)
+  const calculateProgress = (project: Project) => {
+    // Basic progress calculation based on project status
+    const statusProgress: { [key: string]: number } = {
+      'active': 25,
+      'in_progress': 50,
+      'delayed': 40,
+      'critical': 60,
+      'completed': 100,
+      'delivered': 100
+    };
+    return statusProgress[project.status] || 0;
+  };
+
+  // Helper function to determine risk level
+  const getRiskLevel = (project: Project) => {
+    if (hasLabel(project.id, 'MAJOR ISSUE')) return 'high';
+    if (hasLabel(project.id, 'MINOR ISSUE')) return 'medium';
+    if (project.status === 'delayed' || project.status === 'critical') return 'medium';
+    return 'low';
+  };
+
   // Filter projects for Tier III (top 20 ready to ship, earliest first)
   const tierIIIProjects = (projects as Project[])
     .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
     .slice(0, 20);
 
+  // Get next 20 ready to ship projects for Tier III
+  const nextTierIIIProjects = (projects as Project[])
+    .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
+    .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
+    .slice(20, 40);
+
   // Filter projects for Tier IV (MAJOR and MINOR issues only)
   const tierIVProjects = (projects as Project[]).filter((p: Project) => 
-    p.status === "critical" || p.notes?.toLowerCase().includes("major") || p.notes?.toLowerCase().includes("minor")
+    hasLabel(p.id, 'MAJOR ISSUE') || hasLabel(p.id, 'MINOR ISSUE')
   );
 
   // Get concerns escalated to Tier IV
@@ -174,39 +218,109 @@ export default function Meetings() {
     escalateMutation.mutate(id);
   };
 
-  const ProjectCard = ({ project, showConcerns = false }: { project: Project; showConcerns?: boolean }) => {
+  const ProjectCard = ({ 
+    project, 
+    showConcerns = false, 
+    showProgress = false, 
+    compact = false 
+  }: { 
+    project: Project; 
+    showConcerns?: boolean; 
+    showProgress?: boolean; 
+    compact?: boolean; 
+  }) => {
     const projectConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id);
+    const progress = calculateProgress(project);
+    const riskLevel = getRiskLevel(project);
+    const projectLabels = getProjectLabels(project.id);
+    
+    const getRiskColor = (risk: string) => {
+      switch (risk) {
+        case 'high': return 'text-red-600 bg-red-50';
+        case 'medium': return 'text-yellow-600 bg-yellow-50';
+        default: return 'text-green-600 bg-green-50';
+      }
+    };
+
+    const getRiskVariant = (risk: string) => {
+      switch (risk) {
+        case 'high': return 'destructive';
+        case 'medium': return 'secondary';
+        default: return 'default';
+      }
+    };
     
     return (
-      <Card className="w-full">
-        <CardHeader>
+      <Card className={`w-full ${compact ? 'h-32' : ''}`}>
+        <CardHeader className={compact ? 'pb-2' : ''}>
           <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-lg">{project.name}</CardTitle>
-              <CardDescription>{project.projectNumber}</CardDescription>
+            <div className="flex-1 min-w-0">
+              <CardTitle className={`${compact ? 'text-sm' : 'text-lg'} truncate`}>{project.name}</CardTitle>
+              <CardDescription className="truncate">{project.projectNumber}</CardDescription>
             </div>
-            <Badge variant={project.status === "critical" ? "destructive" : "default"}>
-              {project.status}
-            </Badge>
+            <div className="flex flex-col gap-1 ml-2">
+              {/* Project Labels */}
+              {projectLabels.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {projectLabels.slice(0, compact ? 1 : 3).map((label: any) => (
+                    <Badge 
+                      key={label.id} 
+                      variant={label.labelName === 'MAJOR ISSUE' ? 'destructive' : 
+                              label.labelName === 'MINOR ISSUE' ? 'secondary' : 'default'}
+                      className="text-xs"
+                    >
+                      {label.labelName}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              {/* Risk Level Badge */}
+              {showProgress && (
+                <Badge variant={getRiskVariant(riskLevel)} className="text-xs">
+                  {riskLevel.toUpperCase()} RISK
+                </Badge>
+              )}
+              <Badge variant={project.status === "critical" ? "destructive" : "default"} className="text-xs">
+                {project.status}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
+        <CardContent className={`space-y-${compact ? '2' : '4'}`}>
+          {/* Progress Bar */}
+          {showProgress && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span>Progress</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+
+          <div className={`grid ${compact ? 'grid-cols-1 gap-1' : 'grid-cols-2 gap-4'} text-sm`}>
+            <div className="truncate">
               <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"}
             </div>
-            <div>
-              <span className="font-medium">Ship Date:</span> {project.shipDate ? format(new Date(project.shipDate), 'MMM d, yyyy') : "TBD"}
+            <div className="truncate">
+              <span className="font-medium">Ship:</span> {project.shipDate ? format(new Date(project.shipDate), 'MMM d') : "TBD"}
             </div>
-            <div>
-              <span className="font-medium">Delivery:</span> {project.deliveryDate ? format(new Date(project.deliveryDate), 'MMM d, yyyy') : "TBD"}
-            </div>
+            {!compact && (
+              <div className="truncate">
+                <span className="font-medium">Delivery:</span> {project.deliveryDate ? format(new Date(project.deliveryDate), 'MMM d, yyyy') : "TBD"}
+              </div>
+            )}
           </div>
           
-          {project.notes && (
+          {!compact && project.notes && (
             <div className="text-sm">
               <span className="font-medium">Notes:</span>
-              <p className="text-muted-foreground mt-1">{project.notes}</p>
+              <p className="text-muted-foreground mt-1 line-clamp-2">{project.notes}</p>
             </div>
           )}
 
@@ -390,11 +504,26 @@ export default function Meetings() {
             </Card>
           </div>
 
-          {/* Projects Grid */}
+          {/* Top 20 Ready to Ship Projects */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {tierIIIProjects.map((project: Project) => (
-              <ProjectCard key={project.id} project={project} showConcerns={true} />
+              <ProjectCard key={project.id} project={project} showConcerns={true} showProgress={true} />
             ))}
+          </div>
+
+          {/* Next 20 Ready to Ship Projects - Compact */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Next 20 Ready to Ship</h3>
+            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+              {nextTierIIIProjects.map((project: Project) => (
+                <ProjectCard 
+                  key={project.id} 
+                  project={project} 
+                  showProgress={true} 
+                  compact={true} 
+                />
+              ))}
+            </div>
           </div>
 
           {/* Elevated Concerns Section */}
