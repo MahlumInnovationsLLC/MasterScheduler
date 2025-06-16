@@ -318,7 +318,7 @@ const Dashboard = () => {
     const unscheduledProjects = manufacturingSchedules
       ? projects.filter(p => {
           const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
-          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed';
+          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
           if (isUnscheduled) {
             console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
           }

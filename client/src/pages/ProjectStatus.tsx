@@ -851,6 +851,11 @@ const ProjectStatus = () => {
         return;
       }
 
+      // If project is delivered, don't count it in any category
+      if (project.status === 'delivered') {
+        return;
+      }
+
       // For all other projects, categorize by their schedule state
       const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
 
