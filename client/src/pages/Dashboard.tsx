@@ -642,6 +642,18 @@ const Dashboard = () => {
   // Enhanced project table columns matching Projects Module exactly
   const projectColumns = [
     {
+      accessorKey: 'contractDate',
+      header: 'Contract Date',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Clock className="h-4 w-4 text-blue-500" />
+          <div className="text-sm">
+            {formatDate(row.original.contractDate)}
+          </div>
+        </div>
+      ),
+    },
+    {
       accessorKey: 'projectNumber',
       header: 'Project',
       cell: ({ row }) => {
@@ -744,18 +756,6 @@ const Dashboard = () => {
       ),
     },
     {
-      accessorKey: 'contractDate',
-      header: 'Contract Date',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Clock className="h-4 w-4 text-blue-500" />
-          <div className="text-sm">
-            {formatDate(row.original.contractDate)}
-          </div>
-        </div>
-      ),
-    },
-    {
       accessorKey: 'shipDate',
       header: 'Ship Date',
       cell: ({ row }) => {
@@ -793,7 +793,7 @@ const Dashboard = () => {
         );
       },
     },
-    
+
   ];
 
   if (isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays) {
@@ -830,7 +830,8 @@ const Dashboard = () => {
           tags={[
             { label: "Active", value: projectStats?.active || 0, status: "Active" },
             { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
-            { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
+            { label: "Critical", value: projectStats?.critical ||```text
+ 0, status: "Critical" }
           ]}
           stateBreakdown={{
             unscheduled: projectStats?.unscheduled || 0,
