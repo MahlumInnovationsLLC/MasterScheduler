@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { GripVertical, Import, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { GripVertical, Plus, Calendar, DollarSign, TrendingUp } from 'lucide-react';
 
 interface BillingMilestone {
   id: number;
@@ -121,49 +121,49 @@ const SortablePriorityItem = ({ priority, index }: { priority: ProjectPriority; 
 
           {/* Ship Date */}
           <div className="text-center">
-            <div className="flex items-center justify-center text-sm text-gray-500 mb-1">
+            <div className="flex items-center justify-center text-sm text-gray-700 mb-1">
               <Calendar className="w-3 h-3 mr-1" />
               Ship Date
             </div>
-            <div className="font-medium">{formatDate(priority.shipDate)}</div>
-            <div className={`text-xs ${getUrgencyColor(priority.daysUntilShip)}`}>
+            <div className="font-medium text-gray-900">{formatDate(priority.shipDate)}</div>
+            <div className={`text-xs font-medium ${getUrgencyColor(priority.daysUntilShip)}`}>
               {priority.daysUntilShip > 0 ? `${priority.daysUntilShip} days` : 'Overdue'}
             </div>
           </div>
 
           {/* Total Value */}
           <div className="text-center">
-            <div className="flex items-center justify-center text-sm text-gray-500 mb-1">
+            <div className="flex items-center justify-center text-sm text-gray-700 mb-1">
               <DollarSign className="w-3 h-3 mr-1" />
               Total Value
             </div>
-            <div className="font-medium">{formatCurrency(priority.totalValue)}</div>
+            <div className="font-medium text-gray-900">{formatCurrency(priority.totalValue)}</div>
           </div>
 
           {/* Billing Progress */}
           <div className="text-center">
-            <div className="flex items-center justify-center text-sm text-gray-500 mb-1">
+            <div className="flex items-center justify-center text-sm text-gray-700 mb-1">
               <TrendingUp className="w-3 h-3 mr-1" />
               Billing
             </div>
-            <div className="font-medium">{formatCurrency(paidValue)}</div>
-            <div className="text-xs text-gray-500">
+            <div className="font-medium text-gray-900">{formatCurrency(paidValue)}</div>
+            <div className="text-xs text-gray-700">
               {paidMilestones.length}/{priority.billingMilestones.length} paid
             </div>
           </div>
 
           {/* Milestones Count */}
           <div className="text-center">
-            <div className="text-sm text-gray-500 mb-1">Milestones</div>
-            <div className="font-medium">{priority.billingMilestones.length}</div>
-            <div className="text-xs text-gray-500">
+            <div className="text-sm text-gray-700 mb-1">Milestones</div>
+            <div className="font-medium text-gray-900">{priority.billingMilestones.length}</div>
+            <div className="text-xs text-gray-700">
               {totalMilestoneValue > 0 ? formatCurrency(totalMilestoneValue) : 'No billing'}
             </div>
           </div>
 
           {/* Completion Progress */}
           <div className="text-center">
-            <div className="text-sm text-gray-500 mb-1">Progress</div>
+            <div className="text-sm text-gray-700 mb-1">Progress</div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-blue-600 h-2 rounded-full"
@@ -172,7 +172,7 @@ const SortablePriorityItem = ({ priority, index }: { priority: ProjectPriority; 
                 }}
               ></div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-700 mt-1">
               {totalMilestoneValue > 0 ? `${Math.round((paidValue / totalMilestoneValue) * 100)}%` : '0%'}
             </div>
           </div>
@@ -193,23 +193,23 @@ export default function Priorities() {
     })
   );
 
-  // Import top 50 projects based on earliest ship date
-  const importProjectsMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/priorities/import-top-projects');
+  // Add new priority functionality
+  const addNewPriorityMutation = useMutation({
+    mutationFn: async (newPriority: Partial<ProjectPriority>) => {
+      const response = await apiRequest('POST', '/api/priorities/add', newPriority);
       return response.json();
     },
     onSuccess: (data) => {
-      setProjectPriorities(data);
+      setProjectPriorities(prev => [...prev, data]);
       toast({
         title: 'Success',
-        description: `Imported ${data.length} projects with priority ranking by ship date.`,
+        description: 'New priority added successfully.',
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to import projects',
+        description: error.message || 'Failed to add new priority',
         variant: 'destructive',
       });
     },
@@ -281,8 +281,12 @@ export default function Priorities() {
     }
   };
 
-  const handleImportProjects = () => {
-    importProjectsMutation.mutate();
+  const handleAddNewPriority = () => {
+    // For now, we'll show a toast - in a full implementation this would open a dialog
+    toast({
+      title: 'Add New Priority',
+      description: 'Feature to add custom priorities coming soon.',
+    });
   };
 
   if (isLoading) {
@@ -314,12 +318,12 @@ export default function Priorities() {
               </p>
             </div>
             <Button
-              onClick={handleImportProjects}
-              disabled={importProjectsMutation.isPending}
+              onClick={handleAddNewPriority}
+              disabled={addNewPriorityMutation.isPending}
               className="flex items-center gap-2"
             >
-              <Import className="w-4 h-4" />
-              {importProjectsMutation.isPending ? 'Importing...' : 'Import Top 50 Projects'}
+              <Plus className="w-4 h-4" />
+              Add New Priority
             </Button>
           </div>
         </CardHeader>
@@ -328,9 +332,9 @@ export default function Priorities() {
           {projectPriorities.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-500 mb-4">No project priorities configured</div>
-              <Button onClick={handleImportProjects} disabled={importProjectsMutation.isPending}>
-                <Import className="w-4 h-4 mr-2" />
-                Import Top 50 Projects by Ship Date
+              <Button onClick={handleAddNewPriority} disabled={addNewPriorityMutation.isPending}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add New Priority
               </Button>
             </div>
           ) : (
