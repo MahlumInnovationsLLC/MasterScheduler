@@ -241,6 +241,7 @@ export interface IStorage {
   deleteProject(id: number): Promise<boolean>;
 
   // Task methods
+  getAllTasks(): Promise<Task[]>;
   getTasks(projectId: number): Promise<Task[]>;
   getTask(id: number): Promise<Task | undefined>;
   createTask(task: InsertTask): Promise<Task>;
@@ -1344,6 +1345,123 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Task methods
+  async getAllTasks(): Promise<Task[]> {
+    try {
+      // Get all regular project tasks with user information
+      const allProjectTasks = await db.select().from(tasks);
+      
+      // Get all meeting tasks with user information
+      let allMeetingTasks = [];
+      try {
+        const assignedUser = alias(users, 'assignedUser');
+        const completedUser = alias(users, 'completedUser');
+        
+        allMeetingTasks = await db
+          .select({
+            id: meetingTasks.id,
+            description: meetingTasks.description,
+            projectId: meetingTasks.projectId,
+            dueDate: meetingTasks.dueDate,
+            status: meetingTasks.status,
+            createdAt: meetingTasks.createdAt,
+            assignedToId: meetingTasks.assignedToId,
+            completedDate: meetingTasks.completedDate,
+            completedByUserId: meetingTasks.completedByUserId,
+            assignedToUser: {
+              id: assignedUser.id,
+              firstName: assignedUser.firstName,
+              lastName: assignedUser.lastName,
+              email: assignedUser.email,
+            },
+            completedByUser: {
+              id: completedUser.id,
+              firstName: completedUser.firstName,
+              lastName: completedUser.lastName,
+              email: completedUser.email,
+            },
+          })
+          .from(meetingTasks)
+          .leftJoin(assignedUser, eq(meetingTasks.assignedToId, assignedUser.id))
+          .leftJoin(completedUser, eq(meetingTasks.completedByUserId, completedUser.id));
+      } catch (meetingError) {
+        console.warn('Could not fetch meeting tasks:', meetingError);
+      }
+      
+      // Convert meeting tasks to match Task interface
+      const convertedMeetingTasks = allMeetingTasks.map(task => ({
+        id: task.id + 10000, // Add offset to avoid ID conflicts with regular tasks
+        name: `Meeting Task: ${task.description}`,
+        description: task.description,
+        projectId: task.projectId,
+        milestoneId: null,
+        startDate: null,
+        dueDate: task.dueDate,
+        completedDate: task.completedDate,
+        completedByUserId: task.completedByUserId,
+        assignedToUserId: task.assignedToId,
+        isCompleted: task.status === 'completed',
+        createdAt: task.createdAt,
+        assignedToUser: task.assignedToUser,
+        completedByUser: task.completedByUser,
+        isMeetingTask: true
+      }));
+      
+      // For each regular task, fetch user details if available
+      const tasksWithUsers = await Promise.all(
+        allProjectTasks.map(async (task) => {
+          let assignedToUser = null;
+          let completedByUser = null;
+          
+          if (task.assignedToUserId) {
+            try {
+              const [assigned] = await db.select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                email: users.email,
+              }).from(users).where(eq(users.id, task.assignedToUserId));
+              assignedToUser = assigned || null;
+            } catch (e) {
+              console.warn('Could not fetch assigned user:', e);
+            }
+          }
+          
+          if (task.completedByUserId) {
+            try {
+              const [completed] = await db.select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                email: users.email,
+              }).from(users).where(eq(users.id, task.completedByUserId));
+              completedByUser = completed || null;
+            } catch (e) {
+              console.warn('Could not fetch completed by user:', e);
+            }
+          }
+          
+          return {
+            ...task,
+            assignedToUser,
+            completedByUser
+          };
+        })
+      );
+      
+      // Combine both arrays
+      return [...tasksWithUsers, ...convertedMeetingTasks];
+    } catch (error) {
+      console.error("Error fetching all tasks:", error);
+      // Fallback to just project tasks without user joins
+      try {
+        return await db.select().from(tasks);
+      } catch (fallbackError) {
+        console.error("Error fetching fallback tasks:", fallbackError);
+        return [];
+      }
+    }
+  }
+
   async getTasks(projectId: number): Promise<Task[]> {
     try {
       // Get regular project tasks
