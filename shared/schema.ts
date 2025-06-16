@@ -126,6 +126,11 @@ export const taskStatusEnum = pgEnum("task_status", [
   "completed",
 ]);
 
+export const elevatedConcernTypeEnum = pgEnum("elevated_concern_type", [
+  "task",
+  "note",
+]);
+
 export const delayResponsibilityEnum = pgEnum("delay_responsibility", [
   "nomad_fault",
   "vendor_fault",
@@ -1443,6 +1448,25 @@ export const meetingTemplates = pgTable("meeting_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Elevated Concerns - for Tier III/IV dashboards
+export const elevatedConcerns = pgTable("elevated_concerns", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  type: elevatedConcernTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  priority: taskPriorityEnum("priority").default("medium"),
+  status: taskStatusEnum("status").default("pending"),
+  assignedToId: varchar("assigned_to_id").references(() => users.id),
+  dueDate: date("due_date"),
+  isEscalatedToTierIV: boolean("is_escalated_to_tier_iv").default(false),
+  escalatedAt: timestamp("escalated_at"),
+  escalatedBy: varchar("escalated_by").references(() => users.id),
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Email Notifications
 export const meetingEmailNotifications = pgTable("meeting_email_notifications", {
   id: serial("id").primaryKey(),
@@ -1496,6 +1520,25 @@ export const meetingTasksRelations = relations(meetingTasks, ({ one }) => ({
   }),
 }));
 
+export const elevatedConcernsRelations = relations(elevatedConcerns, ({ one }) => ({
+  project: one(projects, {
+    fields: [elevatedConcerns.projectId],
+    references: [projects.id],
+  }),
+  assignedTo: one(users, {
+    fields: [elevatedConcerns.assignedToId],
+    references: [users.id],
+  }),
+  createdBy: one(users, {
+    fields: [elevatedConcerns.createdBy],
+    references: [users.id],
+  }),
+  escalatedBy: one(users, {
+    fields: [elevatedConcerns.escalatedBy],
+    references: [users.id],
+  }),
+}));
+
 // Meeting Insert Schemas
 export const insertMeetingSchema = createInsertSchema(meetings).omit({
   id: true,
@@ -1534,6 +1577,12 @@ export const insertMeetingEmailNotificationSchema = createInsertSchema(meetingEm
   createdAt: true,
 });
 
+export const insertElevatedConcernSchema = createInsertSchema(elevatedConcerns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Meeting Types
 export type Meeting = typeof meetings.$inferSelect;
 export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
@@ -1547,6 +1596,8 @@ export type MeetingTemplate = typeof meetingTemplates.$inferSelect;
 export type InsertMeetingTemplate = z.infer<typeof insertMeetingTemplateSchema>;
 export type MeetingEmailNotification = typeof meetingEmailNotifications.$inferSelect;
 export type InsertMeetingEmailNotification = z.infer<typeof insertMeetingEmailNotificationSchema>;
+export type ElevatedConcern = typeof elevatedConcerns.$inferSelect;
+export type InsertElevatedConcern = z.infer<typeof insertElevatedConcernSchema>;
 
 // Project Labels Schemas
 export const insertProjectLabelSchema = createInsertSchema(projectLabels).omit({

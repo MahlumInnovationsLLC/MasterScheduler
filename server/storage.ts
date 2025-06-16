@@ -29,6 +29,7 @@ import {
   meetingTasks,
   meetingTemplates,
   meetingEmailNotifications,
+  elevatedConcerns,
   // Quality Assurance tables
   nonConformanceReports,
   correctiveActions,
@@ -94,6 +95,8 @@ import {
   type InsertMeetingTemplate,
   type MeetingEmailNotification,
   type InsertMeetingEmailNotification,
+  type ElevatedConcern,
+  type InsertElevatedConcern,
   type ProjectLabel,
   type InsertProjectLabel,
   type ProjectLabelAssignment,
