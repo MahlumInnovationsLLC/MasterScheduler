@@ -770,10 +770,16 @@ export default function Meetings() {
                         <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"}
                       </div>
                       <div>
-                        <span className="font-medium">Ship Date:</span> {project.shipDate ? format(new Date(project.shipDate), 'MMM d, yyyy') : "TBD"}
+                        <span className="font-medium">Ship Date:</span> {project.shipDate ? (() => {
+                          const date = new Date(project.shipDate + 'T00:00:00');
+                          return format(date, 'MMM d, yyyy');
+                        })() : "TBD"}
                       </div>
                       <div>
-                        <span className="font-medium">Delivery:</span> {project.deliveryDate ? format(new Date(project.deliveryDate), 'MMM d, yyyy') : "TBD"}
+                        <span className="font-medium">Delivery:</span> {project.deliveryDate ? (() => {
+                          const date = new Date(project.deliveryDate + 'T00:00:00');
+                          return format(date, 'MMM d, yyyy');
+                        })() : "TBD"}
                       </div>
                     </div>
                     
