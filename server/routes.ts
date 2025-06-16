@@ -6162,5 +6162,16 @@ Response format:
     }
   });
 
+  // Get existing project priorities
+  app.get("/api/project-priorities", async (req, res) => {
+    try {
+      const priorities = await storage.getProjectPriorities();
+      res.json(priorities);
+    } catch (error) {
+      console.error("Error getting project priorities:", error);
+      res.status(500).json({ message: "Error getting project priorities" });
+    }
+  });
+
   return httpServer;
 }
