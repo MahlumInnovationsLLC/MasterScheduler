@@ -1,17 +1,24 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, Clock, Loader2 } from 'lucide-react';
 import { Project } from '@shared/schema';
 
 interface ProjectMetricsProps {
-  project: Project;
+  projectId: number;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
-export function ProjectMetrics({ project, onRefresh, isRefreshing = false }: ProjectMetricsProps) {
+export function ProjectMetrics({ projectId, onRefresh, isRefreshing = false }: ProjectMetricsProps) {
+  // Fetch project data to get metrics
+  const { data: project, isLoading, error } = useQuery({
+    queryKey: [`/api/projects/${projectId}`],
+    enabled: !!projectId,
+  });
+
   const formatCurrency = (value: string | null) => {
     if (!value || value === '0' || value === '0.00') return 'N/A';
     const num = parseFloat(value);
@@ -54,152 +61,99 @@ export function ProjectMetrics({ project, onRefresh, isRefreshing = false }: Pro
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="bg-dark rounded border border-gray-800 p-3">
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <div className="bg-dark rounded border border-gray-800 p-3">
+        <div className="text-md font-semibold text-gray-300 mb-2">PROJECT METRICS</div>
+        <div className="text-sm text-gray-400">No data available</div>
+      </div>
+    );
+  }
+
   const cpiStatus = getCPIStatus(project.cpi);
   const hasMetrics = project.cpi || project.plannedValue || project.earnedValue || project.actualCost || project.estimatedCost;
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-lg font-semibold">Project Performance Metrics</CardTitle>
-        <div className="flex items-center gap-2">
-          {project.metricsLastUpdated && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>
-                Updated: {new Date(project.metricsLastUpdated).toLocaleDateString()}
-              </span>
-            </div>
-          )}
-          {onRefresh && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="h-8"
-            >
-              <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Sync
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {!hasMetrics ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <div className="text-sm">
-              No performance metrics available for this project.
-            </div>
-            {onRefresh && (
-              <div className="text-xs mt-2">
-                Click "Sync" to fetch the latest data from the metrics system.
-              </div>
-            )}
+    <div className="bg-dark rounded border border-gray-800 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-md font-semibold text-gray-300">PROJECT METRICS</div>
+        {project.metricsLastUpdated && (
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <Clock className="h-3 w-3" />
+            <span>
+              {new Date(project.metricsLastUpdated).toLocaleDateString()}
+            </span>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Cost Performance Index (CPI) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">CPI</span>
-                <Badge className={`${getCPIColor(cpiStatus)} flex items-center gap-1`}>
-                  {getCPIIcon(cpiStatus)}
+        )}
+      </div>
+      
+      {!hasMetrics ? (
+        <div className="text-sm text-gray-400">
+          No performance data available
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* CPI */}
+          {project.cpi && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-400">CPI</span>
+              <div className="flex items-center gap-2">
+                {getCPIIcon(cpiStatus)}
+                <span className={`text-sm font-bold ${
+                  cpiStatus === 'good' ? 'text-green-400' :
+                  cpiStatus === 'warning' ? 'text-yellow-400' :
+                  cpiStatus === 'poor' ? 'text-red-400' : 'text-gray-400'
+                }`}>
                   {formatCPI(project.cpi)}
-                </Badge>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Cost Performance Index
-              </div>
-            </div>
-
-            {/* Planned Value */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Planned</span>
-                <span className="text-sm font-mono">{formatCurrency(project.plannedValue)}</span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Planned Value (PV)
-              </div>
-            </div>
-
-            {/* Earned Value */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Earned</span>
-                <span className="text-sm font-mono">{formatCurrency(project.earnedValue)}</span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Earned Value (EV)
-              </div>
-            </div>
-
-            {/* Actual Cost */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Actual</span>
-                <span className="text-sm font-mono">{formatCurrency(project.actualCost)}</span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Actual Cost (AC)
-              </div>
-            </div>
-
-            {/* Estimated Cost */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Estimated</span>
-                <span className="text-sm font-mono">{formatCurrency(project.estimatedCost)}</span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Estimated Cost (EC)
-              </div>
-            </div>
-
-            {/* Total Hours (existing field) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Total Hours</span>
-                <span className="text-sm font-mono">
-                  {project.totalHours ? project.totalHours.toLocaleString() : 'N/A'}
                 </span>
               </div>
-              <div className="text-xs text-muted-foreground">
-                Manufacturing Hours
-              </div>
             </div>
-          </div>
-        )}
-
-        {/* Performance Indicators */}
-        {hasMetrics && project.cpi && project.plannedValue && project.earnedValue && (
-          <div className="mt-6 pt-4 border-t">
-            <div className="text-sm font-medium mb-3">Performance Analysis</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1">
-                <div className="font-medium">Cost Performance:</div>
-                <div className="text-muted-foreground">
-                  {cpiStatus === 'good' && 'Project is under budget and performing well'}
-                  {cpiStatus === 'warning' && 'Project costs are slightly above planned'}
-                  {cpiStatus === 'poor' && 'Project is significantly over budget'}
-                  {cpiStatus === 'unknown' && 'Performance data not available'}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="font-medium">Schedule Performance:</div>
-                <div className="text-muted-foreground">
-                  {project.earnedValue && project.plannedValue && (
-                    parseFloat(project.earnedValue) >= parseFloat(project.plannedValue)
-                      ? 'On or ahead of schedule'
-                      : 'Behind planned schedule'
-                  )}
-                </div>
-              </div>
+          )}
+          
+          {/* Planned Value */}
+          {project.plannedValue && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-400">PLANNED</span>
+              <span className="text-sm font-bold">{formatCurrency(project.plannedValue)}</span>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+          
+          {/* Earned Value */}
+          {project.earnedValue && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-400">EARNED</span>
+              <span className="text-sm font-bold">{formatCurrency(project.earnedValue)}</span>
+            </div>
+          )}
+          
+          {/* Actual Cost */}
+          {project.actualCost && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-400">ACTUAL</span>
+              <span className="text-sm font-bold">{formatCurrency(project.actualCost)}</span>
+            </div>
+          )}
+          
+          {/* Estimated Cost */}
+          {project.estimatedCost && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-400">ESTIMATED</span>
+              <span className="text-sm font-bold">{formatCurrency(project.estimatedCost)}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
