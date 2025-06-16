@@ -269,7 +269,16 @@ export default function Meetings() {
   const tierIVConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.isEscalatedToTierIV);
 
   const handleCreateConcern = () => {
-    createConcernMutation.mutate(concernForm);
+    // Clean up the form data to handle optional fields properly
+    const cleanedForm = {
+      ...concernForm,
+      projectId: parseInt(concernForm.projectId),
+      // Remove assignedToId if it's empty string, let it be null
+      assignedToId: concernForm.assignedToId && concernForm.assignedToId.trim() !== "" ? concernForm.assignedToId : null,
+      // Convert dueDate to proper format or null
+      dueDate: concernForm.dueDate && concernForm.dueDate.trim() !== "" ? concernForm.dueDate : null
+    };
+    createConcernMutation.mutate(cleanedForm);
   };
 
   const handleEscalate = (id: number) => {
