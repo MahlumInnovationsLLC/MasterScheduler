@@ -34,9 +34,22 @@ export function useProjectLabelStats() {
     console.log('Project label assignments:', allProjectLabelAssignments.length);
 
     // Find label IDs for MAJOR, MINOR, GOOD (case-insensitive)
-    const majorLabel = availableLabels.find(l => l.name.toUpperCase().includes('MAJOR'));
-    const minorLabel = availableLabels.find(l => l.name.toUpperCase().includes('MINOR')); 
-    const goodLabel = availableLabels.find(l => l.name.toUpperCase().includes('GOOD'));
+    // This will match "MAJOR ISSUE", "MAJOR", "MINOR ISSUE", "MINOR", etc.
+    const majorLabel = availableLabels.find(l => {
+      const matches = l.name.toUpperCase().includes('MAJOR');
+      console.log(`Checking label "${l.name}" for MAJOR: ${matches}`);
+      return matches;
+    });
+    const minorLabel = availableLabels.find(l => {
+      const matches = l.name.toUpperCase().includes('MINOR');
+      console.log(`Checking label "${l.name}" for MINOR: ${matches}`);
+      return matches;
+    });
+    const goodLabel = availableLabels.find(l => {
+      const matches = l.name.toUpperCase().includes('GOOD');
+      console.log(`Checking label "${l.name}" for GOOD: ${matches}`);
+      return matches;
+    });
 
     console.log('Found labels:', { 
       major: majorLabel ? { id: majorLabel.id, name: majorLabel.name } : null,
@@ -44,8 +57,9 @@ export function useProjectLabelStats() {
       good: goodLabel ? { id: goodLabel.id, name: goodLabel.name } : null
     });
 
-    // Debug: Log a few assignments to see the structure
-    console.log('Sample assignments:', allProjectLabelAssignments.slice(0, 3));
+    // Debug: Log all assignments to see the structure
+    console.log('All assignments:', allProjectLabelAssignments);
+    console.log('Sample assignments:', allProjectLabelAssignments.slice(0, 5));
     
     // Count projects by label
     const majorCount = majorLabel ? 
