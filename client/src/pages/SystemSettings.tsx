@@ -17,7 +17,8 @@ import {
   MoveRight,
   ArrowUpCircle,
   Database,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
@@ -82,6 +83,9 @@ const SystemSettings = () => {
     column: 'lastName',
     direction: 'asc'
   });
+
+  // User search state
+  const [userSearchQuery, setUserSearchQuery] = useState('');
 
   // User module visibility state
   const [userModuleVisibility, setUserModuleVisibility] = useState<Record<string, Record<string, boolean>>>({});
@@ -744,6 +748,65 @@ const SystemSettings = () => {
       column,
       direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'desc'
     }));
+  };
+
+  // Get filtered users based on search query
+  const getFilteredUsers = () => {
+    if (!users || users.length === 0) return [];
+    
+    if (!userSearchQuery.trim()) {
+      return getSortedUsers();
+    }
+
+    const query = userSearchQuery.toLowerCase().trim();
+    const filtered = users.filter(user => {
+      const firstName = (user.firstName || '').toLowerCase();
+      const lastName = (user.lastName || '').toLowerCase();
+      const email = (user.email || user.username || '').toLowerCase();
+      const role = (user.role || '').toLowerCase();
+      const department = (user.department || '').toLowerCase();
+      
+      return firstName.includes(query) ||
+             lastName.includes(query) ||
+             email.includes(query) ||
+             role.includes(query) ||
+             department.includes(query) ||
+             `${firstName} ${lastName}`.includes(query);
+    });
+
+    return [...filtered].sort((a, b) => {
+      // Handle special cases based on column
+      if (userSort.column === 'lastName') {
+        const aValue = `${a.lastName || ''} ${a.firstName || ''}`.toLowerCase();
+        const bValue = `${b.lastName || ''} ${b.firstName || ''}`.toLowerCase();
+        return userSort.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      if (userSort.column === 'department') {
+        const aValue = (a.department || 'zzz').toLowerCase();
+        const bValue = (b.department || 'zzz').toLowerCase();
+        return userSort.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      if (userSort.column === 'createdAt' || userSort.column === 'lastLogin') {
+        const aDate = a[userSort.column] ? new Date(a[userSort.column]) : new Date(0);
+        const bDate = b[userSort.column] ? new Date(b[userSort.column]) : new Date(0);
+        return userSort.direction === 'asc' 
+          ? aDate.getTime() - bDate.getTime()
+          : bDate.getTime() - aDate.getTime();
+      }
+
+      // Default sorting by display name
+      const aValue = `${a.lastName || ''} ${a.firstName || ''}`.toLowerCase();
+      const bValue = `${b.lastName || ''} ${b.firstName || ''}`.toLowerCase();
+      return userSort.direction === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    });
   };
 
   // Get sorted users
@@ -1656,6 +1719,29 @@ const SystemSettings = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
+                  {/* User Search Section */}
+                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <Label htmlFor="userSearch" className="text-sm font-medium text-gray-700">
+                        Search Users
+                      </Label>
+                      <div className="relative mt-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="userSearch"
+                          type="text"
+                          placeholder="Search by name, email, or role..."
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                          className="pl-10 bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {getFilteredUsers().length} of {users.length} users
+                    </div>
+                  </div>
+
                   {usersLoading ? (
                     <div className="flex justify-center p-4">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -1670,9 +1756,13 @@ const SystemSettings = () => {
                     <div className="text-center p-4 border rounded-md">
                       <p className="text-muted-foreground">No users found.</p>
                     </div>
+                  ) : getFilteredUsers().length === 0 ? (
+                    <div className="text-center p-4 border rounded-md">
+                      <p className="text-muted-foreground">No users match your search criteria.</p>
+                    </div>
                   ) : (
                     <div className="space-y-6">
-                      {getSortedUsers().map((user) => (
+                      {getFilteredUsers().map((user) => (
                         <div key={user.id} className="space-y-4 border rounded-lg p-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
