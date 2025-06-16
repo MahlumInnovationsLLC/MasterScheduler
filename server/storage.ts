@@ -415,6 +415,7 @@ export interface IStorage {
   deleteElevatedConcern(id: number): Promise<boolean>;
   getElevatedConcernsByProject(projectId: number): Promise<ElevatedConcern[]>;
   escalateToTierIV(id: number, escalatedBy: string): Promise<ElevatedConcern | undefined>;
+  closeElevatedConcern(id: number, closedBy: string): Promise<boolean>;
 
   // Quality Assurance methods
   getNcrs(): Promise<NonConformanceReport[]>;
@@ -4000,6 +4001,22 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error escalating concern to Tier IV:", error);
       return undefined;
+    }
+  }
+
+  async closeElevatedConcern(id: number, closedBy: string): Promise<boolean> {
+    try {
+      const [result] = await db.update(elevatedConcerns)
+        .set({ 
+          status: 'completed',
+          updatedAt: new Date() 
+        })
+        .where(eq(elevatedConcerns.id, id))
+        .returning();
+      return !!result;
+    } catch (error) {
+      console.error("Error closing elevated concern:", error);
+      return false;
     }
   }
 
