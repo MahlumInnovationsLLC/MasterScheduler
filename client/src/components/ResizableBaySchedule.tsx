@@ -2888,9 +2888,26 @@ export default function ResizableBaySchedule({
     // Make sure projects array exists before filtering
     if (!projects || !Array.isArray(projects)) return [];
     
-    return projects.filter(project => 
-      !schedules.some(schedule => schedule.projectId === project.id)
-    );
+    return projects.filter(project => {
+      // Exclude if project has a schedule
+      if (schedules.some(schedule => schedule.projectId === project.id)) {
+        return false;
+      }
+      
+      // Exclude if project has delivered status
+      if (project.status === 'delivered') {
+        console.log(`🚫 Filtering out delivered project: ${project.projectNumber}`);
+        return false;
+      }
+      
+      // Exclude if project is in Field or FSW category
+      if (project.team === 'Field' || project.team === 'FSW') {
+        console.log(`🚫 Filtering out Field/FSW project: ${project.projectNumber} (team: ${project.team})`);
+        return false;
+      }
+      
+      return true;
+    });
   }, [projects, schedules, forceUpdate]);
   
   return (
