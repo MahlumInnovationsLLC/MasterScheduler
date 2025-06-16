@@ -2801,6 +2801,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Task API routes
+  app.get("/api/tasks", simpleAuth, async (req, res) => {
+    try {
+      const allTasks = await storage.getAllTasks();
+      res.json(allTasks);
+    } catch (error) {
+      console.error("Error fetching all tasks:", error);
+      res.status(500).json({ message: "Error fetching tasks" });
+    }
+  });
+
   app.get("/api/projects/:projectId/tasks", simpleAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);

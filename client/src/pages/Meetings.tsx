@@ -795,7 +795,20 @@ export default function Meetings() {
                       <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-l-yellow-500 dark:border-l-yellow-400">
                         <div className="space-y-2">
                           {(() => {
-                            const projectTasks = (allTasks as any[]).filter((task: any) => task.projectId === project.id && !task.isCompleted);
+                            const projectTasks = (allTasks as any[]).filter((task: any) => {
+                              // Debug: Log task data for project 804907 (project.id = 320)
+                              if (project.id === 320) {
+                                console.log('Debug: Task data for project 320:', task);
+                              }
+                              return task.projectId === project.id && task.status !== 'completed' && !task.isCompleted;
+                            });
+                            
+                            // Debug: Log filtered tasks for project 804907
+                            if (project.id === 320) {
+                              console.log('Debug: Filtered tasks for project 320:', projectTasks);
+                              console.log('Debug: All tasks:', allTasks);
+                            }
+                            
                             return projectTasks.length > 0 ? (
                               <>
                                 <div className="flex items-center justify-between">
