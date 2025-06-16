@@ -29,10 +29,20 @@ export function useProjectLabelStats() {
       };
     }
 
-    // Find label IDs for MAJOR, MINOR, GOOD
-    const majorLabel = availableLabels.find(l => l.name.toUpperCase() === 'MAJOR');
-    const minorLabel = availableLabels.find(l => l.name.toUpperCase() === 'MINOR'); 
-    const goodLabel = availableLabels.find(l => l.name.toUpperCase() === 'GOOD');
+    // Debug: Log available labels
+    console.log('Available labels:', availableLabels.map(l => ({ id: l.id, name: l.name })));
+    console.log('Project label assignments:', allProjectLabelAssignments.length);
+
+    // Find label IDs for MAJOR, MINOR, GOOD (case-insensitive)
+    const majorLabel = availableLabels.find(l => l.name.toUpperCase().includes('MAJOR'));
+    const minorLabel = availableLabels.find(l => l.name.toUpperCase().includes('MINOR')); 
+    const goodLabel = availableLabels.find(l => l.name.toUpperCase().includes('GOOD'));
+
+    console.log('Found labels:', { 
+      major: majorLabel ? { id: majorLabel.id, name: majorLabel.name } : null,
+      minor: minorLabel ? { id: minorLabel.id, name: minorLabel.name } : null,
+      good: goodLabel ? { id: goodLabel.id, name: goodLabel.name } : null
+    });
 
     // Count projects by label
     const majorCount = majorLabel ? 
@@ -43,6 +53,8 @@ export function useProjectLabelStats() {
       
     const goodCount = goodLabel ?
       allProjectLabelAssignments.filter(assignment => assignment.labelId === goodLabel.id).length : 0;
+
+    console.log('Label counts:', { major: majorCount, minor: minorCount, good: goodCount });
 
     return {
       major: majorCount,
