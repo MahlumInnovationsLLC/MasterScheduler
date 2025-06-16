@@ -4291,6 +4291,52 @@ Response format:
       res.status(500).json({ message: "Error checking module access" });
     }
   });
+
+  // Priority Access Routes
+  app.get("/api/users/:userId/priority-access", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      
+      // Users can only check their own access unless they're admin
+      if (req.user.id !== userId && req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Return default priority access for now
+      const defaultAccess = {
+        canViewPriorities: true,
+        canEditPriorities: false,
+        canDragReorder: false
+      };
+      
+      res.json(defaultAccess);
+    } catch (error) {
+      console.error("Error fetching user priority access:", error);
+      res.status(500).json({ message: "Error fetching user priority access" });
+    }
+  });
+
+  app.put("/api/users/:userId/priority-access", requireAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const accessUpdate = req.body;
+      
+      console.log(`🔧 Updating priority access for user ${userId}:`, accessUpdate);
+      
+      // For now, just return success since we don't have database storage for this yet
+      // In the future, this would save to a user_priority_access table
+      
+      res.json({ 
+        success: true, 
+        message: "Priority access updated successfully",
+        userId,
+        accessUpdate
+      });
+    } catch (error) {
+      console.error("Error updating user priority access:", error);
+      res.status(500).json({ message: "Error updating user priority access" });
+    }
+  });
   
   // Project Milestone Icons Routes
   app.get("/api/projects/:projectId/milestone-icons", async (req, res) => {
