@@ -651,10 +651,10 @@ export default function Meetings() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Risk Level:</span>
                     <Badge variant={
-                      project.riskLevel === "HIGH RISK" ? "destructive" :
-                      project.riskLevel === "MEDIUM RISK" ? "secondary" : "default"
+                      (project as any).riskLevel === "HIGH RISK" ? "destructive" :
+                      (project as any).riskLevel === "MEDIUM RISK" ? "secondary" : "default"
                     }>
-                      {project.riskLevel || "LOW RISK"}
+                      {(project as any).riskLevel || "LOW RISK"}
                     </Badge>
                   </div>
 
@@ -669,7 +669,8 @@ export default function Meetings() {
                           name: '', 
                           description: '', 
                           dueDate: '', 
-                          assignedToUserId: '' 
+                          assignedToUserId: '',
+                          department: ''
                         });
                         setShowTaskDialog(true);
                       }}
@@ -773,12 +774,12 @@ export default function Meetings() {
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span>Progress</span>
-                        <span>{Math.round(project.progress || 0)}%</span>
+                        <span>{Math.round((project as any).progress || 0)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
                         <div 
                           className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
-                          style={{ width: `${project.progress || 0}%` }}
+                          style={{ width: `${(project as any).progress || 0}%` }}
                         ></div>
                       </div>
                     </div>
