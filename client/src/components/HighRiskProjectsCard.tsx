@@ -332,15 +332,15 @@ function getDaysUntilDate(dateStr: string | null | undefined): number {
     today.setHours(0, 0, 0, 0);
     targetDate.setHours(0, 0, 0, 0);
     
-    // If date is in the past, show "0 days" instead of counting days in the past
-    if (targetDate < today) {
+    // Calculate days until the date
+    const diffTime = targetDate.getTime() - today.getTime();
+    const daysDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // If date is in the past, show "0 days"
+    if (daysDiff < 0) {
       console.log(`Ship date ${dateStr} is in the past, showing 0 days`);
       return 0;
     }
-    
-    // Calculate days until the date (don't use absolute value)
-    const diffTime = targetDate.getTime() - today.getTime();
-    const daysDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     console.log(`Days until ${dateStr}: ${daysDiff} days (from ${today.toISOString().split('T')[0]})`);
     return daysDiff;
