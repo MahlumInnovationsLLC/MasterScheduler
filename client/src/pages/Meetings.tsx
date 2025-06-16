@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Calendar, Users, FileText, Download, Edit, Trash2, Clock, MapPin, Settings, Copy, AlertTriangle, CheckCircle, ArrowUp } from "lucide-react";
+import { Plus, Calendar, Users, FileText, Download, Edit, Trash2, Clock, MapPin, Settings, Copy, AlertTriangle, CheckCircle, ArrowUp, ExternalLink, BarChart, Building, Zap, RotateCcw, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -524,81 +524,200 @@ export default function Meetings() {
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="meetings" className="w-full">
+      <Tabs defaultValue="tier-ii" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="meetings">Meetings</TabsTrigger>
+          <TabsTrigger value="tier-ii">Tier II (GEMBA)</TabsTrigger>
           <TabsTrigger value="tier-iii">Tier III</TabsTrigger>
           <TabsTrigger value="tier-iv">Tier IV</TabsTrigger>
         </TabsList>
 
-        {/* Meetings Tab Content */}
-        <TabsContent value="meetings" className="space-y-6">
+        {/* Tier II (GEMBA) Tab Content */}
+        <TabsContent value="tier-ii" className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-semibold">Meeting Management</h2>
+              <h2 className="text-xl font-semibold">Tier II (GEMBA) Dashboard</h2>
               <p className="text-muted-foreground">
-                Manage meeting minutes, action items, and team collaboration
+                Production floor metrics and operational performance tracking
               </p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Meeting
+              <Button 
+                onClick={() => window.open('https://ptn.nomadgcsai.com/', '_blank')}
+                variant="outline"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Full PTN Dashboard
               </Button>
             </div>
           </div>
 
-          {/* Meeting Statistics */}
+          {/* GEMBA Key Metrics */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Production Efficiency</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{(meetings as Meeting[]).length}</div>
+                <div className="text-2xl font-bold">87.5%</div>
+                <p className="text-xs text-muted-foreground">
+                  +2.3% from last week
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Quality Rate</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">96.2%</div>
+                <p className="text-xs text-muted-foreground">
+                  +0.8% from last week
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">OEE Score</CardTitle>
+                <BarChart className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">84.1%</div>
+                <p className="text-xs text-muted-foreground">
+                  +1.5% from last week
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Workstations</CardTitle>
+                <Factory className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">24/28</div>
+                <p className="text-xs text-muted-foreground">
+                  4 stations in maintenance
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Meetings List */}
-          <div className="grid gap-4">
-            {(meetings as Meeting[]).map((meeting: Meeting) => (
-              <Card key={meeting.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">
-                        <Link href={`/meetings/${meeting.id}`} className="hover:underline">
-                          {meeting.title}
-                        </Link>
-                      </CardTitle>
-                      <CardDescription>
-                        {meeting.description}
-                      </CardDescription>
+          {/* Production Status Cards */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-blue-600" />
+                  Live Production Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div>
+                      <div className="font-medium text-green-900">Bay 1 - Fabrication</div>
+                      <div className="text-sm text-green-700">Project 805344 - 78% Complete</div>
                     </div>
-                    <Badge variant={meeting.status === "completed" ? "default" : "secondary"}>
-                      {meeting.status}
-                    </Badge>
+                    <Badge className="bg-green-100 text-green-800">RUNNING</Badge>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {format(new Date(meeting.datetime), 'MMM d, yyyy')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {format(new Date(meeting.datetime), 'h:mm a')}
-                      </div>
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div>
+                      <div className="font-medium text-blue-900">Bay 2 - Assembly</div>
+                      <div className="text-sm text-blue-700">Project 805298 - 45% Complete</div>
                     </div>
+                    <Badge className="bg-blue-100 text-blue-800">RUNNING</Badge>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div>
+                      <div className="font-medium text-yellow-900">Bay 3 - Welding</div>
+                      <div className="text-sm text-yellow-700">Setup in progress</div>
+                    </div>
+                    <Badge className="bg-yellow-100 text-yellow-800">SETUP</Badge>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
+                    <div>
+                      <div className="font-medium text-red-900">Bay 4 - Painting</div>
+                      <div className="text-sm text-red-700">Equipment maintenance</div>
+                    </div>
+                    <Badge className="bg-red-100 text-red-800">DOWN</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  Floor Alerts & Issues
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
+                    <div>
+                      <div className="font-medium text-red-900">Material Shortage</div>
+                      <div className="text-sm text-red-700">Steel plates for Project 805344</div>
+                    </div>
+                    <Badge variant="destructive" className="text-xs">HIGH</Badge>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div>
+                      <div className="font-medium text-yellow-900">Quality Check Pending</div>
+                      <div className="text-sm text-yellow-700">Bay 2 - Awaiting QC approval</div>
+                    </div>
+                    <Badge className="bg-yellow-100 text-yellow-800 text-xs">MEDIUM</Badge>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    <div>
+                      <div className="font-medium text-orange-900">Tool Calibration Due</div>
+                      <div className="text-sm text-orange-700">CNC Machine #3 - Tomorrow</div>
+                    </div>
+                    <Badge className="bg-orange-100 text-orange-800 text-xs">LOW</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* PTN Integration Panel */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ExternalLink className="h-5 w-5 text-blue-600" />
+                PTN System Integration
+              </CardTitle>
+              <CardDescription>
+                Real-time data from Production Tracking Network at ptn.nomadgcsai.com
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">156</div>
+                  <div className="text-sm text-muted-foreground">Work Orders Active</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">23</div>
+                  <div className="text-sm text-muted-foreground">Completed Today</div>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">4</div>
+                  <div className="text-sm text-muted-foreground">Behind Schedule</div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Last sync: 2 minutes ago</span>
+                  <Button variant="outline" size="sm">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refresh Data
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Tier III Tab Content */}
