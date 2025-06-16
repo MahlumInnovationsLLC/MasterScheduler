@@ -2068,24 +2068,8 @@ const ProjectStatus = () => {
           />
         </div>
 
-        {/* Upcoming Milestones (2 columns) */}
-        <div className="md:col-span-2">
-          <ProjectStatsCard 
-            title="Upcoming Milestones"
-            value={upcomingMilestones}
-            icon={<Flag className="text-accent h-5 w-5" />}
-            progress={{ 
-              value: upcomingMilestones > 0 && Array.isArray(billingMilestones) && billingMilestones.length > 0 
-                ? Math.round((upcomingMilestones / billingMilestones.length) * 100)
-                : 0, 
-              label: `${upcomingMilestones} due in 30 days` 
-            }}
-            className="h-72"
-          />
-        </div>
-
-        {/* AI Insights (3 columns) */}
-        <div className="md:col-span-3 h-72 overflow-hidden">
+        {/* AI Insights (5 columns) */}
+        <div className="md:col-span-5 h-72 overflow-hidden">
           <AIInsightsWidget projects={projects || []} />
         </div>
 
