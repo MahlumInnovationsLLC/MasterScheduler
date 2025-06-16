@@ -366,11 +366,17 @@ export default function Meetings() {
               <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"}
             </div>
             <div className="truncate">
-              <span className="font-medium">Ship:</span> {project.shipDate ? format(new Date(project.shipDate), 'MMM d') : "TBD"}
+              <span className="font-medium">Ship:</span> {project.shipDate ? (() => {
+                const date = new Date(project.shipDate + 'T00:00:00');
+                return format(date, 'MMM d');
+              })() : "TBD"}
             </div>
             {!compact && (
               <div className="truncate">
-                <span className="font-medium">Delivery:</span> {project.deliveryDate ? format(new Date(project.deliveryDate), 'MMM d, yyyy') : "TBD"}
+                <span className="font-medium">Delivery:</span> {project.deliveryDate ? (() => {
+                  const date = new Date(project.deliveryDate + 'T00:00:00');
+                  return format(date, 'MMM d, yyyy');
+                })() : "TBD"}
               </div>
             )}
           </div>
@@ -677,7 +683,10 @@ export default function Meetings() {
                       </Link>
                       <div className="text-xs">
                         <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"} | 
-                        <span className="font-medium ml-2">Ship:</span> {project.shipDate ? format(new Date(project.shipDate), 'MMM d') : "TBD"}
+                        <span className="font-medium ml-2">Ship:</span> {project.shipDate ? (() => {
+                          const date = new Date(project.shipDate + 'T00:00:00');
+                          return format(date, 'MMM d');
+                        })() : "TBD"}
                       </div>
                     </div>
                     <div className="flex flex-col gap-1 ml-2">
@@ -817,7 +826,11 @@ export default function Meetings() {
                                       <div className="flex items-center gap-1 mt-1">
                                         <span className="font-medium text-gray-600 dark:text-gray-400">Due:</span>
                                         <span className="text-red-600 dark:text-red-400">
-                                          {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                                          {(() => {
+                                            // Parse date as local timezone to avoid timezone conversion issues
+                                            const date = new Date(task.dueDate + 'T00:00:00');
+                                            return format(date, 'MMM d, yyyy');
+                                          })()}
                                         </span>
                                       </div>
                                     )}
