@@ -281,12 +281,38 @@ export default function Priorities() {
     }
   };
 
+  // Import top 50 projects based on earliest ship date
+  const importProjectsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/priorities/import-top-projects');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setProjectPriorities(data);
+      toast({
+        title: 'Success',
+        description: `Imported ${data.length} projects with priority ranking by ship date.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to import projects',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleAddNewPriority = () => {
     // For now, we'll show a toast - in a full implementation this would open a dialog
     toast({
       title: 'Add New Priority',
       description: 'Feature to add custom priorities coming soon.',
     });
+  };
+
+  const handleRestoreProjects = () => {
+    importProjectsMutation.mutate();
   };
 
   if (isLoading) {
@@ -332,10 +358,16 @@ export default function Priorities() {
           {projectPriorities.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-500 mb-4">No project priorities configured</div>
-              <Button onClick={handleAddNewPriority} disabled={addNewPriorityMutation.isPending}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add New Priority
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={handleRestoreProjects} disabled={importProjectsMutation.isPending}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {importProjectsMutation.isPending ? 'Restoring...' : 'Restore Top 50 Projects'}
+                </Button>
+                <Button onClick={handleAddNewPriority} disabled={addNewPriorityMutation.isPending} variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Priority
+                </Button>
+              </div>
             </div>
           ) : (
             <>
