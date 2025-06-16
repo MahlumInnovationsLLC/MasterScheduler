@@ -902,7 +902,7 @@ const Dashboard = () => {
                 amount: twelveMonthAmount,
                 milestones: next12Months
               });
-              console.log("Next 12 months: $" + twelveMonthAmount + " from " + next12Months.length + " milestones");
+              // Next 12 months data processed
               return;
             }
 
