@@ -71,6 +71,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatDate, getProjectStatusColor, getProjectScheduleState } from '@/lib/utils';
 import { Project, delayResponsibilityEnum } from '@shared/schema';
+import { useProjectLabelStats } from '@/hooks/use-project-label-stats';
 import { DeliveryDialog } from '../components/DeliveryDialog';
 
 // Extend Project type to ensure rawData is included
@@ -812,26 +813,25 @@ const ProjectStatus = () => {
   // Filter dialog state
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
 
+  // Get label statistics
+  const labelStats = useProjectLabelStats();
+
   // Calculate project stats
   const projectStats = React.useMemo(() => {
     if (!projects || projects.length === 0) return null;
 
-    const active = projects.filter(p => p.status === 'active').length;
-    const delayed = projects.filter(p => p.status === 'delayed').length;
-    const critical = projects.filter(p => p.status === 'critical').length;
     const completed = projects.filter(p => p.status === 'completed').length;
-
     const avgCompletion = projects.reduce((sum, p) => sum + Number(p.percentComplete), 0) / projects.length;
 
     return {
       total: projects.length,
-      active,
-      delayed,
-      critical,
+      major: labelStats.major,
+      minor: labelStats.minor,
+      good: labelStats.good,
       completed,
       avgCompletion
     };
-  }, [projects]);
+  }, [projects, labelStats]);
 
   // Calculate project state breakdown
   const projectStateBreakdown = React.useMemo(() => {
@@ -2059,9 +2059,9 @@ const ProjectStatus = () => {
             value={projectStats?.total || 0}
             icon={<Folders className="text-primary h-5 w-5" />}
             tags={[
-              { label: "Active", value: projectStats?.active || 0, status: "On Track" },
-              { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
-              { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
+              { label: "Major", value: projectStats?.major || 0, status: "Critical" },
+              { label: "Minor", value: projectStats?.minor || 0, status: "Delayed" },
+              { label: "Good", value: projectStats?.good || 0, status: "On Track" }
             ]}
             stateBreakdown={projectStateBreakdown || undefined}
             className="h-72"

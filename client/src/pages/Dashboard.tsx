@@ -43,6 +43,7 @@ import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -299,13 +300,12 @@ const Dashboard = () => {
     setFilteredProjects(finalList);
   }, [projects]);
 
+  // Get label statistics  
+  const labelStats = useProjectLabelStats();
+
   // Calculate project stats
   const projectStats = React.useMemo(() => {
     if (!projects || projects.length === 0) return null;
-
-    const activeProjects = projects.filter(p => p.status === 'active');
-    const delayedProjects = projects.filter(p => p.status === 'delayed');
-    const criticalProjects = projects.filter(p => p.status === 'critical');
 
     // Get projects by schedule state
     const scheduledProjects = manufacturingSchedules 
@@ -353,6 +353,21 @@ const Dashboard = () => {
         id: p.id, 
         name: p.name, 
         projectNumber: p.projectNumber 
+      })),
+      major: majorProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      minor: minorProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      good: goodProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
       }))
     };
 
@@ -368,16 +383,16 @@ const Dashboard = () => {
 
     return {
       total: projects.length,
-      active: activeProjects.length,
-      delayed: delayedProjects.length,
-      critical: criticalProjects.length,
+      major: labelStats.major,
+      minor: labelStats.minor,
+      good: labelStats.good,
       scheduled: scheduledProjects.length,
       inProgress: inProgressProjects.length,
       complete: completeProjects.length,
       unscheduled: unscheduledProjects.length,
       projectLists
     };
-  }, [projects, manufacturingSchedules]);
+  }, [projects, manufacturingSchedules, labelStats]);
 
   // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
   useEffect(() => {
@@ -834,9 +849,9 @@ const Dashboard = () => {
           value={projectStats?.total || 0}
           icon={<Folders className="text-primary" />}
           tags={[
-            { label: "Active", value: projectStats?.active || 0, status: "Active" },
-            { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
-            { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
+            { label: "Major", value: projectStats?.major || 0, status: "Critical" },
+            { label: "Minor", value: projectStats?.minor || 0, status: "Delayed" },
+            { label: "Good", value: projectStats?.good || 0, status: "On Track" }
           ]}
           stateBreakdown={{
             unscheduled: projectStats?.unscheduled || 0,
