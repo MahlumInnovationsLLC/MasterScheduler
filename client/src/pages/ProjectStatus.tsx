@@ -1302,8 +1302,31 @@ const ProjectStatus = () => {
         // Check if this is a sales estimate
         const isSalesEstimate = project.isSalesEstimate;
 
+        // Get status-based background color from project status
+        const getStatusBackgroundColor = () => {
+          const status = project.status?.toLowerCase();
+          
+          // Map status to background colors matching the badge colors
+          switch (status) {
+            case 'critical':
+              return 'bg-red-500/15'; // Red highlight for critical status
+            case 'delayed':
+              return 'bg-amber-500/15'; // Orange/amber highlight for delayed status  
+            case 'active':
+              return 'bg-green-500/15'; // Green highlight for active status
+            case 'completed':
+              return 'bg-blue-500/15'; // Blue highlight for completed status
+            case 'delivered':
+              return 'bg-purple-500/15'; // Purple highlight for delivered status
+            default:
+              return ''; // No highlight for other statuses
+          }
+        };
+
+        const statusBackgroundColor = getStatusBackgroundColor();
+
         return (
-          <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : isSalesEstimate ? 'bg-yellow-500/10 rounded' : ''}`}>
+          <div className={`flex items-center rounded ${statusBackgroundColor} ${isPastDue ? 'bg-red-900/30' : isSalesEstimate ? 'bg-yellow-500/10' : ''}`}>
             <div className="ml-2 p-1">
               <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : isSalesEstimate ? 'text-yellow-400' : 'text-white'} whitespace-normal`}>
                 <Link to={`/project/${project.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : isSalesEstimate ? 'text-yellow-400 font-semibold' : 'text-primary'} hover:underline`}>

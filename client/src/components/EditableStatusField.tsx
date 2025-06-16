@@ -13,6 +13,7 @@ interface EditableStatusFieldProps {
   projectId: number;
   value: string | string[] | null;
   field: string;
+  onStatusChange?: () => void;
 }
 
 const defaultStatusOptions = [
@@ -39,21 +40,21 @@ const colorOptions = [
   { name: 'Gray', value: 'bg-gray-500 text-white border-gray-600 shadow-lg shadow-gray-500/30' },
 ];
 
-export function EditableStatusField({ projectId, value, field }: EditableStatusFieldProps) {
+export function EditableStatusField({ projectId, value, field, onStatusChange }: EditableStatusFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customLabel, setCustomLabel] = useState('');
   const [customColor, setCustomColor] = useState(colorOptions[0].value);
   const [customStatuses, setCustomStatuses] = useState<Array<{value: string, label: string, color: string}>>([]);
   const { toast } = useToast();
-  
+
   // Load custom statuses from localStorage on component mount
   React.useEffect(() => {
     const savedCustomStatuses = localStorage.getItem('customStatusOptions');
     if (savedCustomStatuses) {
       try {
         const parsed = JSON.parse(savedCustomStatuses);
-        
+
         // Update any existing "ON TIME" status to "GOOD"
         const updatedStatuses = parsed.map((status: any) => {
           if (status.label === 'ON TIME' || status.value === 'on-time') {
@@ -65,30 +66,30 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
           }
           return status;
         });
-        
+
         // Save updated statuses back to localStorage if changes were made
         const hasChanges = JSON.stringify(parsed) !== JSON.stringify(updatedStatuses);
         if (hasChanges) {
           localStorage.setItem('customStatusOptions', JSON.stringify(updatedStatuses));
         }
-        
+
         setCustomStatuses(updatedStatuses);
       } catch (error) {
         console.error('Failed to parse custom statuses:', error);
       }
     }
   }, []);
-  
+
   // Handle both single string and array values
   const currentStatuses = Array.isArray(value) ? value : (value ? [value] : []);
-  
+
   // Combine default and custom status options
   const allStatusOptions = [...defaultStatusOptions, ...customStatuses];
-  
+
   const handleStatusToggle = async (statusValue: string) => {
     try {
       let newStatuses: string[];
-      
+
       if (currentStatuses.includes(statusValue)) {
         // Remove status (only if we have more than one)
         if (currentStatuses.length > 1) {
@@ -100,19 +101,23 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
         // Add status
         newStatuses = [...currentStatuses, statusValue];
       }
-      
+
       // Send as array to support multiple statuses
       const valueToSend = newStatuses;
-      
+
       await apiRequest('PATCH', `/api/projects/${projectId}`, {
         [field]: valueToSend
       });
-      
+
       // Invalidate the cache to trigger a fresh fetch
       await queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      
+
       setIsOpen(false);
-      
+
+      if (onStatusChange) {
+        onStatusChange();
+      }
+
     } catch (error) {
       console.error('Failed to update status:', error);
       toast({
@@ -125,14 +130,14 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
 
   const removeStatus = async (statusValue: string) => {
     if (currentStatuses.length <= 1) return; // Don't allow removing the last status
-    
+
     const newStatuses = currentStatuses.filter(s => s !== statusValue);
-    
+
     try {
       await apiRequest('PATCH', `/api/projects/${projectId}`, {
         [field]: newStatuses
       });
-      
+
       // Invalidate the cache to trigger a fresh fetch
       await queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
     } catch (error) {
@@ -151,7 +156,7 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
     }
 
     const customValue = customLabel.toLowerCase().replace(/\s+/g, '-');
-    
+
     // Check if this status already exists
     const existingStatus = allStatusOptions.find(opt => opt.value === customValue);
     if (existingStatus) {
@@ -171,14 +176,14 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
 
     const updatedCustomStatuses = [...customStatuses, newCustomStatus];
     setCustomStatuses(updatedCustomStatuses);
-    
+
     // Save to localStorage
     localStorage.setItem('customStatusOptions', JSON.stringify(updatedCustomStatuses));
-    
+
     setCustomLabel('');
     setCustomColor(colorOptions[0].value);
     setShowCustomForm(false);
-    
+
     toast({
       title: 'Custom Status Created',
       description: `"${customLabel}" status has been added and is now available for selection.`,
@@ -209,7 +214,7 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
           </div>
         );
       })}
-      
+
       {/* Add status button */}
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
