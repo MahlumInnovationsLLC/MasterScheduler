@@ -2574,3 +2574,27 @@ export type TrainingModule = typeof trainingModules.$inferSelect;
 export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
 export type TrainingAssignment = typeof trainingAssignments.$inferSelect;
 export type InsertTrainingAssignment = z.infer<typeof insertTrainingAssignmentSchema>;
+
+// User Priority Access Table
+export const userPriorityAccess = pgTable("user_priority_access", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  canViewPriorities: boolean("can_view_priorities").default(true),
+  canEditPriorities: boolean("can_edit_priorities").default(false),
+  canDragReorder: boolean("can_drag_reorder").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  unique("unique_user_priority_access").on(table.userId)
+]);
+
+// User Priority Access Insert Schema
+export const insertUserPriorityAccessSchema = createInsertSchema(userPriorityAccess).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// User Priority Access Types
+export type UserPriorityAccess = typeof userPriorityAccess.$inferSelect;
+export type InsertUserPriorityAccess = z.infer<typeof insertUserPriorityAccessSchema>;

@@ -25,6 +25,7 @@ import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
 import { useRolePermissions } from '@/hooks/use-role-permissions';
 import { useModuleVisibility } from '@/hooks/use-module-visibility';
+import { usePriorityAccess } from '@/hooks/use-priority-access';
 
 // Custom Link component that adds sidebar-item class for view-only mode support
 const SidebarLink = ({ href, className, title, children }: { 
@@ -48,6 +49,8 @@ const Sidebar = () => {
   const { userRole } = usePermissions();
   // Get module visibility settings for the current user
   const { isModuleVisible } = useModuleVisibility();
+  // Get priority access permissions for the current user
+  const { canViewPriorities } = usePriorityAccess();
 
   // Directly call toggleSidebar from context
   const handleToggle = () => {
@@ -133,7 +136,7 @@ const Sidebar = () => {
                 </SidebarLink>
               </li>
             )}
-            {isModuleVisible('priorities') && (
+            {canViewPriorities && (
               <li>
                 <SidebarLink href="/priorities" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/priorities') ? 'active' : ''
