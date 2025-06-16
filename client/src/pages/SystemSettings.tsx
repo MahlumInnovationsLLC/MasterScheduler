@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
 import ExternalConnectionsManager from "@/components/ExternalConnectionsManager";
+import ProjectMetricsConnectionManager from "@/components/ProjectMetricsConnectionManager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1124,11 +1125,12 @@ const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-8 w-full">
           <TabsTrigger value="accessControl">Access Control</TabsTrigger>
           <TabsTrigger value="roleControls">Role Controls</TabsTrigger>
           <TabsTrigger value="moduleVisibility">Module Visibility</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="projectMetrics">Project Metrics</TabsTrigger>
           <TabsTrigger value="externalConnections">External Connections</TabsTrigger>
           <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
           <TabsTrigger value="maintenance">System Maintenance</TabsTrigger>
@@ -2065,6 +2067,11 @@ const SystemSettings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Project Metrics Tab */}
+          <TabsContent value="projectMetrics" className="space-y-6">
+            <ProjectMetricsConnectionManager />
           </TabsContent>
 
           {/* External Connections Tab */}

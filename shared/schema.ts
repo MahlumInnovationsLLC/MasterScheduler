@@ -2256,6 +2256,23 @@ export const insertTrainingAssignmentSchema = createInsertSchema(trainingAssignm
   updatedAt: true,
 });
 
+// Project Metrics Connection Configuration
+export const projectMetricsConnection = pgTable("project_metrics_connection", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().default("Project Performance Metrics API"),
+  url: text("url").notNull().default("http://metrics.nomadgcs.com/pea"),
+  apiKey: text("api_key"),
+  isActive: boolean("is_active").default(true),
+  autoSync: boolean("auto_sync").default(true),
+  syncSchedule: text("sync_schedule").default("0 5 * * *"), // Daily at 5:00 AM
+  lastSyncAt: timestamp("last_sync_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  lastErrorAt: timestamp("last_error_at"),
+  lastErrorMessage: text("last_error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // External Connections Insert Schemas
 export const insertExternalConnectionSchema = createInsertSchema(externalConnections).omit({
   id: true,
@@ -2268,11 +2285,19 @@ export const insertExternalConnectionLogSchema = createInsertSchema(externalConn
   createdAt: true,
 });
 
+export const insertProjectMetricsConnectionSchema = createInsertSchema(projectMetricsConnection).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type ExternalConnection = typeof externalConnections.$inferSelect;
 export type InsertExternalConnection = z.infer<typeof insertExternalConnectionSchema>;
 export type ExternalConnectionLog = typeof externalConnectionLogs.$inferSelect;
 export type InsertExternalConnectionLog = z.infer<typeof insertExternalConnectionLogSchema>;
+export type ProjectMetricsConnection = typeof projectMetricsConnection.$inferSelect;
+export type InsertProjectMetricsConnection = z.infer<typeof insertProjectMetricsConnectionSchema>;
 
 // Quality Assurance Types
 export type NonConformanceReport = typeof nonConformanceReports.$inferSelect;
