@@ -325,7 +325,16 @@ function getDaysUntilDate(dateStr: string | null | undefined): number {
   if (!dateStr) return 0;
   
   try {
-    const targetDate = new Date(dateStr);
+    // Handle timezone-safe date parsing for YYYY-MM-DD format
+    let targetDate: Date;
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // For YYYY-MM-DD format, parse manually to avoid timezone issues
+      const [year, month, day] = dateStr.split('-').map(Number);
+      targetDate = new Date(year, month - 1, day);
+    } else {
+      targetDate = new Date(dateStr);
+    }
+    
     const today = new Date();
     
     // Reset time portion to compare dates only
@@ -349,7 +358,6 @@ function getDaysUntilDate(dateStr: string | null | undefined): number {
       return 0;
     }
     
-    // Special case: if it's the same day, show 0, otherwise show the calculated difference
     const result = daysDiff;
     console.log(`Final result for ${dateStr}: ${result} days`);
     return result;
