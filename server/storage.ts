@@ -4221,6 +4221,26 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
+  // Project Metrics Connection methods
+  async getProjectMetricsConnection(): Promise<ProjectMetricsConnection | undefined> {
+    return await safeSingleQuery<ProjectMetricsConnection>(() =>
+      db.select().from(projectMetricsConnection).limit(1)
+    );
+  }
+
+  async updateProjectMetricsConnection(connection: Partial<InsertProjectMetricsConnection>): Promise<ProjectMetricsConnection | undefined> {
+    try {
+      const [result] = await db.update(projectMetricsConnection)
+        .set({ ...connection, updatedAt: new Date() })
+        .where(eq(projectMetricsConnection.id, 1))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error updating project metrics connection:", error);
+      return undefined;
+    }
+  }
+
 }
 
 export const storage = new DatabaseStorage();

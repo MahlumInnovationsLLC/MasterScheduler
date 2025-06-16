@@ -5554,5 +5554,96 @@ Response format:
   app.get("/api/metrics/scheduler/status", getSchedulerStatus);
   app.put("/api/metrics/scheduler", updateScheduler);
 
+  // Project Metrics Connection Configuration Routes
+  app.get("/api/project-metrics-connection", simpleAuth, async (req, res) => {
+    try {
+      const connection = await storage.getProjectMetricsConnection();
+      res.json(connection);
+    } catch (error) {
+      console.error("Error fetching project metrics connection:", error);
+      res.status(500).json({ message: "Error fetching project metrics connection" });
+    }
+  });
+
+  app.put("/api/project-metrics-connection", simpleAuth, async (req, res) => {
+    try {
+      const connection = await storage.updateProjectMetricsConnection(req.body);
+      
+      if (!connection) {
+        return res.status(404).json({ message: "Project metrics connection not found" });
+      }
+      
+      res.json(connection);
+    } catch (error) {
+      console.error("Error updating project metrics connection:", error);
+      res.status(500).json({ message: "Error updating project metrics connection" });
+    }
+  });
+
+  app.post("/api/project-metrics-connection/test", simpleAuth, async (req, res) => {
+    try {
+      const connection = await storage.getProjectMetricsConnection();
+      
+      if (!connection) {
+        return res.status(404).json({ message: "Project metrics connection not found" });
+      }
+
+      const startTime = Date.now();
+      
+      try {
+        const response = await fetch(connection.url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(connection.apiKey && { 'Authorization': `Bearer ${connection.apiKey}` })
+          },
+          timeout: 30000
+        });
+
+        const responseTime = Date.now() - startTime;
+        const success = response.ok;
+
+        // Update connection status
+        await storage.updateProjectMetricsConnection({
+          lastSyncAt: new Date(),
+          ...(success ? {
+            lastSuccessAt: new Date(),
+            lastErrorAt: null,
+            lastErrorMessage: null
+          } : {
+            lastErrorAt: new Date(),
+            lastErrorMessage: `HTTP ${response.status}: ${response.statusText}`
+          })
+        });
+
+        res.json({
+          success,
+          responseTime,
+          status: response.status,
+          statusText: response.statusText,
+          error: success ? undefined : `HTTP ${response.status}: ${response.statusText}`
+        });
+      } catch (error) {
+        const responseTime = Date.now() - startTime;
+        
+        // Update error status
+        await storage.updateProjectMetricsConnection({
+          lastSyncAt: new Date(),
+          lastErrorAt: new Date(),
+          lastErrorMessage: (error as Error).message
+        });
+
+        res.json({
+          success: false,
+          responseTime,
+          error: (error as Error).message
+        });
+      }
+    } catch (error) {
+      console.error("Error testing project metrics connection:", error);
+      res.status(500).json({ message: "Error testing project metrics connection" });
+    }
+  });
+
   return httpServer;
 }
