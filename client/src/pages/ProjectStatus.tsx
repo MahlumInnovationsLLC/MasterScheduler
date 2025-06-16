@@ -856,6 +856,11 @@ const ProjectStatus = () => {
         return;
       }
 
+      // Filter out Field or FSW category projects
+      if (project.team === 'Field' || project.team === 'FSW') {
+        return;
+      }
+
       // For all other projects, categorize by their schedule state
       const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
 
