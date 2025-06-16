@@ -592,7 +592,7 @@ export default function Meetings() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Workstations</CardTitle>
-                <Factory className="h-4 w-4 text-orange-600" />
+                <Building className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">24/28</div>
@@ -608,7 +608,7 @@ export default function Meetings() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-blue-600" />
+                  <Zap className="h-5 w-5 text-blue-600" />
                   Live Production Status
                 </CardTitle>
               </CardHeader>
@@ -711,7 +711,7 @@ export default function Meetings() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Last sync: 2 minutes ago</span>
                   <Button variant="outline" size="sm">
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <RotateCcw className="mr-2 h-4 w-4" />
                     Refresh Data
                   </Button>
                 </div>
