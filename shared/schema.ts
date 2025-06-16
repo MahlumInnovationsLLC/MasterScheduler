@@ -331,6 +331,14 @@ export const projects = pgTable("projects", {
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
   totalHours: integer("total_hours").default(1000), // Total hours needed for manufacturing
 
+  // Project Performance Metrics (from metrics.nomadgcs.com/pea)
+  cpi: decimal("cpi", { precision: 10, scale: 4 }), // Cost Performance Index
+  plannedValue: decimal("planned_value", { precision: 15, scale: 2 }), // Planned Value
+  earnedValue: decimal("earned_value", { precision: 15, scale: 2 }), // Earned Value
+  actualCost: decimal("actual_cost", { precision: 15, scale: 2 }), // Actual Cost
+  estimatedCost: decimal("estimated_cost", { precision: 15, scale: 2 }), // Estimated Cost
+  metricsLastUpdated: timestamp("metrics_last_updated"), // When metrics were last synced
+
   // Department hours percentage allocations
   fabPercentage: decimal("fab_percentage", { precision: 5, scale: 2 }).default("27").notNull(),
   paintPercentage: decimal("paint_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
