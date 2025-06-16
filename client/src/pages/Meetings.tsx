@@ -207,6 +207,11 @@ export default function Meetings() {
     hasLabel(p.id, 'MAJOR ISSUE') || hasLabel(p.id, 'MINOR ISSUE')
   );
 
+  // Get top 10 GOOD projects for Tier IV
+  const goodProjects = (projects as Project[]).filter((p: Project) => 
+    hasLabel(p.id, 'GOOD')
+  ).slice(0, 10);
+
   // Get concerns escalated to Tier IV
   const tierIVConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.isEscalatedToTierIV);
 
@@ -600,6 +605,35 @@ export default function Meetings() {
                 <div className="text-2xl font-bold text-red-600">{tierIVConcerns.length}</div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Top 10 GOOD Projects - Thin cards */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Top 10 GOOD Projects ({goodProjects.length})</h3>
+            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+              {goodProjects.map((project: Project) => (
+                <Card key={project.id} className="w-full h-20 border-l-4 border-l-green-500">
+                  <CardContent className="p-3 h-full flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{project.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{project.projectNumber}</div>
+                      <div className="text-xs">
+                        <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"} | 
+                        <span className="font-medium ml-2">Ship:</span> {project.shipDate ? format(new Date(project.shipDate), 'MMM d') : "TBD"}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 ml-2">
+                      <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                        GOOD
+                      </Badge>
+                      <Badge variant={project.status === "critical" ? "destructive" : "default"} className="text-xs">
+                        {project.status}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
           {/* Critical Projects - Larger cards for MAJOR and MINOR issues */}
