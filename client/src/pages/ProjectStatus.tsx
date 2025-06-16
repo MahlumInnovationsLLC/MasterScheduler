@@ -87,6 +87,83 @@ interface ProjectRow {
   original: ProjectWithRawData;
 }
 
+// Project Cell Component that matches badge colors
+const ProjectCell = ({ project }: { project: ProjectWithRawData }) => {
+  // Check if ship date is past due
+  const isPastDue = project.shipDate ? new Date(project.shipDate) < new Date() : false;
+  // Check if this is a sales estimate
+  const isSalesEstimate = project.isSalesEstimate;
+
+  // Fetch project labels to get the badge color
+  const { data: projectLabels = [] } = useQuery({
+    queryKey: [`/api/projects/${project.id}/labels`],
+    enabled: !!project.id
+  });
+
+  // Get status-based background color from the actual badge/label
+  const getStatusBackgroundColor = () => {
+    // If there are no labels/badges, return no highlight
+    if (!projectLabels || projectLabels.length === 0) {
+      return '';
+    }
+
+    // Get the first label (since only one is allowed based on the code)
+    const currentLabel = projectLabels[0];
+    if (!currentLabel) {
+      return '';
+    }
+
+    // Use the label's background color but with reduced opacity for highlighting
+    const backgroundColor = currentLabel.backgroundColor;
+    if (!backgroundColor) {
+      return '';
+    }
+
+    // Convert hex color to RGB and apply low opacity for background highlight
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    };
+
+    const rgb = hexToRgb(backgroundColor);
+    if (rgb) {
+      return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
+    }
+
+    return '';
+  };
+
+  const statusBackgroundColor = getStatusBackgroundColor();
+
+  return (
+    <div 
+      className={`flex items-center rounded ${isPastDue ? 'bg-red-900/30' : isSalesEstimate ? 'bg-yellow-500/10' : ''}`}
+      style={{ 
+        backgroundColor: statusBackgroundColor || (isPastDue ? undefined : (isSalesEstimate ? undefined : 'transparent'))
+      }}
+    >
+      <div className="ml-2 p-1">
+        <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : isSalesEstimate ? 'text-yellow-400' : 'text-white'} whitespace-normal`}>
+          <Link to={`/project/${project.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : isSalesEstimate ? 'text-yellow-400 font-semibold' : 'text-primary'} hover:underline`}>
+            {isSalesEstimate && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mr-2">PROPOSED</span>}
+            {project.projectNumber}
+          </Link>
+        </div>
+        <div 
+          className={`text-xs ${isSalesEstimate ? 'text-yellow-400/70' : 'text-gray-400'} line-clamp-2 overflow-hidden`}
+          title={project.name} // Show full name on hover
+        >
+          {project.name}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Project Labels Inline Component for table cells
 const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
   const { toast } = useToast();
@@ -1296,54 +1373,7 @@ const ProjectStatus = () => {
       }
     },
     createColumn('projectNumber', 'projectNumber', 'Project', 
-      (value, project) => {
-        // Check if ship date is past due
-        const isPastDue = project.shipDate ? new Date(project.shipDate) < new Date() : false;
-        // Check if this is a sales estimate
-        const isSalesEstimate = project.isSalesEstimate;
-
-        // Get status-based background color from project status
-        const getStatusBackgroundColor = () => {
-          const status = project.status?.toLowerCase();
-          
-          // Map status to background colors matching the badge colors
-          switch (status) {
-            case 'critical':
-              return 'bg-red-500/15'; // Red highlight for critical status
-            case 'delayed':
-              return 'bg-amber-500/15'; // Orange/amber highlight for delayed status  
-            case 'active':
-              return 'bg-green-500/15'; // Green highlight for active status
-            case 'completed':
-              return 'bg-blue-500/15'; // Blue highlight for completed status
-            case 'delivered':
-              return 'bg-purple-500/15'; // Purple highlight for delivered status
-            default:
-              return ''; // No highlight for other statuses
-          }
-        };
-
-        const statusBackgroundColor = getStatusBackgroundColor();
-
-        return (
-          <div className={`flex items-center rounded ${statusBackgroundColor} ${isPastDue ? 'bg-red-900/30' : isSalesEstimate ? 'bg-yellow-500/10' : ''}`}>
-            <div className="ml-2 p-1">
-              <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : isSalesEstimate ? 'text-yellow-400' : 'text-white'} whitespace-normal`}>
-                <Link to={`/project/${project.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : isSalesEstimate ? 'text-yellow-400 font-semibold' : 'text-primary'} hover:underline`}>
-                  {isSalesEstimate && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mr-2">PROPOSED</span>}
-                  {value}
-                </Link>
-              </div>
-              <div 
-                className={`text-xs ${isSalesEstimate ? 'text-yellow-400/70' : 'text-gray-400'} line-clamp-2 overflow-hidden`}
-                title={project.name} // Show full name on hover
-              >
-                {project.name}
-              </div>
-            </div>
-          </div>
-        );
-      },
+      (value, project) => <ProjectCell project={project} />,
       { sortingFn: 'alphanumeric', size: 260 }),
     createColumn('pmOwner', 'pmOwner', 'PM Owner', 
       (value, project) => <EditableTextField projectId={project.id} field="pmOwner" value={value || ''} placeholder="Unassigned" />,
