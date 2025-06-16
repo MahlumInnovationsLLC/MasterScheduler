@@ -303,6 +303,9 @@ const Dashboard = () => {
   // Get label statistics  
   const labelStats = useProjectLabelStats();
 
+  // Calculate delivered projects count
+  const deliveredProjectsCount = deliveredProjects?.length || 0;
+
   // Calculate project stats
   const projectStats = React.useMemo(() => {
     if (!projects || projects.length === 0) return null;
@@ -353,17 +356,24 @@ const Dashboard = () => {
         id: p.id, 
         name: p.name, 
         projectNumber: p.projectNumber 
+      })),
+      delivered: (deliveredProjects || []).map(p => ({ 
+        id: p.id, 
+        name: p.name || 'Unknown Project', 
+        projectNumber: p.projectNumber 
       }))
     };
 
     console.log('Dashboard Debug - Project counts:');
     console.log('Total projects:', projects.length);
     console.log('Unscheduled projects found:', unscheduledProjects.length);
+    console.log('Delivered projects found:', deliveredProjectsCount);
     console.log('Project lists for hover:', {
       unscheduled: projectLists.unscheduled.length,
       scheduled: projectLists.scheduled.length,
       inProgress: projectLists.inProgress.length,
-      complete: projectLists.complete.length
+      complete: projectLists.complete.length,
+      delivered: projectLists.delivered.length
     });
 
     return {
@@ -375,9 +385,10 @@ const Dashboard = () => {
       inProgress: inProgressProjects.length,
       complete: completeProjects.length,
       unscheduled: unscheduledProjects.length,
+      delivered: deliveredProjectsCount,
       projectLists
     };
-  }, [projects, manufacturingSchedules, labelStats]);
+  }, [projects, manufacturingSchedules, labelStats, deliveredProjects, deliveredProjectsCount]);
 
   // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
   useEffect(() => {
@@ -478,9 +489,6 @@ const Dashboard = () => {
       }
     };
   }, [billingMilestones]);
-
-  // Calculate delivered projects count
-  const deliveredProjectsCount = deliveredProjects?.length || 0;
 
   // Calculate upcoming milestones (billing milestones due in next 30 days)
   const upcomingMilestonesData = React.useMemo(() => {
