@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
+import PriorityVisibilityUserControl from '@/components/PriorityVisibilityUserControl';
 import ExternalConnectionsManager from "@/components/ExternalConnectionsManager";
 import ProjectMetricsConnectionManager from "@/components/ProjectMetricsConnectionManager";
 import PTNMetricsConnectionManager from "@/components/PTNMetricsConnectionManager";
@@ -1644,13 +1645,13 @@ const SystemSettings = () => {
             </Card>
           </TabsContent>
 
-          {/* Module Visibility Tab */}
-          <TabsContent value="moduleVisibility" className="space-y-6">
+          {/* Priority Visibility Tab */}
+          <TabsContent value="priorityVisibility" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Module Visibility Control</CardTitle>
+                <CardTitle>Priority Visibility Control</CardTitle>
                 <CardDescription>
-                  Control which modules each individual user can access in the system. Toggle modules on/off for specific users.
+                  Control which priority lists each user can access. Assign users to specific production and supply chain priority lists for targeted communication.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1689,94 +1690,7 @@ const SystemSettings = () => {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pl-11">
-                            {[
-                              { id: 'dashboard', name: 'Dashboard', description: 'Main dashboard view' },
-                              { id: 'projects', name: 'Projects', description: 'View and manage projects' },
-                              { id: 'sales-forecast', name: 'Sales Forecast', description: 'Sales forecasting and analytics' },
-                              { id: 'bay-scheduling', name: 'Bay Scheduling', description: 'Manufacturing scheduling system' },
-                              { id: 'billing', name: 'Billing Milestones', description: 'Financial tracking and billing' },
-                              { id: 'on-time-delivery', name: 'On Time Delivery', description: 'Delivery tracking and metrics' },
-                              { id: 'delivered-projects', name: 'Delivered Projects', description: 'View delivered projects' },
-                              { id: 'calendar', name: 'Calendar', description: 'Calendar view and scheduling' },
-                              { id: 'reports', name: 'Reports', description: 'Reports and analytics' },
-                              { id: 'import', name: 'Import Data', description: 'Import data functionality' },
-                              { id: 'export-reports', name: 'Export Reports', description: 'Export reports and data' },
-                              { id: 'system-settings', name: 'System Settings', description: 'Access system configuration' }
-                            ].map((module) => {
-                              // Get saved visibility state or default based on role
-                              const getSavedOrDefaultChecked = () => {
-                                // Check if we have saved visibility data for this user and module
-                                const savedVisibility = userModuleVisibility[user.id]?.[module.id];
-                                if (savedVisibility !== undefined) {
-                                  return savedVisibility;
-                                }
-
-                                // Fallback to role-based defaults
-                                if (user.role === 'admin') return true;
-                                if (user.role === 'editor') return !['quality-assurance', 'system-settings', 'import'].includes(module.id);
-                                if (user.role === 'viewer') return !['quality-assurance', 'sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(module.id);
-                                return false;
-                              };
-
-                              return (
-                                <Card key={`${user.id}-${module.id}`} className="p-3 bg-slate-50/50">
-                                  <div className="flex items-center justify-between space-x-2">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm">{module.name}</div>
-                                      <div className="text-xs text-muted-foreground">{module.description}</div>
-                                    </div>
-                                    <Switch 
-                                      checked={getSavedOrDefaultChecked()}
-                                      disabled={!isAdmin}
-                                      onCheckedChange={async (checked) => {
-                                        console.log(`User ${user.firstName} ${user.lastName} - ${module.name} visibility:`, checked);
-
-                                        try {
-                                          const response = await fetch(`/api/users/${user.id}/module-visibility`, {
-                                            method: 'PATCH',
-                                            headers: {
-                                              'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({
-                                              module: module.id,
-                                              is_visible: checked
-                                            }),
-                                          });
-
-                                          if (!response.ok) {
-                                            throw new Error('Failed to update module visibility');
-                                          }
-
-                                          // Update local state to reflect the change
-                                          setUserModuleVisibility(prev => ({
-                                            ...prev,
-                                            [user.id]: {
-                                              ...prev[user.id],
-                                              [module.id]: checked
-                                            }
-                                          }));
-
-                                          // Invalidate module visibility cache to trigger refetch
-                                          queryClient.invalidateQueries({ queryKey: ['module-visibility', user.id] });
-
-                                          toast({
-                                            title: "Module Visibility Updated",
-                                            description: `${module.name} visibility for ${user.firstName} ${user.lastName} has been updated.`,
-                                            variant: "default"
-                                          });
-                                        } catch (error) {
-                                          toast({
-                                            title: "Error",
-                                            description: "Failed to update module visibility: " + (error as Error).message,
-                                            variant: "destructive"
-                                          });
-                                        }
-                                      }}
-                                    />
-                                  </div>
-                                </Card>
-                              );
-                            })}
+                            <PriorityVisibilityUserControl userId={user.id} user={user} isAdmin={isAdmin} />
                           </div>
                         </div>
                       ))}

@@ -18,7 +18,8 @@ import {
   ChevronRight,
   ShoppingCart,
   MessageSquare,
-  Shield
+  Shield,
+  Flag
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
@@ -129,6 +130,16 @@ const Sidebar = () => {
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Meetings">
                   <MessageSquare size={20} className={`${isActive('/meetings') || locationStartsWith('/meetings/') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Meetings</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('priorities') && (
+              <li>
+                <SidebarLink href="/priorities" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/priorities') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Priorities">
+                  <Flag size={20} className={`${isActive('/priorities') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Priorities</span>}
                 </SidebarLink>
               </li>
             )}
