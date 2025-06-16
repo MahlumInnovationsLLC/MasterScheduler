@@ -355,6 +355,38 @@ export default function Priorities() {
         </CardHeader>
 
         <CardContent>
+          {/* KPI Widgets - Always visible at top */}
+          {projectPriorities.length > 0 && (
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-blue-600 text-sm font-medium">Total Projects</div>
+                <div className="text-2xl font-bold text-blue-900">{projectPriorities.length}</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-green-600 text-sm font-medium">Total Value</div>
+                <div className="text-2xl font-bold text-green-900">
+                  {new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    notation: 'compact',
+                  }).format(projectPriorities.reduce((sum, p) => sum + p.totalValue, 0))}
+                </div>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <div className="text-yellow-600 text-sm font-medium">Critical Projects</div>
+                <div className="text-2xl font-bold text-yellow-900">
+                  {projectPriorities.filter(p => p.daysUntilShip <= 7).length}
+                </div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="text-purple-600 text-sm font-medium">Billing Milestones</div>
+                <div className="text-2xl font-bold text-purple-900">
+                  {projectPriorities.reduce((sum, p) => sum + p.billingMilestones.length, 0)}
+                </div>
+              </div>
+            </div>
+          )}
+
           {projectPriorities.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-500 mb-4">No project priorities configured</div>
@@ -406,36 +438,6 @@ export default function Priorities() {
                   </div>
                 </SortableContext>
               </DndContext>
-
-              {/* Summary Stats */}
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-blue-600 text-sm font-medium">Total Projects</div>
-                  <div className="text-2xl font-bold text-blue-900">{projectPriorities.length}</div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-green-600 text-sm font-medium">Total Value</div>
-                  <div className="text-2xl font-bold text-green-900">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      notation: 'compact',
-                    }).format(projectPriorities.reduce((sum, p) => sum + p.totalValue, 0))}
-                  </div>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <div className="text-yellow-600 text-sm font-medium">Critical Projects</div>
-                  <div className="text-2xl font-bold text-yellow-900">
-                    {projectPriorities.filter(p => p.daysUntilShip <= 7).length}
-                  </div>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-purple-600 text-sm font-medium">Billing Milestones</div>
-                  <div className="text-2xl font-bold text-purple-900">
-                    {projectPriorities.reduce((sum, p) => sum + p.billingMilestones.length, 0)}
-                  </div>
-                </div>
-              </div>
             </>
           )}
         </CardContent>
