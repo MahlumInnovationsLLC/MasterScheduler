@@ -10,15 +10,15 @@ import React, { useState, useEffect, useCallback } from 'react';
     document.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // CRITICAL: Force move cursor during drag operations
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = 'move';
       }
-      
+
       // Set dragging state on the document for CSS targeting
       document.body.setAttribute('data-dragging', 'true');
-      
+
       // Force all elements to accept drops
       const target = e.target as HTMLElement;
       if (target) {
@@ -26,21 +26,21 @@ import React, { useState, useEffect, useCallback } from 'react';
         target.style.cursor = 'move';
       }
     }, true);
-    
+
     // PRIORITY #2: Make all drop events succeed 
     document.addEventListener('drop', (e) => {
       // Remove dragging state
       document.body.removeAttribute('data-dragging');
       console.log('GLOBAL DROP HANDLER: Allowing drop to proceed without interference');
     }, true);
-    
+
     // PRIORITY #3: Add necessary classes to force drop acceptance
     document.body.classList.add('allow-multiple-projects');
     document.body.classList.add('force-accept-drop');
     document.body.classList.add('unlimited-drops');
-    
+
     console.log('🔒 MAXIMUM DRAG-DROP OVERRIDE ACTIVE - Projects can now be placed anywhere without restrictions');
-    
+
     // Add mutation observer to ensure new elements also accept drops
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -53,14 +53,14 @@ import React, { useState, useEffect, useCallback } from 'react';
         }
       });
     });
-    
+
     observer.observe(document.body, { childList: true, subtree: true });
   };
-  
+
   // Run immediately AND when document loads
   enableMaximumDragDrop();
   window.addEventListener('DOMContentLoaded', enableMaximumDragDrop);
-  
+
   // Also run when the page has fully loaded
   window.addEventListener('load', enableMaximumDragDrop);
 })();
@@ -116,7 +116,7 @@ import {
 const BaySchedulingPage = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  
+
   // State for import modal and loading
   const [showImportModal, setShowImportModal] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -124,7 +124,7 @@ const BaySchedulingPage = () => {
   const [processingScheduleId, setProcessingScheduleId] = useState<number | null>(null);
   // State for financial impact analysis toggle
   const [showFinancialImpact, setShowFinancialImpact] = useState<boolean>(true);
-  
+
   // Force a refresh of manufacturing schedules when page loads
   // This ensures capacity sharing calculations are correctly applied
   useEffect(() => {
@@ -132,7 +132,7 @@ const BaySchedulingPage = () => {
     queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
     console.log("Manufacturing page loaded: forcing refresh of schedules to apply capacity sharing after FAB phase");
   }, []);
-  
+
   // View mode and date range
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
   const [dateRange, setDateRange] = useState(() => {
@@ -145,7 +145,7 @@ const BaySchedulingPage = () => {
       end: endDate
     };
   });
-  
+
   // Sandbox Mode state variables
   const [isSandboxMode, setSandboxMode] = useState<boolean>(false);
   const [sandboxSchedules, setSandboxSchedules] = useState<ManufacturingSchedule[]>([]);
@@ -153,48 +153,48 @@ const BaySchedulingPage = () => {
   const [sandboxBays, setSandboxBays] = useState<ManufacturingBay[]>([]);
   const [sandboxChanges, setSandboxChanges] = useState<number>(0);
   const [isSavingSandbox, setIsSavingSandbox] = useState<boolean>(false);
-  
+
   // Track if we've loaded data into sandbox mode
   const [isSandboxInitialized, setIsSandboxInitialized] = useState<boolean>(false);
-  
+
   // Use same approach as the Today button
   const forceScrollToToday = () => {
     console.log("USING EMERGENCY SCROLLING METHOD");
-    
+
     try {
       // Target the exact container using the error message
       const scrollContainer = document.querySelector('.p-4.overflow-x-auto');
-      
+
       if (!scrollContainer) {
         console.error("Schedule container not found - cannot add today marker");
         throw new Error("Schedule container not found");
       }
-      
+
       // Calculate today's position based on the current date
       const today = new Date(); // Current date
       const startOfYear = new Date(2025, 0, 1);
       const millisecondsPerDay = 24 * 60 * 60 * 1000;
       const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
-      
+
       // Week view calculations (144px per week, divided by 7 days)
       const pixelsPerDay = 144 / 7; // ~20.6px per day in week view
       const bayColumnWidth = 343; // Bay column width
-      
+
       // Calculate target position (days * pixels per day) + bay column width
       const targetPosition = (daysSinceJan1 * pixelsPerDay) + bayColumnWidth;
-      
+
       // Force scroll using scrollLeft property
       (scrollContainer as HTMLElement).scrollLeft = targetPosition;
-      
+
       console.log(`Forced scroll to ${targetPosition}px (${daysSinceJan1} days since Jan 1, ${pixelsPerDay}px per day)`);
-      
+
       // Success message
       toast({
         title: "Scrolled to Today",
         description: "Positioned to today's date",
         duration: 2000
       });
-      
+
       return true;
     } catch (error) {
       console.error("Emergency scrolling method failed:", error);
@@ -207,12 +207,12 @@ const BaySchedulingPage = () => {
       return false;
     }
   };
-  
+
   // Original function kept for backward compatibility but now calls our new function
   const scrollToCurrentDay = (mode = 'week') => {
     return forceScrollToToday();
   };
-  
+
   // Function to scroll to a specific project number
   const scrollToProject = (projectNumber: string) => {
     if (!projectNumber.trim()) {
@@ -224,13 +224,13 @@ const BaySchedulingPage = () => {
       });
       return false;
     }
-    
+
     try {
       // Find the project in our data
       const targetProject = projects.find(project => 
         project.projectNumber?.toLowerCase().includes(projectNumber.toLowerCase())
       );
-      
+
       if (!targetProject) {
         toast({
           title: "Project Not Found",
@@ -240,13 +240,13 @@ const BaySchedulingPage = () => {
         });
         return false;
       }
-      
+
       // Find the schedule for this project
       const activeSchedules = isSandboxMode ? sandboxSchedules : manufacturingSchedules;
       const projectSchedule = activeSchedules.find(schedule => 
         schedule.projectId === targetProject.id
       );
-      
+
       if (!projectSchedule) {
         toast({
           title: "Project Not Scheduled",
@@ -256,14 +256,14 @@ const BaySchedulingPage = () => {
         });
         return false;
       }
-      
+
       console.log(`Found project ${targetProject.projectNumber} scheduled in bay ${projectSchedule.bayId}`);
-      
+
       // First, try to find the actual project element in the DOM
       console.log('Searching for project element in DOM...');
       let projectElement: Element | null = null;
       let scrollContainer: Element | null = null;
-      
+
       // Look for the project by text content in various possible selectors
       const possibleSelectors = [
         `*[data-project-number="${targetProject.projectNumber}"]`,
@@ -274,7 +274,7 @@ const BaySchedulingPage = () => {
         '[class*="schedule"]',
         '[class*="project"]'
       ];
-      
+
       for (const selector of possibleSelectors) {
         const elements = document.querySelectorAll(selector);
         for (let i = 0; i < elements.length; i++) {
@@ -288,7 +288,7 @@ const BaySchedulingPage = () => {
         }
         if (projectElement) break;
       }
-      
+
       // If still not found, search all elements containing the project number
       if (!projectElement) {
         console.log('Searching all elements for project number...');
@@ -303,12 +303,12 @@ const BaySchedulingPage = () => {
           }
         }
       }
-      
+
       if (projectElement) {
         console.log('Project element found, getting position...');
         const rect = projectElement.getBoundingClientRect();
         console.log(`Project element position: left=${rect.left}, top=${rect.top}, width=${rect.width}`);
-        
+
         // Find the scrollable container
         let parent = projectElement.parentElement;
         while (parent && parent !== document.body) {
@@ -322,31 +322,31 @@ const BaySchedulingPage = () => {
           }
           parent = parent.parentElement;
         }
-        
+
         if (scrollContainer) {
           // Calculate scroll position based on actual element position
           const containerRect = scrollContainer.getBoundingClientRect();
           const elementOffsetLeft = (projectElement as HTMLElement).offsetLeft;
           const targetScrollLeft = elementOffsetLeft - (containerRect.width / 2) + (rect.width / 2);
           const finalPosition = Math.max(0, targetScrollLeft);
-          
+
           console.log(`Direct positioning:
             - Container width: ${containerRect.width}
             - Element offset left: ${elementOffsetLeft}
             - Element width: ${rect.width}
             - Target scroll position: ${finalPosition}`);
-          
+
           // Scroll to the calculated position
           scrollContainer.scrollTo({
             left: finalPosition,
             behavior: 'smooth'
           });
-          
+
           // Fallback with direct assignment
           setTimeout(() => {
             (scrollContainer as HTMLElement).scrollLeft = finalPosition;
           }, 100);
-          
+
           // Also scroll the element into view as additional fallback
           setTimeout(() => {
             projectElement.scrollIntoView({
@@ -366,12 +366,12 @@ const BaySchedulingPage = () => {
         }
       } else {
         console.log('Project element not found, falling back to date calculation...');
-        
+
         // Fallback to original date-based calculation
         scrollContainer = document.querySelector('.p-4.overflow-x-auto') ||
                          document.querySelector('[class*="overflow-x-auto"]') ||
                          document.querySelector('.manufacturing-schedule');
-        
+
         if (!scrollContainer) {
           const allScrollableElements = document.querySelectorAll('*');
           for (let i = 0; i < allScrollableElements.length; i++) {
@@ -385,44 +385,44 @@ const BaySchedulingPage = () => {
             }
           }
         }
-        
+
         if (!scrollContainer) {
           throw new Error("Could not find project element or scrollable container");
         }
-        
+
         console.log(`Using fallback scroll container:`, scrollContainer);
-        
+
         // Calculate the project's position based on its start date
         const projectStartDate = new Date(projectSchedule.startDate);
         const startOfYear = new Date(2024, 0, 1);
         const millisecondsPerDay = 24 * 60 * 60 * 1000;
         const daysSinceStart = Math.floor((projectStartDate.getTime() - startOfYear.getTime()) / millisecondsPerDay);
-        
+
         // Week view calculations
         const pixelsPerDay = 144 / 7;
         const bayColumnWidth = 200;
-        
+
         const projectPixelPosition = daysSinceStart * pixelsPerDay;
         const viewportWidth = scrollContainer.clientWidth;
         const targetPosition = projectPixelPosition + bayColumnWidth - (viewportWidth / 2);
         const finalPosition = Math.max(0, targetPosition);
-        
+
         console.log(`Fallback calculation:
           - Start date: ${projectStartDate.toISOString()}
           - Days since 2024-01-01: ${daysSinceStart}
           - Pixel position: ${projectPixelPosition}
           - Target scroll position: ${finalPosition}`);
-        
+
         scrollContainer.scrollTo({
           left: finalPosition,
           behavior: 'smooth'
         });
-        
+
         setTimeout(() => {
           (scrollContainer as HTMLElement).scrollLeft = finalPosition;
         }, 100);
       }
-      
+
       // Also scroll vertically to the bay if needed
       const activeBays = isSandboxMode ? sandboxBays : manufacturingBays;
       const targetBay = activeBays.find(bay => bay.id === projectSchedule.bayId);
@@ -444,14 +444,14 @@ const BaySchedulingPage = () => {
           }
         }, 500);
       }
-      
+
       // Success message
       toast({
         title: "Found Project",
         description: `Scrolled to project ${targetProject.projectNumber} (${targetProject.name})`,
         duration: 3000
       });
-      
+
       return true;
     } catch (error) {
       console.error("Project search scrolling failed:", error);
@@ -464,22 +464,22 @@ const BaySchedulingPage = () => {
       return false;
     }
   };
-  
+
   // Filter states
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
-  
+
   // Project search state
   const [searchProjectNumber, setSearchProjectNumber] = useState<string>('');
-  
+
   // Fetch data with proper typing
   const { data: manufacturingBays = [], refetch: refetchBays } = useQuery<ManufacturingBay[]>({
     queryKey: ['/api/manufacturing-bays'],
   });
-  
+
   const { data: manufacturingSchedules = [] } = useQuery<ManufacturingSchedule[]>({
     queryKey: ['/api/manufacturing-schedules'],
   });
-  
+
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
@@ -489,18 +489,18 @@ const BaySchedulingPage = () => {
     // When data is loaded and components are rendered, try to scroll
     if (manufacturingBays.length > 0 && manufacturingSchedules.length > 0) {
       console.log('Manufacturing data loaded, attempting to scroll to current day');
-      
+
       // Wait a bit longer to ensure DOM is fully rendered
       const initialTimeout = setTimeout(() => {
         // Use our direct calculation method instead of trying to find DOM elements
         forceScrollToToday();
       }, 1000); // Give the rendering a full second to complete
-      
+
       // Clean up timeout if component unmounts
       return () => clearTimeout(initialTimeout);
     }
   }, [manufacturingBays, manufacturingSchedules]);
-  
+
   // All sandbox mode functions
   const toggleSandboxMode = useCallback(() => {
     if (isSandboxMode) {
@@ -509,14 +509,14 @@ const BaySchedulingPage = () => {
         const confirmExit = confirm("You have unsaved changes. Are you sure you want to exit sandbox mode without saving?");
         if (!confirmExit) return;
       }
-      
+
       // Exit sandbox mode
       setSandboxMode(false);
       setSandboxSchedules([]);
       setSandboxProjects([]);
       setSandboxBays([]);
       setSandboxChanges(0);
-      
+
       toast({
         title: "Sandbox Mode Exited",
         description: "No changes were saved to production data",
@@ -527,14 +527,14 @@ const BaySchedulingPage = () => {
       const schedulesCopy = JSON.parse(JSON.stringify(manufacturingSchedules));
       const projectsCopy = JSON.parse(JSON.stringify(projects));
       const baysCopy = JSON.parse(JSON.stringify(manufacturingBays));
-      
+
       // Update state
       setSandboxSchedules(schedulesCopy);
       setSandboxProjects(projectsCopy);
       setSandboxBays(baysCopy);
       setSandboxMode(true);
       setSandboxChanges(0);
-      
+
       // Notify user
       toast({
         title: "Sandbox Mode Activated",
@@ -543,22 +543,22 @@ const BaySchedulingPage = () => {
       });
     }
   }, [isSandboxMode, sandboxChanges, manufacturingSchedules, projects, manufacturingBays, toast]);
-  
 
-  
+
+
   // Discard sandbox changes without saving
   const discardSandboxChanges = useCallback(() => {
     if (sandboxChanges > 0) {
       const confirmExit = confirm("You have unsaved changes. Are you sure you want to exit sandbox mode without saving?");
       if (!confirmExit) return;
     }
-    
+
     toast({
       title: "Sandbox Mode Exited",
       description: "No changes were saved to production data",
       duration: 3000
     });
-    
+
     // Reset state
     setSandboxMode(false);
     setSandboxSchedules([]);
@@ -566,9 +566,9 @@ const BaySchedulingPage = () => {
     setSandboxBays([]);
     setSandboxChanges(0);
   }, [sandboxChanges, toast]);
-  
+
   // We'll move saveSandboxChanges further down to fix the circular dependency issue
-  
+
   // Create bay mutation
   const createBayMutation = useMutation({
     mutationFn: async (bay: Partial<ManufacturingBay>) => {
@@ -591,7 +591,7 @@ const BaySchedulingPage = () => {
       console.error(error);
     },
   });
-  
+
   // Update bay mutation
   const updateBayMutation = useMutation({
     mutationFn: async ({ id, ...bay }: { id: number } & Partial<ManufacturingBay>) => {
@@ -614,7 +614,7 @@ const BaySchedulingPage = () => {
       console.error(error);
     },
   });
-  
+
   // Delete bay mutation
   const deleteBayMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -638,76 +638,76 @@ const BaySchedulingPage = () => {
       console.error(error);
     },
   });
-  
+
   // Calculate utilization metrics using the shared utility function
   const bayUtilization = React.useMemo(() => {
     return calculateBayUtilization(manufacturingBays, manufacturingSchedules);
   }, [manufacturingBays, manufacturingSchedules]);
-  
+
   // Calculate scheduled projects
   const scheduledProjectsCount = React.useMemo(() => {
     if (!manufacturingSchedules.length) return 0;
-    
+
     // Get unique project IDs from schedules
     const uniqueProjectIds = new Set(manufacturingSchedules.map(s => s.projectId));
     return uniqueProjectIds.size;
   }, [manufacturingSchedules]);
-  
+
   // Count visible bay rows in the schedule
   const visibleBayRowsCount = React.useMemo(() => {
     if (!manufacturingBays.length) return 0;
-    
+
     // Group bays by team to count distinct rows
     const teamRows = new Map<string, Set<number>>();
-    
+
     // Count rows for each team
     manufacturingBays.forEach(bay => {
       const teamName = bay.team || `bay_${bay.id}`;
-      
+
       // Create a new set for this team if it doesn't exist
       if (!teamRows.has(teamName)) {
         teamRows.set(teamName, new Set());
       }
-      
+
       // Add this bay's row to the team's set
       teamRows.get(teamName)?.add(bay.bayNumber);
     });
-    
+
     // Count total rows across all teams
     let totalRows = 0;
     teamRows.forEach(rows => {
       totalRows += rows.size;
     });
-    
+
     return totalRows;
   }, [manufacturingBays]);
-  
+
   // Calculate total capacity hours - use team-based calculation
   const totalCapacityHours = React.useMemo(() => {
     if (!manufacturingBays.length) return 0;
-    
+
     // Group bays by team to avoid counting the same team's hours multiple times
     const teamHours = new Map<string, number>();
-    
+
     manufacturingBays.forEach(bay => {
       const teamName = bay.team || `bay_${bay.id}`;
-      
+
       // Calculate this team's hours
       const assemblyStaff = bay.assemblyStaffCount || 0;
       const electricalStaff = bay.electricalStaffCount || 0;
       const hoursPerPerson = bay.hoursPerPersonPerWeek || 40;
       const teamWeeklyHours = (assemblyStaff + electricalStaff) * hoursPerPerson;
-      
+
       // Only store once per team (use first bay's data for each team)
       if (!teamHours.has(teamName)) {
         teamHours.set(teamName, teamWeeklyHours);
       }
     });
-    
+
     // Sum up hours across all teams
     return Array.from(teamHours.values()).reduce((sum, hours) => sum + hours, 0);
   }, [manufacturingBays]);
-  
+
   // Mutations for schedules
   const updateScheduleMutation = useMutation({
     mutationFn: async ({ scheduleId, bayId, startDate, endDate, totalHours, row, forcedRowIndex }: { 
@@ -732,11 +732,11 @@ const BaySchedulingPage = () => {
           forcedRowIndex        // Add the forcedRowIndex parameter with highest priority
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update schedule');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -751,7 +751,7 @@ const BaySchedulingPage = () => {
       console.error(error);
     },
   });
-  
+
   const createScheduleMutation = useMutation({
     mutationFn: async ({ projectId, bayId, startDate, endDate, totalHours, row, rowIndex, forcedRowIndex }: { 
       projectId: number, 
@@ -782,7 +782,7 @@ const BaySchedulingPage = () => {
         // 5. Use provided rowIndex or row parameter
         (rowIndex !== undefined ? rowIndex : 
         (row !== undefined ? row : 0)))));
-      
+
       // Log detailed debug info about all available row sources
       console.log(`🔴 CREATE SCHEDULE MUTATION - ALL ROW SOURCES:
         - Function param forcedRowIndex: ${forcedRowIndex}
@@ -793,10 +793,10 @@ const BaySchedulingPage = () => {
         - DOM data-current-drag-row: ${domCurrentDragRow}
         - 🚨 FINAL SELECTED ROW: ${bestRowIndex}
       `);
-      
+
       // Ensure consistency by using the same value for all row parameters 
       const finalRowValue = bestRowIndex;
-      
+
       // Log the final body being sent to API
       console.log(`🚨 SENDING API REQUEST WITH FOLLOWING BODY:`);
       console.log({
@@ -809,7 +809,7 @@ const BaySchedulingPage = () => {
         rowIndex: finalRowValue,
         forcedRowIndex: finalRowValue
       });
-      
+
       const response = await fetch('/api/manufacturing-schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -825,11 +825,11 @@ const BaySchedulingPage = () => {
           forcedRowIndex: finalRowValue        
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create schedule');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -844,7 +844,7 @@ const BaySchedulingPage = () => {
       console.error(error);
     },
   });
-  
+
   // Delete schedule mutation
   const deleteScheduleMutation = useMutation({
     mutationFn: async (scheduleId: number) => {
@@ -856,7 +856,7 @@ const BaySchedulingPage = () => {
       // Force refresh all relevant queries to ensure UI is in sync with server state
       queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      
+
       toast({
         title: 'Success',
         description: 'Project removed from manufacturing schedule',
@@ -871,7 +871,7 @@ const BaySchedulingPage = () => {
       console.error(error);
     },
   });
-  
+
   // Handler for schedule changes with optimistic updates and sandbox support
   const handleScheduleChange = async (
     scheduleId: number,
@@ -883,22 +883,22 @@ const BaySchedulingPage = () => {
   ) => {
     try {
       console.log(`Updating schedule ${scheduleId} to bay ${newBayId}, row ${rowIndex}`);
-      
+
       // Set the schedule we're processing
       setProcessingScheduleId(scheduleId);
-      
+
       // Show loading indicator
       setIsLoading(true);
-      
+
       // Handle sandbox mode updates
       if (isSandboxMode) {
         // Find the schedule in sandbox data
         const scheduleIndex = sandboxSchedules.findIndex(s => s.id === scheduleId);
-        
+
         if (scheduleIndex !== -1) {
           // Create updated schedules array
           const updatedSchedules = [...sandboxSchedules];
-          
+
           // Update the specific schedule with new values
           updatedSchedules[scheduleIndex] = {
             ...updatedSchedules[scheduleIndex],
@@ -909,19 +909,19 @@ const BaySchedulingPage = () => {
             row: rowIndex,
             rowIndex: rowIndex
           };
-          
+
           // Update sandbox state after a short delay to simulate processing
           setTimeout(() => {
             // Update the sandbox schedules
             setSandboxSchedules(updatedSchedules);
-            
+
             // Increment the change counter
             setSandboxChanges(prev => prev + 1);
-            
+
             // Clear the loading state
             setIsLoading(false);
             setProcessingScheduleId(null);
-            
+
             // Show success toast
             toast({
               title: "Sandbox Update",
@@ -929,19 +929,19 @@ const BaySchedulingPage = () => {
               duration: 3000
             });
           }, 500);
-          
+
           return { id: scheduleId };
         } else {
           throw new Error("Schedule not found in sandbox data");
         }
       }
-      
+
       // Get the current data for optimistic updates
       const previousSchedules = queryClient.getQueryData<ManufacturingSchedule[]>(['/api/manufacturing-schedules']) || [];
-      
+
       // Find the schedule to update
       const scheduleToUpdate = previousSchedules.find(s => s.id === scheduleId);
-      
+
       if (scheduleToUpdate) {
         // Create optimistic update
         const optimisticData = previousSchedules.map(s => 
@@ -957,40 +957,40 @@ const BaySchedulingPage = () => {
               } 
             : s
         );
-        
+
         // Update the cache with optimistic data
         queryClient.setQueryData(['/api/manufacturing-schedules'], optimisticData);
       }
-      
+
       // 🚨 MAY 17 2025 EMERGENCY FIX: Get row from EVERY POSSIBLE SOURCE with priority order
       // Check all potential row position sources with careful priority ordering
-      
+
       // Source 1: data attribute on body (highest priority)
       const forcedRowIndexAttr = document.body.getAttribute('data-forced-row-index');
       const dataAttrRow = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
-      
+
       // Source 2: Global variable on window
       const windowVarRow = (window as any).absoluteRowPosition !== undefined ? 
         parseInt(String((window as any).absoluteRowPosition)) : undefined;
-      
+
       // Source 3: localStorage backup (used in case of page refresh)
       const localStorageRow = localStorage.getItem('absoluteRowPosition') ?
         parseInt(localStorage.getItem('absoluteRowPosition')!) : undefined;
-      
+
       // Source 4: forcedRowIndex from localStorage
       const localStorageForcedRow = localStorage.getItem('forcedRowIndex') ?
         parseInt(localStorage.getItem('forcedRowIndex')!) : undefined;
-        
+
       // Source 5: Other data attributes that might have been set (emergency fallbacks)
       const emergencyDataAttrRow = document.body.getAttribute('data-emergency-row-override') ?
         parseInt(document.body.getAttribute('data-emergency-row-override')!) : undefined;
-      
+
       // Source 6: lastDropRowIndex from localStorage (final emergency fallback)
       const lastDropRowIndex = localStorage.getItem('lastDropRowIndex') ?
         parseInt(localStorage.getItem('lastDropRowIndex')!) : undefined;
-      
+
       // Source 7: Function parameter row (lowest priority, but still used)
-      
+
       // CRITICAL MAY 2025 FIX: Use the first valid row value in priority order
       // Always prefer the most direct/reliable source, with carefully designed fallbacks
       const finalRowIndex = dataAttrRow !== undefined ? dataAttrRow :
@@ -1000,7 +1000,7 @@ const BaySchedulingPage = () => {
                            emergencyDataAttrRow !== undefined ? emergencyDataAttrRow :
                            lastDropRowIndex !== undefined ? lastDropRowIndex :
                            rowIndex;
-      
+
       // MAXIMUM VISIBILITY Logging for this absolutely critical value
       console.log(`🔴🔴🔴 CRITICAL VALUE CHECK BEFORE API CALL - MAY 17 2025 EMERGENCY FIX`);
       console.log(`🔴🔴🔴 ABSOLUTE ROW POSITIONING DATA SOURCES:`);
@@ -1014,7 +1014,7 @@ const BaySchedulingPage = () => {
       console.log(`🔴🔴🔴 FINAL ROW BEING SENT TO API: ${finalRowIndex}`);
       console.log(`🔴🔴🔴 THIS IS ABSOLUTE PRIORITY - NO AUTO-ADJUSTMENT`);
       console.log(`🔴🔴🔴 PROJECT WILL BE PLACED AT EXACTLY ROW ${finalRowIndex}`);
-      
+
       // Perform the actual API update with guaranteed row value
       const result = await updateScheduleMutation.mutateAsync({
         scheduleId,
@@ -1025,13 +1025,13 @@ const BaySchedulingPage = () => {
         row: finalRowIndex,            // Use final calculated row
         forcedRowIndex: finalRowIndex  // Add forcedRowIndex as highest priority signal
       });
-      
+
       // No need to invalidate, just refresh the query silently
       queryClient.invalidateQueries({ 
         queryKey: ['/api/manufacturing-schedules'],
         refetchType: 'none' // Don't trigger an immediate refetch
       });
-      
+
       return result;
     } catch (error) {
       console.error('Error updating schedule:', error);
@@ -1048,7 +1048,7 @@ const BaySchedulingPage = () => {
       setProcessingScheduleId(null);
     }
   };
-  
+
   // Handler for schedule creation with optimistic updates
   const handleScheduleCreate = async (
     projectId: number,
@@ -1062,17 +1062,17 @@ const BaySchedulingPage = () => {
       setIsLoading(true);
       // Use -1 as a special ID to represent creating a new schedule
       setProcessingScheduleId(-1);
-      
+
       // Find the project for optimistic updates
       const project = projects.find(p => p.id === projectId);
-      
+
       if (project) {
         // Get current data for optimistic updates
         const currentSchedules = queryClient.getQueryData<ManufacturingSchedule[]>(['/api/manufacturing-schedules']) || [];
-        
+
         // Create a temporary ID for the optimistic update
         const tempId = -Date.now(); // Use negative timestamp to avoid collisions with real IDs
-        
+
         // Create optimistic update with a temporary schedule
         // Using "as any" to bypass TypeScript type-checking for calculated fields
         const optimisticSchedule = {
@@ -1094,47 +1094,47 @@ const BaySchedulingPage = () => {
           qcStart: null,
           notes: null,
           staffAssigned: null,
-          
+
           // These fields are calculated by the server but needed by the UI
           projectName: project.name
         } as any;
-        
+
         // Add the optimistic schedule to the cache
         queryClient.setQueryData(
           ['/api/manufacturing-schedules'], 
           [...currentSchedules, optimisticSchedule]
         );
       }
-      
+
       // 🚨 MAY 17 2025 EMERGENCY FIX: Get row from EVERY POSSIBLE SOURCE with priority order
       // Check all potential row position sources with careful priority ordering
-      
+
       // Source 1: data attribute on body (highest priority)
       const forcedRowIndexAttr = document.body.getAttribute('data-forced-row-index');
       const dataAttrRow = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
-      
+
       // Source 2: Global variable on window
       const windowVarRow = (window as any).absoluteRowPosition !== undefined ? 
         parseInt(String((window as any).absoluteRowPosition)) : undefined;
-      
+
       // Source 3: localStorage backup (used in case of page refresh)
       const localStorageRow = localStorage.getItem('absoluteRowPosition') ?
         parseInt(localStorage.getItem('absoluteRowPosition')!) : undefined;
-      
+
       // Source 4: forcedRowIndex from localStorage
       const localStorageForcedRow = localStorage.getItem('forcedRowIndex') ?
         parseInt(localStorage.getItem('forcedRowIndex')!) : undefined;
-        
+
       // Source 5: Other data attributes that might have been set (emergency fallbacks)
       const emergencyDataAttrRow = document.body.getAttribute('data-emergency-row-override') ?
         parseInt(document.body.getAttribute('data-emergency-row-override')!) : undefined;
-      
+
       // Source 6: lastDropRowIndex from localStorage (final emergency fallback)
       const lastDropRowIndex = localStorage.getItem('lastDropRowIndex') ?
         parseInt(localStorage.getItem('lastDropRowIndex')!) : undefined;
-      
+
       // Source 7: Function parameter row (lowest priority, but still used)
-      
+
       // CRITICAL MAY 2025 FIX: Use the first valid row value in priority order
       // Always prefer the most direct/reliable source, with carefully designed fallbacks
       const finalRowIndex = dataAttrRow !== undefined ? dataAttrRow :
@@ -1144,7 +1144,7 @@ const BaySchedulingPage = () => {
                            emergencyDataAttrRow !== undefined ? emergencyDataAttrRow :
                            lastDropRowIndex !== undefined ? lastDropRowIndex :
                            rowIndex;
-      
+
       // Log the exact row being sent to the API for creation with MAXIMUM visibility
       console.log(`🔴🔴🔴 CRITICAL CREATE DEBUG - MAY 17 2025 EMERGENCY FIX`);
       console.log(`🔴🔴🔴 ABSOLUTE ROW POSITIONING DATA SOURCES:`);
@@ -1158,7 +1158,7 @@ const BaySchedulingPage = () => {
       console.log(`🔴🔴🔴 FINAL ROW BEING SENT TO API: ${finalRowIndex}`);
       console.log(`🔴🔴🔴 THIS IS ABSOLUTE PRIORITY - NO AUTO-ADJUSTMENT`);
       console.log(`🔴🔴🔴 PROJECT WILL BE PLACED AT EXACTLY ROW ${finalRowIndex}`);
-      
+
       // Perform the actual API request
       // CRITICAL FIX: Ensure row is explicitly set to the finalRowIndex and passed with highest priority
       console.log(`🚨 EXACT ROW PLACEMENT: Forcing row=${finalRowIndex} for projectId=${projectId} in bayId=${bayId}`);
@@ -1172,7 +1172,7 @@ const BaySchedulingPage = () => {
         rowIndex: finalRowIndex, // Include both for absolute certainty
         forcedRowIndex: finalRowIndex // Add highest priority signal
       });
-      
+
       return true;
     } catch (error) {
       console.error('Error creating schedule:', error);
@@ -1189,25 +1189,25 @@ const BaySchedulingPage = () => {
       setProcessingScheduleId(null);
     }
   };
-  
+
   // Handler for schedule deletion with optimistic updates
   const handleScheduleDelete = async (scheduleId: number) => {
     try {
       setIsLoading(true);
       setProcessingScheduleId(scheduleId);
-      
+
       // Get current data for optimistic updates
       const currentSchedules = queryClient.getQueryData<ManufacturingSchedule[]>(['/api/manufacturing-schedules']) || [];
-      
+
       // Create optimistic update by filtering out the schedule to delete
       const updatedSchedules = currentSchedules.filter(schedule => schedule.id !== scheduleId);
-      
+
       // Update the cache with optimistic data
       queryClient.setQueryData(['/api/manufacturing-schedules'], updatedSchedules);
-      
+
       // Perform the actual API request
       await deleteScheduleMutation.mutateAsync(scheduleId);
-      
+
       return true;
     } catch (error) {
       console.error('Error deleting schedule:', error);
@@ -1224,17 +1224,17 @@ const BaySchedulingPage = () => {
       setProcessingScheduleId(null);
     }
   };
-  
+
   // Update date range based on view mode
   const updateDateRange = (mode: 'day' | 'week' | 'month' | 'quarter') => {
     const today = new Date();
-    
+
     // Always keep January 1st, 2024 as the start date for consistency
     const startDate = new Date(2024, 0, 1);
     // Always ensure end date is at least May 31st, 2028 (week 20)
     const minEndDate = new Date(2028, 4, 31);
     let end;
-    
+
     // Configure view range based on selected time scale
     switch (mode) {
       case 'day':
@@ -1254,29 +1254,29 @@ const BaySchedulingPage = () => {
         end = addMonths(today, 24);
         break;
     }
-    
+
     // Make sure end date is never before our minimum end date
     if (end < minEndDate) {
       end = minEndDate;
     }
-    
+
     // Update state with new date range
     setDateRange({ start: startDate, end });
-    
+
     // Update the view mode
     setViewMode(mode);
-    
+
     // Indicate in console which view mode was selected
     console.log(`Switching to ${mode} view mode with date range:`, 
       { start: startDate.toISOString().split('T')[0], end: end.toISOString().split('T')[0] });
-    
+
     // After updating view mode, ensure we scroll to current date using direct method
     // Delay slightly to ensure the DOM has updated
     setTimeout(() => {
       forceScrollToToday();
     }, 500);
   };
-  
+
   // Navigate through time (forward or backward)
   const navigateTime = (direction: 'forward' | 'backward') => {
     // Always keep January 1st, 2024 as the start date for consistency
@@ -1284,7 +1284,7 @@ const BaySchedulingPage = () => {
     // Always ensure end date is at least May 31st, 2028 (week 20)
     const minEndDate = new Date(2028, 4, 31);
     let newEnd;
-    
+
     // Adjust the navigation increment based on view mode
     switch (viewMode) {
       case 'day':
@@ -1294,7 +1294,7 @@ const BaySchedulingPage = () => {
           ? addDays(dateRange.end, dayIncrement) 
           : addDays(dateRange.end, -dayIncrement);
         break;
-        
+
       case 'week':
         // For week view, navigate by 4 weeks (approximately 1 month)
         const weekIncrement = 4;
@@ -1302,7 +1302,7 @@ const BaySchedulingPage = () => {
           ? addWeeks(dateRange.end, weekIncrement) 
           : addWeeks(dateRange.end, -weekIncrement);
         break;
-        
+
       case 'month':
         // For month view, navigate by 3 months (1 quarter)
         const monthIncrement = 3;
@@ -1310,7 +1310,7 @@ const BaySchedulingPage = () => {
           ? addMonths(dateRange.end, monthIncrement) 
           : addMonths(dateRange.end, -monthIncrement);
         break;
-        
+
       case 'quarter':
         // For quarter view, navigate by 6 months (half year)
         const quarterIncrement = 6;
@@ -1319,22 +1319,45 @@ const BaySchedulingPage = () => {
           : addMonths(dateRange.end, -quarterIncrement);
         break;
     }
-    
+
     // Log navigation action
     console.log(`Navigating ${direction} in ${viewMode} view mode`);
-    
+
     // Make sure end date is never before our minimum end date (May 31st, 2028)
     if (newEnd < minEndDate) {
       newEnd = minEndDate;
     }
-    
+
     // Update the date range ensuring our full range is always visible
     setDateRange({ start: startDate, end: newEnd });
   };
-  
+
+  // Calculate unassigned projects (projects without schedules, excluding delivered projects)
+  const unassignedProjects = React.useMemo(() => {
+    if (!projects || !manufacturingSchedules) return [];
+    return projects.filter(project => {
+      // Exclude if project has a schedule
+      if (manufacturingSchedules.some(schedule => schedule.projectId === project.id)) {
+        return false;
+      }
+
+      // Exclude if project has delivered status
+      if (project.status === 'delivered') {
+        return false;
+      }
+
+      // Exclude if project is in Field or FSW category (consistent with sidebar filtering)
+      if (project.team === 'Field' || project.team === 'FSW') {
+        return false;
+      }
+
+      return true;
+    });
+  }, [projects, manufacturingSchedules]);
+
   return (
     <div className="px-4 py-4 md:py-6 md:px-6">
-      
+
       <div className="flex flex-col gap-1 mb-6">
         <div className="flex justify-between items-center">
           <div>
@@ -1348,7 +1371,7 @@ const BaySchedulingPage = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Top row - Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="md:col-span-1">
@@ -1370,7 +1393,7 @@ const BaySchedulingPage = () => {
               { label: "Total Hours", value: totalCapacityHours },
               { label: "Total Bays", value: visibleBayRowsCount },
               { label: "Active Projects", value: scheduledProjectsCount },
-              { label: "Unassigned", value: projects.length - scheduledProjectsCount },
+              { label: "Unassigned", value: unassignedProjects.length },
             ]}
           />
         </div>
@@ -1392,14 +1415,14 @@ const BaySchedulingPage = () => {
           </Card>
         </div>
       </div>
-      
+
       {/* Production Status - Horizontal Card */}
       <div className="mb-6">
         <div className="w-full">
           <HighRiskProjectsCard projects={projects} />
         </div>
       </div>
-      
+
       {/* SandboxModeBanner positioned between Current & Upcoming Production and Manufacturing Schedule */}
       {/* Implement save function inline here to avoid circular dependency with updateScheduleMutation */}
       <SandboxModeBanner 
@@ -1414,17 +1437,17 @@ const BaySchedulingPage = () => {
             });
             return;
           }
-          
+
           setIsSavingSandbox(true);
-          
+
           try {
             // Find all changed schedules by comparing sandbox to original
             const updatedSchedules = sandboxSchedules.filter(sandboxSchedule => {
               const originalSchedule = manufacturingSchedules.find(s => s.id === sandboxSchedule.id);
-              
+
               // If we can't find a matching schedule, it's new
               if (!originalSchedule) return true;
-              
+
               // Check if any properties changed
               return (
                 sandboxSchedule.bayId !== originalSchedule.bayId ||
@@ -1433,9 +1456,9 @@ const BaySchedulingPage = () => {
                 sandboxSchedule.row !== originalSchedule.row
               );
             });
-            
+
             console.log(`Applying ${updatedSchedules.length} schedule changes from sandbox`);
-            
+
             // Process each schedule update sequentially to avoid race conditions
             for (const schedule of updatedSchedules) {
               await updateScheduleMutation.mutateAsync({
@@ -1446,13 +1469,13 @@ const BaySchedulingPage = () => {
                 row: schedule.row || 0
               });
             }
-            
+
             toast({
               title: "Sandbox Changes Applied",
               description: `Successfully applied ${updatedSchedules.length} changes to production data`,
               duration: 3000
             });
-            
+
             // Reset state
             setSandboxMode(false);
             setSandboxSchedules([]);
@@ -1474,11 +1497,11 @@ const BaySchedulingPage = () => {
         onDiscard={discardSandboxChanges}
         hasChanges={sandboxChanges > 0}
       />
-      
+
       <div className="rounded-md border border-gray-800 bg-darkCard">
         <div className="p-4 border-b border-gray-800 flex justify-between items-center">
           <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
-          
+
           <div className="flex items-center gap-4">
             {/* Project Search */}
             <div className="flex items-center gap-2">
@@ -1506,7 +1529,7 @@ const BaySchedulingPage = () => {
                 Find Project
               </Button>
             </div>
-            
+
             {/* Day/Week/Month view options removed as requested */}
             <div className="flex items-center gap-2 mr-4">
               <Switch 
@@ -1518,7 +1541,7 @@ const BaySchedulingPage = () => {
                 Financial Impact Analysis
               </Label>
             </div>
-            
+
             {/* Removed redundant Sandbox Mode Toggle button since we now have the SandboxModeBanner */}
           </div>
         </div>
@@ -1558,7 +1581,7 @@ const BaySchedulingPage = () => {
           )}
         </div>
       </div>
-      
+
       {/* Use the enhanced LoadingOverlay component with delay and processingId */}
       <LoadingOverlay 
         visible={isLoading} 
