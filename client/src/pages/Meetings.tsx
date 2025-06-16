@@ -202,15 +202,25 @@ export default function Meetings() {
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
     .slice(20, 40);
 
-  // Filter projects for Tier IV (MAJOR and MINOR issues only)
+  // Filter projects for Tier IV (MAJOR and MINOR issues only) - sorted by ship date
   const tierIVProjects = (projects as Project[]).filter((p: Project) => 
     hasLabel(p.id, 'MAJOR ISSUE') || hasLabel(p.id, 'MINOR ISSUE')
-  );
+  ).sort((a: Project, b: Project) => {
+    if (!a.shipDate && !b.shipDate) return 0;
+    if (!a.shipDate) return 1;
+    if (!b.shipDate) return -1;
+    return new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime();
+  });
 
-  // Get top 10 GOOD projects for Tier IV
+  // Get top 10 GOOD projects for Tier IV - sorted by ship date
   const goodProjects = (projects as Project[]).filter((p: Project) => 
     hasLabel(p.id, 'GOOD')
-  ).slice(0, 10);
+  ).sort((a: Project, b: Project) => {
+    if (!a.shipDate && !b.shipDate) return 0;
+    if (!a.shipDate) return 1;
+    if (!b.shipDate) return -1;
+    return new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime();
+  }).slice(0, 10);
 
   // Get concerns escalated to Tier IV
   const tierIVConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.isEscalatedToTierIV);
@@ -616,7 +626,12 @@ export default function Meetings() {
                   <CardContent className="p-3 h-full flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{project.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{project.projectNumber}</div>
+                      <Link 
+                        href={`/projects/${project.id}`}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline truncate block"
+                      >
+                        {project.projectNumber}
+                      </Link>
                       <div className="text-xs">
                         <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"} | 
                         <span className="font-medium ml-2">Ship:</span> {project.shipDate ? format(new Date(project.shipDate), 'MMM d') : "TBD"}
@@ -646,7 +661,12 @@ export default function Meetings() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-xl">{project.name}</CardTitle>
-                        <CardDescription className="text-base">{project.projectNumber}</CardDescription>
+                        <Link 
+                          href={`/projects/${project.id}`}
+                          className="text-base text-blue-600 hover:text-blue-800 underline"
+                        >
+                          {project.projectNumber}
+                        </Link>
                       </div>
                       <div className="flex flex-col gap-2 ml-4">
                         {/* Project Labels */}
@@ -711,6 +731,33 @@ export default function Meetings() {
                         <p className="text-muted-foreground mt-1">{project.notes}</p>
                       </div>
                     )}
+
+                    {/* TASK Section */}
+                    <div className="text-sm">
+                      <span className="font-medium">TASK:</span>
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg border-l-4 border-l-yellow-500">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-600">Priority Action Required</span>
+                            <Badge variant="outline" className="text-xs">
+                              {hasLabel(project.id, 'MAJOR ISSUE') ? 'URGENT' : 'HIGH'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-gray-700">
+                            {hasLabel(project.id, 'MAJOR ISSUE') 
+                              ? 'Immediate resolution required for critical project issues. Escalate to management if not resolved within 24 hours.'
+                              : 'Address minor issues and monitor progress closely. Update status within 48 hours.'
+                            }
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs font-medium">Due:</span>
+                            <span className="text-xs text-red-600">
+                              {hasLabel(project.id, 'MAJOR ISSUE') ? '24 hours' : '48 hours'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Current Tasks & Concerns */}
                     {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id).length > 0 && (
