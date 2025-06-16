@@ -356,7 +356,7 @@ export default function Meetings() {
     );
   };
 
-  if (meetingsLoading || projectsLoading || concernsLoading) {
+  if (meetingsLoading || projectsLoading || concernsLoading || labelsLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
@@ -602,12 +602,112 @@ export default function Meetings() {
             </Card>
           </div>
 
-          {/* Critical Projects */}
+          {/* Critical Projects - Larger cards for MAJOR and MINOR issues */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Critical Projects</h3>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <h3 className="text-lg font-semibold">Critical Projects ({tierIVProjects.length})</h3>
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
               {tierIVProjects.map((project: Project) => (
-                <ProjectCard key={project.id} project={project} showConcerns={true} />
+                <Card key={project.id} className="w-full border-l-4 border-l-red-500">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-xl">{project.name}</CardTitle>
+                        <CardDescription className="text-base">{project.projectNumber}</CardDescription>
+                      </div>
+                      <div className="flex flex-col gap-2 ml-4">
+                        {/* Project Labels */}
+                        {getProjectLabels(project.id).length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {getProjectLabels(project.id).map((label: any) => (
+                              <Badge 
+                                key={label.id} 
+                                variant={label.labelName === 'MAJOR ISSUE' ? 'destructive' : 
+                                        label.labelName === 'MINOR ISSUE' ? 'secondary' : 'default'}
+                                className="text-sm font-semibold"
+                              >
+                                {label.labelName}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <Badge variant={project.status === "critical" ? "destructive" : "default"} className="text-sm">
+                          {project.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium">Progress</span>
+                        <span>{calculateProgress(project)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-red-600 h-3 rounded-full transition-all duration-300" 
+                          style={{ width: `${calculateProgress(project)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Risk Level */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">Risk Level:</span>
+                      <Badge variant={getRiskLevel(project) === 'high' ? 'destructive' : 'secondary'} className="text-sm">
+                        {getRiskLevel(project).toUpperCase()} RISK
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"}
+                      </div>
+                      <div>
+                        <span className="font-medium">Ship Date:</span> {project.shipDate ? format(new Date(project.shipDate), 'MMM d, yyyy') : "TBD"}
+                      </div>
+                      <div>
+                        <span className="font-medium">Delivery:</span> {project.deliveryDate ? format(new Date(project.deliveryDate), 'MMM d, yyyy') : "TBD"}
+                      </div>
+                    </div>
+                    
+                    {project.notes && (
+                      <div className="text-sm">
+                        <span className="font-medium">Notes:</span>
+                        <p className="text-muted-foreground mt-1">{project.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Current Tasks & Concerns */}
+                    {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id).length > 0 && (
+                      <div className="space-y-2">
+                        <span className="font-medium text-sm">Current Tasks & Concerns:</span>
+                        {(elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => c.projectId === project.id).map((concern: ElevatedConcern) => (
+                          <div key={concern.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{concern.title}</div>
+                              <div className="text-xs text-muted-foreground">{concern.description}</div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={concern.priority === "high" ? "destructive" : "secondary"}>
+                                {concern.priority}
+                              </Badge>
+                              {!concern.isEscalatedToTierIV && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEscalate(concern.id)}
+                                >
+                                  <ArrowUp className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
