@@ -4292,6 +4292,9 @@ Response format:
     }
   });
 
+  // In-memory storage for user priority access (temporary until DB table is ready)
+  const userPriorityAccessStore = new Map<string, { canViewPriorities: boolean; canEditPriorities: boolean; canDragReorder: boolean }>();
+
   // Priority Access Routes
   app.get("/api/users/:userId/priority-access", requireAuth, async (req: any, res) => {
     try {
@@ -4302,11 +4305,12 @@ Response format:
         return res.status(403).json({ message: "Access denied" });
       }
       
-      // Return default priority access for now
+      // Get from in-memory store or return defaults
+      const storedAccess = userPriorityAccessStore.get(userId);
       const defaultAccess = {
-        canViewPriorities: true,
-        canEditPriorities: false,
-        canDragReorder: false
+        canViewPriorities: storedAccess?.canViewPriorities ?? true,
+        canEditPriorities: storedAccess?.canEditPriorities ?? false,
+        canDragReorder: storedAccess?.canDragReorder ?? false
       };
       
       res.json(defaultAccess);
@@ -4323,14 +4327,24 @@ Response format:
       
       console.log(`🔧 Updating priority access for user ${userId}:`, accessUpdate);
       
-      // For now, just return success since we don't have database storage for this yet
-      // In the future, this would save to a user_priority_access table
+      // Get current access or create default
+      const currentAccess = userPriorityAccessStore.get(userId) || {
+        canViewPriorities: true,
+        canEditPriorities: false,
+        canDragReorder: false
+      };
+      
+      // Update with new values
+      const updatedAccess = { ...currentAccess, ...accessUpdate };
+      userPriorityAccessStore.set(userId, updatedAccess);
+      
+      console.log(`✅ Priority access updated for user ${userId}:`, updatedAccess);
       
       res.json({ 
         success: true, 
         message: "Priority access updated successfully",
         userId,
-        accessUpdate
+        updatedAccess
       });
     } catch (error) {
       console.error("Error updating user priority access:", error);
