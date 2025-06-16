@@ -43,6 +43,7 @@ import {
   externalConnections,
   externalConnectionLogs,
   projectMetricsConnection,
+  ptnConnection,
   type User,
   type InsertUser,
   type Project,
@@ -126,6 +127,8 @@ import {
   type InsertExternalConnectionLog,
   type ProjectMetricsConnection,
   type InsertProjectMetricsConnection,
+  type PTNConnection,
+  type InsertPTNConnection,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
@@ -4458,6 +4461,112 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error updating project metrics connection:", error);
       return undefined;
+    }
+  }
+
+  // PTN Connection methods
+  async getPTNConnection(): Promise<PTNConnection | undefined> {
+    return await safeSingleQuery<PTNConnection>(() =>
+      db.select().from(ptnConnection).limit(1)
+    );
+  }
+
+  async createOrUpdatePTNConnection(connection: InsertPTNConnection): Promise<PTNConnection> {
+    try {
+      // Check if connection exists
+      const existing = await this.getPTNConnection();
+      
+      if (existing) {
+        // Update existing connection
+        const [result] = await db.update(ptnConnection)
+          .set({ ...connection, updatedAt: new Date() })
+          .where(eq(ptnConnection.id, existing.id))
+          .returning();
+        return result;
+      } else {
+        // Create new connection
+        const [result] = await db.insert(ptnConnection)
+          .values(connection)
+          .returning();
+        return result;
+      }
+    } catch (error) {
+      console.error("Error creating/updating PTN connection:", error);
+      throw error;
+    }
+  }
+
+  async updatePTNConnection(id: number, connection: Partial<InsertPTNConnection>): Promise<PTNConnection | undefined> {
+    try {
+      const [result] = await db.update(ptnConnection)
+        .set({ ...connection, updatedAt: new Date() })
+        .where(eq(ptnConnection.id, id))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error updating PTN connection:", error);
+      return undefined;
+    }
+  }
+
+  async testPTNConnection(id: number): Promise<{ success: boolean; message?: string; data?: any }> {
+    try {
+      const connection = await safeSingleQuery<PTNConnection>(() =>
+        db.select().from(ptnConnection).where(eq(ptnConnection.id, id))
+      );
+
+      if (!connection) {
+        return { success: false, message: "Connection not found" };
+      }
+
+      // Test the connection with a simple API call
+      const testUrl = `${connection.url}/health`;
+      const headers = {
+        ...connection.headers,
+        ...(connection.apiKey ? { 'Authorization': `Bearer ${connection.apiKey}` } : {})
+      };
+
+      const startTime = Date.now();
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers,
+        signal: AbortSignal.timeout(connection.timeout || 30000)
+      });
+      const responseTime = Date.now() - startTime;
+
+      const responseData = await response.json().catch(() => ({ status: 'unknown' }));
+
+      // Update connection status
+      await this.updatePTNConnection(id, {
+        lastSync: new Date(),
+        lastTestResult: JSON.stringify({
+          success: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          responseTime,
+          data: responseData
+        })
+      });
+
+      return {
+        success: response.ok,
+        message: response.ok ? 'Connection successful' : `HTTP ${response.status}: ${response.statusText}`,
+        data: responseData
+      };
+    } catch (error) {
+      // Update error status
+      await this.updatePTNConnection(id, {
+        lastTestResult: JSON.stringify({
+          success: false,
+          error: (error as Error).message,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      return {
+        success: false,
+        message: (error as Error).message
+      };
     }
   }
 

@@ -31,7 +31,8 @@ import {
   insertMeetingEmailNotificationSchema,
   insertNcrSchema,
   insertQualityDocumentSchema,
-  insertExternalConnectionSchema
+  insertExternalConnectionSchema,
+  insertPtnConnectionSchema
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
@@ -5776,6 +5777,59 @@ Response format:
     } catch (error) {
       console.error("Error testing project metrics connection:", error);
       res.status(500).json({ message: "Error testing project metrics connection" });
+    }
+  });
+
+  // PTN Connection API Routes
+  
+  // Get PTN connection
+  app.get("/api/ptn-connection", simpleAuth, async (req, res) => {
+    try {
+      const connection = await storage.getPTNConnection();
+      res.json(connection);
+    } catch (error) {
+      console.error("Error fetching PTN connection:", error);
+      res.status(500).json({ message: "Error fetching PTN connection" });
+    }
+  });
+
+  // Create or update PTN connection
+  app.post("/api/ptn-connection", simpleAuth, validateRequest(insertPtnConnectionSchema), async (req, res) => {
+    try {
+      const connection = await storage.createOrUpdatePTNConnection(req.body);
+      res.json(connection);
+    } catch (error) {
+      console.error("Error creating/updating PTN connection:", error);
+      res.status(500).json({ message: "Error creating/updating PTN connection" });
+    }
+  });
+
+  // Update PTN connection
+  app.put("/api/ptn-connection/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const connection = await storage.updatePTNConnection(id, req.body);
+      
+      if (!connection) {
+        return res.status(404).json({ message: "PTN connection not found" });
+      }
+      
+      res.json(connection);
+    } catch (error) {
+      console.error("Error updating PTN connection:", error);
+      res.status(500).json({ message: "Error updating PTN connection" });
+    }
+  });
+
+  // Test PTN connection
+  app.post("/api/ptn-connection/:id/test", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.testPTNConnection(id);
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing PTN connection:", error);
+      res.status(500).json({ message: "Error testing PTN connection" });
     }
   });
 
