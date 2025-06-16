@@ -6083,8 +6083,8 @@ Response format:
       console.log("🎯 Importing top 50 projects by ship date...");
       
       // Get all active projects with ship dates
-      const allProjects = await storage.getAllProjects();
-      const billingMilestones = await storage.getAllBillingMilestones();
+      const allProjects = await storage.getProjects();
+      const billingMilestones = await storage.getBillingMilestones();
       
       // Filter active projects with ship dates and sort by earliest ship date
       const projectsWithShipDates = allProjects
