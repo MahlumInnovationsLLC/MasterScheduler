@@ -571,7 +571,171 @@ export default function Meetings() {
           {/* Top 20 Ready to Ship Projects */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {tierIIIProjects.map((project: Project) => (
-              <ProjectCard key={project.id} project={project} showConcerns={true} showProgress={true} />
+              <Card key={project.id} className="w-full border-l-4 border-l-green-500">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-xl">{project.name}</CardTitle>
+                      <Link 
+                        href={`/project/${project.id}`}
+                        className="text-base text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                      >
+                        {project.projectNumber}
+                      </Link>
+                    </div>
+                    <div className="flex flex-col gap-2 ml-4">
+                      {/* Project Labels */}
+                      {getProjectLabels(project.id).length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {getProjectLabels(project.id).map((label: any) => (
+                            <Badge 
+                              key={label.id}
+                              className="text-xs"
+                              style={{
+                                backgroundColor: label.backgroundColor,
+                                color: label.textColor,
+                                border: `1px solid ${label.backgroundColor}`
+                              }}
+                            >
+                              {label.labelName}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <Badge variant={project.status === "critical" ? "destructive" : "default"}>
+                        {project.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm space-y-1">
+                    <div className="truncate">
+                      <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"}
+                    </div>
+                    <div className="truncate">
+                      <span className="font-medium">Ship:</span> {project.shipDate ? (() => {
+                        const date = new Date(project.shipDate + 'T00:00:00');
+                        return format(date, 'MMM d');
+                      })() : "TBD"}
+                    </div>
+                    <div className="truncate">
+                      <span className="font-medium">Delivery:</span> {project.deliveryDate ? (() => {
+                        const date = new Date(project.deliveryDate + 'T00:00:00');
+                        return format(date, 'MMM d, yyyy');
+                      })() : "TBD"}
+                    </div>
+                  </div>
+                  
+                  {project.notes && (
+                    <div className="text-sm">
+                      <span className="font-medium">Notes:</span> {project.notes}
+                    </div>
+                  )}
+
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">Progress</span>
+                      <span>{Math.round((project as any).progress || 0)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${(project as any).progress || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Risk Level */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Risk Level:</span>
+                    <Badge variant={
+                      project.riskLevel === "HIGH RISK" ? "destructive" :
+                      project.riskLevel === "MEDIUM RISK" ? "secondary" : "default"
+                    }>
+                      {project.riskLevel || "LOW RISK"}
+                    </Badge>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setTaskForm({ 
+                          projectId: project.id.toString(), 
+                          name: '', 
+                          description: '', 
+                          dueDate: '', 
+                          assignedToUserId: '' 
+                        });
+                        setShowTaskDialog(true);
+                      }}
+                    >
+                      Add Task
+                    </Button>
+                  </div>
+                  <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-l-yellow-500 dark:border-l-yellow-400">
+                    <div className="space-y-2">
+                      {(() => {
+                        const projectTasks = (allTasks as any[]).filter((task: any) => {
+                          return task.projectId === project.id && !task.isCompleted;
+                        });
+                        
+                        return projectTasks.length > 0 ? (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">Active Tasks</span>
+                              <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-800 dark:border-yellow-400 dark:text-yellow-200">
+                                {projectTasks.length} Tasks
+                              </Badge>
+                            </div>
+                            {projectTasks.slice(0, 2).map((task: any) => (
+                              <div key={task.id} className="text-xs">
+                                <div className="font-medium text-gray-900 dark:text-gray-100">{task.name}</div>
+                                {task.description && (
+                                  <div className="text-gray-700 dark:text-gray-300 mt-1">{task.description}</div>
+                                )}
+                                {task.dueDate && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <span className="font-medium text-gray-600 dark:text-gray-400">Due:</span>
+                                    <span className="text-red-600 dark:text-red-400">
+                                      {(() => {
+                                        // Parse date as local timezone to avoid timezone conversion issues
+                                        const date = new Date(task.dueDate + 'T00:00:00');
+                                        return format(date, 'MMM d, yyyy');
+                                      })()}
+                                    </span>
+                                  </div>
+                                )}
+                                {task.assignedToUserId && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <span className="font-medium text-gray-600 dark:text-gray-400">Assigned:</span>
+                                    <span className="text-gray-700 dark:text-gray-300">
+                                      {(users as any[]).find(u => u.id === task.assignedToUserId)?.firstName || 'Unknown'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            {projectTasks.length > 2 && (
+                              <div className="text-xs text-center text-gray-600 dark:text-gray-400 mt-2">
+                                +{projectTasks.length - 2} more tasks
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-center py-2">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">NO TASKS</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
 
@@ -580,12 +744,88 @@ export default function Meetings() {
             <h3 className="text-lg font-semibold">Next 20 Ready to Ship</h3>
             <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
               {nextTierIIIProjects.map((project: Project) => (
-                <ProjectCard 
-                  key={project.id} 
-                  project={project} 
-                  showProgress={true} 
-                  compact={true} 
-                />
+                <Card key={project.id} className="w-full border-l-4 border-l-blue-500">
+                  <CardHeader className="pb-2">
+                    <div className="space-y-1">
+                      <CardTitle className="text-sm font-medium truncate">{project.name}</CardTitle>
+                      <Link 
+                        href={`/project/${project.id}`}
+                        className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                      >
+                        {project.projectNumber}
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-2">
+                    <div className="text-xs space-y-1">
+                      <div className="truncate">
+                        <span className="font-medium">Ship:</span> {project.shipDate ? (() => {
+                          const date = new Date(project.shipDate + 'T00:00:00');
+                          return format(date, 'MMM d');
+                        })() : "TBD"}
+                      </div>
+                      <div className="truncate">
+                        <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"}
+                      </div>
+                    </div>
+                    
+                    {/* Compact Progress Bar */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Progress</span>
+                        <span>{Math.round(project.progress || 0)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                        <div 
+                          className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
+                          style={{ width: `${project.progress || 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Compact Tasks Section */}
+                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-2 border-l-blue-500">
+                      {(() => {
+                        const projectTasks = (allTasks as any[]).filter((task: any) => {
+                          return task.projectId === project.id && !task.isCompleted;
+                        });
+                        
+                        return projectTasks.length > 0 ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-blue-800 dark:text-blue-200">Tasks</span>
+                              <Badge variant="outline" className="text-xs border-blue-300 text-blue-800 dark:border-blue-400 dark:text-blue-200">
+                                {projectTasks.length}
+                              </Badge>
+                            </div>
+                            {projectTasks.slice(0, 1).map((task: any) => (
+                              <div key={task.id} className="text-xs">
+                                <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{task.name}</div>
+                                {task.dueDate && (
+                                  <div className="text-red-600 dark:text-red-400">
+                                    Due: {(() => {
+                                      const date = new Date(task.dueDate + 'T00:00:00');
+                                      return format(date, 'MMM d');
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            {projectTasks.length > 1 && (
+                              <div className="text-xs text-center text-gray-600 dark:text-gray-400">
+                                +{projectTasks.length - 1} more
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">NO TASKS</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
