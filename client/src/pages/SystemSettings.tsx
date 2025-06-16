@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
 import ExternalConnectionsManager from "@/components/ExternalConnectionsManager";
 import ProjectMetricsConnectionManager from "@/components/ProjectMetricsConnectionManager";
+import PTNMetricsConnectionManager from "@/components/PTNMetricsConnectionManager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1125,12 +1126,13 @@ const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
-        <TabsList className="grid grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-9 w-full">
           <TabsTrigger value="accessControl">Access Control</TabsTrigger>
           <TabsTrigger value="roleControls">Role Controls</TabsTrigger>
           <TabsTrigger value="moduleVisibility">Module Visibility</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="projectMetrics">Project Metrics</TabsTrigger>
+          <TabsTrigger value="ptnMetrics">PTN Metrics</TabsTrigger>
           <TabsTrigger value="externalConnections">External Connections</TabsTrigger>
           <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
           <TabsTrigger value="maintenance">System Maintenance</TabsTrigger>
@@ -2072,6 +2074,11 @@ const SystemSettings = () => {
           {/* Project Metrics Tab */}
           <TabsContent value="projectMetrics" className="space-y-6">
             <ProjectMetricsConnectionManager />
+          </TabsContent>
+
+          {/* PTN Metrics Tab */}
+          <TabsContent value="ptnMetrics" className="space-y-6">
+            <PTNMetricsConnectionManager />
           </TabsContent>
 
           {/* External Connections Tab */}

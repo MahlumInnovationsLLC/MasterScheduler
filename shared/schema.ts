@@ -2324,6 +2324,27 @@ export const projectMetricsConnection = pgTable("project_metrics_connection", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// PTN Metrics Connection Configuration
+export const ptnConnection = pgTable("ptn_connection", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().default("PTN Production System"),
+  url: text("url").notNull().default("https://ptn.nomadgcsai.com/api"),
+  apiKey: text("api_key"),
+  description: text("description"),
+  headers: jsonb("headers").$type<Record<string, string>>().default({
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }),
+  timeout: integer("timeout").default(30000),
+  retryAttempts: integer("retry_attempts").default(3),
+  isEnabled: boolean("is_enabled").default(true),
+  syncFrequency: text("sync_frequency").default("hourly"),
+  lastSync: timestamp("last_sync"),
+  lastTestResult: text("last_test_result"), // JSON string with test results
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // External Connections Insert Schemas
 export const insertExternalConnectionSchema = createInsertSchema(externalConnections).omit({
   id: true,
@@ -2342,6 +2363,12 @@ export const insertProjectMetricsConnectionSchema = createInsertSchema(projectMe
   updatedAt: true,
 });
 
+export const insertPtnConnectionSchema = createInsertSchema(ptnConnection).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type ExternalConnection = typeof externalConnections.$inferSelect;
 export type InsertExternalConnection = z.infer<typeof insertExternalConnectionSchema>;
@@ -2349,6 +2376,8 @@ export type ExternalConnectionLog = typeof externalConnectionLogs.$inferSelect;
 export type InsertExternalConnectionLog = z.infer<typeof insertExternalConnectionLogSchema>;
 export type ProjectMetricsConnection = typeof projectMetricsConnection.$inferSelect;
 export type InsertProjectMetricsConnection = z.infer<typeof insertProjectMetricsConnectionSchema>;
+export type PTNConnection = typeof ptnConnection.$inferSelect;
+export type InsertPTNConnection = z.infer<typeof insertPtnConnectionSchema>;
 
 // Quality Assurance Types
 export type NonConformanceReport = typeof nonConformanceReports.$inferSelect;
