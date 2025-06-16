@@ -1301,38 +1301,99 @@ const ProjectDetails = () => {
                       <div className="text-sm text-gray-400">
                         {formatDate(activeSchedule.startDate)} - {formatDate(activeSchedule.endDate)}
                       </div>
+                      {activeBay?.team && (
+                        <div className="text-xs text-blue-400 mt-1">
+                          Team: {activeBay.team}
+                        </div>
+                      )}
                     </div>
-                    <ProgressBadge status="Active" size="sm" />
+                    <ProgressBadge 
+                      status={activeSchedule.status === 'in_progress' ? 'Active' : 
+                              activeSchedule.status === 'scheduled' ? 'Scheduled' : 'Completed'} 
+                      size="sm" 
+                    />
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-700 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Usage:</span>
+                      <span className="text-gray-400">Duration:</span>
                       <span>
                         {Math.ceil((new Date(activeSchedule.endDate).getTime() - new Date(activeSchedule.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
                       </span>
                     </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-gray-400">Equipment:</span>
-                      <span>{activeSchedule.equipment || 'Standard Equipment'}</span>
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-gray-400">Staff:</span>
-                      <span>{activeSchedule.staffAssigned || 'Team Alpha (4)'}</span>
-                    </div>
+                    {activeSchedule.totalHours && (
+                      <div className="flex justify-between mt-1">
+                        <span className="text-gray-400">Total Hours:</span>
+                        <span>{activeSchedule.totalHours}h</span>
+                      </div>
+                    )}
+                    {activeBay?.location && (
+                      <div className="flex justify-between mt-1">
+                        <span className="text-gray-400">Location:</span>
+                        <span>{activeBay.location}</span>
+                      </div>
+                    )}
+                    {activeBay?.capacityTonn && (
+                      <div className="flex justify-between mt-1">
+                        <span className="text-gray-400">Capacity:</span>
+                        <span>{activeBay.capacityTonn} ton</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+              ) : manufacturingSchedules?.some(s => s.projectId === parseInt(projectId) && s.status === 'scheduled') ? (
+                // Show upcoming scheduled assignment
+                (() => {
+                  const scheduledAssignment = manufacturingSchedules.find(s => s.projectId === parseInt(projectId) && s.status === 'scheduled');
+                  const scheduledBay = scheduledAssignment ? manufacturingBays?.find(b => b.id === scheduledAssignment.bayId) : null;
+                  return scheduledAssignment ? (
+                    <div className="bg-yellow-900/20 rounded-lg p-3 border border-yellow-600/30">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-lg font-bold text-yellow-400">Bay {scheduledBay?.bayNumber || scheduledAssignment.bayId}</div>
+                          <div className="text-sm text-gray-400">
+                            Scheduled: {formatDate(scheduledAssignment.startDate)} - {formatDate(scheduledAssignment.endDate)}
+                          </div>
+                          {scheduledBay?.team && (
+                            <div className="text-xs text-blue-400 mt-1">
+                              Team: {scheduledBay.team}
+                            </div>
+                          )}
+                        </div>
+                        <ProgressBadge status="Scheduled" size="sm" />
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-yellow-600/30 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Starts in:</span>
+                          <span className="text-yellow-400">
+                            {Math.ceil((new Date(scheduledAssignment.startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
+                          </span>
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-gray-400">Duration:</span>
+                          <span>{Math.ceil((new Date(scheduledAssignment.endDate).getTime() - new Date(scheduledAssignment.startDate).getTime()) / (1000 * 60 * 60 * 24))} days</span>
+                        </div>
+                        {scheduledAssignment.totalHours && (
+                          <div className="flex justify-between mt-1">
+                            <span className="text-gray-400">Total Hours:</span>
+                            <span>{scheduledAssignment.totalHours}h</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null;
+                })()
               ) : (
                 <div className="bg-darkInput rounded-lg p-3 text-center">
                   <Building2 className="h-12 w-12 mx-auto text-gray-500 mb-2" />
-                  <div className="text-sm mb-2">No manufacturing bay currently assigned</div>
+                  <div className="text-sm mb-2">No manufacturing bay assigned</div>
                   <div className="text-xs text-gray-400">
-                    Schedule production for this project to assign a bay
+                    This project needs to be scheduled for production
                   </div>
                 </div>
               )}
 
               <div className="flex gap-2 mt-3">
-                {!activeSchedule ? (
+                {!activeSchedule && !manufacturingSchedules?.some(s => s.projectId === parseInt(projectId)) ? (
                   <Button 
                     className="flex-1" 
                     onClick={() => setIsAssignBayDialogOpen(true)}
@@ -1341,15 +1402,54 @@ const ProjectDetails = () => {
                     Assign Manufacturing Bay
                   </Button>
                 ) : (
-                  <Button variant="outline" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => setIsAssignBayDialogOpen(true)}
+                  >
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Assignment
+                    {activeSchedule ? 'Edit Assignment' : 'Modify Schedule'}
                   </Button>
                 )}
-                <Button variant="outline" className="flex-1">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => navigate('/bay-scheduling')}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
                   View Schedule
                 </Button>
               </div>
+
+              {/* Manufacturing History */}
+              {manufacturingSchedules?.filter(s => s.projectId === parseInt(projectId)).length > 1 && (
+                <div className="mt-4 pt-3 border-t border-gray-700">
+                  <div className="text-xs text-gray-400 mb-2">Manufacturing History</div>
+                  <div className="space-y-1">
+                    {manufacturingSchedules
+                      .filter(s => s.projectId === parseInt(projectId) && s.id !== activeSchedule?.id)
+                      .slice(0, 2)
+                      .map((schedule) => {
+                        const bay = manufacturingBays?.find(b => b.id === schedule.bayId);
+                        return (
+                          <div key={schedule.id} className="text-xs flex justify-between items-center">
+                            <span>Bay {bay?.bayNumber || schedule.bayId}</span>
+                            <span className="text-gray-500">
+                              {formatDate(schedule.startDate)} - {formatDate(schedule.endDate)}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded text-xs ${
+                              schedule.status === 'complete' ? 'bg-green-900/30 text-green-400' :
+                              schedule.status === 'cancelled' ? 'bg-red-900/30 text-red-400' :
+                              'bg-gray-900/30 text-gray-400'
+                            }`}>
+                              {schedule.status}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         </div>
