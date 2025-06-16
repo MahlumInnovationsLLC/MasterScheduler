@@ -353,21 +353,6 @@ const Dashboard = () => {
         id: p.id, 
         name: p.name, 
         projectNumber: p.projectNumber 
-      })),
-      major: majorProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      minor: minorProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      good: goodProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
       }))
     };
 
