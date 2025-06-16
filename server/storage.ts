@@ -4830,7 +4830,7 @@ export class DatabaseStorage implements IStorage {
   // Project Priorities methods
   async getProjectPriorities(): Promise<any[]> {
     try {
-      const result = await this.db
+      const result = await db
         .select({
           id: priorities.projectId,
           projectId: priorities.projectId,
@@ -4854,7 +4854,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(priorities.id);
 
       // Get billing milestones for each project
-      const milestones = await this.db
+      const milestones = await db
         .select()
         .from(billingMilestones);
 
