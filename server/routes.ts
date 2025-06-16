@@ -5808,7 +5808,11 @@ Response format:
   app.put("/api/ptn-connection/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const connection = await storage.updatePTNConnection(id, req.body);
+      
+      // Sanitize the request body to remove read-only timestamp fields
+      const { id: _, createdAt, updatedAt, lastSync, lastTestResult, ...sanitizedData } = req.body;
+      
+      const connection = await storage.updatePTNConnection(id, sanitizedData);
       
       if (!connection) {
         return res.status(404).json({ message: "PTN connection not found" });
