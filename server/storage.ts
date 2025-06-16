@@ -4831,24 +4831,7 @@ export class DatabaseStorage implements IStorage {
   async getProjectPriorities(): Promise<any[]> {
     try {
       const result = await db
-        .select({
-          id: priorities.projectId,
-          projectId: priorities.projectId,
-          priorityOrder: priorities.id, // Using priority ID as order
-          projectNumber: projects.projectNumber,
-          projectName: projects.name,
-          shipDate: projects.shipDate,
-          status: projects.status,
-          totalValue: sql<number>`COALESCE((
-            SELECT SUM(amount) 
-            FROM ${billingMilestones} 
-            WHERE project_id = ${projects.id}
-          ), 0)`,
-          daysUntilShip: sql<number>`CASE 
-            WHEN ${projects.shipDate} IS NULL THEN 0
-            ELSE EXTRACT(DAY FROM ${projects.shipDate} - CURRENT_DATE)
-          END`,
-        })
+        .select()
         .from(priorities)
         .innerJoin(projects, eq(priorities.projectId, projects.id))
         .orderBy(priorities.id);
@@ -4858,22 +4841,42 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(billingMilestones);
 
-      // Combine data
-      return result.map(priority => ({
-        ...priority,
-        billingMilestones: milestones
-          .filter(m => m.projectId === priority.projectId)
+      // Transform and combine data
+      return result.map((row, index) => {
+        const project = row.projects;
+        const priority = row.priorities;
+        
+        const projectMilestones = milestones
+          .filter(m => m.projectId === project.id)
           .map(m => ({
             id: m.id,
             projectId: m.projectId,
             name: m.name,
-            percentage: m.percentage,
-            amount: m.amount,
+            percentage: m.percentage || 0,
+            amount: parseFloat(m.amount || '0'),
             dueDate: m.dueDate,
-            isPaid: m.isPaid || false,
+            isPaid: false,
             description: m.description
-          }))
-      }));
+          }));
+
+        const totalValue = projectMilestones.reduce((sum, m) => sum + m.amount, 0);
+        const shipDate = project.shipDate ? new Date(project.shipDate) : null;
+        const today = new Date();
+        const daysUntilShip = shipDate ? Math.ceil((shipDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+        return {
+          id: project.id,
+          projectId: project.id,
+          priorityOrder: index + 1,
+          projectNumber: project.projectNumber,
+          projectName: project.name,
+          shipDate: project.shipDate,
+          status: project.status,
+          totalValue,
+          daysUntilShip,
+          billingMilestones: projectMilestones
+        };
+      });
     } catch (error) {
       console.error("Error getting project priorities:", error);
       return [];
