@@ -332,9 +332,16 @@ function getDaysUntilDate(dateStr: string | null | undefined): number {
     today.setHours(0, 0, 0, 0);
     targetDate.setHours(0, 0, 0, 0);
     
+    // Debug logging
+    console.log(`Calculating days for ${dateStr}:`);
+    console.log(`Today: ${today.toISOString().split('T')[0]} (${today.getTime()})`);
+    console.log(`Target: ${targetDate.toISOString().split('T')[0]} (${targetDate.getTime()})`);
+    
     // Calculate days until the date
     const diffTime = targetDate.getTime() - today.getTime();
-    const daysDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log(`Diff time: ${diffTime}, Days diff: ${daysDiff}`);
     
     // If date is in the past, show "0 days"
     if (daysDiff < 0) {
@@ -342,8 +349,10 @@ function getDaysUntilDate(dateStr: string | null | undefined): number {
       return 0;
     }
     
-    console.log(`Days until ${dateStr}: ${daysDiff} days (from ${today.toISOString().split('T')[0]})`);
-    return daysDiff;
+    // Special case: if it's the same day, show 0, otherwise show the calculated difference
+    const result = daysDiff;
+    console.log(`Final result for ${dateStr}: ${result} days`);
+    return result;
   } catch (e) {
     console.error("Error calculating days until date:", e);
     return 0;
