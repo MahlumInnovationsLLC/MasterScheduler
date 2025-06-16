@@ -4676,6 +4676,28 @@ Response format:
     }
   });
 
+  app.post("/api/elevated-concerns/:id/close", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const closedBy = req.user?.id;
+      
+      if (!closedBy) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const result = await storage.closeElevatedConcern(id, closedBy);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Elevated concern not found" });
+      }
+      
+      res.json({ message: "Concern closed successfully", id });
+    } catch (error) {
+      console.error("Error closing elevated concern:", error);
+      res.status(500).json({ message: "Error closing elevated concern" });
+    }
+  });
+
   app.get("/api/projects/:projectId/elevated-concerns", simpleAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);

@@ -93,6 +93,17 @@ export default function Meetings() {
     department: ""
   });
 
+  // State for closing concerns
+  const [showCloseConcernDialog, setShowCloseConcernDialog] = useState(false);
+  const [concernToClose, setConcernToClose] = useState<ElevatedConcern | null>(null);
+  const [closeTaskForm, setCloseTaskForm] = useState({
+    name: "",
+    description: "",
+    dueDate: "",
+    assignedToUserId: "",
+    department: ""
+  });
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -200,6 +211,32 @@ export default function Meetings() {
     }
   });
 
+  // Close concern mutation
+  const closeConcernMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/elevated-concerns/${id}/close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to close concern');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/elevated-concerns'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      setShowCloseConcernDialog(false);
+      setConcernToClose(null);
+      setCloseTaskForm({
+        name: "",
+        description: "",
+        dueDate: "",
+        assignedToUserId: "",
+        department: ""
+      });
+      toast({ title: "Concern closed successfully and task created" });
+    }
+  });
+
   // Helper function to get project labels
   const getProjectLabels = (projectId: number) => {
     return (labelAssignments as any[]).filter((assignment: any) => assignment.projectId === projectId);
@@ -283,6 +320,39 @@ export default function Meetings() {
 
   const handleEscalate = (id: number) => {
     escalateMutation.mutate(id);
+  };
+
+  const handleCloseConcern = (concern: ElevatedConcern) => {
+    setConcernToClose(concern);
+    setCloseTaskForm({
+      name: `Follow-up for: ${concern.title}`,
+      description: `Task created to close elevated concern: ${concern.description}`,
+      dueDate: "",
+      assignedToUserId: "",
+      department: ""
+    });
+    setShowCloseConcernDialog(true);
+  };
+
+  const handleSubmitCloseConcern = async () => {
+    if (!concernToClose) return;
+    
+    try {
+      // First create the task
+      await createTaskMutation.mutateAsync({
+        projectId: concernToClose.projectId,
+        ...closeTaskForm
+      });
+      
+      // Then close the concern
+      await closeConcernMutation.mutateAsync(concernToClose.id);
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: "Failed to close concern and create task",
+        variant: "destructive"
+      });
+    }
   };
 
   const ProjectCard = ({ 
@@ -1159,12 +1229,23 @@ export default function Meetings() {
                 return (
                   <Card key={concern.id} className="border-red-200">
                     <CardContent className="pt-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="destructive">ESCALATED</Badge>
-                        <Badge variant={concern.type === "task" ? "default" : "secondary"}>
-                          {concern.type}
-                        </Badge>
-                        <Badge variant="destructive">{concern.priority}</Badge>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive">ESCALATED</Badge>
+                          <Badge variant={concern.type === "task" ? "default" : "secondary"}>
+                            {concern.type}
+                          </Badge>
+                          <Badge variant="destructive">{concern.priority}</Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCloseConcern(concern)}
+                          className="text-green-600 border-green-600 hover:bg-green-50"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Close
+                        </Button>
                       </div>
                       <h4 className="font-medium">{concern.title}</h4>
                       <p className="text-sm text-muted-foreground mb-2">{concern.description}</p>
@@ -1382,6 +1463,106 @@ export default function Meetings() {
               disabled={createTaskMutation.isPending || !taskForm.name}
             >
               {createTaskMutation.isPending ? "Creating..." : "Create Task"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close Concern Dialog */}
+      <Dialog open={showCloseConcernDialog} onOpenChange={setShowCloseConcernDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Close Escalated Concern</DialogTitle>
+            <DialogDescription>
+              Create a follow-up task to document the resolution before closing this concern.
+            </DialogDescription>
+          </DialogHeader>
+          {concernToClose && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium">{concernToClose.title}</h4>
+                <p className="text-sm text-muted-foreground">{concernToClose.description}</p>
+              </div>
+              
+              <div className="grid gap-4">
+                <div>
+                  <Label htmlFor="close-task-name">Task Name</Label>
+                  <Input
+                    id="close-task-name"
+                    value={closeTaskForm.name}
+                    onChange={(e) => setCloseTaskForm({ ...closeTaskForm, name: e.target.value })}
+                    placeholder="Enter task name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="close-task-description">Task Description</Label>
+                  <Textarea
+                    id="close-task-description"
+                    value={closeTaskForm.description}
+                    onChange={(e) => setCloseTaskForm({ ...closeTaskForm, description: e.target.value })}
+                    placeholder="Describe what was done to resolve this concern"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="close-task-due-date">Due Date</Label>
+                    <Input
+                      id="close-task-due-date"
+                      type="date"
+                      value={closeTaskForm.dueDate}
+                      onChange={(e) => setCloseTaskForm({ ...closeTaskForm, dueDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="close-task-assigned">Assigned To</Label>
+                    <Select value={closeTaskForm.assignedToUserId} onValueChange={(value) => setCloseTaskForm({ ...closeTaskForm, assignedToUserId: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select user" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(users as any[]).map((user: any) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.firstName} {user.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="close-task-department">Department</Label>
+                  <Select value={closeTaskForm.department} onValueChange={(value) => setCloseTaskForm({ ...closeTaskForm, department: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="engineering">Engineering</SelectItem>
+                      <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                      <SelectItem value="finance">Finance</SelectItem>
+                      <SelectItem value="project_management">Project Management</SelectItem>
+                      <SelectItem value="quality_control">Quality Control</SelectItem>
+                      <SelectItem value="it">IT</SelectItem>
+                      <SelectItem value="sales">Sales</SelectItem>
+                      <SelectItem value="executive">Executive</SelectItem>
+                      <SelectItem value="planning_analysis">Planning & Analysis</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCloseConcernDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitCloseConcern}
+              disabled={closeConcernMutation.isPending || createTaskMutation.isPending || !closeTaskForm.name || !closeTaskForm.description}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {(closeConcernMutation.isPending || createTaskMutation.isPending) ? "Processing..." : "Close Concern & Create Task"}
             </Button>
           </DialogFooter>
         </DialogContent>
