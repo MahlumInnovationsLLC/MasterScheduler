@@ -41,6 +41,7 @@ import {
   trainingAssignments,
   externalConnections,
   externalConnectionLogs,
+  projectMetricsConnection,
   type User,
   type InsertUser,
   type Project,
@@ -120,6 +121,8 @@ import {
   type InsertExternalConnection,
   type ExternalConnectionLog,
   type InsertExternalConnectionLog,
+  type ProjectMetricsConnection,
+  type InsertProjectMetricsConnection,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
@@ -418,6 +421,10 @@ export interface IStorage {
   testExternalConnection(id: number): Promise<{ success: boolean; error?: string; responseTime?: number }>;
   logExternalConnectionTest(log: InsertExternalConnectionLog): Promise<ExternalConnectionLog>;
   getExternalConnectionLogs(connectionId: number): Promise<ExternalConnectionLog[]>;
+
+  // Project Metrics Connection methods
+  getProjectMetricsConnection(): Promise<ProjectMetricsConnection | undefined>;
+  updateProjectMetricsConnection(connection: Partial<InsertProjectMetricsConnection>): Promise<ProjectMetricsConnection | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
