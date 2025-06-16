@@ -33,6 +33,7 @@ import { BillingMilestonesList } from '@/components/BillingMilestonesList';
 import { ProjectCostsList } from '@/components/ProjectCostsList';
 import { ProjectPhaseInfo } from '@/components/ProjectPhaseInfo';
 import { ProjectForensicsWidget } from '@/components/ProjectForensicsWidget';
+import { ProjectMetrics } from '@/components/ProjectMetrics';
 import { 
   Dialog, 
   DialogContent, 
@@ -697,9 +698,12 @@ const ProjectDetails = () => {
         {/* Project metrics */}
         {/* Department Percentages and Total Hours */}
         <div className="mt-3 mb-2">
-          <div className="bg-dark rounded border border-gray-800 p-3 mb-2">
-            <div className="text-md font-semibold text-gray-300 mb-2">TOTAL HOURS</div>
-            <div className="text-2xl font-bold">{project.totalHours || 40}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+            <div className="bg-dark rounded border border-gray-800 p-3">
+              <div className="text-md font-semibold text-gray-300 mb-2">TOTAL HOURS</div>
+              <div className="text-2xl font-bold">{project.totalHours || 40}</div>
+            </div>
+            <ProjectMetrics projectId={parseInt(projectId)} />
           </div>
 
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
