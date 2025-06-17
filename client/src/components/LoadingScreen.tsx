@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/use-auth';
 
 interface LoadingScreenProps {
   isLoading: boolean;
@@ -12,7 +13,10 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
   stage, 
   message = 'Loading...' 
 }) => {
-  if (!isLoading && stage === 'complete') return null;
+  const { isAuthenticated } = useAuth();
+  
+  // Only show loading screen for authenticated users and when actually loading
+  if (!isLoading || stage === 'complete' || !isAuthenticated) return null;
 
   const getStageMessage = () => {
     switch (stage) {
