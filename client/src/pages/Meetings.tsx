@@ -1122,6 +1122,130 @@ export default function Meetings() {
                       })() : "TBD"}
                     </div>
                   </div>
+
+                  {/* Timeline Dates */}
+                  <div className="mt-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Project Timeline</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                      {(project as any).contractDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Contract:</span>
+                          <span className="font-medium">{(() => {
+                            try {
+                              const date = new Date((project as any).contractDate + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).contractDate;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                      {(project as any).poDroppedDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">PO Start:</span>
+                          <span className="font-medium">{(() => {
+                            try {
+                              const date = new Date((project as any).poDroppedDate + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).poDroppedDate;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                      {(project as any).chassisETA && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Chassis ETA:</span>
+                          <span className="font-medium">{(() => {
+                            try {
+                              const date = new Date((project as any).chassisETA + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).chassisETA;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                      {(project as any).fabricationStart && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Fab Start:</span>
+                          <span className="font-medium">{(project as any).fabricationStartText || (() => {
+                            try {
+                              const date = new Date((project as any).fabricationStart + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).fabricationStart;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                      {(project as any).assemblyStart && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Assembly:</span>
+                          <span className="font-medium">{(() => {
+                            try {
+                              const date = new Date((project as any).assemblyStart + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).assemblyStart;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                      {(project as any).wrapDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Wrap:</span>
+                          <span className="font-medium">{(project as any).wrapDateText || (() => {
+                            try {
+                              const date = new Date((project as any).wrapDate + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).wrapDate;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                      {(project as any).ntcTestingDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">NTC Testing:</span>
+                          <span className="font-medium">{(project as any).ntcTestingDateText || (() => {
+                            try {
+                              const date = new Date((project as any).ntcTestingDate + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).ntcTestingDate;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                      {(project as any).qcStartDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">QC Start:</span>
+                          <span className="font-medium">{(() => {
+                            try {
+                              const date = new Date((project as any).qcStartDate + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).qcStartDate;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                      {(project as any).executiveReviewDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Exec Review:</span>
+                          <span className="font-medium">{(() => {
+                            try {
+                              const date = new Date((project as any).executiveReviewDate + 'T00:00:00');
+                              return format(date, 'MMM d');
+                            } catch {
+                              return (project as any).executiveReviewDate;
+                            }
+                          })()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   
                   {project.notes && (
                     <div className="text-sm">
@@ -1517,6 +1641,130 @@ export default function Meetings() {
                           const date = new Date(project.deliveryDate + 'T00:00:00');
                           return format(date, 'MMM d, yyyy');
                         })() : "TBD"}
+                      </div>
+                    </div>
+
+                    {/* Timeline Dates */}
+                    <div className="mt-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-3">
+                      <div className="text-xs text-red-600 dark:text-red-400 mb-2 font-medium">Critical Project Timeline</div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                        {(project as any).contractDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Contract:</span>
+                            <span className="font-medium">{(() => {
+                              try {
+                                const date = new Date((project as any).contractDate + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).contractDate;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
+                        {(project as any).poDroppedDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">PO Start:</span>
+                            <span className="font-medium">{(() => {
+                              try {
+                                const date = new Date((project as any).poDroppedDate + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).poDroppedDate;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
+                        {(project as any).chassisETA && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Chassis ETA:</span>
+                            <span className="font-medium">{(() => {
+                              try {
+                                const date = new Date((project as any).chassisETA + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).chassisETA;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
+                        {(project as any).fabricationStart && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Fab Start:</span>
+                            <span className="font-medium">{(project as any).fabricationStartText || (() => {
+                              try {
+                                const date = new Date((project as any).fabricationStart + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).fabricationStart;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
+                        {(project as any).assemblyStart && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Assembly:</span>
+                            <span className="font-medium">{(() => {
+                              try {
+                                const date = new Date((project as any).assemblyStart + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).assemblyStart;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
+                        {(project as any).wrapDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Wrap:</span>
+                            <span className="font-medium">{(project as any).wrapDateText || (() => {
+                              try {
+                                const date = new Date((project as any).wrapDate + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).wrapDate;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
+                        {(project as any).ntcTestingDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">NTC Testing:</span>
+                            <span className="font-medium">{(project as any).ntcTestingDateText || (() => {
+                              try {
+                                const date = new Date((project as any).ntcTestingDate + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).ntcTestingDate;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
+                        {(project as any).qcStartDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">QC Start:</span>
+                            <span className="font-medium">{(() => {
+                              try {
+                                const date = new Date((project as any).qcStartDate + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).qcStartDate;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
+                        {(project as any).executiveReviewDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Exec Review:</span>
+                            <span className="font-medium">{(() => {
+                              try {
+                                const date = new Date((project as any).executiveReviewDate + 'T00:00:00');
+                                return format(date, 'MMM d');
+                              } catch {
+                                return (project as any).executiveReviewDate;
+                              }
+                            })()}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
