@@ -208,6 +208,116 @@ async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: str
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // PTN API Integration - Public endpoints (no auth required for dashboard data)
+  app.get("/api/ptn-team-needs", async (req, res) => {
+    try {
+      console.log("🔄 Fetching PTN team needs data from ptn.nomadgcsai.com");
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch("https://ptn.nomadgcsai.com/api/team-needs", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "NomadGCS-Dashboard/1.0"
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn(`⚠️ PTN API returned ${response.status}: ${response.statusText}`);
+        return res.json({
+          error: `PTN API unavailable (${response.status})`,
+          teams: [],
+          pendingNeeds: []
+        });
+      }
+
+      const data = await response.json();
+      console.log("✅ Successfully fetched PTN team needs data");
+      
+      // Ensure consistent data structure
+      const normalizedData = {
+        teams: data.teams || data.teamNeeds || [],
+        pendingNeeds: data.pendingNeeds || data.alerts || [],
+        lastUpdated: new Date().toISOString()
+      };
+
+      res.json(normalizedData);
+    } catch (error) {
+      console.error("❌ Error fetching PTN team needs:", error);
+      res.json({
+        error: "Unable to connect to PTN system",
+        teams: [],
+        pendingNeeds: []
+      });
+    }
+  });
+
+  app.get("/api/ptn-production-metrics", async (req, res) => {
+    try {
+      console.log("🔄 Fetching PTN production metrics from ptn.nomadgcsai.com");
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch("https://ptn.nomadgcsai.com/api/production-metrics", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "NomadGCS-Dashboard/1.0"
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn(`⚠️ PTN Metrics API returned ${response.status}: ${response.statusText}`);
+        return res.json({
+          error: `PTN Metrics API unavailable (${response.status})`,
+          productionEfficiency: null,
+          qualityRate: null,
+          oeeScore: null,
+          activeWorkstations: null,
+          totalWorkstations: null
+        });
+      }
+
+      const data = await response.json();
+      console.log("✅ Successfully fetched PTN production metrics");
+      
+      // Normalize metrics data structure
+      const normalizedMetrics = {
+        productionEfficiency: data.productionEfficiency || data.efficiency,
+        productionEfficiencyChange: data.productionEfficiencyChange || data.efficiencyChange,
+        qualityRate: data.qualityRate || data.quality,
+        qualityRateChange: data.qualityRateChange || data.qualityChange,
+        oeeScore: data.oeeScore || data.oee,
+        oeeScoreChange: data.oeeScoreChange || data.oeeChange,
+        activeWorkstations: data.activeWorkstations || data.workstationsActive,
+        totalWorkstations: data.totalWorkstations || data.workstationsTotal,
+        workstationsInMaintenance: data.workstationsInMaintenance || data.maintenanceCount,
+        lastUpdated: new Date().toISOString()
+      };
+
+      res.json(normalizedMetrics);
+    } catch (error) {
+      console.error("❌ Error fetching PTN production metrics:", error);
+      res.json({
+        error: "Unable to connect to PTN metrics system",
+        productionEfficiency: null,
+        qualityRate: null,
+        oeeScore: null,
+        activeWorkstations: null,
+        totalWorkstations: null
+      });
+    }
+  });
+
   // CRITICAL FIX: Ensure API routes are processed with proper JSON responses
   app.use('/api', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json');
@@ -6265,117 +6375,6 @@ Response format:
     } catch (error) {
       console.error("Error getting project priorities:", error);
       res.status(500).json({ message: "Error getting project priorities" });
-    }
-  });
-
-  // PTN API Integration - Team Needs Data (Public endpoint for dashboard)
-  app.get("/api/ptn-team-needs", async (req, res) => {
-    try {
-      console.log("🔄 Fetching PTN team needs data from ptn.nomadgcsai.com");
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await fetch("https://ptn.nomadgcsai.com/api/team-needs", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "NomadGCS-Dashboard/1.0"
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.warn(`⚠️ PTN API returned ${response.status}: ${response.statusText}`);
-        return res.json({
-          error: `PTN API unavailable (${response.status})`,
-          teams: [],
-          pendingNeeds: []
-        });
-      }
-
-      const data = await response.json();
-      console.log("✅ Successfully fetched PTN team needs data");
-      
-      // Ensure consistent data structure
-      const normalizedData = {
-        teams: data.teams || data.teamNeeds || [],
-        pendingNeeds: data.pendingNeeds || data.alerts || [],
-        lastUpdated: new Date().toISOString()
-      };
-
-      res.json(normalizedData);
-    } catch (error) {
-      console.error("❌ Error fetching PTN team needs:", error);
-      res.json({
-        error: "Unable to connect to PTN system",
-        teams: [],
-        pendingNeeds: []
-      });
-    }
-  });
-
-  // PTN API Integration - Production Metrics
-  app.get("/api/ptn-production-metrics", async (req, res) => {
-    try {
-      console.log("🔄 Fetching PTN production metrics from ptn.nomadgcsai.com");
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await fetch("https://ptn.nomadgcsai.com/api/production-metrics", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "NomadGCS-Dashboard/1.0"
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.warn(`⚠️ PTN Metrics API returned ${response.status}: ${response.statusText}`);
-        return res.json({
-          error: `PTN Metrics API unavailable (${response.status})`,
-          productionEfficiency: null,
-          qualityRate: null,
-          oeeScore: null,
-          activeWorkstations: null,
-          totalWorkstations: null
-        });
-      }
-
-      const data = await response.json();
-      console.log("✅ Successfully fetched PTN production metrics");
-      
-      // Normalize metrics data structure
-      const normalizedMetrics = {
-        productionEfficiency: data.productionEfficiency || data.efficiency,
-        productionEfficiencyChange: data.productionEfficiencyChange || data.efficiencyChange,
-        qualityRate: data.qualityRate || data.quality,
-        qualityRateChange: data.qualityRateChange || data.qualityChange,
-        oeeScore: data.oeeScore || data.oee,
-        oeeScoreChange: data.oeeScoreChange || data.oeeChange,
-        activeWorkstations: data.activeWorkstations || data.workstationsActive,
-        totalWorkstations: data.totalWorkstations || data.workstationsTotal,
-        workstationsInMaintenance: data.workstationsInMaintenance || data.maintenanceCount,
-        lastUpdated: new Date().toISOString()
-      };
-
-      res.json(normalizedMetrics);
-    } catch (error) {
-      console.error("❌ Error fetching PTN production metrics:", error);
-      res.json({
-        error: "Unable to connect to PTN metrics system",
-        productionEfficiency: null,
-        qualityRate: null,
-        oeeScore: null,
-        activeWorkstations: null,
-        totalWorkstations: null
-      });
     }
   });
 
