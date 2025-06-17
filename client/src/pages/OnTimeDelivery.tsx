@@ -880,6 +880,7 @@ const OnTimeDeliveryPage: React.FC = () => {
       if (!monthlyData.has(monthKey)) {
         monthlyData.set(monthKey, {
           month: format(scheduledDelivery, 'MMM yyyy'),
+          sortKey: monthKey,
           total: 0,
           onTrack: 0,
           atRisk: 0,
@@ -898,14 +899,38 @@ const OnTimeDeliveryPage: React.FC = () => {
       }
     });
 
-    // Calculate averages and percentages for monthly data
-    const monthlyPredictions = Array.from(monthlyData.values())
-      .map(month => ({
-        ...month,
-        onTrackPercentage: month.total > 0 ? Math.round((month.onTrack / month.total) * 100) : 0,
-        avgDaysLate: month.atRisk > 0 ? Math.round((month.totalDaysLate / month.atRisk) * 10) / 10 : 0
-      }))
-      .sort((a, b) => a.month.localeCompare(b.month));
+    // Create a 12-month forward-looking timeline starting from current month
+    const currentDate = new Date();
+    const futureMonths = [];
+    
+    for (let i = 0; i < 12; i++) {
+      const futureDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      const monthKey = format(futureDate, 'yyyy-MM');
+      const monthLabel = format(futureDate, 'MMM yyyy');
+      
+      if (monthlyData.has(monthKey)) {
+        const existingData = monthlyData.get(monthKey);
+        futureMonths.push({
+          ...existingData,
+          onTrackPercentage: existingData.total > 0 ? Math.round((existingData.onTrack / existingData.total) * 100) : 0,
+          avgDaysLate: existingData.atRisk > 0 ? Math.round((existingData.totalDaysLate / existingData.atRisk) * 10) / 10 : 0
+        });
+      } else {
+        // Add empty month with zero values for months with no projects
+        futureMonths.push({
+          month: monthLabel,
+          sortKey: monthKey,
+          total: 0,
+          onTrack: 0,
+          atRisk: 0,
+          onTrackPercentage: 0,
+          avgDaysLate: 0,
+          totalDaysLate: 0
+        });
+      }
+    }
+
+    const monthlyPredictions = futureMonths;
 
     const riskData = [
       { name: 'On Track', value: riskBreakdown.onTrack, color: '#22c55e', description: 'On time or early' },
