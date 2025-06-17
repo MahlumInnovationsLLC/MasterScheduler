@@ -72,7 +72,10 @@ const SortablePriorityItem = ({
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'No date';
-    return new Date(dateStr).toLocaleDateString();
+    // Create date and add timezone offset to prevent day-before issue
+    const date = new Date(dateStr);
+    const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+    return localDate.toLocaleDateString();
   };
 
   const getStatusColor = (status: string) => {
