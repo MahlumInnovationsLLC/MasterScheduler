@@ -131,12 +131,12 @@ const SortablePriorityItem = ({
         </div>
 
         {/* Project Info */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
           {/* Project Details */}
           <div className="md:col-span-2">
             <Link 
               href={`/project/${priority.projectId}`}
-              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer block"
             >
               {priority.projectNumber}
             </Link>
@@ -148,10 +148,6 @@ const SortablePriorityItem = ({
 
           {/* Ship Date */}
           <div className="text-center">
-            <div className="flex items-center justify-center text-sm text-gray-700 mb-1">
-              <Calendar className="w-3 h-3 mr-1" />
-              Ship Date
-            </div>
             <div className="font-medium text-gray-900">{formatDate(priority.shipDate)}</div>
             <div className={`text-xs font-medium ${getUrgencyColor(priority.daysUntilShip)}`}>
               {priority.daysUntilShip > 0 ? `${priority.daysUntilShip} days` : 'Overdue'}
@@ -160,16 +156,11 @@ const SortablePriorityItem = ({
 
           {/* Total Value */}
           <div className="text-center">
-            <div className="flex items-center justify-center text-sm text-gray-700 mb-1">
-              <DollarSign className="w-3 h-3 mr-1" />
-              Total Value
-            </div>
             <div className="font-medium text-gray-900">{formatCurrency(priority.totalValue)}</div>
           </div>
 
           {/* DPAS Rating */}
           <div className="text-center">
-            <div className="text-sm text-gray-700 mb-1">DPAS Rating</div>
             <div className="font-medium text-gray-900">
               {priority.dpasRating || 'N/A'}
             </div>
@@ -177,7 +168,6 @@ const SortablePriorityItem = ({
 
           {/* Milestones Count */}
           <div className="text-center">
-            <div className="text-sm text-gray-700 mb-1">Milestones</div>
             <div className="font-medium text-gray-900">{priority.billingMilestones.length}</div>
             <div className="text-xs text-gray-700">
               {totalMilestoneValue > 0 ? formatCurrency(totalMilestoneValue) : 'No billing'}
@@ -186,8 +176,7 @@ const SortablePriorityItem = ({
 
           {/* Completion Progress */}
           <div className="text-center">
-            <div className="text-sm text-gray-700 mb-1">Progress</div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
               <div
                 className="bg-blue-600 h-2 rounded-full"
                 style={{
@@ -195,7 +184,7 @@ const SortablePriorityItem = ({
                 }}
               ></div>
             </div>
-            <div className="text-xs text-gray-700 mt-1">
+            <div className="text-xs text-gray-700">
               {priority.percentComplete || 0}%
             </div>
           </div>
