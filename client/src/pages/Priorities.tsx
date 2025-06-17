@@ -169,7 +169,7 @@ const SortablePriorityItem = ({
           <div className="text-center">
             <div className="text-sm text-gray-700 mb-1">DPAS Rating</div>
             <div className="font-medium text-gray-900">
-              {priority.dpasRating || 'Not Set'}
+              {priority.dpasRating || 'N/A'}
             </div>
           </div>
 
