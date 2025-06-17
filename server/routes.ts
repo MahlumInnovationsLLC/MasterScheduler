@@ -211,17 +211,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PTN API Integration - Public endpoints (no auth required for dashboard data)
   app.get("/api/ptn-team-needs", async (req, res) => {
     try {
-      console.log("🔄 Fetching PTN team needs data from ptn.nomadgcsai.com");
+      const apiUrl = process.env.PTN_API_URL || "https://ptn.nomadgcsai.com";
+      const apiKey = process.env.PTN_API_KEY;
+      
+      console.log(`🔄 Fetching PTN team needs data from ${apiUrl}`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      const response = await fetch("https://ptn.nomadgcsai.com/api/team-needs", {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "User-Agent": "NomadGCS-Dashboard/1.0"
+      };
+      
+      // Add API key authentication if provided
+      if (apiKey) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+        headers["X-API-Key"] = apiKey;
+      }
+      
+      const response = await fetch(`${apiUrl}/api/team-needs`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "NomadGCS-Dashboard/1.0"
-        },
+        headers,
         signal: controller.signal
       });
       
@@ -259,17 +270,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/ptn-production-metrics", async (req, res) => {
     try {
-      console.log("🔄 Fetching PTN production metrics from ptn.nomadgcsai.com");
+      const apiUrl = process.env.PTN_API_URL || "https://ptn.nomadgcsai.com";
+      const apiKey = process.env.PTN_API_KEY;
+      
+      console.log(`🔄 Fetching PTN production metrics from ${apiUrl}`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      const response = await fetch("https://ptn.nomadgcsai.com/api/production-metrics", {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "User-Agent": "NomadGCS-Dashboard/1.0"
+      };
+      
+      // Add API key authentication if provided
+      if (apiKey) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+        headers["X-API-Key"] = apiKey;
+      }
+      
+      const response = await fetch(`${apiUrl}/api/production-metrics`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "NomadGCS-Dashboard/1.0"
-        },
+        headers,
         signal: controller.signal
       });
       
