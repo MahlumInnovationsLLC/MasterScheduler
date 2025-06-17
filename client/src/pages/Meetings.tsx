@@ -68,6 +68,7 @@ interface Meeting {
 }
 
 export default function Meetings() {
+  const [activeTab, setActiveTab] = useState("tier2");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
