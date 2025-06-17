@@ -126,6 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("✅ AUTH: Login successful, user data:", data);
       // Set user data immediately to avoid delay
       queryClient.setQueryData(["/api/user"], data);
+      // Start the loading screen after successful login
+      startLoadingScreen();
       // Invalidate to ensure fresh data on next request
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -186,40 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = !!user;
 
-  // Manage loading stages based on authentication and data loading states
-  useEffect(() => {
-    if (isLoading) {
-      setStage('authentication');
-    } else if (isAuthenticated) {
-      // Check Priorities Module access
-      setStage('priorities');
-      
-      // Fetch priority access status
-      fetch(`/api/users/${user?.id}/priority-access`, {
-        credentials: 'include'
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Priority access check completed:', data);
-        
-        // Move to data loading phase
-        setStage('data');
-        
-        // Complete loading after brief data simulation
-        setTimeout(() => {
-          setLoading(false);
-        }, 1000);
-      })
-      .catch(error => {
-        console.log('Priority access check failed:', error);
-        // Complete loading even if access check fails
-        setLoading(false);
-      });
-    } else {
-      // User not authenticated, hide loading screen
-      setLoading(false);
-    }
-  }, [isLoading, isAuthenticated, user?.id, setStage, setLoading]);
+  // Get startLoadingScreen function from loading context
+  const { startLoadingScreen } = useLoading();
 
   return (
     <AuthContext.Provider
