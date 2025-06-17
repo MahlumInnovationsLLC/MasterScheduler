@@ -34,6 +34,7 @@ interface ProjectPriority {
   shipDate: string | null;
   status: string;
   percentComplete: number;
+  dpasRating: string | null;
   totalValue: number;
   daysUntilShip: number;
   billingMilestones: BillingMilestone[];
@@ -164,15 +165,11 @@ const SortablePriorityItem = ({
             <div className="font-medium text-gray-900">{formatCurrency(priority.totalValue)}</div>
           </div>
 
-          {/* Billing Progress */}
+          {/* DPAS Rating */}
           <div className="text-center">
-            <div className="flex items-center justify-center text-sm text-gray-700 mb-1">
-              <TrendingUp className="w-3 h-3 mr-1" />
-              Billing
-            </div>
-            <div className="font-medium text-gray-900">{formatCurrency(paidValue)}</div>
-            <div className="text-xs text-gray-700">
-              {paidMilestones.length}/{priority.billingMilestones.length} paid
+            <div className="text-sm text-gray-700 mb-1">DPAS Rating</div>
+            <div className="font-medium text-gray-900">
+              {priority.dpasRating || 'Not Set'}
             </div>
           </div>
 

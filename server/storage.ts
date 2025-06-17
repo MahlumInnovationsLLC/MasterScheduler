@@ -5113,6 +5113,7 @@ export class DatabaseStorage implements IStorage {
           shipDate: project.shipDate,
           status: project.status,
           percentComplete: project.percentComplete || 0,
+          dpasRating: project.dpasRating,
           totalValue,
           daysUntilShip,
           billingMilestones: projectMilestones
