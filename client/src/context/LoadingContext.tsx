@@ -24,32 +24,44 @@ interface LoadingProviderProps {
 export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [stage, setStageState] = useState<'authentication' | 'priorities' | 'data' | 'complete'>('authentication');
+  const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(false);
 
   const setStage = (newStage: 'authentication' | 'priorities' | 'data' | 'complete') => {
+    // Don't show loading screen if we've already completed initial load
+    if (hasCompletedInitialLoad && newStage !== 'complete') {
+      return;
+    }
+    
     setStageState(newStage);
     
     // Auto-complete loading when reaching complete stage
     if (newStage === 'complete') {
       setTimeout(() => {
         setIsLoading(false);
+        setHasCompletedInitialLoad(true);
       }, 800); // Small delay to show completion
     }
   };
 
   const setLoading = (loading: boolean) => {
+    // Don't show loading screen if we've already completed initial load
+    if (hasCompletedInitialLoad && loading) {
+      return;
+    }
+    
     setIsLoading(loading);
     if (!loading) {
       setStageState('complete');
+      setHasCompletedInitialLoad(true);
     }
   };
 
-  // Auto-start authentication stage
+  // Auto-start authentication stage only on first load
   useEffect(() => {
-    if (isLoading && stage === 'authentication') {
-      // This will be triggered by actual auth checks in the app
+    if (isLoading && stage === 'authentication' && !hasCompletedInitialLoad) {
       console.log('Loading context initialized - starting authentication phase');
     }
-  }, [isLoading, stage]);
+  }, [isLoading, stage, hasCompletedInitialLoad]);
 
   return (
     <LoadingContext.Provider value={{ isLoading, stage, setStage, setLoading }}>

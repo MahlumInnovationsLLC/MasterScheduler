@@ -191,23 +191,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLoading) {
       setStage('authentication');
     } else if (isAuthenticated) {
-      // Simulate Priorities Module access check
+      // Check Priorities Module access
       setStage('priorities');
       
-      // Simulate data loading phase
-      setTimeout(() => {
+      // Fetch priority access status
+      fetch(`/api/users/${user?.id}/priority-access`, {
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Priority access check completed:', data);
+        
+        // Move to data loading phase
         setStage('data');
         
-        // Complete loading after data is loaded
+        // Complete loading after brief data simulation
         setTimeout(() => {
           setLoading(false);
         }, 1000);
-      }, 800);
+      })
+      .catch(error => {
+        console.log('Priority access check failed:', error);
+        // Complete loading even if access check fails
+        setLoading(false);
+      });
     } else {
       // User not authenticated, hide loading screen
       setLoading(false);
     }
-  }, [isLoading, isAuthenticated, setStage, setLoading]);
+  }, [isLoading, isAuthenticated, user?.id, setStage, setLoading]);
 
   return (
     <AuthContext.Provider
