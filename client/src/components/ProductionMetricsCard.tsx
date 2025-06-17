@@ -98,7 +98,7 @@ const ProductionMetricsCard = () => {
     );
   }
 
-  if (!metrics || !teamNeeds) {
+  if (!metrics && !teamNeeds) {
     return (
       <Card className="bg-darkCard border-gray-800">
         <CardContent className="p-6">
@@ -109,6 +109,13 @@ const ProductionMetricsCard = () => {
       </Card>
     );
   }
+
+  // Handle PTN data with minimal structure
+  const hasMetricsData = metrics && (
+    metrics.productionEfficiency !== undefined ||
+    metrics.qualityRate !== undefined ||
+    metrics.oeeScore !== undefined
+  );
 
   return (
     <div className="space-y-6">
@@ -123,80 +130,121 @@ const ProductionMetricsCard = () => {
         </div>
       </div>
 
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* PTN Connection Status */}
+      {!hasMetricsData && (
         <Card className="bg-darkCard border-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Production Efficiency</CardTitle>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-white">PTN Connection Status</CardTitle>
           </CardHeader>
-          <CardContent className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-white">{metrics.productionEfficiency}%</div>
-              <div className={`flex items-center gap-1 text-sm ${getChangeColor(metrics.productionEfficiencyChange)}`}>
-                {getChangeIcon(metrics.productionEfficiencyChange)}
-                {Math.abs(metrics.productionEfficiencyChange)}%
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-darkCard border-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Quality Rate</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-white">{metrics.qualityRate}%</div>
-              <div className={`flex items-center gap-1 text-sm ${getChangeColor(metrics.qualityRateChange)}`}>
-                {getChangeIcon(metrics.qualityRateChange)}
-                {Math.abs(metrics.qualityRateChange)}%
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-darkCard border-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">OEE Score</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-white">{metrics.oeeScore}%</div>
-              <div className={`flex items-center gap-1 text-sm ${getChangeColor(metrics.oeeScoreChange)}`}>
-                {getChangeIcon(metrics.oeeScoreChange)}
-                {Math.abs(metrics.oeeScoreChange)}%
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Workstation Status */}
-      <Card className="bg-darkCard border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-white">Workstation Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent>
             <div className="flex items-center gap-3">
               <CheckCircle className="h-8 w-8 text-green-500" />
               <div>
-                <div className="text-xl font-bold text-white">{metrics.activeWorkstations}</div>
-                <div className="text-sm text-gray-400">Active Workstations</div>
+                <div className="text-lg font-bold text-white">Connected</div>
+                <div className="text-sm text-gray-400">PTN API responding with minimal data structure</div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-8 w-8 text-yellow-500" />
-              <div>
-                <div className="text-xl font-bold text-white">{metrics.workstationsInMaintenance}</div>
-                <div className="text-sm text-gray-400">In Maintenance</div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Key Metrics Grid */}
+      {hasMetricsData && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-darkCard border-gray-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Production Efficiency</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold text-white">{metrics.productionEfficiency || 'N/A'}%</div>
+                {metrics.productionEfficiencyChange !== undefined && (
+                  <div className={`flex items-center gap-1 text-sm ${getChangeColor(metrics.productionEfficiencyChange)}`}>
+                    {getChangeIcon(metrics.productionEfficiencyChange)}
+                    {Math.abs(metrics.productionEfficiencyChange)}%
+                  </div>
+                )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-darkCard border-gray-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Quality Rate</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold text-white">{metrics.qualityRate || 'N/A'}%</div>
+                {metrics.qualityRateChange !== undefined && (
+                  <div className={`flex items-center gap-1 text-sm ${getChangeColor(metrics.qualityRateChange)}`}>
+                    {getChangeIcon(metrics.qualityRateChange)}
+                    {Math.abs(metrics.qualityRateChange)}%
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-darkCard border-gray-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">OEE Score</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold text-white">{metrics.oeeScore || 'N/A'}%</div>
+                {metrics.oeeScoreChange !== undefined && (
+                  <div className={`flex items-center gap-1 text-sm ${getChangeColor(metrics.oeeScoreChange)}`}>
+                    {getChangeIcon(metrics.oeeScoreChange)}
+                    {Math.abs(metrics.oeeScoreChange)}%
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* PTN Production Summary */}
+      <Card className="bg-darkCard border-gray-800">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-white">PTN Production Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3">
               <Activity className="h-8 w-8 text-blue-500" />
               <div>
-                <div className="text-xl font-bold text-white">{metrics.totalWorkstations}</div>
-                <div className="text-sm text-gray-400">Total Workstations</div>
+                <div className="text-xl font-bold text-white">
+                  {metrics.summary?.projects?.total || 'N/A'}
+                </div>
+                <div className="text-sm text-gray-400">Active Projects</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Users className="h-8 w-8 text-green-500" />
+              <div>
+                <div className="text-xl font-bold text-white">
+                  {metrics.summary?.teamNeeds?.totalNeeds || 'N/A'}
+                </div>
+                <div className="text-sm text-gray-400">Team Needs</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-8 w-8 text-orange-500" />
+              <div>
+                <div className="text-xl font-bold text-white">
+                  {metrics.summary?.teamNeeds?.pending || 'N/A'}
+                </div>
+                <div className="text-sm text-gray-400">Pending</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Database className="h-8 w-8 text-purple-500" />
+              <div>
+                <div className="text-xl font-bold text-white">
+                  {metrics.summary?.parts?.total || 'N/A'}
+                </div>
+                <div className="text-sm text-gray-400">Parts Tracked</div>
               </div>
             </div>
           </div>
