@@ -48,10 +48,10 @@ const PTNMetricsConnectionManager = () => {
     syncFrequency: 'hourly',
     description: 'External PTN application for production metrics and GEMBA dashboard data',
     headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'User-Agent': 'NomadGCS-Dashboard/1.0'
     },
-    timeout: 30000,
+    timeout: 15000,
     retryAttempts: 3
   });
 

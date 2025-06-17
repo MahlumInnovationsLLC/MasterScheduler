@@ -375,21 +375,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "User-Agent": "NomadGCS-Dashboard/1.0"
       };
       
-      // Add API key authentication if provided
+      // Add API key authentication as specified in PTN integration guide
       if (apiKey) {
-        headers["Authorization"] = `Bearer ${apiKey}`;
         headers["X-API-Key"] = apiKey;
       }
       
-      // Try multiple potential endpoint paths
+      // Use correct PTN API endpoints from integration guide
       const endpoints = [
-        `${apiUrl}/api/production-metrics`,
-        `${apiUrl}/production-metrics`,
-        `${apiUrl}/api/metrics`,
-        `${apiUrl}/metrics`,
-        `${apiUrl}/api/v1/production-metrics`,
-        `${apiUrl}/api/v1/metrics`,
-        `${apiUrl}/api/dashboard/metrics`
+        `${apiUrl}/api/export/summary`,
+        `${apiUrl}/api/export/projects`
       ];
       
       let lastError = null;
