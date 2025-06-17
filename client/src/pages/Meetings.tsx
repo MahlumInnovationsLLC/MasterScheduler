@@ -905,9 +905,27 @@ export default function Meetings() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
 
-          {/* PTN Integration Panel */}
-          <Card>
+        {/* Tier III Tab Content */}
+        <TabsContent value="tier-iii" className="space-y-6">
+          <div className="text-center py-12">
+            <h3 className="text-lg font-semibold text-muted-foreground">Tier III Content</h3>
+            <p className="text-sm text-muted-foreground mt-2">Project readiness and escalation management</p>
+          </div>
+        </TabsContent>
+
+        {/* Tier IV Tab Content */}
+        <TabsContent value="tier-iv" className="space-y-6">
+          <div className="text-center py-12">
+            <h3 className="text-lg font-semibold text-muted-foreground">Tier IV Content</h3>
+            <p className="text-sm text-muted-foreground mt-2">Critical issues and executive oversight</p>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* PTN Integration Panel */}
+      <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ExternalLink className="h-5 w-5 text-blue-600" />
