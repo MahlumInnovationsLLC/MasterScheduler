@@ -2795,14 +2795,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`📋 Updating priority order for ${priorities.length} projects`);
       
-      // Update each project's priority order in the database
-      for (let i = 0; i < priorities.length; i++) {
-        const priority = priorities[i];
-        if (priority.projectId) {
-          await storage.updateProjectPriorityOrder(priority.projectId, i + 1);
-          console.log(`✅ Updated project ${priority.projectId} to priority ${i + 1}`);
-        }
-      }
+      // Pass the entire priorities array to the storage method
+      await storage.updateProjectPriorityOrder(priorities);
       
       console.log('✅ Priority order updated successfully');
       res.json({ success: true, message: `Updated priority order for ${priorities.length} projects` });
