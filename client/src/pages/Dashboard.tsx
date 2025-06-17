@@ -44,7 +44,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
-import ProductionMetricsCard from '@/components/ProductionMetricsCard';
 
 const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -1001,10 +1000,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Production Metrics Section */}
-      <div className="mb-8">
-        <ProductionMetricsCard />
-      </div>
+      
 
       {/* Project Search for Bay Schedule */}
       <div className="mb-6 flex items-center gap-4">
