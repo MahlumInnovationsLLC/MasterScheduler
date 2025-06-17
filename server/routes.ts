@@ -6467,6 +6467,28 @@ Response format:
     }
   });
 
+  // Get PTN detailed teams data
+  app.get("/api/ptn-teams", simpleAuth, async (req, res) => {
+    try {
+      const data = await storage.getPTNTeams();
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching PTN teams:", error);
+      res.status(500).json({ message: "Error fetching PTN teams" });
+    }
+  });
+
+  // Get PTN enhanced summary with team analytics
+  app.get("/api/ptn-enhanced-summary", simpleAuth, async (req, res) => {
+    try {
+      const data = await storage.getPTNEnhancedSummary();
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching PTN enhanced summary:", error);
+      res.status(500).json({ message: "Error fetching PTN enhanced summary" });
+    }
+  });
+
   // Project Priorities API routes
   app.get("/api/project-priorities", simpleAuth, async (req, res) => {
     try {
