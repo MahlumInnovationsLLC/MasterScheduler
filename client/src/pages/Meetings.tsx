@@ -808,8 +808,9 @@ export default function Meetings() {
                                 </span>
                               )}
                             </div>
-                          </div>                        )}
+                          </div>                        )}<previous_generation>```text
 
+</previous_generation>
                         {/* Team Members */}
                         {team.members && team.members.length > 0 && (
                           <div className="mb-3">
