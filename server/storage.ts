@@ -5048,22 +5048,44 @@ export class DatabaseStorage implements IStorage {
   // Project Priorities methods
   async getProjectPriorities(): Promise<any[]> {
     try {
-      const result = await db
+      // First get all active projects
+      const allProjects = await db
         .select()
-        .from(priorities)
-        .innerJoin(projects, eq(priorities.projectId, projects.id))
-        .orderBy(priorities.id);
+        .from(projects)
+        .where(eq(projects.status, 'active'));
+
+      // Get project priorities ordering
+      const priorityOrders = await db
+        .select()
+        .from(projectPriorities)
+        .orderBy(projectPriorities.priorityOrder);
 
       // Get billing milestones for each project
       const milestones = await db
         .select()
         .from(billingMilestones);
 
-      // Transform and combine data
-      return result.map((row, index) => {
-        const project = row.projects;
-        const priority = row.priorities;
+      // Create a map of project priorities for quick lookup
+      const priorityMap = new Map();
+      priorityOrders.forEach(p => {
+        priorityMap.set(p.projectId, p.priorityOrder);
+      });
+
+      // Sort projects by priority order, then by project number for unordered ones
+      const sortedProjects = allProjects.sort((a, b) => {
+        const aPriority = priorityMap.get(a.id) || 999999;
+        const bPriority = priorityMap.get(b.id) || 999999;
         
+        if (aPriority !== bPriority) {
+          return aPriority - bPriority;
+        }
+        
+        // For projects without priority, sort by project number
+        return a.projectNumber.localeCompare(b.projectNumber);
+      });
+
+      // Transform and combine data
+      return sortedProjects.map((project, index) => {
         const projectMilestones = milestones
           .filter(m => m.projectId === project.id)
           .map(m => ({
@@ -5085,7 +5107,7 @@ export class DatabaseStorage implements IStorage {
         return {
           id: project.id,
           projectId: project.id,
-          priorityOrder: index + 1,
+          priorityOrder: priorityMap.get(project.id) || index + 1,
           projectNumber: project.projectNumber,
           projectName: project.name,
           shipDate: project.shipDate,
