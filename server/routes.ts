@@ -255,12 +255,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const data = await response.json();
             console.log("✅ Successfully fetched PTN team needs data");
             
-            // Ensure consistent data structure
+            // PTN API returned valid data - use it directly
             const normalizedData = {
-              teams: data.teams || data.teamNeeds || data.data?.teams || [],
-              pendingNeeds: data.pendingNeeds || data.alerts || data.data?.pendingNeeds || [],
+              teams: data.teams || [],
+              pendingNeeds: data.pendingNeeds || [],
               lastUpdated: new Date().toISOString(),
-              source: endpoint
+              source: endpoint,
+              isAuthentic: true
             };
 
             clearTimeout(timeoutId);
@@ -405,19 +406,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const data = await response.json();
             console.log("✅ Successfully fetched PTN production metrics");
             
-            // Normalize metrics data structure
+            // PTN API returned valid data - use it directly  
             const normalizedMetrics = {
-              productionEfficiency: data.productionEfficiency || data.efficiency || data.data?.efficiency,
-              productionEfficiencyChange: data.productionEfficiencyChange || data.efficiencyChange || data.data?.efficiencyChange,
-              qualityRate: data.qualityRate || data.quality || data.data?.quality,
-              qualityRateChange: data.qualityRateChange || data.qualityChange || data.data?.qualityChange,
-              oeeScore: data.oeeScore || data.oee || data.data?.oee,
-              oeeScoreChange: data.oeeScoreChange || data.oeeChange || data.data?.oeeChange,
-              activeWorkstations: data.activeWorkstations || data.workstationsActive || data.data?.activeWorkstations,
-              totalWorkstations: data.totalWorkstations || data.workstationsTotal || data.data?.totalWorkstations,
-              workstationsInMaintenance: data.workstationsInMaintenance || data.maintenanceCount || data.data?.maintenanceCount,
+              ...data,
               lastUpdated: new Date().toISOString(),
-              source: endpoint
+              source: endpoint,
+              isAuthentic: true
             };
 
             clearTimeout(timeoutId);

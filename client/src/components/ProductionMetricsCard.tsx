@@ -118,7 +118,7 @@ const ProductionMetricsCard = () => {
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-blue-400" />
           <Badge variant="outline" className="text-xs">
-            {metrics.source === 'calculated_from_manufacturing_data' ? 'Live Manufacturing Data' : 'PTN API'}
+            {metrics.isAuthentic ? 'PTN Production System' : 'Manufacturing System Data'}
           </Badge>
         </div>
       </div>
