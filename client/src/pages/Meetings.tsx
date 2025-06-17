@@ -1899,6 +1899,249 @@ export default function Meetings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        {/* Tier III Tab Content */}
+        <TabsContent value="tier-iii" className="space-y-6">
+          <div className="text-center py-12">
+            <h3 className="text-lg font-semibold text-muted-foreground">Tier III Content</h3>
+            <p className="text-sm text-muted-foreground mt-2">Project readiness and escalation management</p>
+          </div>
+        </TabsContent>
+
+        {/* Tier IV Tab Content */}
+        <TabsContent value="tier-iv" className="space-y-6">
+          <div className="text-center py-12">
+            <h3 className="text-lg font-semibold text-muted-foreground">Tier IV Content</h3>
+            <p className="text-sm text-muted-foreground mt-2">Critical issues and executive oversight</p>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog Components */}
+      <CreateMeetingDialog 
+        open={showCreateDialog} 
+        onOpenChange={setShowCreateDialog}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
+          toast({ title: "Meeting created successfully" });
+        }}
+      />
+
+      {/* Create Elevated Concern Dialog */}
+      <Dialog open={showConcernDialog} onOpenChange={setShowConcernDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Create Elevated Concern</DialogTitle>
+            <DialogDescription>
+              Escalate a critical issue that requires immediate attention and tracking.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="concern-project">Project</Label>
+              <Select value={concernForm.projectId} onValueChange={(value) => setConcernForm({ ...concernForm, projectId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects?.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.projectNumber} - {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="concern-type">Type</Label>
+              <Select value={concernForm.type} onValueChange={(value: "task" | "note") => setConcernForm({ ...concernForm, type: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="task">Task</SelectItem>
+                  <SelectItem value="note">Note</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="concern-title">Title</Label>
+              <Input
+                id="concern-title"
+                value={concernForm.title}
+                onChange={(e) => setConcernForm({ ...concernForm, title: e.target.value })}
+                placeholder="Enter concern title"
+              />
+            </div>
+            <div>
+              <Label htmlFor="concern-description">Description</Label>
+              <Textarea
+                id="concern-description"
+                value={concernForm.description}
+                onChange={(e) => setConcernForm({ ...concernForm, description: e.target.value })}
+                placeholder="Describe the concern in detail"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="concern-priority">Priority</Label>
+                <Select value={concernForm.priority} onValueChange={(value: "low" | "medium" | "high") => setConcernForm({ ...concernForm, priority: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="concern-assigned">Assigned To</Label>
+                <Select value={concernForm.assignedToId} onValueChange={(value) => setConcernForm({ ...concernForm, assignedToId: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(users as any[]).map((user: any) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="concern-due-date">Due Date</Label>
+              <Input
+                id="concern-due-date"
+                type="date"
+                value={concernForm.dueDate}
+                onChange={(e) => setConcernForm({ ...concernForm, dueDate: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConcernDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitConcern}
+              disabled={createConcernMutation.isPending || !concernForm.projectId || !concernForm.title || !concernForm.description}
+            >
+              {createConcernMutation.isPending ? "Creating..." : "Create Concern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Task Dialog */}
+      <Dialog open={showTaskDialog} onOpenChange={setShowTaskDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Create Task</DialogTitle>
+            <DialogDescription>
+              Create a new task and assign it to a team member.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="task-project">Project</Label>
+              <Select value={taskForm.projectId} onValueChange={(value) => setTaskForm({ ...taskForm, projectId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects?.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.projectNumber} - {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="task-name">Task Name</Label>
+              <Input
+                id="task-name"
+                value={taskForm.name}
+                onChange={(e) => setTaskForm({ ...taskForm, name: e.target.value })}
+                placeholder="Enter task name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="task-description">Description</Label>
+              <Textarea
+                id="task-description"
+                value={taskForm.description}
+                onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                placeholder="Describe the task"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="task-due-date">Due Date</Label>
+                <Input
+                  id="task-due-date"
+                  type="date"
+                  value={taskForm.dueDate}
+                  onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="task-assigned">Assigned To</Label>
+                <Select value={taskForm.assignedToUserId} onValueChange={(value) => setTaskForm({ ...taskForm, assignedToUserId: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(users as any[]).map((user: any) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="task-department">Department</Label>
+              <Select value={taskForm.department} onValueChange={(value) => setTaskForm({ ...taskForm, department: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="engineering">Engineering</SelectItem>
+                  <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                  <SelectItem value="finance">Finance</SelectItem>
+                  <SelectItem value="project_management">Project Management</SelectItem>
+                  <SelectItem value="quality_control">Quality Control</SelectItem>
+                  <SelectItem value="it">IT</SelectItem>
+                  <SelectItem value="sales">Sales</SelectItem>
+                  <SelectItem value="executive">Executive</SelectItem>
+                  <SelectItem value="planning_analysis">Planning & Analysis</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTaskDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitTask}
+              disabled={createTaskMutation.isPending || !taskForm.name || !taskForm.description}
+            >
+              {createTaskMutation.isPending ? "Creating..." : "Create Task"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Close Concern Dialog */}
       <Dialog open={showCloseConcernDialog} onOpenChange={setShowCloseConcernDialog}>
@@ -1999,8 +2242,6 @@ export default function Meetings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
