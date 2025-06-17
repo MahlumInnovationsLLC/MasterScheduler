@@ -7,7 +7,7 @@ import crypto from "crypto";
 import { promisify } from "util";
 import passport from "passport";
 import multer from "multer";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import {
@@ -4292,10 +4292,7 @@ Response format:
     }
   });
 
-  // In-memory storage for user priority access (temporary until DB table is ready)
-  const userPriorityAccessStore = new Map<string, { canViewPriorities: boolean; canEditPriorities: boolean; canDragReorder: boolean }>();
-
-  // Priority Access Routes
+  // Priority Access Routes with Database Storage
   app.get("/api/users/:userId/priority-access", requireAuth, async (req: any, res) => {
     try {
       const userId = req.params.userId;
@@ -4305,12 +4302,16 @@ Response format:
         return res.status(403).json({ message: "Access denied" });
       }
       
-      // Get from in-memory store or return defaults
-      const storedAccess = userPriorityAccessStore.get(userId);
+      // Get from database or return defaults
+      const result = await pool.query(
+        'SELECT can_view_priorities, can_edit_priorities, can_drag_reorder FROM user_priority_access WHERE user_id = $1',
+        [userId]
+      );
+      
       const defaultAccess = {
-        canViewPriorities: storedAccess?.canViewPriorities ?? true,
-        canEditPriorities: storedAccess?.canEditPriorities ?? false,
-        canDragReorder: storedAccess?.canDragReorder ?? false
+        canViewPriorities: result.rows.length > 0 ? result.rows[0].can_view_priorities : true,
+        canEditPriorities: result.rows.length > 0 ? result.rows[0].can_edit_priorities : false,
+        canDragReorder: result.rows.length > 0 ? result.rows[0].can_drag_reorder : false
       };
       
       res.json(defaultAccess);
@@ -4327,16 +4328,28 @@ Response format:
       
       console.log(`🔧 Updating priority access for user ${userId}:`, accessUpdate);
       
-      // Get current access or create default
-      const currentAccess = userPriorityAccessStore.get(userId) || {
-        canViewPriorities: true,
-        canEditPriorities: false,
-        canDragReorder: false
-      };
+      // Use UPSERT to insert or update the record
+      const result = await pool.query(`
+        INSERT INTO user_priority_access (user_id, can_view_priorities, can_edit_priorities, can_drag_reorder, updated_at)
+        VALUES ($1, $2, $3, $4, NOW())
+        ON CONFLICT (user_id) DO UPDATE SET
+          can_view_priorities = COALESCE($2, user_priority_access.can_view_priorities),
+          can_edit_priorities = COALESCE($3, user_priority_access.can_edit_priorities),
+          can_drag_reorder = COALESCE($4, user_priority_access.can_drag_reorder),
+          updated_at = NOW()
+        RETURNING can_view_priorities, can_edit_priorities, can_drag_reorder
+      `, [
+        userId,
+        accessUpdate.canViewPriorities,
+        accessUpdate.canEditPriorities,
+        accessUpdate.canDragReorder
+      ]);
       
-      // Update with new values
-      const updatedAccess = { ...currentAccess, ...accessUpdate };
-      userPriorityAccessStore.set(userId, updatedAccess);
+      const updatedAccess = {
+        canViewPriorities: result.rows[0].can_view_priorities,
+        canEditPriorities: result.rows[0].can_edit_priorities,
+        canDragReorder: result.rows[0].can_drag_reorder
+      };
       
       console.log(`✅ Priority access updated for user ${userId}:`, updatedAccess);
       
