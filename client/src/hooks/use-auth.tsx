@@ -25,7 +25,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const { setStage, setLoading } = useLoading();
+  const { setStage, setLoading, startLoadingScreen } = useLoading();
   
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/user"],
@@ -187,9 +187,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const isAuthenticated = !!user;
-
-  // Get startLoadingScreen function from loading context
-  const { startLoadingScreen } = useLoading();
 
   return (
     <AuthContext.Provider
