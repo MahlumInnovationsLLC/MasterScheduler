@@ -248,7 +248,7 @@ export default function Priorities() {
   // Update priority order after drag and drop
   const updatePriorityOrderMutation = useMutation({
     mutationFn: async (priorities: ProjectPriority[]) => {
-      const response = await apiRequest('POST', '/api/priorities/update-order', { priorities });
+      const response = await apiRequest('POST', '/api/project-priorities/update-order', { priorities });
       return response.json();
     },
     onSuccess: () => {
@@ -269,7 +269,7 @@ export default function Priorities() {
   // Archive priority mutation
   const archivePriorityMutation = useMutation({
     mutationFn: async (priorityId: number) => {
-      const response = await apiRequest('DELETE', `/api/priorities/${priorityId}`);
+      const response = await apiRequest('DELETE', `/api/project-priorities/${priorityId}`);
       return response.json();
     },
     onSuccess: (data, priorityId) => {

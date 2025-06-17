@@ -2773,6 +2773,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update project priorities order after drag and drop
+  app.post("/api/project-priorities/update-order", requireEditor, async (req, res) => {
+    try {
+      const { priorities } = req.body;
+      
+      if (!Array.isArray(priorities)) {
+        return res.status(400).json({ message: "Priorities must be an array" });
+      }
+
+      console.log(`📋 Updating priority order for ${priorities.length} projects`);
+      
+      // Update each project's priority order in the database
+      for (let i = 0; i < priorities.length; i++) {
+        const priority = priorities[i];
+        await storage.updateProjectPriorityOrder(priority.projectId, i + 1);
+      }
+      
+      console.log('✅ Priority order updated successfully');
+      res.json({ success: true, message: `Updated priority order for ${priorities.length} projects` });
+    } catch (error) {
+      console.error("Error updating project priorities order:", error);
+      res.status(500).json({ message: "Error updating project priorities order" });
+    }
+  });
+
+  // Delete project priority (remove from priority list)
+  app.delete("/api/project-priorities/:id", requireEditor, async (req, res) => {
+    try {
+      const priorityId = parseInt(req.params.id);
+      const success = await storage.deleteProjectPriority(priorityId);
+      
+      if (success) {
+        res.json({ success: true, message: "Project removed from priority list" });
+      } else {
+        res.status(404).json({ message: "Priority not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting project priority:", error);
+      res.status(500).json({ message: "Error deleting project priority" });
+    }
+  });
+
   app.get("/api/user-preferences", simpleAuth, async (req: any, res) => {
     try {
       // Get user ID from the authenticated user
