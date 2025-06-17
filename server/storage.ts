@@ -4835,15 +4835,11 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
-      const url = `${connection.url}/team-needs`;
-      const headers = {
-        ...connection.headers,
-        ...(connection.apiKey ? { 'Authorization': `Bearer ${connection.apiKey}` } : {})
-      };
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers,
+      const response = await fetch(`${connection.url}/api/export/team-needs`, {
+        headers: {
+          'X-API-Key': connection.apiKey,
+          'Accept': 'application/json',
+        },
         signal: AbortSignal.timeout(connection.timeout || 30000)
       });
 
@@ -4865,10 +4861,10 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
-      const url = `${connection.url}/production-metrics`;
+      const url = `${connection.url}/api/export/summary`;
       const headers = {
-        ...connection.headers,
-        ...(connection.apiKey ? { 'Authorization': `Bearer ${connection.apiKey}` } : {})
+        'X-API-Key': connection.apiKey,
+        'Accept': 'application/json',
       };
 
       const response = await fetch(url, {
@@ -4884,6 +4880,58 @@ export class DatabaseStorage implements IStorage {
       return await response.json();
     } catch (error) {
       console.error("Error fetching PTN production metrics:", error);
+      return { error: (error as Error).message };
+    }
+  }
+
+  async getPTNTeams(): Promise<any> {
+    try {
+      const connection = await this.getPTNConnection();
+      if (!connection || !connection.isEnabled) {
+        return { error: "PTN connection not configured or disabled" };
+      }
+
+      const response = await fetch(`${connection.url}/api/export/teams`, {
+        headers: {
+          'X-API-Key': connection.apiKey,
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(connection.timeout || 30000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`PTN API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching PTN teams:", error);
+      return { error: (error as Error).message };
+    }
+  }
+
+  async getPTNEnhancedSummary(): Promise<any> {
+    try {
+      const connection = await this.getPTNConnection();
+      if (!connection || !connection.isEnabled) {
+        return { error: "PTN connection not configured or disabled" };
+      }
+
+      const response = await fetch(`${connection.url}/api/export/summary`, {
+        headers: {
+          'X-API-Key': connection.apiKey,
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(connection.timeout || 30000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`PTN API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching PTN enhanced summary:", error);
       return { error: (error as Error).message };
     }
   }

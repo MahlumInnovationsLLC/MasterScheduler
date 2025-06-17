@@ -151,6 +151,20 @@ export default function Meetings() {
     refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
   });
 
+  // Fetch PTN teams data
+  const { data: ptnTeams, isLoading: ptnTeamsLoading } = useQuery({
+    queryKey: ['/api/ptn-teams'],
+    retry: false,
+    refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
+  });
+
+  // Fetch PTN enhanced summary
+  const { data: ptnEnhancedSummary, isLoading: ptnEnhancedSummaryLoading } = useQuery({
+    queryKey: ['/api/ptn-enhanced-summary'],
+    retry: false,
+    refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
+  });
+
   // Fetch all project tasks for real-time task display
   const { data: allTasks = [] } = useQuery({
     queryKey: ['/api/tasks'],
@@ -758,70 +772,236 @@ export default function Meetings() {
             </Card>
           </div>
 
-          {/* PTN Integration Panel */}
+          {/* Overall Production Summary */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <ExternalLink className="h-5 w-5 text-blue-600" />
-                PTN System Integration
+                <BarChart className="h-5 w-5 text-blue-600" />
+                Overall Production Summary
               </CardTitle>
               <CardDescription>
-                Real-time data from Production Tracking Network at ptn.nomadgcsai.com
+                System-wide metrics from Production Tracking Network
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {ptnMetricsLoading ? (
+              {ptnEnhancedSummaryLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                  <span className="ml-2 text-sm text-muted-foreground">Loading PTN integration data...</span>
+                  <span className="ml-2 text-sm text-muted-foreground">Loading production summary...</span>
                 </div>
-              ) : ptnMetrics?.error ? (
+              ) : ptnEnhancedSummary?.error ? (
                 <div className="p-4 bg-red-50 rounded-lg border border-red-200">
                   <div className="flex items-center text-red-700">
                     <WifiOff className="h-5 w-5 mr-2" />
                     <div>
                       <p className="font-medium">PTN Connection Error</p>
-                      <p className="text-sm">{ptnMetrics.error}</p>
+                      <p className="text-sm">{ptnEnhancedSummary.error}</p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {ptnMetrics?.summary?.projects?.active || 'N/A'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Active Projects</div>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {ptnEnhancedSummary?.summary?.projects?.active || 'N/A'}
                     </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {ptnMetrics?.summary?.teamNeeds?.fulfilled || 'N/A'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Fulfilled Needs</div>
-                    </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">
-                        {ptnMetrics?.summary?.teamNeeds?.pending || 'N/A'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Pending Needs</div>
-                    </div>
+                    <div className="text-sm text-muted-foreground">Active Projects</div>
                   </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">
-                        Live PTN data from ptn.nomadgcsai.com
-                      </span>
-                      <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Refresh Data
-                      </Button>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {ptnEnhancedSummary?.summary?.teamNeeds?.fulfilled || 'N/A'}
                     </div>
+                    <div className="text-sm text-muted-foreground">Fulfilled Needs</div>
                   </div>
-                </>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {ptnEnhancedSummary?.summary?.teamNeeds?.pending || 'N/A'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Pending Needs</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {ptnEnhancedSummary?.summary?.teams?.count || 'N/A'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Active Teams</div>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Individual Team Widgets */}
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Team Status & Needs</h3>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Refresh Teams
+              </Button>
+            </div>
+            
+            {ptnTeamsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading team data...</span>
+              </div>
+            ) : ptnTeams?.error ? (
+              <div className="p-6 bg-red-50 rounded-lg border border-red-200">
+                <div className="flex items-center text-red-700">
+                  <WifiOff className="h-5 w-5 mr-2" />
+                  <div>
+                    <p className="font-medium">Team Data Connection Error</p>
+                    <p className="text-sm">{ptnTeams.error}</p>
+                  </div>
+                </div>
+              </div>
+            ) : ptnTeams?.teams && ptnTeams.teams.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {ptnTeams.teams.map((team: any, index: number) => (
+                  <Card key={team.id || index} className="border-l-4 border-l-blue-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span className="truncate">{team.name || `Team ${index + 1}`}</span>
+                        <Badge variant={team.status === 'active' ? 'default' : 'secondary'}>
+                          {team.status || 'ACTIVE'}
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        {team.description || 'Production team'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Team Leads */}
+                      {(team.electricalLead || team.assemblyLead) && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Team Leads</h4>
+                          <div className="space-y-1 text-sm">
+                            {team.electricalLead && (
+                              <div className="flex items-center gap-2">
+                                <Zap className="h-3 w-3 text-yellow-600" />
+                                <span>Electrical: {team.electricalLead}</span>
+                              </div>
+                            )}
+                            {team.assemblyLead && (
+                              <div className="flex items-center gap-2">
+                                <Users className="h-3 w-3 text-blue-600" />
+                                <span>Assembly: {team.assemblyLead}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Team Members */}
+                      {team.members && team.members.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Team Members</h4>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-gray-600" />
+                            <span className="text-sm">{team.members.length} members</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Current Needs */}
+                      {team.needs && team.needs.length > 0 ? (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Current Needs</h4>
+                          <div className="space-y-2">
+                            {team.needs.slice(0, 3).map((need: any, needIndex: number) => (
+                              <div key={needIndex} className="flex items-start gap-2 p-2 bg-yellow-50 rounded border-l-2 border-l-yellow-400">
+                                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-yellow-900 truncate">
+                                    {need.title || need.type || 'Need'}
+                                  </div>
+                                  {need.description && (
+                                    <div className="text-xs text-yellow-800 truncate">
+                                      {need.description}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-800">
+                                      {need.priority || 'Medium'}
+                                    </Badge>
+                                    {need.department && (
+                                      <span className="text-xs text-yellow-700">{need.department}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {team.needs.length > 3 && (
+                              <div className="text-xs text-muted-foreground text-center pt-1">
+                                +{team.needs.length - 3} more needs
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                          <div className="flex items-center text-green-700">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            <span className="text-sm">No active needs</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Team Analytics */}
+                      {team.analytics && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Performance</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            {team.analytics.projectsAssigned && (
+                              <div className="text-center p-2 bg-blue-50 rounded">
+                                <div className="font-bold text-blue-600">{team.analytics.projectsAssigned}</div>
+                                <div className="text-xs text-muted-foreground">Projects</div>
+                              </div>
+                            )}
+                            {team.analytics.efficiency && (
+                              <div className="text-center p-2 bg-green-50 rounded">
+                                <div className="font-bold text-green-600">{team.analytics.efficiency}%</div>
+                                <div className="text-xs text-muted-foreground">Efficiency</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Last Activity */}
+                      {team.lastActivity && (
+                        <div className="text-xs text-muted-foreground border-t pt-2">
+                          Last activity: {new Date(team.lastActivity).toLocaleString()}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No team data available</p>
+              </div>
+            )}
+          </div>
+
+          {/* PTN System Info */}
+          <div className="mt-6 pt-4 border-t">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">
+                Live data from Production Tracking Network at ptn.nomadgcsai.com
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.open('https://ptn.nomadgcsai.com/', '_blank')}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Full PTN Dashboard
+              </Button>
+            </div>
+          </div>
         </TabsContent>
 
         {/* Tier III Tab Content */}
