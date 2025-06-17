@@ -4827,6 +4827,67 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // PTN Data Fetching methods
+  async getPTNTeamNeeds(): Promise<any> {
+    try {
+      const connection = await this.getPTNConnection();
+      if (!connection || !connection.isEnabled) {
+        return { error: "PTN connection not configured or disabled" };
+      }
+
+      const url = `${connection.url}/team-needs`;
+      const headers = {
+        ...connection.headers,
+        ...(connection.apiKey ? { 'Authorization': `Bearer ${connection.apiKey}` } : {})
+      };
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        signal: AbortSignal.timeout(connection.timeout || 30000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`PTN API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching PTN team needs:", error);
+      return { error: (error as Error).message };
+    }
+  }
+
+  async getPTNProductionMetrics(): Promise<any> {
+    try {
+      const connection = await this.getPTNConnection();
+      if (!connection || !connection.isEnabled) {
+        return { error: "PTN connection not configured or disabled" };
+      }
+
+      const url = `${connection.url}/production-metrics`;
+      const headers = {
+        ...connection.headers,
+        ...(connection.apiKey ? { 'Authorization': `Bearer ${connection.apiKey}` } : {})
+      };
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        signal: AbortSignal.timeout(connection.timeout || 30000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`PTN API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching PTN production metrics:", error);
+      return { error: (error as Error).message };
+    }
+  }
+
   // Project Priorities methods
   async getProjectPriorities(): Promise<any[]> {
     try {

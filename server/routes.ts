@@ -6139,6 +6139,28 @@ Response format:
     }
   });
 
+  // Get PTN team needs data
+  app.get("/api/ptn-team-needs", simpleAuth, async (req, res) => {
+    try {
+      const data = await storage.getPTNTeamNeeds();
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching PTN team needs:", error);
+      res.status(500).json({ message: "Error fetching PTN team needs" });
+    }
+  });
+
+  // Get PTN production metrics
+  app.get("/api/ptn-production-metrics", simpleAuth, async (req, res) => {
+    try {
+      const data = await storage.getPTNProductionMetrics();
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching PTN production metrics:", error);
+      res.status(500).json({ message: "Error fetching PTN production metrics" });
+    }
+  });
+
   // Project Priorities API routes
   app.get("/api/project-priorities", simpleAuth, async (req, res) => {
     try {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Calendar, Users, FileText, Download, Edit, Trash2, Clock, MapPin, Settings, Copy, AlertTriangle, CheckCircle, ArrowUp, ExternalLink, BarChart, Building, Zap, RotateCcw, TrendingUp } from "lucide-react";
+import { Plus, Calendar, Users, FileText, Download, Edit, Trash2, Clock, MapPin, Settings, Copy, AlertTriangle, CheckCircle, ArrowUp, ExternalLink, BarChart, Building, Zap, RotateCcw, TrendingUp, Loader2, WifiOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -135,6 +135,20 @@ export default function Meetings() {
   // Fetch users
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
+  });
+
+  // Fetch PTN team needs data for Tier II dashboard
+  const { data: ptnTeamNeeds, isLoading: ptnTeamNeedsLoading } = useQuery({
+    queryKey: ['/api/ptn-team-needs'],
+    retry: false,
+    refetchInterval: 5 * 60 * 1000 // Refresh every 5 minutes
+  });
+
+  // Fetch PTN production metrics for Tier II dashboard
+  const { data: ptnMetrics, isLoading: ptnMetricsLoading } = useQuery({
+    queryKey: ['/api/ptn-production-metrics'],
+    retry: false,
+    refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
   });
 
   // Fetch all project tasks for real-time task display
@@ -551,56 +565,104 @@ export default function Meetings() {
             </div>
           </div>
 
-          {/* GEMBA Key Metrics */}
+          {/* GEMBA Key Metrics - Real PTN Data */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Production Efficiency</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">87.5%</div>
-                <p className="text-xs text-muted-foreground">
-                  +2.3% from last week
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Quality Rate</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">96.2%</div>
-                <p className="text-xs text-muted-foreground">
-                  +0.8% from last week
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">OEE Score</CardTitle>
-                <BarChart className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">84.1%</div>
-                <p className="text-xs text-muted-foreground">
-                  +1.5% from last week
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Workstations</CardTitle>
-                <Building className="h-4 w-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">24/28</div>
-                <p className="text-xs text-muted-foreground">
-                  4 stations in maintenance
-                </p>
-              </CardContent>
-            </Card>
+            {ptnMetricsLoading ? (
+              <div className="col-span-4 flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading production metrics...</span>
+              </div>
+            ) : ptnMetrics?.error ? (
+              <div className="col-span-4">
+                <Card className="border-yellow-200 bg-yellow-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center text-yellow-700">
+                      <WifiOff className="h-5 w-5 mr-2" />
+                      <div>
+                        <p className="font-medium">PTN Connection Issue</p>
+                        <p className="text-sm">{ptnMetrics.error}</p>
+                        <p className="text-xs mt-1">Showing last known data or defaults</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Production Efficiency</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {ptnMetrics?.productionEfficiency ? `${ptnMetrics.productionEfficiency}%` : 'N/A'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {ptnMetrics?.productionEfficiencyChange ? 
+                        `${ptnMetrics.productionEfficiencyChange > 0 ? '+' : ''}${ptnMetrics.productionEfficiencyChange}% from last week` :
+                        'Real-time PTN data'
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Quality Rate</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {ptnMetrics?.qualityRate ? `${ptnMetrics.qualityRate}%` : 'N/A'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {ptnMetrics?.qualityRateChange ? 
+                        `${ptnMetrics.qualityRateChange > 0 ? '+' : ''}${ptnMetrics.qualityRateChange}% from last week` :
+                        'Real-time PTN data'
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">OEE Score</CardTitle>
+                    <BarChart className="h-4 w-4 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {ptnMetrics?.oeeScore ? `${ptnMetrics.oeeScore}%` : 'N/A'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {ptnMetrics?.oeeScoreChange ? 
+                        `${ptnMetrics.oeeScoreChange > 0 ? '+' : ''}${ptnMetrics.oeeScoreChange}% from last week` :
+                        'Real-time PTN data'
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Workstations</CardTitle>
+                    <Building className="h-4 w-4 text-orange-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {ptnMetrics?.activeWorkstations && ptnMetrics?.totalWorkstations ? 
+                        `${ptnMetrics.activeWorkstations}/${ptnMetrics.totalWorkstations}` : 'N/A'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {ptnMetrics?.workstationsInMaintenance ? 
+                        `${ptnMetrics.workstationsInMaintenance} stations in maintenance` :
+                        'Real-time PTN data'
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
 
           {/* Production Status Cards */}
