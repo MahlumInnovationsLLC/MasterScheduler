@@ -67,19 +67,16 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         {/* Logo/Brand Area */}
         <div className="text-center mb-8">
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="inline-block w-16 h-16 mb-4"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="inline-block mb-4"
           >
-            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                className="w-8 h-8 bg-white rounded-full opacity-90"
-              />
+            <div className="text-primary font-bold text-4xl font-sans">
+              <span>TIER</span>
+              <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span>
+              <span className="text-lg align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
             </div>
           </motion.div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Manufacturing Hub</h2>
           <p className="text-gray-600 text-sm">Initializing your workspace</p>
         </div>
 
