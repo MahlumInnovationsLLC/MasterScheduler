@@ -994,6 +994,15 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+// Project Priorities Table
+export const projectPriorities = pgTable("project_priorities", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull().unique(),
+  priorityOrder: integer("priority_order").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // User Module Visibility Table
 export const userModuleVisibility = pgTable("user_module_visibility", {
   id: serial("id").primaryKey(),
@@ -1130,6 +1139,13 @@ export const insertRolePermissionSchema = createInsertSchema(rolePermissions).om
   updatedAt: true,
 });
 
+// Insert schema for project priorities
+export const insertProjectPrioritySchema = createInsertSchema(projectPriorities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Insert schema for user module visibility
 export const insertUserModuleVisibilitySchema = createInsertSchema(userModuleVisibility).omit({
   id: true,
@@ -1152,6 +1168,9 @@ export type InsertSalesDeal = z.infer<typeof insertSalesDealSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type ProjectPriority = typeof projectPriorities.$inferSelect;
+export type InsertProjectPriority = z.infer<typeof insertProjectPrioritySchema>;
 
 export type UserModuleVisibility = typeof userModuleVisibility.$inferSelect;
 export type InsertUserModuleVisibility = z.infer<typeof insertUserModuleVisibilitySchema>;
