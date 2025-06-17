@@ -34,10 +34,10 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) =>
   const startLoadingScreen = () => {
     console.log("🔄 LOADING CONTEXT: startLoadingScreen called, hasShownLoadingScreen:", hasShownLoadingScreen);
     
-    if (hasShownLoadingScreen) {
-      console.log("🔄 LOADING CONTEXT: Loading screen already shown, returning early");
-      return; // Don't show again if already shown
-    }
+    // Reset the flag so loading screen can show on each login
+    setHasShownLoadingScreen(false);
+    
+    console.log("🔄 LOADING CONTEXT: Reset hasShownLoadingScreen flag");
     
     console.log("🔄 LOADING CONTEXT: Setting loading state to true");
     setHasShownLoadingScreen(true);
