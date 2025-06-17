@@ -4,6 +4,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -127,7 +128,12 @@ const SortablePriorityItem = ({
         <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
           {/* Project Details */}
           <div className="md:col-span-2">
-            <div className="font-semibold text-gray-900">{priority.projectNumber}</div>
+            <Link 
+              href={`/project/${priority.projectId}`}
+              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+            >
+              {priority.projectNumber}
+            </Link>
             <div className="text-sm text-gray-600 truncate">{priority.projectName}</div>
             <Badge className={`text-xs mt-1 ${getStatusColor(priority.status)}`}>
               {priority.status}
