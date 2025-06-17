@@ -226,18 +226,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add API key authentication if provided
       if (apiKey) {
-        headers["Authorization"] = `Bearer ${apiKey}`;
         headers["X-API-Key"] = apiKey;
       }
       
-      // Try multiple potential endpoint paths
+      // Use correct PTN API endpoints from integration guide
       const endpoints = [
-        `${apiUrl}/api/team-needs`,
-        `${apiUrl}/team-needs`,
-        `${apiUrl}/api/teams`,
-        `${apiUrl}/teams`,
-        `${apiUrl}/api/v1/team-needs`,
-        `${apiUrl}/api/v1/teams`
+        `${apiUrl}/api/export/team-needs`,
+        `${apiUrl}/api/export/summary`,
+        `${apiUrl}/api/export/projects`
       ];
       
       let lastError = null;
