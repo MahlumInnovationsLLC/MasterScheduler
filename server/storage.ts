@@ -5054,6 +5054,23 @@ export class DatabaseStorage implements IStorage {
         .from(projects)
         .where(eq(projects.status, 'active'));
 
+      // Filter out FSW/Field and Sales Estimate projects
+      const filteredProjects = allProjects.filter(project => {
+        const projectName = project.name?.toLowerCase() || '';
+        const projectNumber = project.projectNumber?.toLowerCase() || '';
+        
+        // Exclude projects with FSW, Field, or Sales Estimate indicators
+        const isFSWProject = projectName.includes('fsw') || 
+                           projectName.includes('field') ||
+                           projectNumber.includes('fsw');
+                           
+        const isSalesEstimate = projectName.includes('sales est') ||
+                              projectName.includes('sales estimate') ||
+                              projectName.includes('// sales est');
+        
+        return !isFSWProject && !isSalesEstimate;
+      });
+
       // Get project priorities ordering
       const priorityOrders = await db
         .select()
@@ -5072,7 +5089,7 @@ export class DatabaseStorage implements IStorage {
       });
 
       // Sort projects by priority order, then by project number for unordered ones
-      const sortedProjects = allProjects.sort((a, b) => {
+      const sortedProjects = filteredProjects.sort((a, b) => {
         const aPriority = priorityMap.get(a.id) || 999999;
         const bPriority = priorityMap.get(b.id) || 999999;
         
