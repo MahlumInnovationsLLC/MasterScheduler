@@ -22,10 +22,16 @@ interface UserPriorityAccess {
 
 export default function PriorityVisibilityUserControl({ userId, user, isAdmin }: PriorityVisibilityUserControlProps) {
   const { toast } = useToast();
-  const [userAccess, setUserAccess] = useState<UserPriorityAccess>({
-    canViewPriorities: true,
-    canEditPriorities: false,
-    canDragReorder: false
+
+  // Fetch current priority access from database
+  const { data: userAccess, isLoading: accessLoading } = useQuery({
+    queryKey: ['/api/users', userId, 'priority-access'],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${userId}/priority-access`);
+      if (!response.ok) throw new Error('Failed to fetch priority access');
+      return response.json();
+    },
+    enabled: !!userId
   });
 
   // Update user priority access mutation
@@ -56,8 +62,6 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
   });
 
   const handleAccessChange = (accessType: keyof UserPriorityAccess, value: boolean) => {
-    const newAccess = { ...userAccess, [accessType]: value };
-    setUserAccess(newAccess);
     updateAccessMutation.mutate({ [accessType]: value });
   };
 
@@ -79,9 +83,9 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
             </div>
           </div>
           <Switch
-            checked={userAccess.canViewPriorities}
+            checked={userAccess?.canViewPriorities ?? true}
             onCheckedChange={(checked) => handleAccessChange('canViewPriorities', checked)}
-            disabled={updateAccessMutation.isPending}
+            disabled={updateAccessMutation.isPending || accessLoading}
             className="priority-switch"
           />
         </div>
@@ -95,9 +99,9 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
             </div>
           </div>
           <Switch
-            checked={userAccess.canEditPriorities}
+            checked={userAccess?.canEditPriorities ?? false}
             onCheckedChange={(checked) => handleAccessChange('canEditPriorities', checked)}
-            disabled={updateAccessMutation.isPending || !userAccess.canViewPriorities}
+            disabled={updateAccessMutation.isPending || accessLoading || !(userAccess?.canViewPriorities ?? true)}
             className="priority-switch"
           />
         </div>
@@ -111,9 +115,9 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
             </div>
           </div>
           <Switch
-            checked={userAccess.canDragReorder}
+            checked={userAccess?.canDragReorder ?? false}
             onCheckedChange={(checked) => handleAccessChange('canDragReorder', checked)}
-            disabled={updateAccessMutation.isPending || !userAccess.canViewPriorities}
+            disabled={updateAccessMutation.isPending || accessLoading || !(userAccess?.canViewPriorities ?? true)}
             className="priority-switch"
           />
         </div>

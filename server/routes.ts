@@ -4333,16 +4333,16 @@ Response format:
         INSERT INTO user_priority_access (user_id, can_view_priorities, can_edit_priorities, can_drag_reorder, updated_at)
         VALUES ($1, $2, $3, $4, NOW())
         ON CONFLICT (user_id) DO UPDATE SET
-          can_view_priorities = COALESCE($2, user_priority_access.can_view_priorities),
-          can_edit_priorities = COALESCE($3, user_priority_access.can_edit_priorities),
-          can_drag_reorder = COALESCE($4, user_priority_access.can_drag_reorder),
+          can_view_priorities = CASE WHEN $2 IS NOT NULL THEN $2 ELSE user_priority_access.can_view_priorities END,
+          can_edit_priorities = CASE WHEN $3 IS NOT NULL THEN $3 ELSE user_priority_access.can_edit_priorities END,
+          can_drag_reorder = CASE WHEN $4 IS NOT NULL THEN $4 ELSE user_priority_access.can_drag_reorder END,
           updated_at = NOW()
         RETURNING can_view_priorities, can_edit_priorities, can_drag_reorder
       `, [
         userId,
-        accessUpdate.canViewPriorities,
-        accessUpdate.canEditPriorities,
-        accessUpdate.canDragReorder
+        accessUpdate.canViewPriorities !== undefined ? accessUpdate.canViewPriorities : null,
+        accessUpdate.canEditPriorities !== undefined ? accessUpdate.canEditPriorities : null,
+        accessUpdate.canDragReorder !== undefined ? accessUpdate.canDragReorder : null
       ]);
       
       const updatedAccess = {
