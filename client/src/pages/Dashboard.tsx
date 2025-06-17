@@ -45,9 +45,11 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
 import ProductionMetricsCard from '@/components/ProductionMetricsCard';
+import { useLoading } from "@/context/LoadingContext";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
+  const { startLoadingScreen } = useLoading();
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
   const { toast } = useToast();
 

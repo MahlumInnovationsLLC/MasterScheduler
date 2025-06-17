@@ -15,8 +15,20 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
 }) => {
   const { isAuthenticated } = useAuth();
   
+  console.log("🖥️ LOADING SCREEN: Render check", {
+    isLoading,
+    stage,
+    isAuthenticated,
+    shouldShow: isLoading && stage !== 'complete' && isAuthenticated
+  });
+  
   // Only show loading screen for authenticated users and when actually loading
-  if (!isLoading || stage === 'complete' || !isAuthenticated) return null;
+  if (!isLoading || stage === 'complete' || !isAuthenticated) {
+    console.log("🖥️ LOADING SCREEN: Not showing - isLoading:", isLoading, "stage:", stage, "isAuthenticated:", isAuthenticated);
+    return null;
+  }
+  
+  console.log("🖥️ LOADING SCREEN: Showing loading screen!");
 
   const getStageMessage = () => {
     switch (stage) {
