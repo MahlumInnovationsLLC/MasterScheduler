@@ -151,6 +151,20 @@ export default function Meetings() {
     refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
   });
 
+  // Fetch PTN detailed teams data
+  const { data: ptnTeams, isLoading: ptnTeamsLoading } = useQuery({
+    queryKey: ['/api/ptn-teams'],
+    retry: false,
+    refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
+  });
+
+  // Fetch PTN enhanced summary with team analytics
+  const { data: ptnEnhancedSummary, isLoading: ptnEnhancedLoading } = useQuery({
+    queryKey: ['/api/ptn-enhanced-summary'],
+    retry: false,
+    refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
+  });
+
   // Fetch all project tasks for real-time task display
   const { data: allTasks = [] } = useQuery({
     queryKey: ['/api/tasks'],
@@ -708,42 +722,176 @@ export default function Meetings() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  Floor Alerts & Issues
+                  <Users className="h-5 w-5 text-green-600" />
+                  Fabrication Status
                 </CardTitle>
+                <CardDescription>
+                  Detailed team information and fabrication analytics
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {ptnTeamNeedsLoading ? (
+                {ptnTeamsLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading alerts...</span>
+                    <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading team details...</span>
                   </div>
-                ) : ptnTeamNeeds?.error ? (
+                ) : ptnTeams?.error ? (
                   <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                     <div className="flex items-center text-yellow-700">
                       <WifiOff className="h-4 w-4 mr-2" />
                       <div>
                         <p className="text-sm font-medium">PTN Connection Issue</p>
-                        <p className="text-xs">{ptnTeamNeeds.error}</p>
+                        <p className="text-xs">{ptnTeams.error}</p>
                       </div>
                     </div>
                   </div>
-                ) : ptnTeamNeeds?.pendingNeeds && ptnTeamNeeds.pendingNeeds.length > 0 ? (
-                  <div className="space-y-3">
-                    {ptnTeamNeeds.pendingNeeds.map((need: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-3 rounded-lg border bg-orange-50 border-orange-200">
-                        <div>
-                          <div className="font-medium text-orange-900">
-                            {need.title || need.type || 'Production Alert'}
+                ) : ptnTeams?.teams && ptnTeams.teams.length > 0 ? (
+                  <div className="space-y-4">
+                    {ptnTeams.teams.map((team: any, index: number) => (
+                      <div key={index} className="p-4 rounded-lg border bg-green-50 border-green-200">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="font-medium text-green-900">
+                              {team.name || `Team ${index + 1}`}
+                            </div>
+                            <div className="text-sm text-green-700">
+                              {team.building && team.bay ? `${team.building} - Bay ${team.bay}` : 'Production Floor'}
+                            </div>
+                            {team.shift && (
+                              <div className="text-xs text-green-600 mt-1">
+                                Shift: {team.shift}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-sm text-orange-700">
-                            {need.description || 'Pending team need requires attention'}
-                          </div>
+                          <Badge className="bg-green-100 text-green-800 text-xs">
+                            ACTIVE
+                          </Badge>
                         </div>
-                        <Badge className="bg-orange-100 text-orange-800 text-xs">
-                          PENDING
-                        </Badge>
+                        
+                        {/* Team Leads */}
+                        {(team.electricalLead || team.assemblyLead) && (
+                          <div className="mb-3">
+                            <div className="text-xs font-medium text-green-800 mb-1">Team Leads</div>
+                            <div className="flex gap-2 text-xs">
+                              {team.electricalLead && (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                                  Electrical: {team.electricalLead}
+                                </span>
+                              )}
+                              {team.assemblyLead && (
+                                <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">
+                                  Assembly: {team.assemblyLead}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Team Members */}
+                        {team.members && team.members.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-xs font-medium text-green-800 mb-1">
+                              Team Members ({team.members.length})
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {team.members.map((member: any, memberIndex: number) => (
+                                <span key={memberIndex} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                                  {member.name}
+                                  {member.certifications && member.certifications.length > 0 && (
+                                    <span className="ml-1 text-blue-600">
+                                      ({member.certifications.join(', ')})
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Team Analytics */}
+                        {team.analytics && (
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-green-200">
+                            {team.analytics.productivity && (
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-green-700">
+                                  {team.analytics.productivity}%
+                                </div>
+                                <div className="text-xs text-green-600">Productivity</div>
+                              </div>
+                            )}
+                            {team.analytics.quality && (
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-green-700">
+                                  {team.analytics.quality}%
+                                </div>
+                                <div className="text-xs text-green-600">Quality</div>
+                              </div>
+                            )}
+                            {team.analytics.efficiency && (
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-green-700">
+                                  {team.analytics.efficiency}%
+                                </div>
+                                <div className="text-xs text-green-600">Efficiency</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center text-green-700">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      <p className="text-sm">No team data available</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Floor Alerts Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
+                Floor Alerts & Issues
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {ptnTeamNeedsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading alerts...</span>
+                </div>
+              ) : ptnTeamNeeds?.error ? (
+                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <div className="flex items-center text-yellow-700">
+                    <WifiOff className="h-4 w-4 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium">PTN Connection Issue</p>
+                      <p className="text-xs">{ptnTeamNeeds.error}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : ptnTeamNeeds?.pendingNeeds && ptnTeamNeeds.pendingNeeds.length > 0 ? (
+                <div className="space-y-3">
+                  {ptnTeamNeeds.pendingNeeds.map((need: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center p-3 rounded-lg border bg-orange-50 border-orange-200">
+                      <div>
+                        <div className="font-medium text-orange-900">
+                          {need.title || need.type || 'Production Alert'}
+                        </div>
+                        <div className="text-sm text-orange-700">
+                          {need.description || 'Pending team need requires attention'}
+                        </div>
+                      </div>
+                      <Badge className="bg-orange-100 text-orange-800 text-xs">
+                        PENDING
+                      </Badge>
+                    </div>
                     ))}
                   </div>
                 ) : (
@@ -1851,6 +1999,8 @@ export default function Meetings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
