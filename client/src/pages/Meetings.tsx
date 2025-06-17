@@ -23,6 +23,7 @@ interface Project {
   shipDate?: string;
   deliveryDate?: string;
   status: string;
+  location?: string;
   notes?: string;
 }
 
@@ -103,6 +104,9 @@ export default function Meetings() {
     assignedToUserId: "",
     department: ""
   });
+
+  // State for Tier III location filter
+  const [tierIIILocationFilter, setTierIIILocationFilter] = useState<string>("all");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -298,15 +302,17 @@ export default function Meetings() {
     return 'low';
   };
 
-  // Filter projects for Tier III (top 20 ready to ship, earliest first)
+  // Filter projects for Tier III (top 20 ready to ship, earliest first) with location filter
   const tierIIIProjects = (projects as Project[])
     .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
+    .filter((p: Project) => tierIIILocationFilter === "all" || p.location === tierIIILocationFilter)
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
     .slice(0, 20);
 
-  // Get next 20 ready to ship projects for Tier III
+  // Get next 20 ready to ship projects for Tier III with location filter
   const nextTierIIIProjects = (projects as Project[])
     .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
+    .filter((p: Project) => tierIIILocationFilter === "all" || p.location === tierIIILocationFilter)
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
     .slice(20, 40);
 
@@ -1025,10 +1031,24 @@ export default function Meetings() {
                 Top 20 projects ready to ship, sorted by earliest ship date first
               </p>
             </div>
-            <Button onClick={() => setShowConcernDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Concern
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* Location Filter Dropdown */}
+              <Select value={tierIIILocationFilter} onValueChange={setTierIIILocationFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="LIBBY">LIBBY</SelectItem>
+                  <SelectItem value="CFALLS">CFALLS</SelectItem>
+                  <SelectItem value="FSW">FSW</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={() => setShowConcernDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Concern
+              </Button>
+            </div>
           </div>
 
           {/* Tier III Statistics */}
