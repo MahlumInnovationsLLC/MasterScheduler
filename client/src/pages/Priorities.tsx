@@ -248,16 +248,21 @@ export default function Priorities() {
   // Update priority order after drag and drop
   const updatePriorityOrderMutation = useMutation({
     mutationFn: async (priorities: ProjectPriority[]) => {
+      console.log('🔄 Sending priority update for', priorities.length, 'projects');
       const response = await apiRequest('POST', '/api/project-priorities/update-order', { priorities });
       return response.json();
     },
     onSuccess: () => {
+      console.log('✅ Priority order update successful, refetching data');
+      // Refetch the priorities to ensure we have the latest data
+      refetch();
       toast({
         title: 'Success',
         description: 'Priority order updated successfully.',
       });
     },
     onError: (error: any) => {
+      console.error('❌ Priority update failed:', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to update priority order',
@@ -289,14 +294,17 @@ export default function Priorities() {
   });
 
   // Load existing priorities
-  const { data: existingPriorities, isLoading } = useQuery({
+  const { data: existingPriorities, isLoading, refetch } = useQuery({
     queryKey: ['/api/project-priorities'],
     queryFn: async () => {
       try {
         const response = await fetch('/api/project-priorities', { credentials: 'include' });
         if (!response.ok) return [];
-        return response.json();
-      } catch {
+        const data = await response.json();
+        console.log('📊 Fetched project priorities:', data.length, 'projects');
+        return data;
+      } catch (error) {
+        console.error('Error fetching priorities:', error);
         return [];
       }
     },
@@ -304,6 +312,7 @@ export default function Priorities() {
 
   useEffect(() => {
     if (existingPriorities && Array.isArray(existingPriorities)) {
+      console.log('📊 Setting project priorities state:', existingPriorities.length, 'projects');
       setProjectPriorities(existingPriorities);
     }
   }, [existingPriorities]);

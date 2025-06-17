@@ -2773,6 +2773,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get project priorities
+  app.get("/api/project-priorities", async (req, res) => {
+    try {
+      const priorities = await storage.getProjectPriorities();
+      res.json(priorities);
+    } catch (error) {
+      console.error("Error fetching project priorities:", error);
+      res.status(500).json({ message: "Error fetching project priorities" });
+    }
+  });
+
   // Update project priorities order after drag and drop
   app.post("/api/project-priorities/update-order", requireEditor, async (req, res) => {
     try {
@@ -2787,7 +2798,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update each project's priority order in the database
       for (let i = 0; i < priorities.length; i++) {
         const priority = priorities[i];
-        await storage.updateProjectPriorityOrder(priority.projectId, i + 1);
+        if (priority.projectId) {
+          await storage.updateProjectPriorityOrder(priority.projectId, i + 1);
+          console.log(`✅ Updated project ${priority.projectId} to priority ${i + 1}`);
+        }
       }
       
       console.log('✅ Priority order updated successfully');
