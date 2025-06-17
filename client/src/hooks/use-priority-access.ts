@@ -26,7 +26,7 @@ export const usePriorityAccess = () => {
   });
 
   return {
-    canViewPriorities: priorityAccess?.canViewPriorities ?? true, // Default to true for admins
+    canViewPriorities: priorityAccess?.canViewPriorities ?? false, // Default to false - requires explicit permission
     canEditPriorities: priorityAccess?.canEditPriorities ?? false,
     canDragReorder: priorityAccess?.canDragReorder ?? false,
     isLoading
