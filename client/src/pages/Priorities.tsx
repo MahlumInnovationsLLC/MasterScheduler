@@ -104,6 +104,8 @@ const SortablePriorityItem = ({
   const paidMilestones = priority.billingMilestones.filter(m => m.isPaid);
   const paidValue = paidMilestones.reduce((sum, milestone) => sum + milestone.amount, 0);
 
+  const dpasHighlight = priority.dpasRating ? 'ring-4 ring-yellow-400 ring-offset-2' : '';
+
   return (
     <div
       ref={(el) => {
@@ -111,7 +113,7 @@ const SortablePriorityItem = ({
         priorityRef(el);
       }}
       style={style}
-      className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow mb-2"
+      className={`bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow mb-2 ${dpasHighlight}`}
     >
       <div className="flex items-center p-4">
         {/* Drag Handle */}
@@ -129,7 +131,7 @@ const SortablePriorityItem = ({
         </div>
 
         {/* Project Info */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
           {/* Project Details */}
           <div className="md:col-span-2">
             <Link 
@@ -347,7 +349,7 @@ export default function Priorities() {
         const newIndex = items.findIndex((item) => item.id === over.id);
 
         const newItems = arrayMove(items, oldIndex, newIndex);
-        
+
         // Update priority order
         const updatedItems = newItems.map((item, index) => ({
           ...item,
@@ -509,11 +511,11 @@ export default function Priorities() {
               <div className="hidden md:flex items-center p-4 bg-gray-50 rounded-lg mb-4 text-sm font-medium text-gray-700">
                 <div className="w-8"></div> {/* Drag handle space */}
                 <div className="w-8 mr-4">Rank</div>
-                <div className="flex-1 grid grid-cols-7 gap-4">
+                <div className="flex-1 grid grid-cols-6 gap-4">
                   <div className="col-span-2">Project Details</div>
                   <div className="text-center">Ship Date</div>
                   <div className="text-center">Total Value</div>
-                  <div className="text-center">Billing Progress</div>
+                  <div className="text-center">DPAS Rating</div>
                   <div className="text-center">Milestones</div>
                   <div className="text-center">Completion</div>
                 </div>
