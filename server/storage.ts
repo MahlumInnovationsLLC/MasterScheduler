@@ -5058,11 +5058,14 @@ export class DatabaseStorage implements IStorage {
       const filteredProjects = allProjects.filter(project => {
         const projectName = project.name?.toLowerCase() || '';
         const projectNumber = project.projectNumber?.toLowerCase() || '';
+        const projectLocation = project.location?.toLowerCase() || '';
         
         // Exclude projects with FSW, Field, or Sales Estimate indicators
         const isFSWProject = projectName.includes('fsw') || 
                            projectName.includes('field') ||
-                           projectNumber.includes('fsw');
+                           projectNumber.includes('fsw') ||
+                           projectLocation.includes('fsw') ||
+                           projectLocation.includes('field');
                            
         const isSalesEstimate = projectName.includes('sales est') ||
                               projectName.includes('sales estimate') ||
