@@ -1610,7 +1610,7 @@ export default function Meetings() {
           {/* Critical Projects - Larger cards for MAJOR and MINOR issues */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Critical Projects ({tierIVProjects.length})</h3>
-            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1">
               {tierIVProjects.map((project: Project) => (
                 <Card key={project.id} className="w-full border-l-4 border-l-red-500">
                   <CardHeader>
