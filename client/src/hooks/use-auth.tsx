@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -7,6 +7,7 @@ import {
 import { User as SelectUser, InsertUser } from "@shared/schema";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLoading } from "@/context/LoadingContext";
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -24,6 +25,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const { setStage, setLoading } = useLoading();
+  
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/user"],
     queryFn: async () => {

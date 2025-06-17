@@ -1,11 +1,13 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
+import { useLoading } from "@/context/LoadingContext";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { LoadingProvider } from "@/components/LoadingManager";
+import { LoadingProvider } from "@/context/LoadingContext";
+import LoadingScreen from "@/components/LoadingScreen";
 import { PermissionsProvider } from "@/components/PermissionsManager";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
@@ -95,29 +97,33 @@ class ErrorBoundary extends React.Component<
 
 function Router() {
   const [location] = useLocation();
+  const { isLoading, stage } = useLoading();
 
   return (
-    <Switch>
-      <Route path="/auth">
-        <div className="auth-routes">
-          <ErrorBoundary>
-            <AuthPage />
-          </ErrorBoundary>
-        </div>
-      </Route>
-      <Route path="/reset-password">
-        <div className="auth-routes">
-          <ErrorBoundary>
-            <ResetPasswordPage />
-          </ErrorBoundary>
-        </div>
-      </Route>
-      <Route>
-        <SidebarProvider>
-          <MainContent />
-        </SidebarProvider>
-      </Route>
-    </Switch>
+    <>
+      <LoadingScreen isLoading={isLoading} stage={stage} />
+      <Switch>
+        <Route path="/auth">
+          <div className="auth-routes">
+            <ErrorBoundary>
+              <AuthPage />
+            </ErrorBoundary>
+          </div>
+        </Route>
+        <Route path="/reset-password">
+          <div className="auth-routes">
+            <ErrorBoundary>
+              <ResetPasswordPage />
+            </ErrorBoundary>
+          </div>
+        </Route>
+        <Route>
+          <SidebarProvider>
+            <MainContent />
+          </SidebarProvider>
+        </Route>
+      </Switch>
+    </>
   );
 }
 
