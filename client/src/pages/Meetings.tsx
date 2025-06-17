@@ -564,19 +564,20 @@ export default function Meetings() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Meetings Dashboard</h1>
-          <p className="text-muted-foreground">
-            Meeting management, Tier III project readiness, and Tier IV critical issues
-          </p>
+    <>
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Meetings Dashboard</h1>
+            <p className="text-muted-foreground">
+              Meeting management, Tier III project readiness, and Tier IV critical issues
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Main Content - Removing Tabs Structure to Fix JSX Error */}
-      <div className="w-full space-y-6">
+        {/* Main Content - Removing Tabs Structure to Fix JSX Error */}
+        <div className="w-full space-y-6">
 
         {/* Tier II (GEMBA) Dashboard Content */}
         <div className="space-y-6">
@@ -1266,6 +1267,7 @@ export default function Meetings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 }
