@@ -100,7 +100,7 @@ function Router() {
   const { isLoading, stage } = useLoading();
   
   // Only show loading screen on authenticated pages, not on auth/login pages
-  const isAuthPage = location.startsWith('/auth') || location.startsWith('/reset-password') || location.startsWith('/forgot-password') || location === '/';
+  const isAuthPage = location.startsWith('/auth') || location.startsWith('/reset-password') || location.startsWith('/forgot-password');
 
   return (
     <>
