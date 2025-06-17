@@ -675,36 +675,90 @@ export default function Meetings() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div>
-                      <div className="font-medium text-green-900">Bay 1 - Fabrication</div>
-                      <div className="text-sm text-green-700">Project 805344 - 78% Complete</div>
-                    </div>
-                    <Badge className="bg-green-100 text-green-800">RUNNING</Badge>
+                {ptnTeamNeedsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading team status...</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div>
-                      <div className="font-medium text-blue-900">Bay 2 - Assembly</div>
-                      <div className="text-sm text-blue-700">Project 805298 - 45% Complete</div>
+                ) : ptnTeamNeeds?.error ? (
+                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="flex items-center text-yellow-700">
+                      <WifiOff className="h-4 w-4 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium">PTN Connection Issue</p>
+                        <p className="text-xs">{ptnTeamNeeds.error}</p>
+                      </div>
                     </div>
-                    <Badge className="bg-blue-100 text-blue-800">RUNNING</Badge>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div>
-                      <div className="font-medium text-yellow-900">Bay 3 - Welding</div>
-                      <div className="text-sm text-yellow-700">Setup in progress</div>
+                ) : ptnTeamNeeds?.teams && ptnTeamNeeds.teams.length > 0 ? (
+                  <div className="space-y-3">
+                    {ptnTeamNeeds.teams.map((team: any, index: number) => {
+                      const getStatusStyle = (status: string) => {
+                        switch (status?.toLowerCase()) {
+                          case 'fulfilled':
+                          case 'active':
+                          case 'running':
+                            return {
+                              container: 'bg-green-50 border-green-200',
+                              text: 'text-green-900',
+                              subtext: 'text-green-700',
+                              badge: 'bg-green-100 text-green-800'
+                            };
+                          case 'in_progress':
+                          case 'in progress':
+                            return {
+                              container: 'bg-blue-50 border-blue-200',
+                              text: 'text-blue-900',
+                              subtext: 'text-blue-700',
+                              badge: 'bg-blue-100 text-blue-800'
+                            };
+                          case 'pending':
+                          case 'setup':
+                            return {
+                              container: 'bg-yellow-50 border-yellow-200',
+                              text: 'text-yellow-900',
+                              subtext: 'text-yellow-700',
+                              badge: 'bg-yellow-100 text-yellow-800'
+                            };
+                          default:
+                            return {
+                              container: 'bg-red-50 border-red-200',
+                              text: 'text-red-900',
+                              subtext: 'text-red-700',
+                              badge: 'bg-red-100 text-red-800'
+                            };
+                        }
+                      };
+
+                      const styles = getStatusStyle(team.status);
+                      
+                      return (
+                        <div key={index} className={`flex justify-between items-center p-3 rounded-lg border ${styles.container}`}>
+                          <div>
+                            <div className={`font-medium ${styles.text}`}>
+                              {team.teamName || team.name || `Team ${index + 1}`}
+                            </div>
+                            <div className={`text-sm ${styles.subtext}`}>
+                              {team.currentProject ? `Project ${team.currentProject}` : 
+                               team.description || 'Production team'}
+                              {team.progress && ` - ${team.progress}% Complete`}
+                            </div>
+                          </div>
+                          <Badge className={`${styles.badge} text-xs`}>
+                            {team.status?.toUpperCase() || 'ACTIVE'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center text-gray-600">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      <p className="text-sm">No production team data available from PTN</p>
                     </div>
-                    <Badge className="bg-yellow-100 text-yellow-800">SETUP</Badge>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
-                    <div>
-                      <div className="font-medium text-red-900">Bay 4 - Painting</div>
-                      <div className="text-sm text-red-700">Equipment maintenance</div>
-                    </div>
-                    <Badge className="bg-red-100 text-red-800">DOWN</Badge>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
             
@@ -716,29 +770,119 @@ export default function Meetings() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
-                    <div>
-                      <div className="font-medium text-red-900">Material Shortage</div>
-                      <div className="text-sm text-red-700">Steel plates for Project 805344</div>
-                    </div>
-                    <Badge variant="destructive" className="text-xs">HIGH</Badge>
+                {ptnTeamNeedsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading alerts...</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div>
-                      <div className="font-medium text-yellow-900">Quality Check Pending</div>
-                      <div className="text-sm text-yellow-700">Bay 2 - Awaiting QC approval</div>
+                ) : ptnTeamNeeds?.error ? (
+                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="flex items-center text-yellow-700">
+                      <WifiOff className="h-4 w-4 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium">PTN Connection Issue</p>
+                        <p className="text-xs">{ptnTeamNeeds.error}</p>
+                      </div>
                     </div>
-                    <Badge className="bg-yellow-100 text-yellow-800 text-xs">MEDIUM</Badge>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
-                    <div>
-                      <div className="font-medium text-orange-900">Tool Calibration Due</div>
-                      <div className="text-sm text-orange-700">CNC Machine #3 - Tomorrow</div>
+                ) : ptnTeamNeeds?.pendingNeeds && ptnTeamNeeds.pendingNeeds.length > 0 ? (
+                  <div className="space-y-3">
+                    {ptnTeamNeeds.pendingNeeds.map((need: any, index: number) => {
+                      const getPriorityStyle = (priority: string) => {
+                        switch (priority?.toLowerCase()) {
+                          case 'high':
+                          case 'urgent':
+                          case 'critical':
+                            return {
+                              container: 'bg-red-50 border-red-200',
+                              text: 'text-red-900',
+                              subtext: 'text-red-700',
+                              badge: 'destructive'
+                            };
+                          case 'medium':
+                          case 'normal':
+                            return {
+                              container: 'bg-yellow-50 border-yellow-200',
+                              text: 'text-yellow-900',
+                              subtext: 'text-yellow-700',
+                              badge: 'bg-yellow-100 text-yellow-800'
+                            };
+                          case 'low':
+                            return {
+                              container: 'bg-orange-50 border-orange-200',
+                              text: 'text-orange-900',
+                              subtext: 'text-orange-700',
+                              badge: 'bg-orange-100 text-orange-800'
+                            };
+                          default:
+                            return {
+                              container: 'bg-gray-50 border-gray-200',
+                              text: 'text-gray-900',
+                              subtext: 'text-gray-700',
+                              badge: 'bg-gray-100 text-gray-800'
+                            };
+                        }
+                      };
+
+                      const styles = getPriorityStyle(need.priority);
+                      
+                      return (
+                        <div key={index} className={`flex justify-between items-center p-3 rounded-lg border ${styles.container}`}>
+                          <div>
+                            <div className={`font-medium ${styles.text}`}>
+                              {need.title || need.type || need.category || 'Production Need'}
+                            </div>
+                            <div className={`text-sm ${styles.subtext}`}>
+                              {need.description || need.details || 
+                               (need.teamName ? `${need.teamName} - ${need.requestType || 'Resource needed'}` : 'Team resource requirement')}
+                            </div>
+                          </div>
+                          <Badge 
+                            variant={styles.badge === 'destructive' ? 'destructive' : 'default'} 
+                            className={`text-xs ${styles.badge !== 'destructive' ? styles.badge : ''}`}
+                          >
+                            {need.priority?.toUpperCase() || 'PENDING'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : ptnTeamNeeds?.teams ? (
+                  // Show pending status from teams if no specific pendingNeeds array
+                  <div className="space-y-3">
+                    {ptnTeamNeeds.teams
+                      .filter((team: any) => team.status === 'pending' || team.needsAttention)
+                      .slice(0, 3)
+                      .map((team: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                          <div>
+                            <div className="font-medium text-yellow-900">
+                              {team.issueType || 'Team Attention Required'}
+                            </div>
+                            <div className="text-sm text-yellow-700">
+                              {team.teamName || team.name} - {team.description || 'Needs attention'}
+                            </div>
+                          </div>
+                          <Badge className="bg-yellow-100 text-yellow-800 text-xs">PENDING</Badge>
+                        </div>
+                      ))}
+                    {ptnTeamNeeds.teams.filter((team: any) => team.status === 'pending' || team.needsAttention).length === 0 && (
+                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center text-green-700">
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          <p className="text-sm">No active alerts - All teams operating normally</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center text-gray-600">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      <p className="text-sm">No alert data available from PTN</p>
                     </div>
-                    <Badge className="bg-orange-100 text-orange-800 text-xs">LOW</Badge>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
