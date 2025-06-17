@@ -263,14 +263,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <AuthProvider>
-            <PermissionsProvider>
-              <LoadingProvider>
+          <LoadingProvider>
+            <AuthProvider>
+              <PermissionsProvider>
                 <Toaster />
                 <Router />
-              </LoadingProvider>
-            </PermissionsProvider>
-          </AuthProvider>
+              </PermissionsProvider>
+            </AuthProvider>
+          </LoadingProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

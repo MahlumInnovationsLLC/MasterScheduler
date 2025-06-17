@@ -186,6 +186,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = !!user;
 
+  // Manage loading stages based on authentication and data loading states
+  useEffect(() => {
+    if (isLoading) {
+      setStage('authentication');
+    } else if (isAuthenticated) {
+      // Simulate Priorities Module access check
+      setStage('priorities');
+      
+      // Simulate data loading phase
+      setTimeout(() => {
+        setStage('data');
+        
+        // Complete loading after data is loaded
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
+      }, 800);
+    } else {
+      // User not authenticated, hide loading screen
+      setLoading(false);
+    }
+  }, [isLoading, isAuthenticated, setStage, setLoading]);
+
   return (
     <AuthContext.Provider
       value={{
