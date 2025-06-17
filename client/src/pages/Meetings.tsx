@@ -808,8 +808,7 @@ export default function Meetings() {
                                 </span>
                               )}
                             </div>
-                          </div>
-                        )}
+                          </div>                        )}
 
                         {/* Team Members */}
                         {team.members && team.members.length > 0 && (
@@ -947,6 +946,17 @@ export default function Meetings() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* PTN Integration Panel */}
+      <Card>
+            <CardHeader>
+              <CardTitle>PTN Integration Panel</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Add PTN integration content here */}
+              <p>This is where PTN integration content will go.</p>
+            </CardContent>
+          </Card>
 
       {/* Dialog Components */}
       <CreateMeetingDialog 
