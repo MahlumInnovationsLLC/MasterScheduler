@@ -1065,7 +1065,7 @@ export default function Meetings() {
           </div>
 
           {/* Top 20 Ready to Ship Projects */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1">
             {tierIIIProjects.map((project: Project) => (
               <Card key={project.id} className="w-full border-l-4 border-l-green-500">
                 <CardHeader>
