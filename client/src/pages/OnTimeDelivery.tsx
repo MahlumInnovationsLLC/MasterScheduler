@@ -405,6 +405,13 @@ const OnTimeDeliveryPage: React.FC = () => {
     gcTime: 0,
   });
 
+  // Fetch all projects for predictive analysis
+  const { data: allProjects, isLoading: isLoadingAllProjects } = useQuery({
+    queryKey: ["/api/projects"],
+    staleTime: 0,
+    gcTime: 0,
+  });
+
   // Helper functions
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return "N/A";
@@ -819,6 +826,117 @@ const OnTimeDeliveryPage: React.FC = () => {
     return processedData;
   };
 
+  // Predictive OTD Analysis
+  const preparePredictiveAnalysis = useMemo(() => {
+    if (!allProjects) return {
+      summary: { totalProjects: 0, onTrackCount: 0, atRiskCount: 0, onTrackPercentage: 0 },
+      riskData: [],
+      monthlyPredictions: [],
+      daysLateDistribution: []
+    };
+
+    // Filter out delivered projects and projects without contract or delivery dates
+    const nonDeliveredProjects = allProjects.filter((project: any) => 
+      project.status !== 'delivered' && 
+      project.contractDate && 
+      project.deliveryDate
+    );
+
+    let onTrackCount = 0;
+    let atRiskCount = 0;
+    const riskBreakdown = {
+      onTrack: 0,
+      slight: 0,    // 1-7 days late
+      moderate: 0,  // 8-30 days late  
+      severe: 0     // 30+ days late
+    };
+
+    const monthlyData = new Map();
+    
+    nonDeliveredProjects.forEach((project: any) => {
+      const contractDate = new Date(project.contractDate);
+      const scheduledDelivery = new Date(project.deliveryDate);
+      
+      // Calculate predicted days late/early
+      const daysDifference = Math.ceil((scheduledDelivery.getTime() - contractDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Categorize risk level
+      if (daysDifference <= 0) {
+        onTrackCount++;
+        riskBreakdown.onTrack++;
+      } else {
+        atRiskCount++;
+        if (daysDifference <= 7) {
+          riskBreakdown.slight++;
+        } else if (daysDifference <= 30) {
+          riskBreakdown.moderate++;
+        } else {
+          riskBreakdown.severe++;
+        }
+      }
+
+      // Group by scheduled delivery month for trends
+      const monthKey = format(scheduledDelivery, 'yyyy-MM');
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, {
+          month: format(scheduledDelivery, 'MMM yyyy'),
+          total: 0,
+          onTrack: 0,
+          atRisk: 0,
+          avgDaysLate: 0,
+          totalDaysLate: 0
+        });
+      }
+      
+      const monthStats = monthlyData.get(monthKey);
+      monthStats.total++;
+      if (daysDifference <= 0) {
+        monthStats.onTrack++;
+      } else {
+        monthStats.atRisk++;
+        monthStats.totalDaysLate += daysDifference;
+      }
+    });
+
+    // Calculate averages and percentages for monthly data
+    const monthlyPredictions = Array.from(monthlyData.values())
+      .map(month => ({
+        ...month,
+        onTrackPercentage: month.total > 0 ? Math.round((month.onTrack / month.total) * 100) : 0,
+        avgDaysLate: month.atRisk > 0 ? Math.round((month.totalDaysLate / month.atRisk) * 10) / 10 : 0
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    const riskData = [
+      { name: 'On Track', value: riskBreakdown.onTrack, color: '#22c55e', description: 'On time or early' },
+      { name: 'Slight Risk', value: riskBreakdown.slight, color: '#facc15', description: '1-7 days late' },
+      { name: 'Moderate Risk', value: riskBreakdown.moderate, color: '#f97316', description: '8-30 days late' },
+      { name: 'Severe Risk', value: riskBreakdown.severe, color: '#ef4444', description: '30+ days late' }
+    ].filter(item => item.value > 0);
+
+    const daysLateDistribution = [
+      { category: 'On Track', count: riskBreakdown.onTrack, color: '#22c55e', range: '0 or fewer days' },
+      { category: '1-7 Days Late', count: riskBreakdown.slight, color: '#facc15', range: '1-7 days' },
+      { category: '8-30 Days Late', count: riskBreakdown.moderate, color: '#f97316', range: '8-30 days' },
+      { category: '30+ Days Late', count: riskBreakdown.severe, color: '#ef4444', range: '30+ days' }
+    ];
+
+    const totalProjects = nonDeliveredProjects.length;
+    const onTrackPercentage = totalProjects > 0 ? Math.round((onTrackCount / totalProjects) * 100) : 0;
+
+    return {
+      summary: {
+        totalProjects,
+        onTrackCount,
+        atRiskCount,
+        onTrackPercentage
+      },
+      riskData,
+      monthlyPredictions,
+      daysLateDistribution
+    };
+  }, [allProjects]);
+
   if (isLoadingAnalytics || isLoadingProjects) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -884,10 +1002,11 @@ const OnTimeDeliveryPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
+          <TabsTrigger value="predictive">Predictive OTD</TabsTrigger>
           <TabsTrigger value="projects">Projects List</TabsTrigger>
           <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
         </TabsList>
@@ -1271,6 +1390,227 @@ const OnTimeDeliveryPage: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Predictive OTD Tab */}
+        <TabsContent value="predictive" className="space-y-6">
+          {/* Key Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{preparePredictiveAnalysis.summary.totalProjects}</div>
+                <p className="text-xs text-muted-foreground">Non-delivered projects</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">On Track Rate</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{preparePredictiveAnalysis.summary.onTrackPercentage}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {preparePredictiveAnalysis.summary.onTrackCount} of {preparePredictiveAnalysis.summary.totalProjects} projects
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">On Track</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{preparePredictiveAnalysis.summary.onTrackCount}</div>
+                <p className="text-xs text-muted-foreground">On time or early</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">At Risk</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{preparePredictiveAnalysis.summary.atRiskCount}</div>
+                <p className="text-xs text-muted-foreground">Predicted late</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Risk Distribution Pie Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Predicted Delivery Risk Distribution</CardTitle>
+                <CardDescription>Based on contract vs scheduled delivery dates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={preparePredictiveAnalysis.riskData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      dataKey="value"
+                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                    >
+                      {preparePredictiveAnalysis.riskData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Days Late Distribution Bar Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Predicted Days Late Distribution</CardTitle>
+                <CardDescription>Risk categorization for non-delivered projects</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={preparePredictiveAnalysis.daysLateDistribution}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="category" 
+                      tick={{ fontSize: 12 }}
+                      interval={0}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name, props) => [
+                        `${value} projects`,
+                        props.payload.range
+                      ]}
+                    />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {preparePredictiveAnalysis.daysLateDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Monthly Predictions Trend */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Predictive Delivery Performance</CardTitle>
+              <CardDescription>Predicted on-time delivery rate by scheduled delivery month</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <ComposedChart data={preparePredictiveAnalysis.monthlyPredictions}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fontSize: 12 }}
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="onTrack" name="On Track" fill="#22c55e" />
+                  <Bar yAxisId="left" dataKey="atRisk" name="At Risk" fill="#ef4444" />
+                  <Line yAxisId="right" type="monotone" dataKey="onTrackPercentage" stroke="#3b82f6" strokeWidth={3} name="On Track %" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Projects Table with Predictions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Delivery Predictions</CardTitle>
+              <CardDescription>
+                Non-delivered projects with predicted delivery performance based on contract vs scheduled delivery dates
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Contract Date</TableHead>
+                      <TableHead>Scheduled Delivery</TableHead>
+                      <TableHead>Predicted Performance</TableHead>
+                      <TableHead>Risk Level</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allProjects && allProjects
+                      .filter((project: any) => 
+                        project.status !== 'delivered' && 
+                        project.contractDate && 
+                        project.deliveryDate
+                      )
+                      .map((project: any) => {
+                        const contractDate = new Date(project.contractDate);
+                        const scheduledDelivery = new Date(project.deliveryDate);
+                        const daysDifference = Math.ceil((scheduledDelivery.getTime() - contractDate.getTime()) / (1000 * 60 * 60 * 24));
+                        
+                        const getRiskBadge = (days: number) => {
+                          if (days <= 0) return <Badge className="bg-green-500 hover:bg-green-600 text-white">On Track</Badge>;
+                          if (days <= 7) return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Slight Risk</Badge>;
+                          if (days <= 30) return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">Moderate Risk</Badge>;
+                          return <Badge variant="destructive">Severe Risk</Badge>;
+                        };
+
+                        const getPerformanceBadge = (days: number) => {
+                          if (days <= 0) return <Badge className="bg-green-500 hover:bg-green-600 text-white">{Math.abs(days)} days early</Badge>;
+                          return <Badge variant="destructive">{days} days late</Badge>;
+                        };
+
+                        return (
+                          <TableRow key={project.id}>
+                            <TableCell className="font-medium">
+                              <div>
+                                <div className="font-medium">{project.projectNumber}</div>
+                                <div className="text-sm text-muted-foreground truncate max-w-48">
+                                  {project.name}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{formatDate(project.contractDate)}</TableCell>
+                            <TableCell>{formatDate(project.deliveryDate)}</TableCell>
+                            <TableCell>{getPerformanceBadge(daysDifference)}</TableCell>
+                            <TableCell>{getRiskBadge(daysDifference)}</TableCell>
+                            <TableCell>
+                              <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                                {project.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Projects List Tab */}
