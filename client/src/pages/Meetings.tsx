@@ -575,16 +575,11 @@ export default function Meetings() {
         </div>
       </div>
 
-      {/* Main Tabs */}
-      <Tabs defaultValue="tier-ii" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="tier-ii">Tier II (GEMBA)</TabsTrigger>
-          <TabsTrigger value="tier-iii">Tier III</TabsTrigger>
-          <TabsTrigger value="tier-iv">Tier IV</TabsTrigger>
-        </TabsList>
+      {/* Main Content - Removing Tabs Structure to Fix JSX Error */}
+      <div className="w-full space-y-6">
 
-        {/* Tier II (GEMBA) Tab Content */}
-        <TabsContent value="tier-ii" className="space-y-6">
+        {/* Tier II (GEMBA) Dashboard Content */}
+        <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl font-semibold">Tier II (GEMBA) Dashboard</h2>
@@ -929,37 +924,25 @@ export default function Meetings() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </div>
 
-        {/* Tier III Tab Content */}
-        <TabsContent value="tier-iii" className="space-y-6">
+        {/* Tier III Content */}
+        <div className="space-y-6">
           <div className="text-center py-12">
             <h3 className="text-lg font-semibold text-muted-foreground">Tier III Content</h3>
             <p className="text-sm text-muted-foreground mt-2">Project readiness and escalation management</p>
           </div>
-        </TabsContent>
+        </div>
 
-        {/* Tier IV Tab Content */}
-        <TabsContent value="tier-iv" className="space-y-6">
+        {/* Tier IV Content */}
+        <div className="space-y-6">
           <div className="text-center py-12">
             <h3 className="text-lg font-semibold text-muted-foreground">Tier IV Content</h3>
             <p className="text-sm text-muted-foreground mt-2">Critical issues and executive oversight</p>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
 
-      {/* PTN Integration Panel */}
-      <Card>
-            <CardHeader>
-              <CardTitle>PTN Integration Panel</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Add PTN integration content here */}
-              <p>This is where PTN integration content will go.</p>
-            </CardContent>
-          </Card>
-
-      {/* Dialog Components */}
+        {/* Dialog Components */}
       <CreateMeetingDialog 
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog}
