@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { GripVertical, Plus, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { GripVertical, Plus, Calendar, DollarSign, TrendingUp, Archive, Search } from 'lucide-react';
 
 interface BillingMilestone {
   id: number;
@@ -36,7 +37,17 @@ interface ProjectPriority {
   billingMilestones: BillingMilestone[];
 }
 
-const SortablePriorityItem = ({ priority, index }: { priority: ProjectPriority; index: number }) => {
+const SortablePriorityItem = ({ 
+  priority, 
+  index, 
+  onArchive, 
+  priorityRef 
+}: { 
+  priority: ProjectPriority; 
+  index: number; 
+  onArchive: (id: number, projectNumber: string) => void;
+  priorityRef: (el: HTMLDivElement | null) => void;
+}) => {
   const {
     attributes,
     listeners,
@@ -89,7 +100,10 @@ const SortablePriorityItem = ({ priority, index }: { priority: ProjectPriority; 
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(el) => {
+        setNodeRef(el);
+        priorityRef(el);
+      }}
       style={style}
       className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow mb-2"
     >
@@ -177,6 +191,19 @@ const SortablePriorityItem = ({ priority, index }: { priority: ProjectPriority; 
             </div>
           </div>
         </div>
+
+        {/* Action Column */}
+        <div className="flex items-center ml-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onArchive(priority.id, priority.projectNumber)}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Remove from priority list"
+          >
+            <Archive className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -184,6 +211,9 @@ const SortablePriorityItem = ({ priority, index }: { priority: ProjectPriority; 
 
 export default function Priorities() {
   const [projectPriorities, setProjectPriorities] = useState<ProjectPriority[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredPriorities, setFilteredPriorities] = useState<ProjectPriority[]>([]);
+  const priorityRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -236,6 +266,28 @@ export default function Priorities() {
     },
   });
 
+  // Archive priority mutation
+  const archivePriorityMutation = useMutation({
+    mutationFn: async (priorityId: number) => {
+      const response = await apiRequest('DELETE', `/api/priorities/${priorityId}`);
+      return response.json();
+    },
+    onSuccess: (data, priorityId) => {
+      setProjectPriorities(prev => prev.filter(p => p.id !== priorityId));
+      toast({
+        title: 'Success',
+        description: 'Project removed from priority list.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to remove project from priority list',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Load existing priorities
   const { data: existingPriorities, isLoading } = useQuery({
     queryKey: ['/api/project-priorities'],
@@ -255,6 +307,19 @@ export default function Priorities() {
       setProjectPriorities(existingPriorities);
     }
   }, [existingPriorities]);
+
+  // Filter priorities based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredPriorities(projectPriorities);
+    } else {
+      const filtered = projectPriorities.filter(priority =>
+        priority.projectNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        priority.projectName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredPriorities(filtered);
+    }
+  }, [projectPriorities, searchQuery]);
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
@@ -289,6 +354,24 @@ export default function Priorities() {
       title: 'Add New Priority',
       description: 'Feature to add custom priorities coming soon.',
     });
+  };
+
+  const handleArchivePriority = (priorityId: number, projectNumber: string) => {
+    if (window.confirm(`Are you sure you want to remove ${projectNumber} from the priority list?`)) {
+      archivePriorityMutation.mutate(priorityId);
+    }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim() && filteredPriorities.length > 0) {
+      // Scroll to first matching result
+      const firstMatch = filteredPriorities[0];
+      const element = priorityRefs.current[firstMatch.id];
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
   };
 
 
@@ -333,6 +416,25 @@ export default function Priorities() {
         </CardHeader>
 
         <CardContent>
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by project number or name..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {searchQuery && (
+              <div className="mt-2 text-sm text-gray-600">
+                {filteredPriorities.length} of {projectPriorities.length} projects match your search
+              </div>
+            )}
+          </div>
+
           {/* KPI Widgets - Always visible at top */}
           {projectPriorities.length > 0 && (
             <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -365,7 +467,7 @@ export default function Priorities() {
             </div>
           )}
 
-          {projectPriorities.length === 0 ? (
+          {filteredPriorities.length === 0 && projectPriorities.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-500 mb-4">No project priorities configured</div>
               <div className="flex gap-3 justify-center">
@@ -374,6 +476,16 @@ export default function Priorities() {
                   Add New Priority
                 </Button>
               </div>
+            </div>
+          ) : filteredPriorities.length === 0 && searchQuery ? (
+            <div className="text-center py-12">
+              <div className="text-gray-500 mb-4">No projects match your search</div>
+              <Button 
+                onClick={() => setSearchQuery('')} 
+                variant="outline"
+              >
+                Clear Search
+              </Button>
             </div>
           ) : (
             <>
@@ -389,6 +501,7 @@ export default function Priorities() {
                   <div className="text-center">Milestones</div>
                   <div className="text-center">Completion</div>
                 </div>
+                <div className="w-16 text-center">Actions</div>
               </div>
 
               {/* Sortable List */}
@@ -398,15 +511,19 @@ export default function Priorities() {
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={projectPriorities.map(p => p.id)}
+                  items={filteredPriorities.map(p => p.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2">
-                    {projectPriorities.map((priority, index) => (
+                    {filteredPriorities.map((priority, index) => (
                       <SortablePriorityItem
                         key={priority.id}
                         priority={priority}
-                        index={index}
+                        index={projectPriorities.findIndex(p => p.id === priority.id)}
+                        onArchive={handleArchivePriority}
+                        priorityRef={(el) => {
+                          priorityRefs.current[priority.id] = el;
+                        }}
                       />
                     ))}
                   </div>
