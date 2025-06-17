@@ -4309,7 +4309,7 @@ Response format:
       );
       
       const defaultAccess = {
-        canViewPriorities: result.rows.length > 0 ? result.rows[0].can_view_priorities : true,
+        canViewPriorities: result.rows.length > 0 ? result.rows[0].can_view_priorities : false,
         canEditPriorities: result.rows.length > 0 ? result.rows[0].can_edit_priorities : false,
         canDragReorder: result.rows.length > 0 ? result.rows[0].can_drag_reorder : false
       };

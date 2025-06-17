@@ -83,7 +83,7 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
             </div>
           </div>
           <Switch
-            checked={userAccess?.canViewPriorities ?? true}
+            checked={userAccess?.canViewPriorities ?? false}
             onCheckedChange={(checked) => handleAccessChange('canViewPriorities', checked)}
             disabled={updateAccessMutation.isPending || accessLoading}
             className="priority-switch"
@@ -101,7 +101,7 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
           <Switch
             checked={userAccess?.canEditPriorities ?? false}
             onCheckedChange={(checked) => handleAccessChange('canEditPriorities', checked)}
-            disabled={updateAccessMutation.isPending || accessLoading || !(userAccess?.canViewPriorities ?? true)}
+            disabled={updateAccessMutation.isPending || accessLoading || !(userAccess?.canViewPriorities ?? false)}
             className="priority-switch"
           />
         </div>
@@ -117,12 +117,12 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
           <Switch
             checked={userAccess?.canDragReorder ?? false}
             onCheckedChange={(checked) => handleAccessChange('canDragReorder', checked)}
-            disabled={updateAccessMutation.isPending || accessLoading || !(userAccess?.canViewPriorities ?? true)}
+            disabled={updateAccessMutation.isPending || accessLoading || !(userAccess?.canViewPriorities ?? false)}
             className="priority-switch"
           />
         </div>
 
-        {!(userAccess?.canViewPriorities ?? true) && (
+        {!(userAccess?.canViewPriorities ?? false) && (
           <Alert>
             <AlertDescription>
               This user will not see the Priority Visibility module in their navigation.
