@@ -122,7 +122,7 @@ export default function PriorityVisibilityUserControl({ userId, user, isAdmin }:
           />
         </div>
 
-        {!userAccess.canViewPriorities && (
+        {!(userAccess?.canViewPriorities ?? true) && (
           <Alert>
             <AlertDescription>
               This user will not see the Priority Visibility module in their navigation.
