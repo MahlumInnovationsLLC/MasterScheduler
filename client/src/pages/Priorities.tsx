@@ -32,6 +32,7 @@ interface ProjectPriority {
   projectName: string;
   shipDate: string | null;
   status: string;
+  percentComplete: number;
   totalValue: number;
   daysUntilShip: number;
   billingMilestones: BillingMilestone[];
@@ -182,12 +183,12 @@ const SortablePriorityItem = ({
               <div
                 className="bg-blue-600 h-2 rounded-full"
                 style={{
-                  width: `${totalMilestoneValue > 0 ? (paidValue / totalMilestoneValue) * 100 : 0}%`
+                  width: `${priority.percentComplete || 0}%`
                 }}
               ></div>
             </div>
             <div className="text-xs text-gray-700 mt-1">
-              {totalMilestoneValue > 0 ? `${Math.round((paidValue / totalMilestoneValue) * 100)}%` : '0%'}
+              {priority.percentComplete || 0}%
             </div>
           </div>
         </div>
