@@ -4835,6 +4835,9 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
+      console.log(`🔄 Fetching PTN team needs data from ${connection.url}`);
+      console.log(`Trying endpoint: ${connection.url}/api/export/team-needs`);
+
       const response = await fetch(`${connection.url}/api/export/team-needs`, {
         headers: {
           'X-API-Key': connection.apiKey,
@@ -4843,14 +4846,37 @@ export class DatabaseStorage implements IStorage {
         signal: AbortSignal.timeout(connection.timeout || 30000)
       });
 
+      console.log(`Response content-type: ${response.headers.get('content-type')}, status: ${response.status}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`Error response: ${errorText.substring(0, 200)}`);
         throw new Error(`PTN API error: ${response.status} ${response.statusText}`);
       }
 
-      return await response.json();
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.log(`⚠️ PTN API returned non-JSON content: ${contentType}`);
+        return { 
+          teams: [], 
+          pendingNeeds: [], 
+          lastUpdated: new Date().toISOString(),
+          error: "PTN team-needs endpoint not available - using fallback data structure"
+        };
+      }
+
+      const data = await response.json();
+      console.log(`✅ Successfully fetched PTN team needs data`);
+      return data;
     } catch (error) {
       console.error("Error fetching PTN team needs:", error);
-      return { error: (error as Error).message };
+      // Return empty but valid structure instead of error
+      return { 
+        teams: [], 
+        pendingNeeds: [], 
+        lastUpdated: new Date().toISOString(),
+        error: (error as Error).message 
+      };
     }
   }
 
@@ -4861,26 +4887,52 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
-      const url = `${connection.url}/api/export/summary`;
-      const headers = {
-        'X-API-Key': connection.apiKey,
-        'Accept': 'application/json',
-      };
+      console.log(`🔄 Fetching PTN production metrics from ${connection.url}`);
+      console.log(`Trying endpoint: ${connection.url}/api/export/summary`);
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers,
+      const response = await fetch(`${connection.url}/api/export/summary`, {
+        headers: {
+          'X-API-Key': connection.apiKey || '',
+          'Accept': 'application/json',
+        },
         signal: AbortSignal.timeout(connection.timeout || 30000)
       });
 
+      console.log(`Response content-type: ${response.headers.get('content-type')}, status: ${response.status}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`Error response: ${errorText.substring(0, 200)}`);
         throw new Error(`PTN API error: ${response.status} ${response.statusText}`);
       }
 
-      return await response.json();
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.log(`⚠️ PTN API returned non-JSON content: ${contentType}`);
+        return { 
+          totalActiveProjects: 0,
+          totalTeamNeeds: 0,
+          pendingNeeds: 0,
+          partsTracked: 0,
+          lastUpdated: new Date().toISOString(),
+          error: "PTN summary endpoint not available - using fallback data structure"
+        };
+      }
+
+      const data = await response.json();
+      console.log(`✅ Successfully fetched PTN production metrics`);
+      return data;
     } catch (error) {
       console.error("Error fetching PTN production metrics:", error);
-      return { error: (error as Error).message };
+      // Return empty but valid structure instead of error
+      return { 
+        totalActiveProjects: 0,
+        totalTeamNeeds: 0,
+        pendingNeeds: 0,
+        partsTracked: 0,
+        lastUpdated: new Date().toISOString(),
+        error: (error as Error).message 
+      };
     }
   }
 
@@ -4891,22 +4943,46 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
+      console.log(`🔄 Fetching PTN teams data from ${connection.url}`);
+      console.log(`Trying endpoint: ${connection.url}/api/export/teams`);
+
       const response = await fetch(`${connection.url}/api/export/teams`, {
         headers: {
-          'X-API-Key': connection.apiKey,
+          'X-API-Key': connection.apiKey || '',
           'Accept': 'application/json',
         },
         signal: AbortSignal.timeout(connection.timeout || 30000)
       });
 
+      console.log(`Response content-type: ${response.headers.get('content-type')}, status: ${response.status}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`Error response: ${errorText.substring(0, 200)}`);
         throw new Error(`PTN API error: ${response.status} ${response.statusText}`);
       }
 
-      return await response.json();
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.log(`⚠️ PTN API returned non-JSON content: ${contentType}`);
+        return { 
+          teams: [], 
+          lastUpdated: new Date().toISOString(),
+          error: "PTN teams endpoint not available - using fallback data structure"
+        };
+      }
+
+      const data = await response.json();
+      console.log(`✅ Successfully fetched PTN teams data`);
+      return data;
     } catch (error) {
       console.error("Error fetching PTN teams:", error);
-      return { error: (error as Error).message };
+      // Return empty but valid structure instead of error
+      return { 
+        teams: [], 
+        lastUpdated: new Date().toISOString(),
+        error: (error as Error).message 
+      };
     }
   }
 
@@ -4917,22 +4993,54 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
+      console.log(`🔄 Fetching PTN enhanced summary from ${connection.url}`);
+      console.log(`Trying endpoint: ${connection.url}/api/export/summary`);
+
       const response = await fetch(`${connection.url}/api/export/summary`, {
         headers: {
-          'X-API-Key': connection.apiKey,
+          'X-API-Key': connection.apiKey || '',
           'Accept': 'application/json',
         },
         signal: AbortSignal.timeout(connection.timeout || 30000)
       });
 
+      console.log(`Response content-type: ${response.headers.get('content-type')}, status: ${response.status}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`Error response: ${errorText.substring(0, 200)}`);
         throw new Error(`PTN API error: ${response.status} ${response.statusText}`);
       }
 
-      return await response.json();
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.log(`⚠️ PTN API returned non-JSON content: ${contentType}`);
+        return { 
+          totalActiveProjects: 0,
+          totalTeamNeeds: 0,
+          pendingNeeds: 0,
+          partsTracked: 0,
+          teams: [],
+          lastUpdated: new Date().toISOString(),
+          error: "PTN enhanced summary endpoint not available - using fallback data structure"
+        };
+      }
+
+      const data = await response.json();
+      console.log(`✅ Successfully fetched PTN enhanced summary`);
+      return data;
     } catch (error) {
       console.error("Error fetching PTN enhanced summary:", error);
-      return { error: (error as Error).message };
+      // Return empty but valid structure instead of error
+      return { 
+        totalActiveProjects: 0,
+        totalTeamNeeds: 0,
+        pendingNeeds: 0,
+        partsTracked: 0,
+        teams: [],
+        lastUpdated: new Date().toISOString(),
+        error: (error as Error).message 
+      };
     }
   }
 

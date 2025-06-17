@@ -594,7 +594,11 @@ export default function Meetings() {
                       <WifiOff className="h-5 w-5 mr-2" />
                       <div>
                         <p className="font-medium">PTN Connection Issue</p>
-                        <p className="text-sm">{ptnMetrics.error}</p>
+                        <p className="text-sm">
+                          {ptnMetrics.error.includes('Unexpected token') 
+                            ? 'PTN API endpoints are not available or authentication failed' 
+                            : ptnMetrics.error}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -795,7 +799,11 @@ export default function Meetings() {
                     <WifiOff className="h-5 w-5 mr-2" />
                     <div>
                       <p className="font-medium">PTN Connection Error</p>
-                      <p className="text-sm">{ptnEnhancedSummary.error}</p>
+                      <p className="text-sm">
+                        {ptnEnhancedSummary.error.includes('Unexpected token') 
+                          ? 'PTN enhanced summary endpoint is not available or authentication failed' 
+                          : ptnEnhancedSummary.error}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -851,7 +859,11 @@ export default function Meetings() {
                   <WifiOff className="h-5 w-5 mr-2" />
                   <div>
                     <p className="font-medium">Team Data Connection Error</p>
-                    <p className="text-sm">{ptnTeams.error}</p>
+                    <p className="text-sm">
+                      {ptnTeams.error.includes('Unexpected token') 
+                        ? 'PTN team endpoints are not available or authentication failed' 
+                        : ptnTeams.error}
+                    </p>
                   </div>
                 </div>
               </div>
