@@ -97,15 +97,11 @@ class ErrorBoundary extends React.Component<
 }
 
 function Router() {
-  const [location] = useLocation();
   const { isLoading, stage } = useLoading();
-  
-  // Only show loading screen on authenticated pages, not on auth/login pages
-  const isAuthPage = location.startsWith('/auth') || location.startsWith('/reset-password') || location.startsWith('/forgot-password');
 
   return (
     <>
-      {!isAuthPage && <LoadingScreen isLoading={isLoading} stage={stage} />}
+      <LoadingScreen isLoading={isLoading} stage={stage} />
       <Switch>
         <Route path="/auth">
           <div className="auth-routes">
