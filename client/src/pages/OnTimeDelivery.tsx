@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -69,7 +70,11 @@ import {
   ShieldAlert,
   Award,
   Brain,
-  RefreshCw
+  RefreshCw,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -389,6 +394,16 @@ const OnTimeDeliveryPage: React.FC = () => {
     period: '',
     periodType: 'month',
     projects: []
+  });
+
+  // Predictive table state
+  const [predictiveSearchTerm, setPredictiveSearchTerm] = useState<string>("");
+  const [predictiveSortConfig, setPredictiveSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  }>({
+    key: 'projectNumber',
+    direction: 'asc'
   });
 
   // Fetch delivered projects analytics
@@ -958,9 +973,96 @@ const OnTimeDeliveryPage: React.FC = () => {
       },
       riskData,
       monthlyPredictions,
-      daysLateDistribution
+      daysLateDistribution,
+      predictions: nonDeliveredProjects.map(project => {
+        if (!project.contractDate || !project.deliveryDate) return null;
+        
+        const contractDate = new Date(project.contractDate);
+        const scheduledDelivery = new Date(project.deliveryDate);
+        const daysDifference = Math.ceil((scheduledDelivery.getTime() - contractDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        let riskLevel = 'On Track';
+        if (daysDifference > 0 && daysDifference <= 7) riskLevel = 'Slight Risk';
+        else if (daysDifference > 7 && daysDifference <= 30) riskLevel = 'Moderate Risk';
+        else if (daysDifference > 30) riskLevel = 'Severe Risk';
+
+        return {
+          id: project.id,
+          projectNumber: project.projectNumber,
+          name: project.name,
+          contractDate: project.contractDate,
+          deliveryDate: project.deliveryDate,
+          daysDifference,
+          riskLevel,
+          status: project.status
+        };
+      }).filter(Boolean)
     };
   }, [allProjects]);
+
+  // Enhanced filtering and sorting for predictive projects
+  const filteredAndSortedPredictiveProjects = useMemo(() => {
+    if (!preparePredictiveAnalysis?.predictions) return [];
+
+    let filtered = preparePredictiveAnalysis.predictions;
+
+    // Apply search filter
+    if (predictiveSearchTerm) {
+      const searchLower = predictiveSearchTerm.toLowerCase();
+      filtered = filtered.filter(project => 
+        project.projectNumber.toLowerCase().includes(searchLower) ||
+        project.name.toLowerCase().includes(searchLower) ||
+        project.status.toLowerCase().includes(searchLower) ||
+        project.riskLevel.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue: any = a[predictiveSortConfig.key as keyof typeof a];
+      let bValue: any = b[predictiveSortConfig.key as keyof typeof b];
+
+      // Handle different data types
+      if (predictiveSortConfig.key === 'contractDate' || predictiveSortConfig.key === 'deliveryDate') {
+        aValue = aValue ? new Date(aValue).getTime() : 0;
+        bValue = bValue ? new Date(bValue).getTime() : 0;
+      } else if (predictiveSortConfig.key === 'daysDifference') {
+        aValue = Number(aValue) || 0;
+        bValue = Number(bValue) || 0;
+      } else if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (aValue < bValue) {
+        return predictiveSortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return predictiveSortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    return filtered;
+  }, [preparePredictiveAnalysis, predictiveSearchTerm, predictiveSortConfig]);
+
+  // Handle sorting for predictive table
+  const handlePredictiveSort = (key: string) => {
+    setPredictiveSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Get sort icon for predictive table headers
+  const getPredictiveSortIcon = (key: string) => {
+    if (predictiveSortConfig.key !== key) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return predictiveSortConfig.direction === 'asc' 
+      ? <ArrowUp className="h-4 w-4" />
+      : <ArrowDown className="h-4 w-4" />;
+  };
 
   if (isLoadingAnalytics || isLoadingProjects) {
     return (
@@ -1571,37 +1673,110 @@ const OnTimeDeliveryPage: React.FC = () => {
               <CardDescription>
                 Non-delivered projects with predicted delivery performance based on contract vs scheduled delivery dates
               </CardDescription>
+              <div className="flex gap-4 mt-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by project number, name, status, or risk level..."
+                    value={predictiveSearchTerm}
+                    onChange={(e) => setPredictiveSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Badge variant="secondary" className="px-3 py-2">
+                  {filteredAndSortedPredictiveProjects.length} projects
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Project</TableHead>
-                      <TableHead>Contract Date</TableHead>
-                      <TableHead>Scheduled Delivery</TableHead>
-                      <TableHead>Predicted Performance</TableHead>
-                      <TableHead>Risk Level</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          onClick={() => handlePredictiveSort('projectNumber')}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Project
+                          {getPredictiveSortIcon('projectNumber')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          onClick={() => handlePredictiveSort('contractDate')}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Contract Date
+                          {getPredictiveSortIcon('contractDate')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          onClick={() => handlePredictiveSort('deliveryDate')}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Scheduled Delivery
+                          {getPredictiveSortIcon('deliveryDate')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          onClick={() => handlePredictiveSort('daysDifference')}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Predicted Performance
+                          {getPredictiveSortIcon('daysDifference')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          onClick={() => handlePredictiveSort('riskLevel')}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Risk Level
+                          {getPredictiveSortIcon('riskLevel')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          onClick={() => handlePredictiveSort('status')}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Status
+                          {getPredictiveSortIcon('status')}
+                        </Button>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allProjects && allProjects
-                      .filter((project: any) => 
-                        project.status !== 'delivered' && 
-                        project.contractDate && 
-                        project.deliveryDate
-                      )
-                      .map((project: any) => {
-                        const contractDate = new Date(project.contractDate);
-                        const scheduledDelivery = new Date(project.deliveryDate);
-                        const daysDifference = Math.ceil((scheduledDelivery.getTime() - contractDate.getTime()) / (1000 * 60 * 60 * 24));
-                        
-                        const getRiskBadge = (days: number) => {
-                          if (days <= 0) return <Badge className="bg-green-500 hover:bg-green-600 text-white">On Track</Badge>;
-                          if (days <= 7) return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Slight Risk</Badge>;
-                          if (days <= 30) return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">Moderate Risk</Badge>;
-                          return <Badge variant="destructive">Severe Risk</Badge>;
+                    {filteredAndSortedPredictiveProjects.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          {predictiveSearchTerm ? 'No projects match your search criteria' : 'No projects with prediction data available'}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredAndSortedPredictiveProjects.map((project: any) => {
+                        const getRiskBadge = (riskLevel: string) => {
+                          switch (riskLevel) {
+                            case 'On Track':
+                              return <Badge className="bg-green-500 hover:bg-green-600 text-white">On Track</Badge>;
+                            case 'Slight Risk':
+                              return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Slight Risk</Badge>;
+                            case 'Moderate Risk':
+                              return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">Moderate Risk</Badge>;
+                            case 'Severe Risk':
+                              return <Badge variant="destructive">Severe Risk</Badge>;
+                            default:
+                              return <Badge variant="secondary">{riskLevel}</Badge>;
+                          }
                         };
 
                         const getPerformanceBadge = (days: number) => {
@@ -1621,8 +1796,8 @@ const OnTimeDeliveryPage: React.FC = () => {
                             </TableCell>
                             <TableCell>{formatDate(project.contractDate)}</TableCell>
                             <TableCell>{formatDate(project.deliveryDate)}</TableCell>
-                            <TableCell>{getPerformanceBadge(daysDifference)}</TableCell>
-                            <TableCell>{getRiskBadge(daysDifference)}</TableCell>
+                            <TableCell>{getPerformanceBadge(project.daysDifference)}</TableCell>
+                            <TableCell>{getRiskBadge(project.riskLevel)}</TableCell>
                             <TableCell>
                               <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
                                 {project.status}
@@ -1630,7 +1805,8 @@ const OnTimeDeliveryPage: React.FC = () => {
                             </TableCell>
                           </TableRow>
                         );
-                      })}
+                      })
+                    )}
                   </TableBody>
                 </Table>
               </div>
