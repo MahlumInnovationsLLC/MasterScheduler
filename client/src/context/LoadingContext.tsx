@@ -32,18 +32,33 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) =>
   };
 
   const startLoadingScreen = () => {
+    console.log("🔄 LOADING CONTEXT: startLoadingScreen called, hasShownLoadingScreen:", hasShownLoadingScreen);
+    
     if (hasShownLoadingScreen) {
+      console.log("🔄 LOADING CONTEXT: Loading screen already shown, returning early");
       return; // Don't show again if already shown
     }
     
+    console.log("🔄 LOADING CONTEXT: Setting loading state to true");
     setHasShownLoadingScreen(true);
     setIsLoading(true);
     setStageState('authentication');
     
+    console.log("🔄 LOADING CONTEXT: Starting 5-second loading sequence");
+    
     // Progress through stages
-    setTimeout(() => setStageState('priorities'), 1500);
-    setTimeout(() => setStageState('data'), 3000);
     setTimeout(() => {
+      console.log("🔄 LOADING CONTEXT: Stage 1 - Priorities (1.5s)");
+      setStageState('priorities');
+    }, 1500);
+    
+    setTimeout(() => {
+      console.log("🔄 LOADING CONTEXT: Stage 2 - Data (3s)");
+      setStageState('data');
+    }, 3000);
+    
+    setTimeout(() => {
+      console.log("🔄 LOADING CONTEXT: Stage 3 - Complete (5s)");
       setStageState('complete');
       setIsLoading(false);
     }, 5000);

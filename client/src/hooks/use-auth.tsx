@@ -124,10 +124,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       console.log("✅ AUTH: Login successful, user data:", data);
+      console.log("🔄 LOADING: Attempting to start loading screen...");
+      
       // Set user data immediately to avoid delay
       queryClient.setQueryData(["/api/user"], data);
+      
       // Start the loading screen after successful login
-      startLoadingScreen();
+      try {
+        console.log("🔄 LOADING: Calling startLoadingScreen function...");
+        startLoadingScreen();
+        console.log("✅ LOADING: startLoadingScreen called successfully");
+      } catch (error) {
+        console.error("❌ LOADING: Error starting loading screen:", error);
+      }
+      
       // Invalidate to ensure fresh data on next request
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
