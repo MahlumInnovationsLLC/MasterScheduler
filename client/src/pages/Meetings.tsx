@@ -576,11 +576,27 @@ export default function Meetings() {
           </div>
         </div>
 
-        {/* Main Content - Removing Tabs Structure to Fix JSX Error */}
-        <div className="w-full space-y-6">
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="meetings">Meetings</TabsTrigger>
+            <TabsTrigger value="tier2">Tier II (GEMBA)</TabsTrigger>
+            <TabsTrigger value="tier3">Tier III</TabsTrigger>
+            <TabsTrigger value="tier4">Tier IV</TabsTrigger>
+          </TabsList>
 
-        {/* Tier II (GEMBA) Dashboard Content */}
-        <div className="space-y-6">
+          {/* Meetings Tab */}
+          <TabsContent value="meetings" className="space-y-6">
+            <div className="text-center py-12">
+              <h3 className="text-lg font-semibold text-muted-foreground">Meeting Management</h3>
+              <p className="text-sm text-muted-foreground mt-2">Meeting scheduling and management functionality</p>
+            </div>
+          </TabsContent>
+
+          {/* Tier II (GEMBA) Tab */}
+          <TabsContent value="tier2" className="space-y-6">
+            {/* Tier II (GEMBA) Dashboard Content */}
+            <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl font-semibold">Tier II (GEMBA) Dashboard</h2>
@@ -925,23 +941,24 @@ export default function Meetings() {
               </CardContent>
             </Card>
           </div>
-        </div>
+          </TabsContent>
 
-        {/* Tier III Content */}
-        <div className="space-y-6">
-          <div className="text-center py-12">
-            <h3 className="text-lg font-semibold text-muted-foreground">Tier III Content</h3>
-            <p className="text-sm text-muted-foreground mt-2">Project readiness and escalation management</p>
-          </div>
-        </div>
+          {/* Tier III Tab */}
+          <TabsContent value="tier3" className="space-y-6">
+            <div className="text-center py-12">
+              <h3 className="text-lg font-semibold text-muted-foreground">Tier III Content</h3>
+              <p className="text-sm text-muted-foreground mt-2">Project readiness and escalation management</p>
+            </div>
+          </TabsContent>
 
-        {/* Tier IV Content */}
-        <div className="space-y-6">
-          <div className="text-center py-12">
-            <h3 className="text-lg font-semibold text-muted-foreground">Tier IV Content</h3>
-            <p className="text-sm text-muted-foreground mt-2">Critical issues and executive oversight</p>
-          </div>
-        </div>
+          {/* Tier IV Tab */}
+          <TabsContent value="tier4" className="space-y-6">
+            <div className="text-center py-12">
+              <h3 className="text-lg font-semibold text-muted-foreground">Tier IV Content</h3>
+              <p className="text-sm text-muted-foreground mt-2">Critical issues and executive oversight</p>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Dialog Components */}
       <CreateMeetingDialog 
