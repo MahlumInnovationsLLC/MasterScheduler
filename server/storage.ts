@@ -44,7 +44,7 @@ import {
   externalConnectionLogs,
   projectMetricsConnection,
   ptnConnection,
-  priorities,
+  projectPriorities,
   type User,
   type InsertUser,
   type Project,
@@ -111,6 +111,7 @@ import {
   priorityComments,
   priorityActivityLog,
   userPriorityVisibility,
+  projectPriorities,
   type ProjectLabel,
   type InsertProjectLabel,
   type ProjectLabelAssignment,
@@ -5113,8 +5114,35 @@ export class DatabaseStorage implements IStorage {
 
   async updateProjectPriorityOrder(priorities: any[]): Promise<void> {
     try {
-      // Update priority order for projects
-      console.log(`🔄 Updated priority order for ${priorities.length} projects`);
+      console.log(`🔄 Updating priority order for ${priorities.length} projects`);
+      
+      // Process each priority update
+      for (let i = 0; i < priorities.length; i++) {
+        const priority = priorities[i];
+        const newOrder = i + 1;
+        
+        if (priority.projectId) {
+          // Use upsert to insert or update priority order
+          await db
+            .insert(projectPriorities)
+            .values({
+              projectId: priority.projectId,
+              priorityOrder: newOrder,
+              updatedAt: new Date()
+            })
+            .onConflictDoUpdate({
+              target: projectPriorities.projectId,
+              set: {
+                priorityOrder: newOrder,
+                updatedAt: new Date()
+              }
+            });
+          
+          console.log(`✅ Updated project ${priority.projectId} to priority order ${newOrder}`);
+        }
+      }
+      
+      console.log(`✅ Successfully updated priority order for ${priorities.length} projects`);
     } catch (error) {
       console.error("Error updating project priority order:", error);
       throw error;
