@@ -3835,6 +3835,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify password using the same logic as login
+      if (!user.password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
       const authModule = await import('./auth');
       const passwordMatch = await authModule.comparePasswords(password, user.password);
       
