@@ -46,6 +46,7 @@ import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import EditableDateField from '@/components/EditableDateField';
+import EditableDateFieldWithOP from '@/components/EditableDateFieldWithOP';
 import EditableNotesField from '../components/EditableNotesField';
 import EditableTextField from '@/components/EditableTextField';
 import { EditableStatusField } from '@/components/EditableStatusField';
@@ -1440,7 +1441,13 @@ const ProjectStatus = () => {
       },
       { size: 200 }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
-      (value, project) => <EditableDateField projectId={project.id} field="contractDate" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="contractDate" 
+        value={value} 
+        opValue={(project as any).opContractDate}
+        opField="opContractDate"
+      />,
       { size: 140 }),
     createColumn('estimatedCompletionDate', 'estimatedCompletionDate', 'Est. Completion', 
       (value) => formatDate(value),
@@ -1449,10 +1456,22 @@ const ProjectStatus = () => {
       (value) => formatDate(value),
       { size: 140 }),
     createColumn('chassisETA', 'chassisETA', 'Chassis ETA', 
-      (value, project) => <EditableDateField projectId={project.id} field="chassisETA" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="chassisETA" 
+        value={value} 
+        opValue={(project as any).opChassisETA}
+        opField="opChassisETA"
+      />,
       { size: 140 }),
     createColumn('mechShop', 'mechShop', 'MECH Shop', 
-      (value, project) => <EditableDateField projectId={project.id} field="mechShop" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="mechShop" 
+        value={value} 
+        opValue={(project as any).opMechShop}
+        opField="opMechShop"
+      />,
       { size: 140 }),
     createColumn('dpasRating', 'dpasRating', 'DPAS Rating',
       (value, project) => <EditableTextField projectId={project.id} field="dpasRating" value={value} />,
@@ -1488,16 +1507,40 @@ const ProjectStatus = () => {
       (value, project) => <EditableTextField projectId={project.id} field="ntcDesignOrdersPercent" value={value} isPercentage={true} />,
       { size: 120 }),
     createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
-      (value, project) => <EditableDateField projectId={project.id} field="fabricationStart" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="fabricationStart" 
+        value={value} 
+        opValue={(project as any).opFabricationStart}
+        opField="opFabricationStart"
+      />,
       { size: 170 }),
     createColumn('assemblyStart', 'assemblyStart', 'Assembly Start', 
-      (value, project) => <EditableDateField projectId={project.id} field="assemblyStart" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="assemblyStart" 
+        value={value} 
+        opValue={(project as any).opAssemblyStart}
+        opField="opAssemblyStart"
+      />,
       { size: 170 }),
     createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
-      (value, project) => <EditableDateField projectId={project.id} field="wrapDate" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="wrapDate" 
+        value={value} 
+        opValue={(project as any).opWrapDate}
+        opField="opWrapDate"
+      />,
       { size: 170 }),
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
-      (value, project) => <EditableDateField projectId={project.id} field="ntcTestingDate" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="ntcTestingDate" 
+        value={value} 
+        opValue={(project as any).opNtcTestingDate}
+        opField="opNtcTestingDate"
+      />,
       { size: 170 }),
     // Create a derived column for NTC Testing Days that doesn't use the column name as accessor
     {
@@ -1530,7 +1573,13 @@ const ProjectStatus = () => {
       size: 100
     },
     createColumn('qcStartDate', 'qcStartDate', 'QC Start', 
-      (value, project) => <EditableDateField projectId={project.id} field="qcStartDate" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="qcStartDate" 
+        value={value} 
+        opValue={(project as any).opQcStartDate}
+        opField="opQcStartDate"
+      />,
       { size: 170 }),
     // Create a derived column for QC Days
     {
@@ -1570,7 +1619,14 @@ const ProjectStatus = () => {
       (value, project) => {
         // Prioritize text value over date value for status display
         const displayValue = (project as any).executiveReviewDateText || value;
-        return <EditableDateField projectId={project.id} field="executiveReviewDate" value={displayValue} />;
+        const opDisplayValue = (project as any).opExecutiveReviewDateText || (project as any).opExecutiveReviewDate;
+        return <EditableDateFieldWithOP 
+          projectId={project.id} 
+          field="executiveReviewDate" 
+          value={displayValue} 
+          opValue={opDisplayValue}
+          opField="opExecutiveReviewDate"
+        />;
       },
       { size: 170 }),
     // Add Photos Taken column with checkbox functionality
@@ -1644,10 +1700,12 @@ const ProjectStatus = () => {
 
         return (
           <div className={isPastDue ? 'bg-red-900/30 rounded p-1' : ''}>
-            <EditableDateField 
+            <EditableDateFieldWithOP 
               projectId={project.id} 
               field="shipDate" 
               value={value} 
+              opValue={(project as any).opShipDate}
+              opField="opShipDate"
               className={isPastDue ? 'text-red-500 font-semibold' : ''}
             />
           </div>
@@ -1655,7 +1713,13 @@ const ProjectStatus = () => {
       },
       { size: 170 }),
     createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
-      (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="deliveryDate" 
+        value={value} 
+        opValue={(project as any).opDeliveryDate}
+        opField="opDeliveryDate"
+      />,
       { size: 170 }),
     createColumn('notes', 'notes', 'Notes',
       (value, project) => <EditableNotesField projectId={project.id} value={value} />,
