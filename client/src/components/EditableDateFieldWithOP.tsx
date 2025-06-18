@@ -34,6 +34,23 @@ const EditableDateFieldWithOP: React.FC<EditableDateFieldWithOPProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Helper function to check if current date is past OP date
+  const isCurrentDatePastOP = () => {
+    if (!value || !opValue || value === 'N/A' || opValue === 'N/A' || value === 'PENDING' || opValue === 'PENDING' || value === 'TBD' || opValue === 'TBD') {
+      return false;
+    }
+    
+    try {
+      const currentDate = new Date(value);
+      const opDate = new Date(opValue);
+      return currentDate > opDate;
+    } catch {
+      return false;
+    }
+  };
+
+  const isPastOP = isCurrentDatePastOP();
+
   // Reset date value when value changes - use direct value without adjustments
   useEffect(() => {
     if (value) {
@@ -211,7 +228,9 @@ const EditableDateFieldWithOP: React.FC<EditableDateFieldWithOPProps> = ({
       ) : (
         <div className="flex flex-col">
           <div 
-            className={`text-sm cursor-pointer flex items-center hover:bg-gray-100/10 px-2 py-1 rounded group ${className || ''}`}
+            className={`text-sm cursor-pointer flex items-center hover:bg-gray-100/10 px-2 py-1 rounded group ${
+              isPastOP ? 'bg-orange-100 border border-orange-300' : ''
+            } ${className || ''}`}
             onClick={() => setIsEditing(true)}
           >
             <span className={value === 'PENDING' ? 'text-orange-600 font-medium' : value === 'N/A' || value === 'TBD' ? 'text-gray-500 italic' : ''}>

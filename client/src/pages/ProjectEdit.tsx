@@ -36,8 +36,7 @@ import { EnhancedDateField } from '@/components/EnhancedDateField';
 import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
 import { ProjectMilestoneIconsManager } from '@/components/ProjectMilestoneIconsManager';
 
-// Admin password for accessing Originally Planned Timeline
-const ADMIN_PASSWORD = 'admin123';
+// Admin access for Originally Planned Timeline requires re-authentication
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -157,20 +156,55 @@ function OriginallyPlannedTimelineTab({
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const { toast } = useToast();
 
-  const handlePasswordSubmit = () => {
-    if (password === ADMIN_PASSWORD) {
-      setIsUnlocked(true);
-      setPasswordError('');
+  // Get current user info
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/user'],
+    retry: false
+  });
+
+  const handlePasswordSubmit = async () => {
+    if (!currentUser) {
+      setPasswordError('You must be logged in to access this feature');
+      return;
+    }
+
+    // Check if user has admin role
+    if (!currentUser.role || currentUser.role !== 'admin') {
+      setPasswordError('Admin access required. Contact your administrator.');
       setPassword('');
-      toast({
-        title: 'Access Granted',
-        description: 'You can now edit originally planned dates',
+      return;
+    }
+
+    setIsVerifying(true);
+    setPasswordError('');
+
+    try {
+      // Verify the password by attempting to re-authenticate
+      const response = await apiRequest('POST', '/api/auth/verify-password', {
+        email: currentUser.email,
+        password: password
       });
-    } else {
-      setPasswordError('Incorrect password');
+
+      if (response.ok) {
+        setIsUnlocked(true);
+        setPasswordError('');
+        setPassword('');
+        toast({
+          title: 'Access Granted',
+          description: 'You can now edit originally planned dates',
+        });
+      } else {
+        setPasswordError('Incorrect password');
+        setPassword('');
+      }
+    } catch (error) {
+      setPasswordError('Authentication failed. Please try again.');
       setPassword('');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -200,28 +234,39 @@ function OriginallyPlannedTimelineTab({
             <p className="text-gray-400 text-center">
               This section contains originally planned milestone dates and requires administrator access to modify.
             </p>
-            <div className="space-y-3">
-              <Label htmlFor="admin-password">Administrator Password</Label>
-              <Input
-                id="admin-password"
-                type="password"
-                placeholder="Enter admin password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-              />
-              {passwordError && (
-                <p className="text-red-400 text-sm">{passwordError}</p>
-              )}
-              <Button 
-                onClick={handlePasswordSubmit}
-                className="w-full"
-                disabled={!password.trim()}
-              >
-                Unlock Access
-              </Button>
-            </div>
-          </div>
+            
+            {!currentUser ? (
+              <div className="text-center text-red-400">
+                You must be logged in to access this feature.
+              </div>
+            ) : currentUser.role !== 'admin' ? (
+              <div className="text-center text-red-400">
+                Admin privileges required. Contact your administrator.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Label htmlFor="admin-password">Re-enter Your Password</Label>
+                <Input
+                  id="admin-password"
+                  type="password"
+                  placeholder="Enter your login password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+                  disabled={isVerifying}
+                />
+                {passwordError && (
+                  <p className="text-red-400 text-sm">{passwordError}</p>
+                )}
+                <Button 
+                  onClick={handlePasswordSubmit}
+                  className="w-full"
+                  disabled={!password.trim() || isVerifying}
+                >
+                  {isVerifying ? 'Verifying...' : 'Unlock Access'}
+                </Button>
+              </div>
+            )}</div>
         </CardContent>
       </Card>
     );

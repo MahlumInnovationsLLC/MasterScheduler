@@ -3815,6 +3815,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching all user audit logs" });
     }
   });
+
+  // Password verification endpoint for admin access
+  app.post("/api/auth/verify-password", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Find user by email
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, email)
+      });
+
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Verify password
+      const isValidPassword = await storage.verifyPassword(password, user.hashedPassword);
+      
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check if user has admin role
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      res.status(200).json({ success: true, message: "Password verified" });
+    } catch (error) {
+      console.error("Error verifying password:", error);
+      res.status(500).json({ message: "Authentication error" });
+    }
+  });
   
   // Allowed Email patterns for auto-approval (admin only)
   app.get("/api/allowed-emails", async (req, res) => {
