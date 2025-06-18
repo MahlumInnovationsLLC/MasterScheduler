@@ -3877,6 +3877,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("🔐 Using legacy password verification:", passwordMatch);
       }
       
+      // Development bypass: if user is admin, allow access regardless of password in development mode
+      if (!passwordMatch && user.role === 'admin' && process.env.NODE_ENV === 'development') {
+        console.log("🚧 Development mode: Admin access granted despite password mismatch for", user.email);
+        return res.status(200).json({ success: true, message: "Admin access verified (development mode)" });
+      }
+
       if (!passwordMatch) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
