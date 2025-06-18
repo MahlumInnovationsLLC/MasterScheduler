@@ -484,6 +484,196 @@ function OriginallyPlannedTimelineTab({
             )}
           />
         </div>
+
+        {/* Department Approval Section */}
+        <div className="mt-8 pt-6 border-t border-border">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <CheckSquare className="h-5 w-5 text-blue-400" />
+            Department Approval
+          </h3>
+          
+          <div className="space-y-4">
+            {/* Tier IV Meeting Date */}
+            <FormField
+              control={form.control}
+              name="tierIvMeetingDate"
+              render={({ field }) => (
+                <div className="mb-6">
+                  <EnhancedDateField
+                    label="Tier IV Meeting Date"
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select Tier IV meeting date..."
+                    fieldName="tierIvMeetingDate"
+                  />
+                </div>
+              )}
+            />
+
+            {/* Department Approval Checkboxes */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <FormField
+                control={form.control}
+                name="salesApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium">
+                        Sales
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="projectManagementApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium">
+                        Project Management
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="supplyChainApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium">
+                        Supply Chain
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="engineeringApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium">
+                        Engineering
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="productionApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium">
+                        Production
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="financeApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium">
+                        Finance
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="qcApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium">
+                        QC
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="executiveApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium">
+                        Executive
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

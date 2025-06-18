@@ -349,6 +349,17 @@ export const projects = pgTable("projects", {
   opExecutiveReviewDateText: text("op_executive_review_date_text"),
   opDeliveryDateText: text("op_delivery_date_text"),
 
+  // Department Approval Section
+  tierIvMeetingDate: date("tier_iv_meeting_date"),
+  salesApproval: boolean("sales_approval").default(false),
+  projectManagementApproval: boolean("project_management_approval").default(false),
+  supplyChainApproval: boolean("supply_chain_approval").default(false),
+  engineeringApproval: boolean("engineering_approval").default(false),
+  productionApproval: boolean("production_approval").default(false),
+  financeApproval: boolean("finance_approval").default(false),
+  qcApproval: boolean("qc_approval").default(false),
+  executiveApproval: boolean("executive_approval").default(false),
+
   // Delivery information
   actualDeliveryDate: date("actual_delivery_date"),
   lateDeliveryReason: text("late_delivery_reason"),
