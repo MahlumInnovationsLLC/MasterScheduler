@@ -3834,10 +3834,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Verify password
-      const isValidPassword = await storage.verifyPassword(password, user.hashedPassword);
+      // Verify password using the same logic as login
+      let passwordMatch = false;
       
-      if (!isValidPassword) {
+      if (user.password.includes('.')) {
+        const parts = user.password.split('.');
+        if (parts.length === 2) {
+          // Try scrypt-based password verification first (new format)
+          const crypto = await import('crypto');
+          const { promisify } = await import('util');
+          const scryptAsync = promisify(crypto.scrypt);
+          
+          try {
+            const [hashedPassword, salt] = parts;
+            const hashedBuf = Buffer.from(hashedPassword, "hex");
+            const suppliedBuf = (await scryptAsync(password, salt, 64)) as Buffer;
+            passwordMatch = crypto.timingSafeEqual(hashedBuf, suppliedBuf);
+            console.log("🔐 Using scrypt password verification:", passwordMatch);
+          } catch (scryptError) {
+            console.log("❌ Scrypt verification failed, trying SHA-512 fallback");
+            // Fall back to SHA-512 for backward compatibility
+            try {
+              const crypto = await import('crypto');
+              const [storedHash, salt] = parts;
+              const hash = crypto.createHash('sha512');
+              hash.update(password + salt);
+              const hashedPassword = hash.digest('hex');
+              passwordMatch = crypto.timingSafeEqual(Buffer.from(storedHash, 'hex'), Buffer.from(hashedPassword, 'hex'));
+              console.log("🔐 Using SHA-512 password verification:", passwordMatch);
+            } catch (sha512Error) {
+              console.log("❌ SHA-512 verification also failed:", sha512Error);
+            }
+          }
+        }
+      } else {
+        // Legacy password format without salt
+        const crypto = await import('crypto');
+        const hash = crypto.createHash('sha512');
+        hash.update(password);
+        const hashedPassword = hash.digest('hex');
+        passwordMatch = crypto.timingSafeEqual(Buffer.from(user.password, 'hex'), Buffer.from(hashedPassword, 'hex'));
+        console.log("🔐 Using legacy password verification:", passwordMatch);
+      }
+      
+      if (!passwordMatch) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
