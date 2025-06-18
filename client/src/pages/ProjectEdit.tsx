@@ -35,6 +35,9 @@ import { useRolePermissions } from '@/hooks/use-role-permissions';
 import { EnhancedDateField } from '@/components/EnhancedDateField';
 import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
 import { ProjectMilestoneIconsManager } from '@/components/ProjectMilestoneIconsManager';
+
+// Admin password for accessing Originally Planned Timeline
+const ADMIN_PASSWORD = 'admin123';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -75,6 +78,21 @@ const projectSchema = z.object({
   executiveReviewDate: z.union([z.date(), z.string()]).optional(),
   shipDate: z.union([z.date(), z.string()]).optional(),
   deliveryDate: z.union([z.date(), z.string()]).optional(),
+
+  // Originally Planned (OP) Dates
+  opContractDate: z.union([z.date(), z.string()]).optional(),
+  opStartDate: z.union([z.date(), z.string()]).optional(),
+  opPoDroppedDate: z.union([z.date(), z.string()]).optional(),
+  opEstimatedCompletionDate: z.union([z.date(), z.string()]).optional(),
+  opChassisETA: z.union([z.date(), z.string()]).optional(),
+  opFabricationStart: z.union([z.date(), z.string()]).optional(),
+  opAssemblyStart: z.union([z.date(), z.string()]).optional(),
+  opWrapDate: z.union([z.date(), z.string()]).optional(),
+  opNtcTestingDate: z.union([z.date(), z.string()]).optional(),
+  opQcStartDate: z.union([z.date(), z.string()]).optional(),
+  opExecutiveReviewDate: z.union([z.date(), z.string()]).optional(),
+  opShipDate: z.union([z.date(), z.string()]).optional(),
+  opDeliveryDate: z.union([z.date(), z.string()]).optional(),
 
   // Project details
   percentComplete: z.number().min(0).max(100).default(0),
@@ -121,6 +139,310 @@ const projectSchema = z.object({
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
+
+// Originally Planned Timeline Tab Component with Admin Access Control
+function OriginallyPlannedTimelineTab({ 
+  form, 
+  project, 
+  isViewOnly, 
+  shouldDisableInput, 
+  getDisabledTooltip 
+}: {
+  form: any;
+  project: any;
+  isViewOnly: boolean;
+  shouldDisableInput: (fieldName: string) => boolean;
+  getDisabledTooltip: (fieldName: string) => string | null;
+}) {
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const { toast } = useToast();
+
+  const handlePasswordSubmit = () => {
+    if (password === ADMIN_PASSWORD) {
+      setIsUnlocked(true);
+      setPasswordError('');
+      setPassword('');
+      toast({
+        title: 'Access Granted',
+        description: 'You can now edit originally planned dates',
+      });
+    } else {
+      setPasswordError('Incorrect password');
+      setPassword('');
+    }
+  };
+
+  const handleLock = () => {
+    setIsUnlocked(false);
+    setPassword('');
+    setPasswordError('');
+    toast({
+      title: 'Access Locked',
+      description: 'Originally planned timeline is now protected',
+    });
+  };
+
+  if (!isUnlocked) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span>Originally Planned Timeline</span>
+            <div className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
+              ADMIN ACCESS REQUIRED
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-md mx-auto space-y-4">
+            <p className="text-gray-400 text-center">
+              This section contains originally planned milestone dates and requires administrator access to modify.
+            </p>
+            <div className="space-y-3">
+              <Label htmlFor="admin-password">Administrator Password</Label>
+              <Input
+                id="admin-password"
+                type="password"
+                placeholder="Enter admin password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+              />
+              {passwordError && (
+                <p className="text-red-400 text-sm">{passwordError}</p>
+              )}
+              <Button 
+                onClick={handlePasswordSubmit}
+                className="w-full"
+                disabled={!password.trim()}
+              >
+                Unlock Access
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <span>Originally Planned Timeline</span>
+            <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+              UNLOCKED
+            </div>
+          </CardTitle>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLock}
+            className="text-red-600 hover:text-red-700"
+          >
+            Lock Access
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p className="text-blue-800 text-sm">
+            <strong>Note:</strong> These are the originally planned dates for all timeline milestones. 
+            These dates appear as smaller text below the current dates in the Projects Module table 
+            and are used for comparison and tracking purposes.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="opContractDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Contract Date"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opContractDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opStartDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Start Date"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opStartDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opPoDroppedDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned PO Dropped Date"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opPoDroppedDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opEstimatedCompletionDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Est. Completion"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opEstimatedCompletionDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opChassisETA"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Chassis ETA"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opChassisETA"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opFabricationStart"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Fabrication Start"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opFabricationStart"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opAssemblyStart"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Assembly Start"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opAssemblyStart"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opWrapDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Wrap Date"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opWrapDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opNtcTestingDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned NTC Testing"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opNtcTestingDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opQcStartDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned QC Start"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opQcStartDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opExecutiveReviewDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Executive Review"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opExecutiveReviewDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opShipDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Ship Date"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opShipDate"
+              />
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="opDeliveryDate"
+            render={({ field }) => (
+              <EnhancedDateField
+                label="Originally Planned Delivery Date"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select originally planned date..."
+                fieldName="opDeliveryDate"
+              />
+            )}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function ProjectEdit() {
   const [, navigate] = useLocation();
@@ -659,6 +981,7 @@ function ProjectEdit() {
               <TabsTrigger value="general">General Information</TabsTrigger>
               <TabsTrigger value="details">Project Details</TabsTrigger>
               <TabsTrigger value="timeline">Timeline & Schedule</TabsTrigger>
+              <TabsTrigger value="originally-planned">Originally Planned Timeline</TabsTrigger>
               <TabsTrigger value="milestones">Milestone Icons</TabsTrigger>
               <TabsTrigger value="notes">Notes & Documentation</TabsTrigger>
             </TabsList>
@@ -1818,6 +2141,16 @@ function ProjectEdit() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="originally-planned">
+              <OriginallyPlannedTimelineTab 
+                form={form} 
+                project={project}
+                isViewOnly={isViewOnly}
+                shouldDisableInput={shouldDisableInput}
+                getDisabledTooltip={getDisabledTooltip}
+              />
             </TabsContent>
 
             <TabsContent value="milestones">
