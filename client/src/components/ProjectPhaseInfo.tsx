@@ -7,6 +7,25 @@ interface ProjectPhaseInfoProps {
 }
 
 export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) => {
+  // Helper function to check if current date is past OP date
+  const isCurrentDatePastOP = (currentDate: string | null, opDate: string | null): boolean => {
+    if (!currentDate || !opDate) return false;
+    
+    try {
+      const current = new Date(currentDate);
+      const op = new Date(opDate);
+      return current > op;
+    } catch {
+      return false;
+    }
+  };
+
+  // Helper function to format OP date
+  const formatOPDate = (opValue: string | null | undefined): string => {
+    if (!opValue) return '';
+    return formatDateOrText(opValue);
+  };
+
   // Helper function to format date or return text value with timezone fix
   const formatDateOrText = (value: string | null | undefined): string => {
     if (!value) return 'TBD';
@@ -146,21 +165,27 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
       <div className="text-sm text-gray-400 mb-2">Project Timeline</div>
       <div className="flex flex-wrap gap-3">
         {contractDate && (
-          <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(contractDate, project.contractDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
             <Clock className="h-4 w-4 text-blue-500" />
             <div>
               <div className="text-xs text-gray-400">CONTRACT DATE</div>
               <div className="text-sm font-medium">{formatDateOrText(contractDate)}</div>
+              {project.contractDateOP && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.contractDateOP)}</div>
+              )}
             </div>
           </div>
         )}
 
         {poDroppedDate && (
-          <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(poDroppedDate, project.poDroppedDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
             <Calendar className="h-4 w-4 text-primary" />
             <div>
               <div className="text-xs text-gray-400">TIMELINE START</div>
               <div className="text-sm font-medium">{formatDateOrText(poDroppedDate)}</div>
+              {project.poDroppedDateOP && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.poDroppedDateOP)}</div>
+              )}
             </div>
           </div>
         )}
