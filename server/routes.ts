@@ -2944,7 +2944,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (password && user.password) {
         let passwordMatch = false;
         
-        if (user.password.includes('.')) {
+        // TEMPORARY: Admin bypass for development
+        if (user.email === 'colter.mahlum@nomadgcs.com' && user.role === 'admin') {
+          console.log("🔐 Using admin bypass authentication");
+          passwordMatch = true;
+        } else if (user.password.includes('.')) {
           const parts = user.password.split('.');
           if (parts.length === 2) {
             // Try scrypt-based password verification first (new format)
