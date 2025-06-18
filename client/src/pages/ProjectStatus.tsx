@@ -1567,7 +1567,11 @@ const ProjectStatus = () => {
       size: 100
     },
     createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
-      (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,
+      (value, project) => {
+        // Prioritize text value over date value for status display
+        const displayValue = (project as any).executiveReviewDateText || value;
+        return <EditableDateField projectId={project.id} field="executiveReviewDate" value={displayValue} />;
+      },
       { size: 170 }),
     // Add Photos Taken column with checkbox functionality
     {
