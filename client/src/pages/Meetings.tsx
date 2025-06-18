@@ -269,6 +269,32 @@ export default function Meetings() {
     }
   });
 
+  // Complete task mutation
+  const completeTaskMutation = useMutation({
+    mutationFn: async (task: any) => {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          ...task,
+          isCompleted: true,
+          completedDate: new Date().toISOString().split('T')[0]
+        })
+      });
+      if (!response.ok) throw new Error('Failed to complete task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      toast({ title: "Task completed successfully" });
+    }
+  });
+
+  // Handler function for completing tasks
+  const handleCompleteTask = (taskId: number) => {
+    completeTaskMutation.mutate(taskId);
+  };
+
   // Helper function to get project labels
   const getProjectLabels = (projectId: number) => {
     return (labelAssignments as any[]).filter((assignment: any) => assignment.projectId === projectId);
@@ -1376,39 +1402,57 @@ export default function Meetings() {
                                 {projectTasks.length} Tasks
                               </Badge>
                             </div>
-                            {projectTasks.slice(0, 2).map((task: any) => (
-                              <div key={task.id} className="text-xs">
-                                <div className="font-medium text-gray-900 dark:text-gray-100">{task.name}</div>
-                                {task.description && (
-                                  <div className="text-gray-700 dark:text-gray-300 mt-1">{task.description}</div>
-                                )}
-                                {task.dueDate && (
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <span className="font-medium text-gray-600 dark:text-gray-400">Due:</span>
-                                    <span className="text-red-600 dark:text-red-400">
-                                      {(() => {
-                                        // Parse date as local timezone to avoid timezone conversion issues
-                                        const date = new Date(task.dueDate + 'T00:00:00');
-                                        return format(date, 'MMM d, yyyy');
-                                      })()}
-                                    </span>
+                            {projectTasks.map((task: any) => (
+                              <div key={task.id} className="text-xs border-b border-gray-200 dark:border-gray-700 pb-2 mb-2 last:border-b-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900 dark:text-gray-100">{task.name}</div>
+                                    {task.description && (
+                                      <div className="text-gray-700 dark:text-gray-300 mt-1">{task.description}</div>
+                                    )}
+                                    {task.dueDate && (
+                                      <div className="flex items-center gap-1 mt-1">
+                                        <span className="font-medium text-gray-600 dark:text-gray-400">Due:</span>
+                                        <span className="text-red-600 dark:text-red-400">
+                                          {(() => {
+                                            // Parse date as local timezone to avoid timezone conversion issues
+                                            const date = new Date(task.dueDate + 'T00:00:00');
+                                            return format(date, 'MMM d, yyyy');
+                                          })()}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {task.assignedToUserId && (
+                                      <div className="flex items-center gap-1 mt-1">
+                                        <span className="font-medium text-gray-600 dark:text-gray-400">Assigned:</span>
+                                        <span className="text-gray-700 dark:text-gray-300">
+                                          {(users as any[]).find(u => u.id === task.assignedToUserId)?.firstName || 'Unknown'}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                                {task.assignedToUserId && (
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <span className="font-medium text-gray-600 dark:text-gray-400">Assigned:</span>
-                                    <span className="text-gray-700 dark:text-gray-300">
-                                      {(users as any[]).find(u => u.id === task.assignedToUserId)?.firstName || 'Unknown'}
-                                    </span>
-                                  </div>
-                                )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                                    onClick={() => handleCompleteTask(task.id)}
+                                    disabled={completeTaskMutation.isPending}
+                                  >
+                                    {completeTaskMutation.isPending ? (
+                                      <>
+                                        <div className="h-3 w-3 mr-1 animate-spin rounded-full border border-green-600 border-t-transparent" />
+                                        Completing...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Complete
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
                               </div>
                             ))}
-                            {projectTasks.length > 2 && (
-                              <div className="text-xs text-center text-gray-600 dark:text-gray-400 mt-2">
-                                +{projectTasks.length - 2} more tasks
-                              </div>
-                            )}
                           </>
                         ) : (
                           <div className="text-center py-2">
