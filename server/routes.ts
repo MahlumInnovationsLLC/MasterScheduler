@@ -2944,11 +2944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (password && user.password) {
         let passwordMatch = false;
         
-        // TEMPORARY: Admin bypass for development
-        if (user.email === 'colter.mahlum@nomadgcs.com' && user.role === 'admin') {
-          console.log("🔐 Using admin bypass authentication");
-          passwordMatch = true;
-        } else if (user.password.includes('.')) {
+        if (user.password.includes('.')) {
           const parts = user.password.split('.');
           if (parts.length === 2) {
             // Try scrypt-based password verification first (new format)
@@ -3838,10 +3834,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Verify password
-      const isValidPassword = await storage.verifyPassword(password, user.hashedPassword);
+      // Verify password using the same logic as login
+      if (!user.password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
       
-      if (!isValidPassword) {
+      const authModule = await import('./auth');
+      const passwordMatch = await authModule.comparePasswords(password, user.password);
+      
+
+
+      if (!passwordMatch) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
