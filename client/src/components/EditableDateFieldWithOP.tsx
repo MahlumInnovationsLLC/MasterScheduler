@@ -229,7 +229,7 @@ const EditableDateFieldWithOP: React.FC<EditableDateFieldWithOPProps> = ({
         <div className="flex flex-col">
           <div 
             className={`text-sm cursor-pointer flex items-center hover:bg-gray-100/10 px-2 py-1 rounded group ${
-              isPastOP ? 'bg-orange-100 border border-orange-300' : ''
+              isPastOP ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : ''
             } ${className || ''}`}
             onClick={() => setIsEditing(true)}
           >
