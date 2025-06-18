@@ -23,6 +23,7 @@ const defaultStatusOptions = [
   { value: 'completed', label: 'Completed', color: 'bg-blue-500 text-white border-blue-600 shadow-lg shadow-blue-500/30' },
   { value: 'delivered', label: 'Delivered', color: 'bg-purple-500 text-white border-purple-600 shadow-lg shadow-purple-500/30' },
   { value: 'archived', label: 'Archived', color: 'bg-gray-500 text-white border-gray-600 shadow-lg shadow-gray-500/30' },
+  { value: 'pending', label: 'Pending', color: 'bg-orange-500 text-white border-orange-600 shadow-lg shadow-orange-500/30' },
 ];
 
 const colorOptions = [

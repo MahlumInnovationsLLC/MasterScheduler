@@ -96,7 +96,8 @@ export function ProjectLinkDialog({ meeting, open, onOpenChange }: ProjectLinkDi
       delayed: "bg-yellow-100 text-yellow-800",
       completed: "bg-blue-100 text-blue-800",
       critical: "bg-red-100 text-red-800",
-      archived: "bg-gray-100 text-gray-800"
+      archived: "bg-gray-100 text-gray-800",
+      pending: "bg-orange-100 text-orange-800"
     };
     return statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800";
   };
