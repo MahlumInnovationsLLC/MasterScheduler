@@ -165,130 +165,130 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
       <div className="text-sm text-gray-400 mb-2">Project Timeline</div>
       <div className="flex flex-wrap gap-3">
         {contractDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(contractDate, project.contractDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(contractDate, project.opContractDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <Clock className="h-4 w-4 text-blue-500" />
             <div>
               <div className="text-xs text-gray-400">CONTRACT DATE</div>
               <div className="text-sm font-medium">{formatDateOrText(contractDate)}</div>
-              {project.contractDateOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.contractDateOP)}</div>
+              {project.opContractDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opContractDate)}</div>
               )}
             </div>
           </div>
         )}
 
         {poDroppedDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(poDroppedDate, project.poDroppedDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(poDroppedDate, project.opStartDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <Calendar className="h-4 w-4 text-primary" />
             <div>
               <div className="text-xs text-gray-400">TIMELINE START</div>
               <div className="text-sm font-medium">{formatDateOrText(poDroppedDate)}</div>
-              {project.poDroppedDateOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.poDroppedDateOP)}</div>
+              {project.opStartDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opStartDate)}</div>
               )}
             </div>
           </div>
         )}
 
         {fabricationStart && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(fabricationStart, project.fabricationStartOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(fabricationStart, project.opFabricationStart) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <Hammer className="h-4 w-4 text-blue-400" />
             <div>
               <div className="text-xs text-gray-400">FAB START</div>
               <div className="text-sm font-medium">{formatDateOrText(fabricationStart)}</div>
-              {project.fabricationStartOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.fabricationStartOP)}</div>
+              {project.opFabricationStart && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opFabricationStart)}</div>
               )}
             </div>
           </div>
         )}
 
         {assemblyStart && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(assemblyStart, project.assemblyStartOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(assemblyStart, project.opAssemblyStart) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <Wrench className="h-4 w-4 text-indigo-400" />
             <div>
               <div className="text-xs text-gray-400">ASSEMBLY START</div>
               <div className="text-sm font-medium">{formatDateOrText(assemblyStart)}</div>
-              {project.assemblyStartOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.assemblyStartOP)}</div>
+              {project.opAssemblyStart && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opAssemblyStart)}</div>
               )}
             </div>
           </div>
         )}
 
         {wrapDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(wrapDate, project.wrapDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(wrapDate, project.opWrapDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <Package className="h-4 w-4 text-cyan-400" />
             <div>
               <div className="text-xs text-gray-400">WRAP DATE</div>
               <div className="text-sm font-medium">{formatDateOrText(wrapDate)}</div>
-              {project.wrapDateOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.wrapDateOP)}</div>
+              {project.opWrapDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opWrapDate)}</div>
               )}
             </div>
           </div>
         )}
 
         {ntcTestingDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(ntcTestingDate, project.ntcTestingDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(ntcTestingDate, project.opNtcTestingDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <TestTube className="h-4 w-4 text-purple-400" />
             <div>
               <div className="text-xs text-gray-400">NTC TESTING</div>
               <div className="text-sm font-medium">{formatDateOrText(ntcTestingDate)}</div>
-              {project.ntcTestingDateOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.ntcTestingDateOP)}</div>
+              {project.opNtcTestingDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opNtcTestingDate)}</div>
               )}
             </div>
           </div>
         )}
 
         {qcStartDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(qcStartDate, project.qcStartDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(qcStartDate, project.opQcStartDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <CheckSquare className="h-4 w-4 text-green-400" />
             <div>
               <div className="text-xs text-gray-400">QC START</div>
               <div className="text-sm font-medium">{formatDateOrText(qcStartDate)}</div>
-              {project.qcStartDateOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.qcStartDateOP)}</div>
+              {project.opQcStartDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opQcStartDate)}</div>
               )}
             </div>
           </div>
         )}
 
         {executiveReviewDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(executiveReviewDate, project.executiveReviewDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(executiveReviewDate, project.opExecutiveReviewDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <CheckCircle className="h-4 w-4 text-yellow-400" />
             <div>
               <div className="text-xs text-gray-400">EXECUTIVE REVIEW</div>
               <div className="text-sm font-medium">{formatDateOrText(executiveReviewDate)}</div>
-              {project.executiveReviewDateOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.executiveReviewDateOP)}</div>
+              {project.opExecutiveReviewDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opExecutiveReviewDate)}</div>
               )}
             </div>
           </div>
         )}
 
         {shipDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(shipDate, project.shipDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(shipDate, project.opShipDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <Truck className="h-4 w-4 text-orange-400" />
             <div>
               <div className="text-xs text-gray-400">SHIP</div>
               <div className="text-sm font-medium">{formatDateOrText(shipDate)}</div>
-              {project.shipDateOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.shipDateOP)}</div>
+              {project.opShipDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opShipDate)}</div>
               )}
             </div>
           </div>
         )}
 
         {deliveryDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(deliveryDate, project.deliveryDateOP) ? 'bg-orange-900/30 border border-orange-600' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(deliveryDate, project.opDeliveryDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <Navigation className="h-4 w-4 text-red-400" />
             <div>
               <div className="text-xs text-gray-400">DELIVERY</div>
               <div className="text-sm font-medium">{formatDateOrText(deliveryDate)}</div>
-              {project.deliveryDateOP && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.deliveryDateOP)}</div>
+              {project.opDeliveryDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opDeliveryDate)}</div>
               )}
             </div>
           </div>
