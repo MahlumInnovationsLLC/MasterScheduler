@@ -291,8 +291,8 @@ export default function Meetings() {
   });
 
   // Handler function for completing tasks
-  const handleCompleteTask = (taskId: number) => {
-    completeTaskMutation.mutate(taskId);
+  const handleCompleteTask = (task: any) => {
+    completeTaskMutation.mutate(task);
   };
 
   // Helper function to get project labels
@@ -1435,7 +1435,7 @@ export default function Meetings() {
                                     size="sm"
                                     variant="outline"
                                     className="h-6 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
-                                    onClick={() => handleCompleteTask(task.id)}
+                                    onClick={() => handleCompleteTask(task)}
                                     disabled={completeTaskMutation.isPending}
                                   >
                                     {completeTaskMutation.isPending ? (
