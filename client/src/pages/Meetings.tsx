@@ -303,8 +303,8 @@ export default function Meetings() {
 
   // Edit task mutation
   const editTaskMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await fetch(`/api/tasks/${data.id}`, {
+    mutationFn: async ({ taskId, data }: { taskId: number, data: any }) => {
+      const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -349,14 +349,16 @@ export default function Meetings() {
   const handleSubmitEditTask = () => {
     if (!editingTask) return;
     
-    editTaskMutation.mutate({
-      ...editingTask,
+    // Send only the core fields needed for update, avoiding timestamp conversion issues
+    const updateData = {
       name: editTaskForm.name,
       description: editTaskForm.description,
-      dueDate: editTaskForm.dueDate,
-      assignedToUserId: editTaskForm.assignedToUserId,
-      department: editTaskForm.department
-    });
+      dueDate: editTaskForm.dueDate || null,
+      assignedToUserId: editTaskForm.assignedToUserId || null,
+      department: editTaskForm.department || null
+    };
+    
+    editTaskMutation.mutate({ taskId: editingTask.id, data: updateData });
   };
 
   // Helper function to get project labels
