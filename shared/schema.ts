@@ -319,12 +319,35 @@ export const projects = pgTable("projects", {
   shipDate: date("ship_date"),
   deliveryDate: date("delivery_date"),
 
+  // Originally Planned (OP) dates - for tracking original timeline baselines
+  opContractDate: date("op_contract_date"),
+  opStartDate: date("op_start_date"),
+  opEstimatedCompletionDate: date("op_estimated_completion_date"),
+  opActualCompletionDate: date("op_actual_completion_date"),
+  opChassisETA: date("op_chassis_eta"),
+  opMechShop: date("op_mech_shop"),
+  opFabricationStart: date("op_fabrication_start"),
+  opAssemblyStart: date("op_assembly_start"),
+  opWrapDate: date("op_wrap_date"),
+  opNtcTestingDate: date("op_ntc_testing_date"),
+  opQcStartDate: date("op_qc_start_date"),
+  opExecutiveReviewDate: date("op_executive_review_date"),
+  opShipDate: date("op_ship_date"),
+  opDeliveryDate: date("op_delivery_date"),
+
   // Text overrides for date fields (stores "N/A", "PENDING", etc.)
   fabricationStartText: text("fabrication_start_text"),
   wrapDateText: text("wrap_date_text"),
   ntcTestingDateText: text("ntc_testing_date_text"),
   executiveReviewDateText: text("executive_review_date_text"),
   deliveryDateText: text("delivery_date_text"),
+
+  // Text overrides for Originally Planned date fields
+  opFabricationStartText: text("op_fabrication_start_text"),
+  opWrapDateText: text("op_wrap_date_text"),
+  opNtcTestingDateText: text("op_ntc_testing_date_text"),
+  opExecutiveReviewDateText: text("op_executive_review_date_text"),
+  opDeliveryDateText: text("op_delivery_date_text"),
 
   // Delivery information
   actualDeliveryDate: date("actual_delivery_date"),
