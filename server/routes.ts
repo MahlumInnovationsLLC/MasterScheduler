@@ -3834,17 +3834,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Verify password using the same logic as login
-      if (!user.password) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
+      // Verify password
+      const isValidPassword = await storage.verifyPassword(password, user.hashedPassword);
       
-      const authModule = await import('./auth');
-      const passwordMatch = await authModule.comparePasswords(password, user.password);
-      
-
-
-      if (!passwordMatch) {
+      if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
