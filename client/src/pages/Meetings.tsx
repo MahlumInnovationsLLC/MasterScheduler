@@ -94,6 +94,17 @@ export default function Meetings() {
     department: ""
   });
 
+  // State for task editing
+  const [showEditTaskDialog, setShowEditTaskDialog] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editTaskForm, setEditTaskForm] = useState({
+    name: "",
+    description: "",
+    dueDate: "",
+    assignedToUserId: "",
+    department: ""
+  });
+
   // State for closing concerns
   const [showCloseConcernDialog, setShowCloseConcernDialog] = useState(false);
   const [concernToClose, setConcernToClose] = useState<ElevatedConcern | null>(null);
@@ -290,9 +301,62 @@ export default function Meetings() {
     }
   });
 
+  // Edit task mutation
+  const editTaskMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch(`/api/tasks/${data.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to update task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      setShowEditTaskDialog(false);
+      setEditingTask(null);
+      setEditTaskForm({
+        name: "",
+        description: "",
+        dueDate: "",
+        assignedToUserId: "",
+        department: ""
+      });
+      toast({ title: "Task updated successfully" });
+    }
+  });
+
   // Handler function for completing tasks
   const handleCompleteTask = (task: any) => {
     completeTaskMutation.mutate(task);
+  };
+
+  // Handler function for editing tasks
+  const handleEditTask = (task: any) => {
+    setEditingTask(task);
+    setEditTaskForm({
+      name: task.name || "",
+      description: task.description || "",
+      dueDate: task.dueDate || "",
+      assignedToUserId: task.assignedToUserId || "",
+      department: task.department || ""
+    });
+    setShowEditTaskDialog(true);
+  };
+
+  // Handler for submitting task edits
+  const handleSubmitEditTask = () => {
+    if (!editingTask) return;
+    
+    editTaskMutation.mutate({
+      ...editingTask,
+      name: editTaskForm.name,
+      description: editTaskForm.description,
+      dueDate: editTaskForm.dueDate,
+      assignedToUserId: editTaskForm.assignedToUserId,
+      department: editTaskForm.department
+    });
   };
 
   // Helper function to get project labels
@@ -1431,25 +1495,36 @@ export default function Meetings() {
                                       </div>
                                     )}
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-6 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
-                                    onClick={() => handleCompleteTask(task)}
-                                    disabled={completeTaskMutation.isPending}
-                                  >
-                                    {completeTaskMutation.isPending ? (
-                                      <>
-                                        <div className="h-3 w-3 mr-1 animate-spin rounded-full border border-green-600 border-t-transparent" />
-                                        Completing...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                        Complete
-                                      </>
-                                    )}
-                                  </Button>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                                      onClick={() => handleEditTask(task)}
+                                    >
+                                      <Edit className="h-3 w-3 mr-1" />
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                                      onClick={() => handleCompleteTask(task)}
+                                      disabled={completeTaskMutation.isPending}
+                                    >
+                                      {completeTaskMutation.isPending ? (
+                                        <>
+                                          <div className="h-3 w-3 mr-1 animate-spin rounded-full border border-green-600 border-t-transparent" />
+                                          Completing...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckCircle className="h-3 w-3 mr-1" />
+                                          Complete
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -2337,6 +2412,107 @@ export default function Meetings() {
               disabled={createTaskMutation.isPending || !taskForm.name}
             >
               {createTaskMutation.isPending ? "Creating..." : "Create Task"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={showEditTaskDialog} onOpenChange={setShowEditTaskDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>
+              Modify the task details below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-task-name" className="text-right">
+                Task Name
+              </Label>
+              <Input
+                id="edit-task-name"
+                value={editTaskForm.name}
+                onChange={(e) => setEditTaskForm({ ...editTaskForm, name: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter task name"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-task-description" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="edit-task-description"
+                value={editTaskForm.description}
+                onChange={(e) => setEditTaskForm({ ...editTaskForm, description: e.target.value })}
+                className="col-span-3"
+                placeholder="Task description"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-task-due-date" className="text-right">
+                Due Date
+              </Label>
+              <Input
+                id="edit-task-due-date"
+                type="date"
+                value={editTaskForm.dueDate}
+                onChange={(e) => setEditTaskForm({ ...editTaskForm, dueDate: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-task-assigned" className="text-right">
+                Assigned To
+              </Label>
+              <Select value={editTaskForm.assignedToUserId} onValueChange={(value) => setEditTaskForm({ ...editTaskForm, assignedToUserId: value })}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(users as any[]).map((user: any) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-task-department" className="text-right">
+                Department
+              </Label>
+              <Select value={editTaskForm.department} onValueChange={(value) => setEditTaskForm({ ...editTaskForm, department: value })}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="engineering">Engineering</SelectItem>
+                  <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                  <SelectItem value="finance">Finance</SelectItem>
+                  <SelectItem value="project_management">Project Management</SelectItem>
+                  <SelectItem value="quality_control">Quality Control</SelectItem>
+                  <SelectItem value="it">IT</SelectItem>
+                  <SelectItem value="sales">Sales</SelectItem>
+                  <SelectItem value="executive">Executive</SelectItem>
+                  <SelectItem value="planning_analysis">Planning & Analysis</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditTaskDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitEditTask}
+              disabled={editTaskMutation.isPending || !editTaskForm.name}
+            >
+              {editTaskMutation.isPending ? "Updating..." : "Update Task"}
             </Button>
           </DialogFooter>
         </DialogContent>
