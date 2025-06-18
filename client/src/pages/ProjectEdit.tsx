@@ -20,7 +20,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { AlertTriangle, CalendarIcon, ChevronLeft, Loader2 } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, ChevronLeft, Loader2, CheckSquare } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -92,6 +92,17 @@ const projectSchema = z.object({
   opExecutiveReviewDate: z.union([z.date(), z.string()]).optional(),
   opShipDate: z.union([z.date(), z.string()]).optional(),
   opDeliveryDate: z.union([z.date(), z.string()]).optional(),
+
+  // Department Approval Section
+  tierIvMeetingDate: z.union([z.date(), z.string()]).optional(),
+  salesApproval: z.boolean().default(false),
+  projectManagementApproval: z.boolean().default(false),
+  supplyChainApproval: z.boolean().default(false),
+  engineeringApproval: z.boolean().default(false),
+  productionApproval: z.boolean().default(false),
+  financeApproval: z.boolean().default(false),
+  qcApproval: z.boolean().default(false),
+  executiveApproval: z.boolean().default(false),
 
   // Project details
   percentComplete: z.number().min(0).max(100).default(0),
@@ -886,6 +897,20 @@ function ProjectEdit() {
         itDesignOrdersPercent: project.itDesignOrdersPercent ? Number(project.itDesignOrdersPercent) : undefined,
         ntcDesignOrdersPercent: project.ntcDesignOrdersPercent ? Number(project.ntcDesignOrdersPercent) : undefined,
 
+        // Department Approval Section
+        tierIvMeetingDate: project.tierIvMeetingDate ? (() => {
+          const [year, month, day] = project.tierIvMeetingDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
+        })() : undefined,
+        salesApproval: project.salesApproval || false,
+        projectManagementApproval: project.projectManagementApproval || false,
+        supplyChainApproval: project.supplyChainApproval || false,
+        engineeringApproval: project.engineeringApproval || false,
+        productionApproval: project.productionApproval || false,
+        financeApproval: project.financeApproval || false,
+        qcApproval: project.qcApproval || false,
+        executiveApproval: project.executiveApproval || false,
+
         // Status and notes
         status: project.status || 'active',
         priority: project.priority || 'medium',
@@ -1033,6 +1058,17 @@ function ProjectEdit() {
       fixedData.showItPhase = fixedData.showItPhase;
       fixedData.showNtcPhase = fixedData.showNtcPhase;
       fixedData.showQcPhase = fixedData.showQcPhase;
+
+      // Department Approval fields (already match database field names)
+      fixedData.tierIvMeetingDate = fixedData.tierIvMeetingDate;
+      fixedData.salesApproval = fixedData.salesApproval;
+      fixedData.projectManagementApproval = fixedData.projectManagementApproval;
+      fixedData.supplyChainApproval = fixedData.supplyChainApproval;
+      fixedData.engineeringApproval = fixedData.engineeringApproval;
+      fixedData.productionApproval = fixedData.productionApproval;
+      fixedData.financeApproval = fixedData.financeApproval;
+      fixedData.qcApproval = fixedData.qcApproval;
+      fixedData.executiveApproval = fixedData.executiveApproval;
 
       // Remove the form field names to avoid conflicts
       delete (fixedData as any).fabricationPercent;
