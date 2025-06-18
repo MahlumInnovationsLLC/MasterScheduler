@@ -837,6 +837,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (updateData[field] === null) {
             console.log(`Clearing date field ${field} to null`);
           }
+          // Handle status values like "PENDING", "NOT DONE", etc. - convert to null
+          else if (typeof updateData[field] === 'string' && 
+                   (updateData[field].toUpperCase() === 'PENDING' || 
+                    updateData[field].toUpperCase() === 'NOT DONE' ||
+                    updateData[field].toUpperCase() === 'N/A' ||
+                    updateData[field].includes('NOT DONE'))) {
+            console.log(`Converting status value "${updateData[field]}" to null for date field ${field}`);
+            updateData[field] = null;
+          }
           // Store the date exactly as provided by the user - no timezone adjustments
           else if (updateData[field]) {
             console.log(`Storing date for ${field} exactly as provided: ${updateData[field]}`);
