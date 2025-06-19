@@ -27,59 +27,57 @@ export function exportProjectsToExcel(projects: ProjectForExport[], filename: st
       throw new Error('No projects provided for export');
     }
 
-    // Define date columns to include
-    const dateColumns = [
-      'contractDate',
-      'startDate', 
-      'estimatedCompletionDate',
-      'actualCompletionDate',
-      'deliveryDate',
-      'shipDate',
-      'chassisETA',
-      'mechShop',
-      'qcStartDate',
-      'executiveReviewDate'
+    // Define columns to include based on currently visible columns
+    // Only including the visible columns from the table
+    const visibleColumns = [
+      { key: 'projectNumber', label: 'Project Number' },
+      { key: 'name', label: 'Project Name' },
+      { key: 'pmOwner', label: 'PM Owner' },
+      { key: 'percentComplete', label: 'Progress %' },
+      { key: 'contractDate', label: 'Contract Date' },
+      { key: 'chassisETA', label: 'Chassis ETA' },
+      { key: 'mechShop', label: 'Mech Shop' },
+      { key: 'qcStartDate', label: 'QC Start Date' },
+      { key: 'shipDate', label: 'Ship Date' },
+      { key: 'deliveryDate', label: 'Delivery Date' },
+      { key: 'executiveReviewDate', label: 'Executive Review Date' },
+      { key: 'location', label: 'Location' },
+      { key: 'notes', label: 'Notes' }
     ];
 
-    // Prepare data for export - only date columns plus key identifiers and notes
+    // Prepare data for export - only visible columns
     const exportData = projects.map((project, index) => {
       console.log(`Processing project ${index + 1}:`, project.projectNumber);
       
-      const row: Record<string, any> = {
-        'Project Number': project.projectNumber || '',
-        'Project Name': project.name || '',
-        'Location': project.location || '',
-        'PM Owner': project.pmOwner || '',
-        'Progress %': project.percentComplete || 0,
-      };
+      const row: Record<string, any> = {};
 
-      // Add date columns
-      dateColumns.forEach(dateCol => {
-        const value = project[dateCol as keyof ProjectForExport];
-        const columnName = dateCol
-          .replace(/([A-Z])/g, ' $1')
-          .replace(/^./, str => str.toUpperCase())
-          .trim();
+      // Add each visible column
+      visibleColumns.forEach(col => {
+        const value = project[col.key as keyof ProjectForExport];
         
-        // Format date or leave empty
-        if (value) {
-          try {
-            const date = new Date(value);
-            if (!isNaN(date.getTime())) {
-              row[columnName] = date.toLocaleDateString();
-            } else {
-              row[columnName] = value;
+        if (col.key === 'percentComplete') {
+          row[col.label] = value || 0;
+        } else if (col.key === 'contractDate' || col.key === 'chassisETA' || col.key === 'qcStartDate' || 
+                   col.key === 'shipDate' || col.key === 'deliveryDate' || col.key === 'executiveReviewDate') {
+          // Format date columns
+          if (value) {
+            try {
+              const date = new Date(value);
+              if (!isNaN(date.getTime())) {
+                row[col.label] = date.toLocaleDateString();
+              } else {
+                row[col.label] = value;
+              }
+            } catch {
+              row[col.label] = value;
             }
-          } catch {
-            row[columnName] = value;
+          } else {
+            row[col.label] = '';
           }
         } else {
-          row[columnName] = '';
+          row[col.label] = value || '';
         }
       });
-
-      // Add notes at the end
-      row['Notes'] = project.notes || '';
 
       return row;
     });
