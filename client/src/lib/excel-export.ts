@@ -15,6 +15,8 @@ export interface ProjectForExport {
   mechShop: string | null;
   qcStartDate: string | null;
   executiveReviewDate: string | null;
+  fabricationStart: string | null;
+  assemblyStart: string | null;
   notes: string | null;
   rawData?: Record<string, any>;
 }
@@ -28,13 +30,14 @@ export function exportProjectsToExcel(projects: ProjectForExport[], filename: st
     }
 
     // Define columns to include based on currently visible columns
-    // Only including the visible columns from the table
+    // Including FAB and Assembly start dates, removing Progress %
     const visibleColumns = [
       { key: 'projectNumber', label: 'Project Number' },
       { key: 'name', label: 'Project Name' },
       { key: 'pmOwner', label: 'PM Owner' },
-      { key: 'percentComplete', label: 'Progress %' },
       { key: 'contractDate', label: 'Contract Date' },
+      { key: 'fabricationStart', label: 'Fabrication Start' },
+      { key: 'assemblyStart', label: 'Assembly Start' },
       { key: 'chassisETA', label: 'Chassis ETA' },
       { key: 'mechShop', label: 'Mech Shop' },
       { key: 'qcStartDate', label: 'QC Start Date' },
@@ -55,10 +58,9 @@ export function exportProjectsToExcel(projects: ProjectForExport[], filename: st
       visibleColumns.forEach(col => {
         const value = project[col.key as keyof ProjectForExport];
         
-        if (col.key === 'percentComplete') {
-          row[col.label] = value || 0;
-        } else if (col.key === 'contractDate' || col.key === 'chassisETA' || col.key === 'qcStartDate' || 
-                   col.key === 'shipDate' || col.key === 'deliveryDate' || col.key === 'executiveReviewDate') {
+        if (col.key === 'contractDate' || col.key === 'chassisETA' || col.key === 'qcStartDate' || 
+           col.key === 'shipDate' || col.key === 'deliveryDate' || col.key === 'executiveReviewDate' ||
+           col.key === 'fabricationStart' || col.key === 'assemblyStart') {
           // Format date columns
           if (value) {
             try {

@@ -1135,6 +1135,8 @@ const ProjectStatus = () => {
         mechShop: project.mechShop,
         qcStartDate: project.qcStartDate,
         executiveReviewDate: project.executiveReviewDate,
+        fabricationStart: project.fabricationStart,
+        assemblyStart: project.assemblyStart,
         notes: project.notes,
         rawData: project.rawData
       }));
