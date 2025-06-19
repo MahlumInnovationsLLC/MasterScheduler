@@ -1176,3 +1176,17 @@ button[role="switch"] input[type="checkbox"] {
 :root:not(.dark) p.text-gray-300 {
   color: #4b5563 !important;
 }
+
+/* Exception: Fix project name text in tables - ensure they're dark in light mode */
+:root:not(.dark) .data-table td .text-xs.text-gray-400,
+:root:not(.dark) .data-table td div .text-xs.text-gray-400,
+:root:not(.dark) table td .text-xs.text-gray-400,
+:root:not(.dark) table td div .text-xs.text-gray-400 {
+  color: #374151 !important;
+}
+
+/* Exception: Fix all project text content in tables */
+:root:not(.dark) .data-table .text-gray-400,
+:root:not(.dark) table .text-gray-400 {
+  color: #374151 !important;
+}
