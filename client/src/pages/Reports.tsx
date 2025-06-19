@@ -841,15 +841,16 @@ const ReportsPage = () => {
                                   </span>
                                 </div>
 
-                                {/* Schedule status */}
+                                {/* Project Status */}
                                 <div className="flex items-center justify-between text-xs">
-                                  <span className="text-gray-400">Schedule:</span>
+                                  <span className="text-gray-400">Status:</span>
                                   <Badge className={`text-xs
-                                    ${scheduleStatus === 'in-progress' && 'bg-blue-500'} 
-                                    ${scheduleStatus === 'scheduled' && 'bg-yellow-500'}
-                                    ${scheduleStatus === 'unscheduled' && 'bg-red-500'}
+                                    ${project.status === 'completed' && 'bg-green-500'} 
+                                    ${project.status === 'at-risk' && 'bg-yellow-500'} 
+                                    ${project.status === 'delayed' && 'bg-red-500'}
+                                    ${(!project.status || project.status === 'active') && 'bg-blue-500'}
                                   `}>
-                                    {scheduleStatus}
+                                    {project.status || 'Active'}
                                   </Badge>
                                 </div>
 
