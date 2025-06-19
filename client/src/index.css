@@ -1116,6 +1116,15 @@ select:focus {
   letter-spacing: 0.05em;
 }
 
+/* Light mode sidebar text - make darker when not selected */
+.light .sidebar-nav-item:not(.active) {
+  color: #374151 !important;
+}
+
+.light .sidebar-section-header {
+  color: #4b5563 !important;
+}
+
 /* Hide unwanted checkbox elements that appear next to Switch components */
 [data-radix-collection-item] input[type="checkbox"],
 button[role="switch"] input[type="checkbox"] {
