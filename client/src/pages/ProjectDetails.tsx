@@ -212,7 +212,8 @@ const ProjectDetails = () => {
     name: '',
     description: '',
     dueDate: new Date().toISOString().split('T')[0],
-    milestoneId: 0
+    milestoneId: 0,
+    assignedToUserId: ''
   });
 
   // Milestone editing state
@@ -240,7 +241,8 @@ const ProjectDetails = () => {
         name: '',
         description: '',
         dueDate: new Date().toISOString().split('T')[0],
-        milestoneId: 0
+        milestoneId: 0,
+        assignedToUserId: ''
       });
       setEditTaskId(null);
     }
@@ -280,6 +282,10 @@ const ProjectDetails = () => {
   const { data: manufacturingBays = [] } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
     enabled: !isNaN(projectId)
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['/api/users']
   });
 
   // Create manufacturing schedule mutation
@@ -1711,9 +1717,29 @@ const ProjectDetails = () => {
                 id="taskDescription"
                 value={taskForm.description}
                 onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
-                className="resize-none bg-darkInput border-gray-800 h-24 text-white placeholder:text-gray-400"
+                className="resize-none bg-white border-gray-300 h-24 text-black placeholder:text-gray-500"
                 placeholder="Enter task description"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="taskAssignedTo" className="text-white">Assigned To</Label>
+              <Select
+                value={taskForm.assignedToUserId}
+                onValueChange={(value) => setTaskForm({...taskForm, assignedToUserId: value})}
+              >
+                <SelectTrigger className="bg-white border-gray-300 text-black">
+                  <SelectValue placeholder="Select user (optional)" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-gray-300">
+                  <SelectItem value="" className="text-black">Unassigned</SelectItem>
+                  {users.map((user: any) => (
+                    <SelectItem key={user.id} value={user.id} className="text-black">
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
