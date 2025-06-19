@@ -1031,7 +1031,8 @@ const ProjectDetails = () => {
                               name: task.name,
                               description: task.description || '',
                               dueDate: new Date(task.dueDate).toISOString().split('T')[0],
-                              milestoneId: milestone.id
+                              milestoneId: milestone.id,
+                              assignedToUserId: task.assignedToUserId || ''
                             });
                             setTaskDialogOpen(true);
                           }}
@@ -1779,7 +1780,8 @@ const ProjectDetails = () => {
                     ...taskForm,
                     projectId,
                     milestoneId: taskForm.milestoneId === 0 ? null : taskForm.milestoneId,
-                    dueDate: new Date(taskForm.dueDate).toISOString()
+                    dueDate: new Date(taskForm.dueDate).toISOString(),
+                    assignedToUserId: taskForm.assignedToUserId || null
                   });
                 }
               }}
