@@ -762,50 +762,126 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
 
-              {/* Project Details Table */}
+              {/* Top 20 Projects by Ship Date */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Project Details</CardTitle>
-                  <CardDescription>Complete project breakdown with schedule status</CardDescription>
+                  <CardTitle>Top 20 Projects by Ship Date</CardTitle>
+                  <CardDescription>Projects ordered by ship date with status and schedule information</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {(projectReportData?.projects || []).slice(0, 10).map(project => (
-                      <div key={project.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{project.name}</span>
-                            <Badge variant="outline">{project.projectNumber}</Badge>
-                          </div>
-                          <div className="text-sm text-gray-400 mt-1">
-                            Status: {project.status || 'Active'} | Schedule: {project.scheduleStatus}
-                            {project.totalHours > 0 && ` | ${project.totalHours} hours`}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Badge className={`
-                            ${project.scheduleStatus === 'delivered' && 'bg-green-500'} 
-                            ${project.scheduleStatus === 'in-progress' && 'bg-blue-500'} 
-                            ${project.scheduleStatus === 'scheduled' && 'bg-yellow-500'}
-                            ${project.scheduleStatus === 'unscheduled' && 'bg-red-500'}
-                          `}>
-                            {project.scheduleStatus}
-                          </Badge>
-                          <Badge className={`
-                            ${project.status === 'completed' && 'bg-green-500'} 
-                            ${project.status === 'at-risk' && 'bg-yellow-500'} 
-                            ${project.status === 'delayed' && 'bg-red-500'}
-                            ${(!project.status || project.status === 'active') && 'bg-blue-500'}
-                          `}>
-                            {project.status || 'Active'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {(() => {
+                      // Get projects and sort by ship date
+                      const sortedProjects = (filteredProjects || [])
+                        .filter(project => project.status !== 'delivered') // Exclude delivered projects
+                        .sort((a, b) => {
+                          // Sort by ship date, with projects having ship dates first
+                          const dateA = a.shipDate ? new Date(a.shipDate) : null;
+                          const dateB = b.shipDate ? new Date(b.shipDate) : null;
+                          
+                          if (dateA && dateB) {
+                            return dateA.getTime() - dateB.getTime();
+                          }
+                          
+                          // Projects with ship dates come before those without
+                          if (dateA && !dateB) return -1;
+                          if (!dateA && dateB) return 1;
+                          
+                          // For projects without ship dates, sort by project number (most recent first)
+                          const numA = parseInt(a.projectNumber?.replace(/\D/g, '') || '0') || 0;
+                          const numB = parseInt(b.projectNumber?.replace(/\D/g, '') || '0') || 0;
+                          return numB - numA;
+                        })
+                        .slice(0, 20); // Take top 20
+
+                      return sortedProjects.map(project => {
+                        // Get project schedules to determine schedule status
+                        const projectSchedules = filteredSchedules.filter(s => s.projectId === project.id);
+                        let scheduleStatus = 'unscheduled';
+                        
+                        if (projectSchedules.length > 0) {
+                          const now = new Date();
+                          const hasActiveSchedule = projectSchedules.some(schedule => {
+                            const startDate = new Date(schedule.startDate);
+                            const endDate = new Date(schedule.endDate);
+                            return startDate <= now && endDate >= now;
+                          });
+                          scheduleStatus = hasActiveSchedule ? 'in-progress' : 'scheduled';
+                        }
+
+                        return (
+                          <Card key={project.id} className="border border-gray-700 hover:border-gray-600 transition-colors">
+                            <CardContent className="p-4">
+                              <div className="flex flex-col space-y-3">
+                                {/* Header with project number and name */}
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {project.projectNumber}
+                                    </Badge>
+                                    <Badge className={`text-xs
+                                      ${project.status === 'completed' && 'bg-green-500'} 
+                                      ${project.status === 'at-risk' && 'bg-yellow-500'} 
+                                      ${project.status === 'delayed' && 'bg-red-500'}
+                                      ${(!project.status || project.status === 'active') && 'bg-blue-500'}
+                                    `}>
+                                      {project.status || 'Active'}
+                                    </Badge>
+                                  </div>
+                                  <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">
+                                    {project.name}
+                                  </h3>
+                                </div>
+
+                                {/* Ship date */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-gray-400">Ship Date:</span>
+                                  <span className={`font-medium ${project.shipDate ? 'text-white' : 'text-gray-500'}`}>
+                                    {project.shipDate ? format(new Date(project.shipDate), 'MMM d, yyyy') : 'Not Set'}
+                                  </span>
+                                </div>
+
+                                {/* Schedule status */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-gray-400">Schedule:</span>
+                                  <Badge className={`text-xs
+                                    ${scheduleStatus === 'in-progress' && 'bg-blue-500'} 
+                                    ${scheduleStatus === 'scheduled' && 'bg-yellow-500'}
+                                    ${scheduleStatus === 'unscheduled' && 'bg-red-500'}
+                                  `}>
+                                    {scheduleStatus}
+                                  </Badge>
+                                </div>
+
+                                {/* Manufacturing hours if available */}
+                                {projectSchedules.length > 0 && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-400">Mfg Hours:</span>
+                                    <span className="font-medium text-white">
+                                      {projectSchedules.reduce((sum, s) => sum + (s.totalHours || 0), 0)}h
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Customer if available */}
+                                {project.customer && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-400">Customer:</span>
+                                    <span className="font-medium text-white truncate max-w-[120px]" title={project.customer}>
+                                      {project.customer}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      });
+                    })()}
                     
-                    {(projectReportData?.projects || []).length === 0 && (
-                      <div className="text-center py-6 text-gray-400">
-                        No projects found in the selected period
+                    {filteredProjects.filter(p => p.status !== 'delivered').length === 0 && (
+                      <div className="col-span-full text-center py-6 text-gray-400">
+                        No active projects found in the selected period
                       </div>
                     )}
                   </div>
