@@ -217,6 +217,60 @@ const BillingMilestones = () => {
       deleteMilestoneMutation.mutate(id);
     }
   };
+
+  // Handler for marking milestone as invoiced
+  const handleMarkAsInvoiced = async (id: number) => {
+    try {
+      const response = await apiRequest("PATCH", `/api/billing-milestones/${id}`, {
+        status: 'invoiced',
+        actualInvoiceDate: format(new Date(), 'yyyy-MM-dd')
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Milestone marked as invoiced",
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      } else {
+        throw new Error("Failed to update milestone");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to mark milestone as invoiced: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handler for marking milestone as paid
+  const handleMarkAsPaid = async (id: number) => {
+    try {
+      const response = await apiRequest("PATCH", `/api/billing-milestones/${id}`, {
+        status: 'paid',
+        paidDate: format(new Date(), 'yyyy-MM-dd')
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Success", 
+          description: "Milestone marked as paid",
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      } else {
+        throw new Error("Failed to update milestone");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to mark milestone as paid: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      });
+    }
+  };
   
   // Handler for accepting ship date changes
   const handleAcceptShipDate = (id: number) => {
@@ -254,7 +308,7 @@ const BillingMilestones = () => {
     if (!billingMilestones || billingMilestones.length === 0) return null;
 
     const completed = billingMilestones.filter(m => m.status === 'paid').length;
-    const inProgress = billingMilestones.filter(m => m.status === 'invoiced').length;
+    const invoicedBilled = billingMilestones.filter(m => m.status === 'invoiced').length;
     const overdue = billingMilestones.filter(m => m.status === 'delayed').length;
     const upcoming = billingMilestones.filter(m => m.status === 'upcoming').length;
 
@@ -493,7 +547,7 @@ const BillingMilestones = () => {
     return {
       milestones: {
         completed,
-        inProgress,
+        invoicedBilled,
         overdue,
         upcoming
       },
@@ -993,96 +1047,7 @@ const BillingMilestones = () => {
     {
       id: 'actions',
       cell: ({ row }) => (
-        <div className="text-right space-x-2">
-          {/* Button for accepting ship date changes */}
-          {(row.original.isDeliveryMilestone || 
-            (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"))) && 
-            row.original.shipDateChanged && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mr-2 text-xs bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-              onClick={() => handleAcceptShipDate(row.original.id)}
-              disabled={isAcceptingShipDate[row.original.id]}
-              title="Accept the new ship date"
-            >
-              {isAcceptingShipDate[row.original.id] ? (
-                <span className="flex items-center">
-                  <div className="w-3 h-3 border-2 border-orange-600 border-t-transparent rounded-full animate-spin mr-1"></div>
-                  Accept
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  <Check className="h-3 w-3 mr-1" />
-                  Accept
-                </span>
-              )}
-            </Button>
-          )}
-          
-          {/* View Details button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8"
-            onClick={() => handleViewMilestoneDetails(row.original)}
-            title="View Details"
-          >
-            <FileText className="h-4 w-4" />
-          </Button>
-          
-          {/* Invoice button */}
-          {row.original.status === 'upcoming' && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={() => {
-                const updatedMilestone = { 
-                  ...row.original,
-                  status: 'invoiced',
-                  actualInvoiceDate: format(new Date(), 'yyyy-MM-dd')
-                };
-                handleEditMilestone(updatedMilestone);
-              }}
-              title="Mark as Invoiced"
-            >
-              <FileText className="h-4 w-4 text-warning" />
-            </Button>
-          )}
-          
-          {/* Mark as Paid button */}
-          {(row.original.status === 'invoiced' || row.original.status === 'delayed') && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={() => {
-                const updatedMilestone = { 
-                  ...row.original,
-                  status: 'paid',
-                  paidDate: format(new Date(), 'yyyy-MM-dd')
-                };
-                handleEditMilestone(updatedMilestone);
-              }}
-              title="Mark as Paid"
-            >
-              <CheckSquare className="h-4 w-4" />
-            </Button>
-          )}
-          
-          {/* Show check mark for paid milestones */}
-          {row.original.status === 'paid' && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              disabled
-              title="Paid"
-            >
-              <CheckSquare className="h-4 w-4 text-success" />
-            </Button>
-          )}
+        <div className="text-right">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1098,36 +1063,54 @@ const BillingMilestones = () => {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Milestone
               </DropdownMenuItem>
+              
+              {/* Accept Ship Date option */}
+              {(row.original.isDeliveryMilestone || 
+                (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"))) && 
+                row.original.shipDateChanged && (
+                <DropdownMenuItem 
+                  onClick={() => handleAcceptShipDate(row.original.id)}
+                  disabled={isAcceptingShipDate[row.original.id]}
+                >
+                  {isAcceptingShipDate[row.original.id] ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-orange-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Accepting...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Accept Ship Date
+                    </>
+                  )}
+                </DropdownMenuItem>
+              )}
+              
+              {/* Mark as Invoiced */}
+              {row.original.status === 'upcoming' && (
+                <DropdownMenuItem 
+                  onClick={() => handleMarkAsInvoiced(row.original.id)}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Mark as Invoiced
+                </DropdownMenuItem>
+              )}
+              
+              {/* Mark as Paid */}
+              {(row.original.status === 'invoiced' || row.original.status === 'delayed') && (
+                <DropdownMenuItem 
+                  onClick={() => handleMarkAsPaid(row.original.id)}
+                >
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Mark as Paid
+                </DropdownMenuItem>
+              )}
+              
               <DropdownMenuItem 
-                onClick={() => {
-                  const updatedMilestone = { 
-                    ...row.original,
-                    status: 'invoiced',
-                    actualInvoiceDate: format(new Date(), 'yyyy-MM-dd')
-                  };
-                  handleEditMilestone(updatedMilestone);
-                }}
-                disabled={row.original.status === 'invoiced' || row.original.status === 'paid'}
+                onClick={() => handleDeleteMilestone(row.original.id)}
+                className="text-red-600 focus:text-red-600"
               >
-                <FileText className="h-4 w-4 mr-2" />
-                Mark as Invoiced
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => {
-                  const updatedMilestone = { 
-                    ...row.original,
-                    status: 'paid',
-                    paidDate: format(new Date(), 'yyyy-MM-dd')
-                  };
-                  handleEditMilestone(updatedMilestone);
-                }}
-                disabled={row.original.status === 'paid'}
-              >
-                <CheckSquare className="h-4 w-4 mr-2" />
-                Mark as Paid
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDeleteMilestone(row.original.id)}>
-                <Trash2 className="h-4 w-4 mr-2 text-danger" />
+                <Trash2 className="h-4 w-4 mr-2" />
                 Delete Milestone
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1140,8 +1123,8 @@ const BillingMilestones = () => {
   const statusOptions = [
     { value: 'all', label: 'All Milestones' },
     { value: 'upcoming', label: 'Upcoming' },
-    { value: 'invoiced', label: 'Invoiced' },
-    { value: 'paid', label: 'Paid' },
+    { value: 'invoiced', label: 'Invoiced/Billed' },
+    { value: 'paid', label: 'Paid/Complete' },
     { value: 'delayed', label: 'Overdue' },
   ];
 
@@ -1205,7 +1188,7 @@ const BillingMilestones = () => {
           type="milestones"
           stats={[
             { label: "Completed", value: billingStats?.milestones.completed || 0 },
-            { label: "In Progress", value: billingStats?.milestones.inProgress || 0 },
+            { label: "Invoiced/Billed", value: billingStats?.milestones.invoicedBilled || 0 },
             { label: "Overdue", value: billingStats?.milestones.overdue || 0 },
             { label: "Upcoming", value: billingStats?.milestones.upcoming || 0 }
           ]}
