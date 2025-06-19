@@ -905,7 +905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             for (const milestone of deliveryMilestones) {
               await storage.updateBillingMilestone(milestone.id, {
                 targetInvoiceDate: dateToSync,
-                shipDateChanged: true
+                shipDateChanged: !milestone.targetInvoiceDate || new Date(dateToSync).toDateString() !== new Date(milestone.targetInvoiceDate).toDateString()
               });
               console.log(`Updated delivery milestone ${milestone.id} to match date ${dateToSync}`);
             }
