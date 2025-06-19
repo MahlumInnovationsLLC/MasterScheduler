@@ -1098,6 +1098,9 @@ const ProjectStatus = () => {
   // Handle Excel export - excludes delivered projects and shows only date columns
   const handleExcelExport = () => {
     try {
+      console.log('Starting export process...');
+      console.log('Filtered projects count:', filteredProjects.length);
+      
       // Filter out delivered projects
       const deliveredProjects = deliveredProjectsQuery.data || [];
       const deliveredProjectIds = new Set(deliveredProjects.map((p: any) => p.id));
@@ -1105,6 +1108,8 @@ const ProjectStatus = () => {
       const nonDeliveredProjects = filteredProjects.filter(project => 
         !deliveredProjectIds.has(project.id)
       );
+
+      console.log('Non-delivered projects count:', nonDeliveredProjects.length);
 
       if (nonDeliveredProjects.length === 0) {
         toast({
@@ -1137,6 +1142,8 @@ const ProjectStatus = () => {
         rawData: project.rawData
       }));
 
+      console.log('Export data prepared, sample:', exportData[0]);
+      
       exportProjectsToExcel(exportData, 'projects-export');
       
       toast({
@@ -1147,7 +1154,7 @@ const ProjectStatus = () => {
       console.error('Export failed:', error);
       toast({
         title: 'Export failed',
-        description: 'Unable to export projects to CSV. Please try again.',
+        description: `Unable to export projects: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive'
       });
     }
