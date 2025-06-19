@@ -771,6 +771,21 @@ const BillingMilestones = () => {
       accessorKey: 'liveDate',
       header: 'Live Date',
       cell: ({ row }) => {
+        // Check if this is a delivery milestone
+        const isDeliveryMilestone = row.original.isDeliveryMilestone || 
+          (row.original.name && row.original.name.toLowerCase().includes('delivery'));
+        
+        // Get the project for this milestone to access delivery date
+        const project = projects?.find(p => p.id === row.original.projectId);
+        const projectDeliveryDate = project?.deliveryDate;
+        
+        // For delivery milestones, show project delivery date; otherwise show liveDate
+        const displayDate = isDeliveryMilestone && projectDeliveryDate ? 
+          projectDeliveryDate : row.original.liveDate;
+        
+        // Check if there's a pending date change (shipDateChanged flag)
+        const hasDateChange = row.original.shipDateChanged && isDeliveryMilestone;
+        
         // Each cell needs its own state
         const cellId = `livedate-${row.original.id}`;
         
@@ -780,13 +795,13 @@ const BillingMilestones = () => {
         
         // Initialize date value if not already set
         useEffect(() => {
-          if (!dateValues[cellId] && row.original.liveDate) {
+          if (!dateValues[cellId] && displayDate) {
             setDateValues(prev => ({
               ...prev,
-              [cellId]: new Date(row.original.liveDate).toISOString().split('T')[0]
+              [cellId]: new Date(displayDate).toISOString().split('T')[0]
             }));
           }
-        }, [cellId, row.original.liveDate]);
+        }, [cellId, displayDate]);
         
         const isEditing = editingStates[cellId] || false;
         const dateValue = dateValues[cellId];
@@ -879,7 +894,7 @@ const BillingMilestones = () => {
         const hasShipDateChanged = row.original.shipDateChanged;
 
         // Regular display mode
-        if (!row.original.liveDate) {
+        if (!displayDate) {
           return (
             <div 
               className="text-sm text-gray-400 cursor-pointer hover:underline flex items-center"
@@ -893,11 +908,16 @@ const BillingMilestones = () => {
         
         return (
           <div 
-            className={`text-sm ${hasShipDateChanged ? "bg-orange-300/20 font-semibold text-orange-500" : ""} rounded px-2 py-1 cursor-pointer hover:underline flex items-center`}
+            className={`text-sm ${hasDateChange ? "bg-red-100 font-semibold text-red-600 border border-red-300" : ""} rounded px-2 py-1 cursor-pointer hover:underline flex items-center`}
             onClick={() => setIsEditing(true)}
           >
-            <span>{formatDate(row.original.liveDate)}</span>
+            <span>{formatDate(displayDate)}</span>
             <Calendar className="inline-block ml-1 h-3 w-3" />
+            {hasDateChange && (
+              <div className="text-xs text-red-600 ml-2">
+                Needs acceptance
+              </div>
+            )}
           </div>
         );
       },
