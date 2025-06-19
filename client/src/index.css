@@ -1182,6 +1182,13 @@ button[role="switch"] input[type="checkbox"] {
   color: #3b82f6 !important;
 }
 
+/* Exception: Specific fix for delivered projects table project numbers */
+:root:not(.dark) .data-table .text-blue-400,
+:root:not(.dark) table .text-blue-400,
+:root:not(.dark) .font-medium.text-blue-400 {
+  color: #1d4ed8 !important;
+}
+
 /* Exception: Fix project name text in tables - ensure they're dark in light mode */
 :root:not(.dark) .data-table td .text-xs.text-gray-400,
 :root:not(.dark) .data-table td div .text-xs.text-gray-400,
