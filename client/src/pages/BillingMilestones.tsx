@@ -273,34 +273,34 @@ const BillingMilestones = () => {
   };
   
   // Handler for accepting ship date changes
-  const handleAcceptShipDate = (id: number) => {
+  const handleAcceptShipDate = async (id: number) => {
     setIsAcceptingShipDate(prev => ({ ...prev, [id]: true }));
-    const acceptMutation = async () => {
-      try {
-        const response = await apiRequest("POST", `/api/billing-milestones/${id}/accept-ship-date`, {});
-        if (!response.ok) {
-          throw new Error("Failed to accept ship date change");
-        }
-        
-        toast({
-          title: "Date Accepted",
-          description: "You have accepted the new ship date",
-        });
-        
-        // Refresh data
-        queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: `Failed to accept ship date: ${error instanceof Error ? error.message : "Unknown error"}`,
-          variant: "destructive",
-        });
-      } finally {
-        setIsAcceptingShipDate(prev => ({ ...prev, [id]: false }));
-      }
-    };
     
-    acceptMutation();
+    try {
+      const response = await apiRequest("PATCH", `/api/billing-milestones/${id}`, {
+        shipDateChanged: false,
+        lastAcceptedShipDate: format(new Date(), 'yyyy-MM-dd')
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Ship Date Accepted",
+          description: "You have accepted the new ship date change",
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      } else {
+        throw new Error("Failed to accept ship date change");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to accept ship date: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsAcceptingShipDate(prev => ({ ...prev, [id]: false }));
+    }
   };
 
   // Calculate billing stats
@@ -613,17 +613,132 @@ const BillingMilestones = () => {
       accessorKey: 'targetInvoiceDate',
       header: 'Target Date',
       cell: ({ row }) => {
+        // Each cell needs its own state for editing target date
+        const cellId = `targetdate-${row.original.id}`;
+        
+        const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
+        const [dateValues, setDateValues] = useState<Record<string, string | undefined>>({});
+        const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
+        
+        // Initialize date value if not already set
+        useEffect(() => {
+          if (!dateValues[cellId] && row.original.targetInvoiceDate) {
+            setDateValues(prev => ({
+              ...prev,
+              [cellId]: new Date(row.original.targetInvoiceDate).toISOString().split('T')[0]
+            }));
+          }
+        }, [cellId, row.original.targetInvoiceDate]);
+        
+        const isEditing = editingStates[cellId] || false;
+        const dateValue = dateValues[cellId];
+        const isUpdating = updatingStates[cellId] || false;
+        
         const isDeliveryMilestone = row.original.isDeliveryMilestone || 
           (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"));
         const hasShipDateChanged = row.original.shipDateChanged;
         
+        // Handlers that use the cell ID for tracking state
+        const setIsEditing = (value: boolean) => {
+          setEditingStates(prev => ({...prev, [cellId]: value}));
+        };
+        
+        const setDateValue = (value: string | undefined) => {
+          setDateValues(prev => ({...prev, [cellId]: value}));
+        };
+        
+        const setIsUpdating = (value: boolean) => {
+          setUpdatingStates(prev => ({...prev, [cellId]: value}));
+        };
+        
+        // Function to handle saving the target date
+        const handleSave = async () => {
+          if (!dateValue) return;
+          
+          setIsUpdating(true);
+          try {
+            const updateData: any = { 
+              targetInvoiceDate: dateValue,
+            };
+            
+            // If this is a delivery milestone, also update the live date
+            if (isDeliveryMilestone) {
+              updateData.liveDate = dateValue;
+            }
+            
+            const response = await apiRequest(
+              "PATCH",
+              `/api/billing-milestones/${row.original.id}`,
+              updateData
+            );
+            
+            if (response.ok) {
+              queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+              toast({
+                title: "Target Date Updated",
+                description: isDeliveryMilestone 
+                  ? "Target date and live date have been updated successfully"
+                  : "Target date has been updated successfully",
+                variant: "default"
+              });
+            } else {
+              throw new Error("Failed to update target date");
+            }
+          } catch (error) {
+            toast({
+              title: "Update Failed",
+              description: `Error updating target date: ${(error as Error).message}`,
+              variant: "destructive"
+            });
+          } finally {
+            setIsUpdating(false);
+            setIsEditing(false);
+          }
+        };
+        
+        // Display editor if in edit mode
+        if (isEditing) {
+          return (
+            <div className="flex items-center space-x-2">
+              <input
+                type="date"
+                className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+                value={dateValue || ''}
+                onChange={(e) => setDateValue(e.target.value)}
+              />
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={handleSave}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success" />}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={() => setIsEditing(false)}
+                  disabled={isUpdating}
+                >
+                  <X className="h-3 w-3 text-danger" />
+                </Button>
+              </div>
+            </div>
+          );
+        }
+        
         return (
           <div 
-            className={`text-sm ${isDeliveryMilestone && hasShipDateChanged 
+            className={`text-sm cursor-pointer hover:underline flex items-center ${isDeliveryMilestone && hasShipDateChanged 
               ? "bg-orange-100 p-1 rounded border border-orange-300 font-medium text-orange-800" 
               : ""}`}
+            onClick={() => setIsEditing(true)}
           >
-            {formatDate(row.original.targetInvoiceDate)}
+            <span>{formatDate(row.original.targetInvoiceDate)}</span>
+            <Calendar className="inline-block ml-1 h-3 w-3" />
             {isDeliveryMilestone && hasShipDateChanged && (
               <div className="text-xs text-orange-600 mt-1">Ship date changed</div>
             )}
@@ -837,12 +952,19 @@ const BillingMilestones = () => {
           
           setIsUpdating(true);
           try {
+            // Check if this is a delivery milestone and if target date is being updated
+            const updateData: any = { actualInvoiceDate: dateValue };
+            
+            // If this is a delivery milestone, also update the live date
+            if (row.original.isDeliveryMilestone || 
+                (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"))) {
+              updateData.liveDate = dateValue;
+            }
+            
             const response = await apiRequest(
               "PATCH",
               `/api/billing-milestones/${row.original.id}`,
-              { 
-                actualInvoiceDate: dateValue,
-              }
+              updateData
             );
             
             if (response.ok) {
