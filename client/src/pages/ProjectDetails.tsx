@@ -212,7 +212,7 @@ const ProjectDetails = () => {
     name: '',
     description: '',
     dueDate: new Date().toISOString().split('T')[0],
-    milestoneId: 0,
+    milestoneId: null as number | null,
     assignedToUserId: ''
   });
 
@@ -241,7 +241,7 @@ const ProjectDetails = () => {
         name: '',
         description: '',
         dueDate: new Date().toISOString().split('T')[0],
-        milestoneId: 0,
+        milestoneId: null,
         assignedToUserId: 'unassigned'
       });
       setEditTaskId(null);
@@ -1031,7 +1031,7 @@ const ProjectDetails = () => {
                               name: task.name,
                               description: task.description || '',
                               dueDate: new Date(task.dueDate).toISOString().split('T')[0],
-                              milestoneId: milestone.id,
+                              milestoneId: task.milestoneId || null,
                               assignedToUserId: task.assignedToUserId || 'unassigned'
                             });
                             setTaskDialogOpen(true);
@@ -1684,14 +1684,14 @@ const ProjectDetails = () => {
             <div className="space-y-2">
               <Label htmlFor="taskMilestone" className="text-white">Milestone (optional)</Label>
               <Select
-                value={taskForm.milestoneId?.toString() || "0"}
-                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: value === "0" ? 0 : parseInt(value)})}
+                value={taskForm.milestoneId?.toString() || "none"}
+                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: value === "none" ? null : parseInt(value)})}
               >
                 <SelectTrigger className="bg-darkInput border-gray-800 w-full text-white">
                   <SelectValue placeholder="Select a milestone (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-darkInput border-gray-800">
-                  <SelectItem value="0" className="text-white">No milestone (standalone task)</SelectItem>
+                  <SelectItem value="none" className="text-white">No milestone (standalone task)</SelectItem>
                   {milestones.map((milestone) => (
                     <SelectItem key={milestone.id} value={milestone.id.toString()} className="text-white">
                       {milestone.name}
@@ -1770,18 +1770,21 @@ const ProjectDetails = () => {
                   return;
                 }
 
+                const taskData = {
+                  ...taskForm,
+                  assignedToUserId: taskForm.assignedToUserId === "unassigned" ? null : taskForm.assignedToUserId
+                };
+
                 if (editTaskId) {
                   updateTaskMutation.mutate({
                     id: editTaskId,
-                    data: taskForm
+                    data: taskData
                   });
                 } else {
                   createTaskMutation.mutate({
-                    ...taskForm,
+                    ...taskData,
                     projectId,
-                    milestoneId: taskForm.milestoneId === 0 ? null : taskForm.milestoneId,
-                    dueDate: new Date(taskForm.dueDate).toISOString(),
-                    assignedToUserId: taskForm.assignedToUserId || null
+                    dueDate: new Date(taskForm.dueDate).toISOString()
                   });
                 }
               }}
