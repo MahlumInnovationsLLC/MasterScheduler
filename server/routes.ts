@@ -2609,6 +2609,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PATCH route for billing milestones - handles specific updates like marking as invoiced
+  app.patch("/api/billing-milestones/:id", async (req, res) => {
+    try {
+      const milestoneId = parseInt(req.params.id);
+      console.log(`🔧 Development mode API request: PATCH /api/billing-milestones/${milestoneId}`);
+      
+      // Get the current milestone to check if it exists and get current data
+      const currentMilestone = await storage.getBillingMilestone(milestoneId);
+      if (!currentMilestone) {
+        return res.status(404).json({ message: "Billing milestone not found" });
+      }
+
+      // Handle marking milestone as invoiced
+      if (req.body.status === 'invoiced') {
+        console.log(`🔄 Marking milestone ${milestoneId} as invoiced`);
+        
+        const updateData = {
+          ...req.body,
+          actualInvoiceDate: req.body.actualInvoiceDate || new Date().toISOString().split('T')[0], // Set invoice date to today if not provided
+        };
+        
+        const updatedMilestone = await storage.updateBillingMilestone(milestoneId, updateData);
+        console.log(`✅ Milestone ${milestoneId} marked as invoiced`);
+        res.json(updatedMilestone);
+        return;
+      }
+
+      // Handle accepting date changes for delivery milestones
+      if (req.body.acceptDateChange === true) {
+        console.log(`📅 Accepting date change for milestone ${milestoneId}`);
+        
+        const updateData = {
+          ...req.body,
+          targetInvoiceDate: currentMilestone.liveDate || currentMilestone.targetInvoiceDate,
+          lastAcceptedShipDate: currentMilestone.liveDate,
+          shipDateChanged: false, // Clear the highlight flag
+        };
+        delete updateData.acceptDateChange; // Remove the flag from the update data
+        
+        const updatedMilestone = await storage.updateBillingMilestone(milestoneId, updateData);
+        console.log(`✅ Date change accepted for milestone ${milestoneId}`);
+        res.json(updatedMilestone);
+        return;
+      }
+
+      // Default update behavior
+      const updatedMilestone = await storage.updateBillingMilestone(milestoneId, req.body);
+      res.json(updatedMilestone);
+    } catch (error) {
+      console.error("Error updating billing milestone:", error);
+      res.status(500).json({ message: "Error updating billing milestone" });
+    }
+  });
+
   // Import routes
   app.post("/api/import/projects", simpleAuth, importProjects);
   app.post("/api/import/billing-milestones", simpleAuth, importBillingMilestones);

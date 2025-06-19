@@ -276,6 +276,7 @@ export interface IStorage {
   updateBillingMilestone(id: number, milestone: Partial<InsertBillingMilestone>): Promise<BillingMilestone | undefined>;
   deleteBillingMilestone(id: number): Promise<boolean>;
   deleteAllBillingMilestones(): Promise<number>;
+  updateDeliveryMilestonesForProject(projectId: number, newDeliveryDate: string): Promise<void>;
 
   // Project Costs methods
   getProjectCosts(): Promise<ProjectCost[]>;
@@ -1724,6 +1725,47 @@ export class DatabaseStorage implements IStorage {
       .where(eq(billingMilestones.id, id))
       .returning();
     return updatedMilestone;
+  }
+
+  // Update delivery milestones when project delivery date changes
+  async updateDeliveryMilestonesForProject(projectId: number, newDeliveryDate: string): Promise<void> {
+    try {
+      console.log(`📅 Updating delivery milestones for project ${projectId} with new delivery date: ${newDeliveryDate}`);
+      
+      // Find all delivery milestones for this project
+      const deliveryMilestones = await db
+        .select()
+        .from(billingMilestones)
+        .where(
+          and(
+            eq(billingMilestones.projectId, projectId),
+            eq(billingMilestones.isDeliveryMilestone, true)
+          )
+        );
+      
+      console.log(`📋 Found ${deliveryMilestones.length} delivery milestones to update`);
+      
+      // Update each delivery milestone
+      for (const milestone of deliveryMilestones) {
+        // Update the live date and mark as changed if the date is different
+        const currentLiveDate = milestone.liveDate ? new Date(milestone.liveDate).toISOString().split('T')[0] : null;
+        const shipDateChanged = currentLiveDate !== newDeliveryDate;
+        
+        await db
+          .update(billingMilestones)
+          .set({
+            liveDate: newDeliveryDate,
+            shipDateChanged: shipDateChanged,
+            updatedAt: new Date()
+          })
+          .where(eq(billingMilestones.id, milestone.id));
+        
+        console.log(`✅ Updated delivery milestone ${milestone.id}: liveDate=${newDeliveryDate}, changed=${shipDateChanged}`);
+      }
+    } catch (error) {
+      console.error('Error updating delivery milestones:', error);
+      throw error;
+    }
   }
 
   async deleteBillingMilestone(id: number): Promise<boolean> {
