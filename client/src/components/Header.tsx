@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { User as UserType } from '@shared/schema';
 import { NotificationBell } from '@/components/ui/notification/NotificationBell';
+import { MyTasks } from '@/components/MyTasks';
 
 const Header = () => {
   const { user, isLoading } = useAuth();
@@ -60,6 +61,7 @@ const Header = () => {
 
           {isAuthenticated ? (
             <>
+              <MyTasks />
               <NotificationBell />
               
               {typedUser?.role === 'admin' && (

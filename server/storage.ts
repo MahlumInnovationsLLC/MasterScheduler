@@ -461,6 +461,9 @@ export interface IStorage {
   getProjectPriorities(): Promise<any[]>;
   saveProjectPriorities(priorities: any[]): Promise<void>;
   updateProjectPriorityOrder(priorities: any[]): Promise<void>;
+
+  // User Tasks methods
+  getUserTasks(userId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
