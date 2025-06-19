@@ -6712,5 +6712,21 @@ Response format:
     }
   });
 
+  // Get user's assigned tasks
+  app.get("/api/my-tasks", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      console.log(`📋 API: Fetching tasks for user ${req.user.id}`);
+      const tasks = await storage.getUserTasks(req.user.id);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching user tasks:", error);
+      res.status(500).json({ message: "Error fetching tasks" });
+    }
+  });
+
   return httpServer;
 }

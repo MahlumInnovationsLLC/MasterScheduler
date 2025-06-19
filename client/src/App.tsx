@@ -37,6 +37,7 @@ import MeetingView from "@/pages/MeetingView";
 import QualityAssurance from "@/pages/QualityAssurance";
 import MetricsManagement from "@/pages/MetricsManagement";
 import Priorities from "@/pages/Priorities";
+import Tasks from "@/pages/Tasks";
 import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -145,6 +146,7 @@ function MainContent() {
     if (location === '/calendar') return 'Calendar';
     if (location === '/meetings') return 'Meetings';
     if (location.startsWith('/meetings/')) return 'Meeting Details';
+    if (location === '/tasks') return 'My Tasks';
     if (location === '/quality-assurance') return 'Quality Assurance';
     if (location === '/sales-forecast') return 'Sales Forecast';
     if (location === '/reports') return 'Reports';

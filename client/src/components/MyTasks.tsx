@@ -95,7 +95,7 @@ export const MyTasks = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Fetch user's assigned tasks
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading } = useQuery<TaskItem[]>({
     queryKey: ['/api/my-tasks', user?.id],
     enabled: !!user?.id,
   });

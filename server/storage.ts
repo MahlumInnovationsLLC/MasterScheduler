@@ -5196,6 +5196,180 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // User Tasks methods
+  async getUserTasks(userId: string): Promise<any[]> {
+    try {
+      console.log(`📋 TASKS: Fetching tasks for user ${userId}`);
+      
+      const userTasks: any[] = [];
+      
+      // 1. Get project tasks assigned to the user
+      const projectTasks = await db
+        .select({
+          id: tasks.id,
+          name: tasks.name,
+          description: tasks.description,
+          dueDate: tasks.dueDate,
+          isCompleted: tasks.isCompleted,
+          createdAt: tasks.createdAt,
+          projectId: tasks.projectId,
+          projectName: projects.name,
+          projectNumber: projects.projectNumber,
+        })
+        .from(tasks)
+        .leftJoin(projects, eq(tasks.projectId, projects.id))
+        .where(eq(tasks.assignedToUserId, userId));
+
+      // Add project tasks to the list
+      projectTasks.forEach(task => {
+        const now = new Date();
+        const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+        let status = 'pending';
+        
+        if (task.isCompleted) {
+          status = 'completed';
+        } else if (dueDate && dueDate < now) {
+          status = 'overdue';
+        }
+
+        userTasks.push({
+          id: task.id,
+          type: 'project_task',
+          title: task.name,
+          description: task.description,
+          dueDate: task.dueDate,
+          priority: 'medium', // Default priority for project tasks
+          status: status,
+          projectId: task.projectId,
+          projectName: task.projectName,
+          projectNumber: task.projectNumber,
+          createdAt: task.createdAt,
+          link: `/projects/${task.projectId}#task-${task.id}`
+        });
+      });
+
+      // 2. Get meeting tasks assigned to the user
+      const meetingTasksQuery = await db
+        .select({
+          id: meetingTasks.id,
+          description: meetingTasks.description,
+          dueDate: meetingTasks.dueDate,
+          priority: meetingTasks.priority,
+          status: meetingTasks.status,
+          createdAt: meetingTasks.createdAt,
+          meetingId: meetingTasks.meetingId,
+          projectId: meetingTasks.projectId,
+          meetingTitle: meetings.title,
+          projectName: projects.name,
+          projectNumber: projects.projectNumber,
+        })
+        .from(meetingTasks)
+        .leftJoin(meetings, eq(meetingTasks.meetingId, meetings.id))
+        .leftJoin(projects, eq(meetingTasks.projectId, projects.id))
+        .where(eq(meetingTasks.assignedToId, userId));
+
+      // Add meeting tasks to the list
+      meetingTasksQuery.forEach(task => {
+        const now = new Date();
+        const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+        let status = task.status;
+        
+        if (status === 'pending' && dueDate && dueDate < now) {
+          status = 'overdue';
+        }
+
+        userTasks.push({
+          id: task.id,
+          type: 'meeting_task',
+          title: task.description,
+          description: task.description,
+          dueDate: task.dueDate,
+          priority: task.priority || 'medium',
+          status: status,
+          projectId: task.projectId,
+          projectName: task.projectName,
+          projectNumber: task.projectNumber,
+          meetingId: task.meetingId,
+          meetingTitle: task.meetingTitle,
+          createdAt: task.createdAt,
+          link: `/meetings/${task.meetingId}#task-${task.id}`
+        });
+      });
+
+      // 3. Get elevated concerns assigned to the user
+      const elevatedConcernsQuery = await db
+        .select({
+          id: elevatedConcerns.id,
+          title: elevatedConcerns.title,
+          description: elevatedConcerns.description,
+          dueDate: elevatedConcerns.dueDate,
+          priority: elevatedConcerns.priority,
+          status: elevatedConcerns.status,
+          createdAt: elevatedConcerns.createdAt,
+          projectId: elevatedConcerns.projectId,
+          projectName: projects.name,
+          projectNumber: projects.projectNumber,
+        })
+        .from(elevatedConcerns)
+        .leftJoin(projects, eq(elevatedConcerns.projectId, projects.id))
+        .where(eq(elevatedConcerns.assignedToId, userId));
+
+      // Add elevated concerns to the list
+      elevatedConcernsQuery.forEach(concern => {
+        const now = new Date();
+        const dueDate = concern.dueDate ? new Date(concern.dueDate) : null;
+        let status = concern.status;
+        
+        if (status === 'pending' && dueDate && dueDate < now) {
+          status = 'overdue';
+        }
+
+        userTasks.push({
+          id: concern.id,
+          type: 'elevated_concern',
+          title: concern.title,
+          description: concern.description,
+          dueDate: concern.dueDate,
+          priority: concern.priority || 'high',
+          status: status,
+          projectId: concern.projectId,
+          projectName: concern.projectName,
+          projectNumber: concern.projectNumber,
+          createdAt: concern.createdAt,
+          link: `/projects/${concern.projectId}#concern-${concern.id}`
+        });
+      });
+
+      // Sort tasks by priority and due date
+      userTasks.sort((a, b) => {
+        // First sort by priority
+        const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+        const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
+        const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
+        
+        if (aPriority !== bPriority) {
+          return aPriority - bPriority;
+        }
+        
+        // Then sort by due date (overdue first, then soonest)
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        if (a.dueDate && !b.dueDate) return -1;
+        if (!a.dueDate && b.dueDate) return 1;
+        
+        // Finally sort by creation date (newest first)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      console.log(`📋 TASKS: Found ${userTasks.length} tasks for user ${userId}`);
+      return userTasks;
+    } catch (error) {
+      console.error("Error fetching user tasks:", error);
+      return [];
+    }
+  }
+
 }
 
 export const storage = new DatabaseStorage();
