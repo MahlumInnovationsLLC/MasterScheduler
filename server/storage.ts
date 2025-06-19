@@ -5244,7 +5244,7 @@ export class DatabaseStorage implements IStorage {
           projectName: task.projectName,
           projectNumber: task.projectNumber,
           createdAt: task.createdAt,
-          link: `/projects/${task.projectId}#task-${task.id}`
+          link: `/projects/${task.projectId}`
         });
       });
 
@@ -5340,25 +5340,33 @@ export class DatabaseStorage implements IStorage {
         });
       });
 
-      // Sort tasks by priority and due date
+      // Sort tasks: incomplete tasks by due date first, then completed tasks
       userTasks.sort((a, b) => {
-        // First sort by priority
-        const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-        const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
-        const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
+        // First, separate completed from incomplete tasks
+        if (a.status === 'completed' && b.status !== 'completed') return 1;
+        if (a.status !== 'completed' && b.status === 'completed') return -1;
         
-        if (aPriority !== bPriority) {
+        // For incomplete tasks, sort by urgency (overdue first, then by due date)
+        if (a.status !== 'completed' && b.status !== 'completed') {
+          // Overdue tasks first
+          if (a.status === 'overdue' && b.status !== 'overdue') return -1;
+          if (a.status !== 'overdue' && b.status === 'overdue') return 1;
+          
+          // Then sort by due date (soonest first)
+          if (a.dueDate && b.dueDate) {
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          }
+          if (a.dueDate && !b.dueDate) return -1;
+          if (!a.dueDate && b.dueDate) return 1;
+          
+          // Finally by priority for tasks with same due date
+          const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+          const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 2;
+          const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 2;
           return aPriority - bPriority;
         }
         
-        // Then sort by due date (overdue first, then soonest)
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && b.dueDate) return 1;
-        
-        // Finally sort by creation date (newest first)
+        // For completed tasks, sort by completion date (newest first)
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 

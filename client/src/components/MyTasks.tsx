@@ -100,20 +100,24 @@ export const MyTasks = () => {
     enabled: !!user?.id,
   });
 
-  // Filter tasks based on status
-  const filteredTasks = tasks.filter((task: TaskItem) => {
+  // Separate active and completed tasks
+  const activeTasks = tasks.filter((task: TaskItem) => task.status !== 'completed');
+  const completedTasks = tasks.filter((task: TaskItem) => task.status === 'completed');
+
+  // Filter active tasks based on status
+  const filteredActiveTasks = activeTasks.filter((task: TaskItem) => {
     if (filterStatus === 'all') return true;
-    if (filterStatus === 'active') return ['pending', 'in_progress'].includes(task.status);
+    if (filterStatus === 'active') return ['pending', 'in_progress', 'overdue'].includes(task.status);
     return task.status === filterStatus;
   });
 
   // Count tasks by status
   const taskCounts = {
     all: tasks.length,
-    active: tasks.filter((t: TaskItem) => ['pending', 'in_progress'].includes(t.status)).length,
+    active: activeTasks.length,
     pending: tasks.filter((t: TaskItem) => t.status === 'pending').length,
     in_progress: tasks.filter((t: TaskItem) => t.status === 'in_progress').length,
-    completed: tasks.filter((t: TaskItem) => t.status === 'completed').length,
+    completed: completedTasks.length,
     overdue: tasks.filter((t: TaskItem) => t.status === 'overdue').length,
   };
 
@@ -242,24 +246,46 @@ export const MyTasks = () => {
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               </div>
-            ) : filteredTasks.length === 0 ? (
+            ) : activeTasks.length === 0 && completedTasks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">
-                  {filterStatus === 'all' ? 'No tasks assigned to you' : `No ${filterStatus} tasks`}
-                </p>
+                <p className="text-sm">No tasks assigned to you</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {filteredTasks.map((task: TaskItem) => (
-                  <TaskCard key={`${task.type}-${task.id}`} task={task} />
-                ))}
+              <div className="space-y-4">
+                {/* Active Tasks Section */}
+                {filteredActiveTasks.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 px-1">
+                      Active Tasks ({filteredActiveTasks.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {filteredActiveTasks.map((task: TaskItem) => (
+                        <TaskCard key={`${task.type}-${task.id}`} task={task} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Completed Tasks Section */}
+                {completedTasks.length > 0 && (filterStatus === 'all' || filterStatus === 'completed') && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 px-1 border-t pt-4">
+                      Completed Tasks ({completedTasks.length})
+                    </h4>
+                    <div className="space-y-2 opacity-60">
+                      {completedTasks.map((task: TaskItem) => (
+                        <TaskCard key={`${task.type}-${task.id}`} task={task} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </ScrollArea>
 
-        {filteredTasks.length > 0 && (
+        {(filteredActiveTasks.length > 0 || completedTasks.length > 0) && (
           <div className="p-3 border-t">
             <Link href="/tasks">
               <Button variant="outline" className="w-full" size="sm">
