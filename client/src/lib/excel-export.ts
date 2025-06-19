@@ -30,16 +30,16 @@ export function exportProjectsToExcel(projects: ProjectForExport[], filename: st
     }
 
     // Define columns to include based on currently visible columns
-    // Including FAB and Assembly start dates, removing Progress %
+    // Chassis ETA and Mech Shop moved before FAB and Assembly start dates
     const visibleColumns = [
       { key: 'projectNumber', label: 'Project Number' },
       { key: 'name', label: 'Project Name' },
       { key: 'pmOwner', label: 'PM Owner' },
       { key: 'contractDate', label: 'Contract Date' },
-      { key: 'fabricationStart', label: 'Fabrication Start' },
-      { key: 'assemblyStart', label: 'Assembly Start' },
       { key: 'chassisETA', label: 'Chassis ETA' },
       { key: 'mechShop', label: 'Mech Shop' },
+      { key: 'fabricationStart', label: 'Fabrication Start' },
+      { key: 'assemblyStart', label: 'Assembly Start' },
       { key: 'qcStartDate', label: 'QC Start Date' },
       { key: 'shipDate', label: 'Ship Date' },
       { key: 'deliveryDate', label: 'Delivery Date' },
