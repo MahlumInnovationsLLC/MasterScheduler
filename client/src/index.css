@@ -934,6 +934,14 @@ select:focus {
   color: #374151 !important;
 }
 
+/* Exception: Keep blue buttons with white text */
+:root:not(.dark) .bg-blue-600.text-white,
+:root:not(.dark) .bg-blue-700.text-white,
+:root:not(.dark) button.bg-blue-600.text-white,
+:root:not(.dark) button.bg-blue-700.text-white {
+  color: #ffffff !important;
+}
+
 /* Light mode table content - only override white text */
 :root:not(.dark) .data-table th:where([style*="color: white"], [style*="color: #fff"]),
 :root:not(.dark) .data-table td:where([style*="color: white"], [style*="color: #fff"]),
