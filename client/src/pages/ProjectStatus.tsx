@@ -1101,12 +1101,9 @@ const ProjectStatus = () => {
       console.log('Starting export process...');
       console.log('Filtered projects count:', filteredProjects.length);
       
-      // Filter out delivered projects
-      const deliveredProjects = deliveredProjectsQuery.data || [];
-      const deliveredProjectIds = new Set(deliveredProjects.map((p: any) => p.id));
-      
+      // Filter out delivered projects by status rather than using a separate query
       const nonDeliveredProjects = filteredProjects.filter(project => 
-        !deliveredProjectIds.has(project.id)
+        project.status !== 'delivered'
       );
 
       console.log('Non-delivered projects count:', nonDeliveredProjects.length);
