@@ -53,6 +53,7 @@ const BillingMilestones = () => {
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // Default to current month
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0); // Default to first week
   const [isAcceptingShipDate, setIsAcceptingShipDate] = useState<{[key: number]: boolean}>({}); // Track accept ship date state by milestone ID
+  const [activeTab, setActiveTab] = useState<'open' | 'invoiced'>('open'); // Tab state for filtering
   const { toast } = useToast();
   
   // Handler for viewing milestone details
@@ -83,9 +84,22 @@ const BillingMilestones = () => {
   };
   
   // Query for billing milestones
-  const { data: billingMilestones, isLoading: isLoadingBilling } = useQuery({
+  const { data: allBillingMilestones, isLoading: isLoadingBilling } = useQuery({
     queryKey: ['/api/billing-milestones'],
   });
+
+  // Filter milestones based on active tab
+  const billingMilestones = React.useMemo(() => {
+    if (!allBillingMilestones) return [];
+    
+    return allBillingMilestones.filter(milestone => {
+      if (activeTab === 'open') {
+        return milestone.status !== 'invoiced' && milestone.status !== 'paid';
+      } else {
+        return milestone.status === 'invoiced' || milestone.status === 'paid';
+      }
+    });
+  }, [allBillingMilestones, activeTab]);
   
   // Query for financial goals
   const { data: financialGoals, isLoading: isLoadingGoals } = useQuery<{
@@ -281,23 +295,22 @@ const BillingMilestones = () => {
     setIsAcceptingShipDate(prev => ({ ...prev, [id]: true }));
     
     try {
-      console.log(`🔄 Accepting ship date for milestone ${id}`);
+      console.log(`📅 Accepting date change for milestone ${id}`);
       const response = await apiRequest("PATCH", `/api/billing-milestones/${id}`, {
-        shipDateChanged: false,
-        lastAcceptedShipDate: format(new Date(), 'yyyy-MM-dd')
+        acceptDateChange: true
       });
       
       if (response.ok) {
-        console.log(`✅ Ship date accepted for milestone ${id}`);
+        console.log(`✅ Date change accepted for milestone ${id}`);
         toast({
-          title: "Ship Date Accepted",
-          description: "You have accepted the new ship date change",
+          title: "Date Change Accepted",
+          description: "The target date has been updated to match the live date",
         });
         queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to accept ship date change");
+        throw new Error(errorData.message || "Failed to accept date change");
       }
     } catch (error) {
       console.error(`❌ Error accepting ship date for milestone ${id}:`, error);
@@ -1374,6 +1387,32 @@ const BillingMilestones = () => {
           <Download className="mr-2 h-4 w-4" />
           Export Report
         </Button>
+      </div>
+      
+      {/* Tab interface for filtering open vs invoiced milestones */}
+      <div className="mb-6">
+        <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
+          <button
+            onClick={() => setActiveTab('open')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'open'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Open Milestones ({allBillingMilestones?.filter(m => m.status !== 'invoiced' && m.status !== 'paid').length || 0})
+          </button>
+          <button
+            onClick={() => setActiveTab('invoiced')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'invoiced'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Invoiced ({allBillingMilestones?.filter(m => m.status === 'invoiced' || m.status === 'paid').length || 0})
+          </button>
+        </div>
       </div>
 
       <DataTable
