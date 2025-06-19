@@ -1177,6 +1177,11 @@ button[role="switch"] input[type="checkbox"] {
   color: #4b5563 !important;
 }
 
+/* Exception: Keep delivered projects table text readable in light mode */
+:root:not(.dark) .text-blue-400 {
+  color: #3b82f6 !important;
+}
+
 /* Exception: Fix project name text in tables - ensure they're dark in light mode */
 :root:not(.dark) .data-table td .text-xs.text-gray-400,
 :root:not(.dark) .data-table td div .text-xs.text-gray-400,
