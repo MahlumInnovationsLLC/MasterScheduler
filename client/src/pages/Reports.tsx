@@ -844,7 +844,7 @@ const ReportsPage = () => {
                                 {/* Project Status */}
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-gray-400">Status:</span>
-                                  <Badge className={`text-xs
+                                  <Badge className={`text-xs text-white
                                     ${project.status === 'completed' && 'bg-green-500'} 
                                     ${project.status === 'at-risk' && 'bg-yellow-500'} 
                                     ${project.status === 'delayed' && 'bg-red-500'}
