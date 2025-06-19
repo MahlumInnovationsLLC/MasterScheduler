@@ -6713,7 +6713,7 @@ Response format:
   });
 
   // Get user's assigned tasks
-  app.get("/api/my-tasks", async (req, res) => {
+  app.get("/api/my-tasks", simpleAuth, async (req, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Not authenticated" });
