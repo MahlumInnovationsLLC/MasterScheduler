@@ -240,7 +240,7 @@ export const MyTasks = () => {
           </div>
         </div>
 
-        <ScrollArea className="max-h-96">
+        <ScrollArea className="max-h-[400px] min-h-[200px]">
           <div className="p-2">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
