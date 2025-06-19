@@ -783,8 +783,12 @@ const BillingMilestones = () => {
         const displayDate = isDeliveryMilestone && projectDeliveryDate ? 
           projectDeliveryDate : row.original.liveDate;
         
-        // Check if there's a pending date change (shipDateChanged flag)
-        const hasDateChange = row.original.shipDateChanged && isDeliveryMilestone;
+        // Check if there's an actual difference between target date and live date
+        const targetDate = row.original.targetInvoiceDate;
+        const hasDateChange = isDeliveryMilestone && 
+                             projectDeliveryDate && 
+                             targetDate && 
+                             new Date(projectDeliveryDate).toDateString() !== new Date(targetDate).toDateString();
         
         // Each cell needs its own state
         const cellId = `livedate-${row.original.id}`;
