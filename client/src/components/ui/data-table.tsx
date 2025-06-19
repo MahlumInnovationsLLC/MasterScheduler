@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronsUpDown,
+  Download,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ interface DataTableProps<TData, TValue> {
   enableSorting?: boolean; // Control whether sorting is enabled
   persistenceKey?: string; // Unique key for persisting pagination state
   initialSorting?: SortingState; // Initial sorting configuration
+  onExportExcel?: () => void; // Optional export function
 }
 
 export function DataTable<TData, TValue>({
@@ -61,6 +63,7 @@ export function DataTable<TData, TValue>({
   enableSorting = true,
   persistenceKey,
   initialSorting = [],
+  onExportExcel,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -237,6 +240,17 @@ export function DataTable<TData, TValue>({
           <h2 className="font-bold text-lg">
             {table.getFilteredRowModel().rows.length} Results
           </h2>
+          {onExportExcel && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onExportExcel}
+              className="ml-2"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export Excel
+            </Button>
+          )}
           {/* Extra slot for custom filter buttons - will be used by ProjectStatus page */}
           <div id="custom-filter-buttons"></div>
         </div>
