@@ -221,12 +221,14 @@ const BillingMilestones = () => {
   // Handler for marking milestone as invoiced
   const handleMarkAsInvoiced = async (id: number) => {
     try {
+      console.log(`🔄 Marking milestone ${id} as invoiced`);
       const response = await apiRequest("PATCH", `/api/billing-milestones/${id}`, {
         status: 'invoiced',
         actualInvoiceDate: format(new Date(), 'yyyy-MM-dd')
       });
       
       if (response.ok) {
+        console.log(`✅ Milestone ${id} marked as invoiced`);
         toast({
           title: "Success",
           description: "Milestone marked as invoiced",
@@ -234,9 +236,11 @@ const BillingMilestones = () => {
         queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       } else {
-        throw new Error("Failed to update milestone");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update milestone");
       }
     } catch (error) {
+      console.error(`❌ Error marking milestone ${id} as invoiced:`, error);
       toast({
         title: "Error",
         description: `Failed to mark milestone as invoiced: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -277,12 +281,14 @@ const BillingMilestones = () => {
     setIsAcceptingShipDate(prev => ({ ...prev, [id]: true }));
     
     try {
+      console.log(`🔄 Accepting ship date for milestone ${id}`);
       const response = await apiRequest("PATCH", `/api/billing-milestones/${id}`, {
         shipDateChanged: false,
         lastAcceptedShipDate: format(new Date(), 'yyyy-MM-dd')
       });
       
       if (response.ok) {
+        console.log(`✅ Ship date accepted for milestone ${id}`);
         toast({
           title: "Ship Date Accepted",
           description: "You have accepted the new ship date change",
@@ -290,9 +296,11 @@ const BillingMilestones = () => {
         queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       } else {
-        throw new Error("Failed to accept ship date change");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to accept ship date change");
       }
     } catch (error) {
+      console.error(`❌ Error accepting ship date for milestone ${id}:`, error);
       toast({
         title: "Error",
         description: `Failed to accept ship date: ${error instanceof Error ? error.message : "Unknown error"}`,
