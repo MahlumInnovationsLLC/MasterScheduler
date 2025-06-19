@@ -328,6 +328,81 @@ const ReportsPage = () => {
       .map(([name, value]) => ({ name, value }));
   };
 
+  // Query for all project label assignments to calculate issue distribution
+  const { data: allProjectLabelAssignments = [] } = useQuery({
+    queryKey: ['/api/all-project-label-assignments'],
+    queryFn: () => fetch('/api/all-project-label-assignments').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  // Query for available labels
+  const { data: availableLabels = [] } = useQuery({
+    queryKey: ['/api/project-labels'],
+    queryFn: () => fetch('/api/project-labels').then(res => res.json()),
+    enabled: isAuthenticated,
+  });
+
+  // Calculate project issue distribution based on labels
+  const getProjectIssueDistribution = () => {
+    if (!availableLabels || !allProjectLabelAssignments || filteredProjects.length === 0) {
+      return [
+        { name: 'Good', value: 0 },
+        { name: 'Major Issue', value: 0 },
+        { name: 'Minor Issue', value: 0 }
+      ];
+    }
+
+    // Find label IDs for issue types
+    const majorLabel = availableLabels.find(l => l.name.toUpperCase().includes('MAJOR'));
+    const minorLabel = availableLabels.find(l => l.name.toUpperCase().includes('MINOR'));
+    const goodLabel = availableLabels.find(l => l.name.toUpperCase().includes('GOOD'));
+
+    // Get project IDs in our filtered set
+    const filteredProjectIds = new Set(filteredProjects.map(p => p.id));
+
+    // Count assignments for filtered projects only
+    const majorCount = majorLabel ? 
+      allProjectLabelAssignments.filter(assignment => 
+        filteredProjectIds.has(assignment.projectId) && 
+        Number(assignment.labelId) === Number(majorLabel.id)
+      ).length : 0;
+
+    const minorCount = minorLabel ? 
+      allProjectLabelAssignments.filter(assignment => 
+        filteredProjectIds.has(assignment.projectId) && 
+        Number(assignment.labelId) === Number(minorLabel.id)
+      ).length : 0;
+
+    const goodCount = goodLabel ? 
+      allProjectLabelAssignments.filter(assignment => 
+        filteredProjectIds.has(assignment.projectId) && 
+        Number(assignment.labelId) === Number(goodLabel.id)
+      ).length : 0;
+
+    // Projects without any quality labels are considered "unlabeled" but we'll include them in "Good"
+    const labeledProjectIds = new Set(
+      allProjectLabelAssignments
+        .filter(assignment => filteredProjectIds.has(assignment.projectId))
+        .filter(assignment => {
+          const labelId = Number(assignment.labelId);
+          return (majorLabel && labelId === Number(majorLabel.id)) ||
+                 (minorLabel && labelId === Number(minorLabel.id)) ||
+                 (goodLabel && labelId === Number(goodLabel.id));
+        })
+        .map(assignment => assignment.projectId)
+    );
+
+    const unlabeledCount = filteredProjects.length - labeledProjectIds.size;
+    const finalGoodCount = goodCount + unlabeledCount;
+
+    return [
+      { name: 'Good', value: finalGoodCount },
+      { name: 'Major Issue', value: majorCount },
+      { name: 'Minor Issue', value: minorCount }
+    ].filter(item => item.value > 0);
+  };
+
   // Prepare manufacturing data
   const getManufacturingData = () => {
     const bayUtilization: Record<string, { bay: string, scheduled: number, completed: number, utilization: number }> = {};
@@ -650,18 +725,18 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
 
-              {/* Project Status Distribution */}
+              {/* Project Issue Distribution */}
               <Card className="mb-4">
                 <CardHeader>
-                  <CardTitle>Active Project Status Distribution</CardTitle>
-                  <CardDescription>Current project health breakdown (excluding delivered projects)</CardDescription>
+                  <CardTitle>Project Issue Distribution</CardTitle>
+                  <CardDescription>Breakdown of projects by quality labels (Good, Major Issue, Minor Issue)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={projectReportData?.statusDistribution || []}
+                          data={getProjectIssueDistribution()}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
@@ -670,9 +745,14 @@ const ReportsPage = () => {
                           dataKey="value"
                           label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                         >
-                          {(projectReportData?.statusDistribution || []).map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
+                          {getProjectIssueDistribution().map((entry, index) => {
+                            // Use specific colors for each category
+                            const color = entry.name === 'Good' ? '#10b981' : 
+                                         entry.name === 'Major Issue' ? '#ef4444' : 
+                                         entry.name === 'Minor Issue' ? '#f59e0b' : 
+                                         '#6b7280';
+                            return <Cell key={`cell-${index}`} fill={color} />;
+                          })}
                         </Pie>
                         <Tooltip formatter={(value) => [value, 'Projects']} />
                         <Legend />
