@@ -189,6 +189,7 @@ function MainContent() {
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/meetings" component={Meetings} />
             <ProtectedRoute path="/meetings/:id" component={MeetingView} />
+            <ProtectedRoute path="/tasks" component={Tasks} />
             <ProtectedRoute path="/priorities" component={Priorities} />
             <ViewerRestrictedRoute path="/quality-assurance" component={QualityAssurance} />
             <ProtectedRoute path="/metrics" component={MetricsManagement} />
@@ -233,6 +234,7 @@ function MainContent() {
             <ViewerRestrictedRoute path="/bay-scheduling" component={BaySchedulingPage} redirectPath="/" />
             <ProtectedRoute path="/meetings" component={Meetings} />
             <ProtectedRoute path="/meetings/:id" component={MeetingView} />
+            <ProtectedRoute path="/tasks" component={Tasks} />
             <ProtectedRoute path="/priorities" component={Priorities} />
             <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
