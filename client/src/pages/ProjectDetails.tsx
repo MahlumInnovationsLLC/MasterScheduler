@@ -242,7 +242,7 @@ const ProjectDetails = () => {
         description: '',
         dueDate: new Date().toISOString().split('T')[0],
         milestoneId: 0,
-        assignedToUserId: ''
+        assignedToUserId: 'unassigned'
       });
       setEditTaskId(null);
     }
@@ -1032,7 +1032,7 @@ const ProjectDetails = () => {
                               description: task.description || '',
                               dueDate: new Date(task.dueDate).toISOString().split('T')[0],
                               milestoneId: milestone.id,
-                              assignedToUserId: task.assignedToUserId || ''
+                              assignedToUserId: task.assignedToUserId || 'unassigned'
                             });
                             setTaskDialogOpen(true);
                           }}
@@ -1726,14 +1726,14 @@ const ProjectDetails = () => {
             <div className="space-y-2">
               <Label htmlFor="taskAssignedTo" className="text-white">Assigned To</Label>
               <Select
-                value={taskForm.assignedToUserId}
-                onValueChange={(value) => setTaskForm({...taskForm, assignedToUserId: value})}
+                value={taskForm.assignedToUserId || "unassigned"}
+                onValueChange={(value) => setTaskForm({...taskForm, assignedToUserId: value === "unassigned" ? "" : value})}
               >
                 <SelectTrigger className="bg-white border-gray-300 text-black">
                   <SelectValue placeholder="Select user (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-gray-300">
-                  <SelectItem value="" className="text-black">Unassigned</SelectItem>
+                  <SelectItem value="unassigned" className="text-black">Unassigned</SelectItem>
                   {users.map((user: any) => (
                     <SelectItem key={user.id} value={user.id} className="text-black">
                       {user.firstName} {user.lastName}
