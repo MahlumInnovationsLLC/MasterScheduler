@@ -49,12 +49,9 @@ export default function ResetPasswordPage() {
         throw new Error("Invalid reset token");
       }
       
-      const response = await apiRequest("/api/reset-password", {
-        method: "POST",
-        body: JSON.stringify({
-          token,
-          newPassword: data.password,
-        }),
+      const response = await apiRequest("POST", "/api/reset-password", {
+        token,
+        newPassword: data.password,
       });
       return response;
     },

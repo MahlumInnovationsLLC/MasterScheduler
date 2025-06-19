@@ -41,7 +41,7 @@ import {
 
 import { exportReport } from "./routes/export";
 import { setupProjectHealthRoutes } from "./routes/project-health";
-import { hashPassword } from "./auth";
+import { hashPassword, comparePasswords } from "./auth";
 import { sendEmail, generatePasswordResetEmail } from "./email";
 import { randomBytes } from "crypto";
 import { trackChanges, createForensicsRecord, getForensicsContext } from "./forensics";
@@ -5042,6 +5042,7 @@ Response format:
   app.post("/api/reset-password", async (req, res) => {
     try {
       const { token, newPassword } = req.body;
+      console.log("🔐 Password reset attempt:", { token: token ? 'present' : 'missing', passwordLength: newPassword?.length });
       
       if (!token || !newPassword) {
         return res.status(400).json({ message: "Token and new password are required" });
@@ -5054,11 +5055,16 @@ Response format:
       // Find user by reset token
       const user = await storage.getUserByPasswordResetToken(token);
       if (!user) {
+        console.log("❌ Invalid or expired reset token:", token);
         return res.status(400).json({ message: "Invalid or expired reset token" });
       }
 
+      console.log("✅ User found for password reset:", user.email);
+
       // Hash the new password
+      console.log("🔐 Hashing new password...");
       const hashedPassword = await hashPassword(newPassword);
+      console.log("✅ Password hashed successfully");
       
       // Update user's password and clear reset token
       await storage.updateUserPassword(user.id, hashedPassword);
@@ -5071,8 +5077,8 @@ Response format:
         message: "Password has been reset successfully. You can now log in with your new password." 
       });
     } catch (error) {
-      console.error("Error resetting password:", error);
-      res.status(500).json({ message: "Error resetting password" });
+      console.error("❌ Error resetting password:", error);
+      res.status(500).json({ message: "Error resetting password: " + (error as Error).message });
     }
   });
 
