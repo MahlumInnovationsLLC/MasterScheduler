@@ -923,14 +923,14 @@ select:focus {
   border: 1px solid #d1d5db;
 }
 
-/* Light mode text color fixes - only for white text elements */
-:root:not(.dark) .text-white,
-:root:not(.dark) [style*="color: white"],
-:root:not(.dark) [style*="color: #ffffff"],
-:root:not(.dark) [style*="color: #fff"],
-:root:not(.dark) [style*="color:white"],
-:root:not(.dark) [style*="color:#ffffff"],
-:root:not(.dark) [style*="color:#fff"] {
+/* Light mode text color fixes - only for white text elements but EXCLUDE location boxes */
+:root:not(.dark) .text-white:not(.location-text):not([style*="linear-gradient"]),
+:root:not(.dark) [style*="color: white"]:not([style*="linear-gradient"]),
+:root:not(.dark) [style*="color: #ffffff"]:not([style*="linear-gradient"]),
+:root:not(.dark) [style*="color: #fff"]:not([style*="linear-gradient"]),
+:root:not(.dark) [style*="color:white"]:not([style*="linear-gradient"]),
+:root:not(.dark) [style*="color:#ffffff"]:not([style*="linear-gradient"]),
+:root:not(.dark) [style*="color:#fff"]:not([style*="linear-gradient"]) {
   color: #374151 !important;
 }
 
@@ -942,20 +942,40 @@ select:focus {
   color: #ffffff !important;
 }
 
-/* Exception: Keep location boxes with white text in both modes */
+/* FORCE location boxes to always have white text regardless of mode */
 .data-table td .text-white.px-3.py-1.rounded,
 .data-table td div[style*="linear-gradient"].text-white,
-.light .data-table td .text-white.px-3.py-1.rounded,
-.light .data-table td div[style*="linear-gradient"].text-white {
+.data-table td .px-3.py-1.rounded,
+.data-table td div[style*="linear-gradient"],
+.location-block,
+.data-table td[data-location],
+.table-cell-location,
+:root:not(.dark) .data-table td .text-white.px-3.py-1.rounded,
+:root:not(.dark) .data-table td div[style*="linear-gradient"].text-white,
+:root:not(.dark) .data-table td .px-3.py-1.rounded,
+:root:not(.dark) .data-table td div[style*="linear-gradient"],
+:root:not(.dark) .location-block,
+:root:not(.dark) .data-table td[data-location],
+:root:not(.dark) .table-cell-location {
   color: #ffffff !important;
 }
 
-/* Light mode table content - only override white text */
-:root:not(.dark) .data-table th:where([style*="color: white"], [style*="color: #fff"]),
-:root:not(.dark) .data-table td:where([style*="color: white"], [style*="color: #fff"]),
-:root:not(.dark) table th:where([style*="color: white"], [style*="color: #fff"]),
-:root:not(.dark) table td:where([style*="color: white"], [style*="color: #fff"]) {
+/* Light mode table content - only override white text but EXCLUDE location boxes */
+:root:not(.dark) .data-table th:where([style*="color: white"], [style*="color: #fff"]):not([style*="linear-gradient"]),
+:root:not(.dark) .data-table td:where([style*="color: white"], [style*="color: #fff"]):not([style*="linear-gradient"]):not(.location-cell),
+:root:not(.dark) table th:where([style*="color: white"], [style*="color: #fff"]):not([style*="linear-gradient"]),
+:root:not(.dark) table td:where([style*="color: white"], [style*="color: #fff"]):not([style*="linear-gradient"]):not(.location-cell) {
   color: #374151 !important;
+}
+
+/* Force location boxes in Projects module to have white text */
+:root:not(.dark) .data-table td:first-child,
+:root:not(.dark) .data-table td:first-child div,
+:root:not(.dark) .data-table td:first-child .px-3,
+:root:not(.dark) table td:first-child,
+:root:not(.dark) table td:first-child div,
+:root:not(.dark) table td:first-child .px-3 {
+  color: #ffffff !important;
 }
 
 .location-block:empty,
