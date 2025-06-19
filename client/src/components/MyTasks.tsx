@@ -130,7 +130,7 @@ export const MyTasks = () => {
         </div>
         <div className="flex items-center gap-1 ml-2">
           <div className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`} />
-          <Link href={`/projects/${task.projectId}`}>
+          <Link href={`/project/${task.projectId}`}>
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
               <ExternalLink className="h-3 w-3" />
             </Button>

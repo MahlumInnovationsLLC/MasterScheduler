@@ -5244,7 +5244,7 @@ export class DatabaseStorage implements IStorage {
           projectName: task.projectName,
           projectNumber: task.projectNumber,
           createdAt: task.createdAt,
-          link: `/projects/${task.projectId}`
+          link: `/project/${task.projectId}`
         });
       });
 
