@@ -853,12 +853,12 @@ const ReportsPage = () => {
                                   </Badge>
                                 </div>
 
-                                {/* Manufacturing hours if available */}
-                                {projectSchedules.length > 0 && (
+                                {/* Total build hours from project data */}
+                                {project.totalHours && (
                                   <div className="flex items-center justify-between text-xs">
-                                    <span className="text-gray-400">Mfg Hours:</span>
+                                    <span className="text-gray-400">Total Hours:</span>
                                     <span className="font-medium text-white">
-                                      {projectSchedules.reduce((sum, s) => sum + (s.totalHours || 0), 0)}h
+                                      {project.totalHours}h
                                     </span>
                                   </div>
                                 )}
