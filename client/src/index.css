@@ -1166,3 +1166,13 @@ select:focus {
 button[role="switch"] input[type="checkbox"] {
   display: none !important;
 }
+
+/* Exception: Keep login card description text readable in light mode */
+:root:not(.dark) .text-gray-300 {
+  color: #6b7280 !important;
+}
+
+/* Exception: Specific fix for login card paragraph text */
+:root:not(.dark) p.text-gray-300 {
+  color: #4b5563 !important;
+}
