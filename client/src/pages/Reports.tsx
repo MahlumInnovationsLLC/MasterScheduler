@@ -841,17 +841,40 @@ const ReportsPage = () => {
                                   </span>
                                 </div>
 
-                                {/* Project Status */}
+                                {/* Quality Status */}
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-gray-400">Status:</span>
-                                  <Badge className={`text-xs text-white
-                                    ${project.status === 'completed' && 'bg-green-500'} 
-                                    ${project.status === 'at-risk' && 'bg-yellow-500'} 
-                                    ${project.status === 'delayed' && 'bg-red-500'}
-                                    ${(!project.status || project.status === 'active') && 'bg-blue-500'}
-                                  `}>
-                                    {project.status || 'Active'}
-                                  </Badge>
+                                  {(() => {
+                                    // Get project's quality label
+                                    const projectAssignments = allProjectLabelAssignments.filter(assignment => assignment.projectId === project.id);
+                                    const majorLabel = availableLabels.find(l => l.name.toUpperCase().includes('MAJOR'));
+                                    const minorLabel = availableLabels.find(l => l.name.toUpperCase().includes('MINOR'));
+                                    const goodLabel = availableLabels.find(l => l.name.toUpperCase().includes('GOOD'));
+                                    
+                                    const hasMajor = majorLabel && projectAssignments.some(a => Number(a.labelId) === Number(majorLabel.id));
+                                    const hasMinor = minorLabel && projectAssignments.some(a => Number(a.labelId) === Number(minorLabel.id));
+                                    const hasGood = goodLabel && projectAssignments.some(a => Number(a.labelId) === Number(goodLabel.id));
+                                    
+                                    let statusText = 'Good';
+                                    let statusColor = 'bg-green-500';
+                                    
+                                    if (hasMajor) {
+                                      statusText = 'Major Issue';
+                                      statusColor = 'bg-red-500';
+                                    } else if (hasMinor) {
+                                      statusText = 'Minor Issue';
+                                      statusColor = 'bg-yellow-500';
+                                    } else if (hasGood) {
+                                      statusText = 'Good';
+                                      statusColor = 'bg-green-500';
+                                    }
+                                    
+                                    return (
+                                      <Badge className={`text-xs text-white ${statusColor}`}>
+                                        {statusText}
+                                      </Badge>
+                                    );
+                                  })()}
                                 </div>
 
                                 {/* Total build hours from project data */}
