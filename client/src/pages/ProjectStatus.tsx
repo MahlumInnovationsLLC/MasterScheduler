@@ -1099,8 +1099,8 @@ const ProjectStatus = () => {
   const handleExcelExport = () => {
     try {
       // Filter out delivered projects
-      const deliveredProjects = deliveredProjectsData || [];
-      const deliveredProjectIds = new Set(deliveredProjects.map(p => p.id));
+      const deliveredProjects = deliveredProjectsQuery.data || [];
+      const deliveredProjectIds = new Set(deliveredProjects.map((p: any) => p.id));
       
       const nonDeliveredProjects = filteredProjects.filter(project => 
         !deliveredProjectIds.has(project.id)
@@ -1115,17 +1115,39 @@ const ProjectStatus = () => {
         return;
       }
 
-      exportProjectsToExcel(nonDeliveredProjects, 'projects-export');
+      // Transform the projects to match the export interface
+      const exportData = nonDeliveredProjects.map(project => ({
+        id: project.id,
+        projectNumber: project.projectNumber || '',
+        name: project.name || '',
+        location: project.location || '',
+        pmOwner: project.pmOwner || '',
+        percentComplete: typeof project.percentComplete === 'number' ? project.percentComplete : 0,
+        contractDate: project.contractDate,
+        startDate: project.startDate,
+        estimatedCompletionDate: project.estimatedCompletionDate,
+        actualCompletionDate: project.actualCompletionDate,
+        deliveryDate: project.deliveryDate,
+        shipDate: project.shipDate,
+        chassisETA: project.chassisETA,
+        mechShop: project.mechShop,
+        qcStartDate: project.qcStartDate,
+        executiveReviewDate: project.executiveReviewDate,
+        notes: project.notes,
+        rawData: project.rawData
+      }));
+
+      exportProjectsToExcel(exportData, 'projects-export');
       
       toast({
         title: 'Export successful',
-        description: `Exported ${nonDeliveredProjects.length} projects to Excel`,
+        description: `Exported ${nonDeliveredProjects.length} projects to CSV`,
       });
     } catch (error) {
       console.error('Export failed:', error);
       toast({
         title: 'Export failed',
-        description: 'Unable to export projects to Excel. Please try again.',
+        description: 'Unable to export projects to CSV. Please try again.',
         variant: 'destructive'
       });
     }
@@ -2211,6 +2233,7 @@ const ProjectStatus = () => {
           frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
           enableSorting={true} // Always enable sorting on all columns
           initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)
+          onExportExcel={handleExcelExport}
         />
 
         {/* Custom Filter Buttons - Will be moved to the results header using portal/DOM manipulation */}
