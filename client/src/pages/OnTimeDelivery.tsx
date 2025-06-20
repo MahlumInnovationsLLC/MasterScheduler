@@ -542,6 +542,8 @@ const OnTimeDeliveryPage: React.FC = () => {
     const totalProjects = filteredProjects.length;
     const onTimeProjects = filteredProjects.filter(p => p.daysLate <= 0).length;
     const lateProjects = totalProjects - onTimeProjects;
+    const totalDaysLate = filteredProjects.reduce((sum, p) => sum + Math.max(0, p.daysLate), 0);
+    const avgDaysLate = lateProjects > 0 ? Math.round((totalDaysLate / lateProjects) * 10) / 10 : 0;
 
     // Responsibility breakdown from filtered projects - exclude not_applicable
     const responsibilityBreakdown = filteredProjects.reduce((acc, project) => {
@@ -620,7 +622,9 @@ const OnTimeDeliveryPage: React.FC = () => {
         totalProjects,
         onTimeProjects,
         lateProjects,
-        onTimePercentage: totalProjects > 0 ? Math.round((onTimeProjects / totalProjects) * 100) : 0
+        onTimePercentage: totalProjects > 0 ? Math.round((onTimeProjects / totalProjects) * 100) : 0,
+        avgDaysLate,
+        totalDaysLate
       },
       responsibilityData,
       distributionData,
@@ -1148,8 +1152,10 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{analytics.summary.totalProjects}</div>
-                <p className="text-xs text-muted-foreground">Delivered projects</p>
+                <div className="text-2xl font-bold">{processedData?.summary.totalProjects || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedTimeframe === "all" ? "All time" : `Last ${selectedTimeframe} months`}
+                </p>
               </CardContent>
             </Card>
 
@@ -1159,9 +1165,9 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{analytics.summary.onTimePercentage}%</div>
+                <div className="text-2xl font-bold text-green-600">{processedData?.summary.onTimePercentage || 0}%</div>
                 <p className="text-xs text-muted-foreground">
-                  {analytics.summary.onTimeCount} of {analytics.summary.totalProjects} projects
+                  {processedData?.summary.onTimeProjects || 0} of {processedData?.summary.totalProjects || 0} projects
                 </p>
               </CardContent>
             </Card>
@@ -1188,9 +1194,9 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{analytics.summary.lateCount}</div>
+                <div className="text-2xl font-bold text-red-600">{processedData?.summary.lateProjects || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {Math.round((analytics.summary.lateCount / analytics.summary.totalProjects) * 100)}% of total
+                  {processedData?.summary.totalProjects > 0 ? Math.round(((processedData?.summary.lateProjects || 0) / processedData.summary.totalProjects) * 100) : 0}% of total
                 </p>
               </CardContent>
             </Card>
@@ -1201,7 +1207,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-amber-600">{analytics.summary.avgDaysLate}</div>
+                <div className="text-2xl font-bold text-amber-600">{processedData?.summary.avgDaysLate || 0}</div>
                 <p className="text-xs text-muted-foreground">For late projects only</p>
               </CardContent>
             </Card>
@@ -1213,10 +1219,10 @@ const OnTimeDeliveryPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">
-                  {deliveredProjects?.reduce((sum, project) => sum + (project.contractExtensions || 0), 0) || 0}
+                  {filteredProjects?.reduce((sum, project) => sum + (project.contractExtensions || 0), 0) || 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {deliveredProjects?.filter(p => (p.contractExtensions || 0) > 0).length || 0} projects with extensions
+                  {filteredProjects?.filter(p => (p.contractExtensions || 0) > 0).length || 0} projects with extensions
                 </p>
               </CardContent>
             </Card>
@@ -1237,8 +1243,8 @@ const OnTimeDeliveryPage: React.FC = () => {
                       <PieChart>
                         <Pie
                           data={[
-                            { name: "On Time", value: analytics.summary.onTimeCount, color: COLORS.success },
-                            { name: "Late", value: analytics.summary.lateCount, color: COLORS.danger }
+                            { name: "On Time", value: processedData?.summary.onTimeProjects || 0, color: COLORS.success },
+                            { name: "Late", value: processedData?.summary.lateProjects || 0, color: COLORS.danger }
                           ]}
                           cx="50%"
                           cy="50%"
@@ -1248,8 +1254,8 @@ const OnTimeDeliveryPage: React.FC = () => {
                           dataKey="value"
                         >
                           {[
-                            { name: "On Time", value: analytics.summary.onTimeCount, color: COLORS.success },
-                            { name: "Late", value: analytics.summary.lateCount, color: COLORS.danger }
+                            { name: "On Time", value: processedData?.summary.onTimeProjects || 0, color: COLORS.success },
+                            { name: "Late", value: processedData?.summary.lateProjects || 0, color: COLORS.danger }
                           ].map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
@@ -1259,7 +1265,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
-                        <div className="text-2xl font-bold">{analytics.summary.onTimePercentage}%</div>
+                        <div className="text-2xl font-bold">{processedData?.summary.onTimePercentage || 0}%</div>
                         <div className="text-xs text-muted-foreground">On Time</div>
                       </div>
                     </div>
@@ -1268,7 +1274,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <div className="flex justify-center gap-4">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-sm">On Time ({analytics.summary.onTimeCount})</span>
+                    <span className="text-sm">On Time ({processedData?.summary.onTimeProjects || 0})</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
