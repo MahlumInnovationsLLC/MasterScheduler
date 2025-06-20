@@ -498,6 +498,20 @@ const OnTimeDeliveryPage: React.FC = () => {
     });
   };
 
+  // Helper function to get timeframe description
+  const getTimeframeDescription = (timeframe: string) => {
+    switch (timeframe) {
+      case "current_month":
+        return "This month";
+      case "last_month":
+        return "Last month";
+      case "all":
+        return "All time";
+      default:
+        return `Last ${timeframe} months`;
+    }
+  };
+
   const getResponsibilityColor = (responsibility: string) => {
     switch (responsibility) {
       case "nomad_fault": return "#ef4444";
@@ -518,15 +532,33 @@ const OnTimeDeliveryPage: React.FC = () => {
         return false;
       }
       
-      // Filter by timeframe - ensure current month is included
+      // Filter by timeframe
       if (selectedTimeframe !== "all" && project.deliveryDate) {
         const deliveryDate = new Date(project.deliveryDate);
-        const cutoffDate = new Date();
-        cutoffDate.setMonth(cutoffDate.getMonth() - parseInt(selectedTimeframe));
-        cutoffDate.setDate(1); // Start of month to include full months
+        const now = new Date();
         
-        if (deliveryDate < cutoffDate) {
-          return false;
+        if (selectedTimeframe === "current_month") {
+          // This month - from start of current month to now
+          const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          if (deliveryDate < startOfCurrentMonth || deliveryDate > now) {
+            return false;
+          }
+        } else if (selectedTimeframe === "last_month") {
+          // Last month - from start to end of previous month
+          const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+          if (deliveryDate < startOfLastMonth || deliveryDate > endOfLastMonth) {
+            return false;
+          }
+        } else {
+          // Existing logic for month ranges (3, 6, 12, 24)
+          const cutoffDate = new Date();
+          cutoffDate.setMonth(cutoffDate.getMonth() - parseInt(selectedTimeframe));
+          cutoffDate.setDate(1); // Start of month to include full months
+          
+          if (deliveryDate < cutoffDate) {
+            return false;
+          }
         }
       }
       
@@ -1122,6 +1154,8 @@ const OnTimeDeliveryPage: React.FC = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="current_month">This Month</SelectItem>
+              <SelectItem value="last_month">Last Month</SelectItem>
               <SelectItem value="3">Last Quarter</SelectItem>
               <SelectItem value="6">Last 6 months</SelectItem>
               <SelectItem value="12">Last 12 months</SelectItem>
@@ -1154,7 +1188,7 @@ const OnTimeDeliveryPage: React.FC = () => {
               <CardContent>
                 <div className="text-2xl font-bold">{processedData?.summary.totalProjects || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {selectedTimeframe === "all" ? "All time" : `Last ${selectedTimeframe} months`}
+                  {getTimeframeDescription(selectedTimeframe)}
                 </p>
               </CardContent>
             </Card>
