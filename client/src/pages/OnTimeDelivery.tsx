@@ -1278,7 +1278,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span className="text-sm">Late ({analytics.summary.lateCount})</span>
+                    <span className="text-sm">Late ({processedData?.summary.lateProjects || 0})</span>
                   </div>
                 </div>
               </CardContent>
@@ -1294,14 +1294,14 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
                     <Pie
-                      data={prepareDaysLateDistribution()}
+                      data={processedData?.distributionData || []}
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
                       paddingAngle={2}
-                      dataKey="value"
+                      dataKey="count"
                     >
-                      {prepareDaysLateDistribution().map((entry, index) => (
+                      {(processedData?.distributionData || []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
