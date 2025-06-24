@@ -5046,7 +5046,7 @@ export class DatabaseStorage implements IStorage {
       console.log(`🔄 Fetching PTN enhanced summary from ${baseUrl}`);
       console.log(`Trying endpoint: ${baseUrl}/api/export/summary`);
 
-      const response = await fetch(`${connection.url}/api/export/summary`, {
+      const response = await fetch(`${baseUrl}/api/export/summary`, {
         headers: {
           'X-API-Key': connection.apiKey || '',
           'Accept': 'application/json',

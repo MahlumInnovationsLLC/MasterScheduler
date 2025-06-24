@@ -42,7 +42,7 @@ const PTNMetricsConnectionManager = () => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<Partial<PTNConnection>>({
     name: 'PTN Production System',
-    url: 'https://ptn.nomadgcsai.com/api',
+    url: 'https://ptn.nomadgcsai.com',
     apiKey: '',
     isEnabled: true,
     syncFrequency: 'hourly',
