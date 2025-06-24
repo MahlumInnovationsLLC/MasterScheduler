@@ -94,6 +94,9 @@ export function setupPTNRoutes(app: Express) {
                 results.projects = [];
               }
               console.log(`Projects endpoint returned ${results.projects.length} items`);
+              if (results.projects.length > 0) {
+                console.log('Sample project data:', JSON.stringify(results.projects[0], null, 2));
+              }
             } else if (endpoint.includes('/teams')) {
               if (Array.isArray(data)) {
                 results.teams = data;
@@ -104,10 +107,16 @@ export function setupPTNRoutes(app: Express) {
               } else {
                 results.teams = [];
               }
+              console.log(`Teams endpoint returned ${results.teams.length} items`);
+              if (results.teams.length > 0) {
+                console.log('Sample team data:', JSON.stringify(results.teams[0], null, 2));
+              }
             } else if (endpoint.includes('/issues')) {
               results.issues = Array.isArray(data) ? data : (data.issues || data.data || []);
+              console.log(`Issues endpoint returned ${results.issues.length} items`);
             } else if (endpoint.includes('/alerts')) {
               results.alerts = Array.isArray(data) ? data : (data.alerts || data.data || []);
+              console.log(`Alerts endpoint returned ${results.alerts.length} items`);
             } else if (endpoint.includes('/summary')) {
               results.summary = data;
             }
@@ -160,14 +169,16 @@ export function setupPTNRoutes(app: Express) {
           )
           .slice(0, 20); // Limit to 20 active projects
 
-        results.projects = activeProjects.map((project: any) => {
+        results.projects = activeProjects.map((project: any, index: number) => {
           // Map PTN project structure to display structure
+          console.log(`Mapping project ${index}:`, JSON.stringify(project, null, 2));
+          
           const mappedProject = {
             ...project,
-            displayId: project.project_number || project.projectNumber || project.id,
-            displayName: project.project_number || project.projectNumber || project.name || `Project ${project.id}`,
-            status: project.status || 'active',
-            team: project.team_name || project.teamName || project.assigned_team || 'Unassigned',
+            displayId: project.project_number || project.projectNumber || project.name || project.title || project.id || `Project ${index + 1}`,
+            displayName: project.project_name || project.name || project.title || project.project_number || project.projectNumber || `Project ${index + 1}`,
+            status: project.status || project.state || 'active',
+            team: project.team_name || project.teamName || project.assigned_team || project.team || 'Unassigned',
             teamInfo: null,
             activeIssues: [],
             alerts: []
@@ -193,21 +204,29 @@ export function setupPTNRoutes(app: Express) {
             };
           }
 
-          // Find related issues using various field patterns
-          mappedProject.activeIssues = results.issues.filter((issue: any) => 
-            issue.projectId === project.id || 
-            issue.project_id === project.id ||
-            issue.project === project.name ||
-            issue.project_number === project.project_number
-          );
+          // Find related issues using various field patterns - only assign issues that actually belong to this specific project
+          mappedProject.activeIssues = results.issues.filter((issue: any) => {
+            const projectMatches = 
+              (issue.projectId && issue.projectId === project.id) || 
+              (issue.project_id && issue.project_id === project.id) ||
+              (issue.project && issue.project === project.name) ||
+              (issue.project_number && issue.project_number === project.project_number) ||
+              (issue.project_name && issue.project_name === project.project_name);
+            
+            return projectMatches;
+          });
 
-          // Find related alerts
-          mappedProject.alerts = results.alerts.filter((alert: any) => 
-            alert.projectId === project.id || 
-            alert.project_id === project.id ||
-            alert.project === project.name ||
-            alert.project_number === project.project_number
-          );
+          // Find related alerts - only assign alerts that actually belong to this specific project
+          mappedProject.alerts = results.alerts.filter((alert: any) => {
+            const projectMatches = 
+              (alert.projectId && alert.projectId === project.id) || 
+              (alert.project_id && alert.project_id === project.id) ||
+              (alert.project && alert.project === project.name) ||
+              (alert.project_number && alert.project_number === project.project_number) ||
+              (alert.project_name && alert.project_name === project.project_name);
+            
+            return projectMatches;
+          });
 
           return mappedProject;
         });
@@ -286,11 +305,15 @@ export function setupPTNRoutes(app: Express) {
           
           // Handle PTN projects data structure and filter for active projects only
           let projectsArray = [];
+          console.log('PTN projects raw data type:', typeof projects, 'Array?', Array.isArray(projects));
+          console.log('PTN projects sample:', JSON.stringify(projects).substring(0, 500));
+          
           if (Array.isArray(projects)) {
             projectsArray = projects;
           } else if (projects && projects.data && Array.isArray(projects.data)) {
             projectsArray = projects.data;
           } else if (projects && typeof projects === 'object') {
+            // PTN API might be returning object with numeric keys
             projectsArray = Object.values(projects);
           }
 
