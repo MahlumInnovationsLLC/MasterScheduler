@@ -1314,21 +1314,92 @@ export default function Meetings() {
                                   </Badge>
                                 </div>
                               </CardHeader>
-                              <CardContent className="space-y-2">
+                              <CardContent className="space-y-3">
                                 <div className="flex items-center gap-2 text-sm">
                                   <Users className="h-4 w-4 text-blue-600" />
                                   <span>{String(team.members || 0)} members</span>
                                 </div>
-                                {team.currentProject && (
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Briefcase className="h-4 w-4 text-green-600" />
-                                    <span className="truncate">{String(team.currentProject)}</span>
+                                
+                                {/* Team Projects */}
+                                {team.projects && team.projects.length > 0 && (
+                                  <div className="space-y-2">
+                                    <h6 className="text-sm font-medium text-gray-700">Assigned Projects</h6>
+                                    {team.projects.map((project: any, projectIndex: number) => (
+                                      <div key={projectIndex} className="p-2 bg-blue-50 rounded border border-blue-200">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <p className="text-sm font-medium text-blue-800 truncate">
+                                            {String(project.project_name || project.name || project.project_number || `Project ${projectIndex + 1}`)}
+                                          </p>
+                                          <Badge variant="outline" className="text-xs">
+                                            {String(project.status || 'ACTIVE').toUpperCase()}
+                                          </Badge>
+                                        </div>
+                                        
+                                        {/* Project Needs */}
+                                        {project.needs && project.needs.length > 0 && (
+                                          <div className="mt-2 space-y-1">
+                                            <p className="text-xs font-medium text-orange-600">Active Needs:</p>
+                                            {project.needs.slice(0, 3).map((need: any, needIndex: number) => (
+                                              <div key={needIndex} className="flex items-center gap-2 text-xs">
+                                                <AlertCircle className="h-3 w-3 text-orange-500" />
+                                                <span className="text-orange-700 truncate">
+                                                  {String(need.description || need.title || need.need || `Need ${needIndex + 1}`)}
+                                                </span>
+                                                {need.priority && (
+                                                  <Badge variant="secondary" className="text-xs">
+                                                    {String(need.priority).toUpperCase()}
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            ))}
+                                            {project.needs.length > 3 && (
+                                              <p className="text-xs text-gray-500">+ {project.needs.length - 3} more needs</p>
+                                            )}
+                                          </div>
+                                        )}
+                                        
+                                        {(!project.needs || project.needs.length === 0) && (
+                                          <div className="mt-2 flex items-center gap-2 text-xs">
+                                            <CheckCircle className="h-3 w-3 text-green-500" />
+                                            <span className="text-green-600">No active needs</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
                                   </div>
                                 )}
+                                
+                                {/* Fallback for teams without projects */}
+                                {(!team.projects || team.projects.length === 0) && team.currentProject && (
+                                  <div className="space-y-2">
+                                    <h6 className="text-sm font-medium text-gray-700">Current Project</h6>
+                                    <div className="p-2 bg-gray-50 rounded border">
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <Briefcase className="h-4 w-4 text-green-600" />
+                                        <span className="truncate">{String(team.currentProject)}</span>
+                                      </div>
+                                      <div className="mt-1 flex items-center gap-2 text-xs">
+                                        <CheckCircle className="h-3 w-3 text-green-500" />
+                                        <span className="text-green-600">No active needs</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* No projects message */}
+                                {(!team.projects || team.projects.length === 0) && !team.currentProject && (
+                                  <div className="p-2 bg-gray-50 rounded border text-center">
+                                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                                      <CheckCircle className="h-4 w-4 text-green-500" />
+                                      <span>No active projects</span>
+                                    </div>
+                                  </div>
+                                )}
+                                
                                 {team.efficiency && (
-                                  <div className="flex items-center gap-2 text-sm">
+                                  <div className="flex items-center gap-2 text-sm pt-2 border-t">
                                     <TrendingUp className="h-4 w-4 text-orange-600" />
-                                    <span>Efficiency: {team.efficiency}%</span>
+                                    <span>Efficiency: {String(team.efficiency)}%</span>
                                   </div>
                                 )}
                               </CardContent>
