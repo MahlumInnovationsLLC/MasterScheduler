@@ -1171,36 +1171,36 @@ export default function Meetings() {
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                     <span className="ml-2 text-sm text-muted-foreground">Loading PTN project data...</span>
                   </div>
-                ) : ptnProjects?.error ? (
+                ) : (ptnProjects as any)?.error ? (
                   <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                     <div className="flex items-center text-yellow-700">
                       <WifiOff className="h-5 w-5 mr-2" />
                       <div>
                         <p className="font-medium">PTN Projects Connection Issue</p>
-                        <p className="text-sm">{ptnProjects.error}</p>
+                        <p className="text-sm">{(ptnProjects as any).error}</p>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-6">
                     {/* Projects Grid */}
-                    {ptnProjects?.projects && ptnProjects.projects.length > 0 ? (
+                    {(ptnProjects as any)?.projects && (ptnProjects as any).projects.length > 0 ? (
                       <div className="space-y-4">
-                        <h4 className="text-lg font-semibold">Active Projects ({ptnProjects.projects.length})</h4>
+                        <h4 className="text-lg font-semibold">Active Projects ({(ptnProjects as any).projects.length})</h4>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                          {ptnProjects.projects.map((project: any, index: number) => (
+                          {(ptnProjects as any).projects.map((project: any, index: number) => (
                             <Card key={project.id || index} className="border-l-4 border-l-blue-500">
                               <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                   <CardTitle className="text-base truncate">
-                                    {project.displayName || project.project_name || project.name || project.title || project.project_number || `Project ${project.id || 'Unknown'}`}
+                                    {String(project.displayName || project.project_name || project.name || project.title || project.project_number || `Project ${project.id || 'Unknown'}`)}
                                   </CardTitle>
                                   <Badge variant={project.status === 'active' ? 'default' : project.status === 'warning' ? 'secondary' : 'destructive'}>
                                     {String(project.status || 'UNKNOWN').toUpperCase()}
                                   </Badge>
                                 </div>
                                 <CardDescription className="text-sm">
-                                  Team: {project.team || project.team_name || 'Unassigned'} • Status: {String(project.status || 'Active')}
+                                  Team: {String(project.team || project.team_name || 'Unassigned')} • Status: {String(project.status || 'Active')}
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-3">
@@ -1210,7 +1210,7 @@ export default function Meetings() {
                                     <div className="space-y-1">
                                       <div className="flex items-center gap-2">
                                         <Users className="h-4 w-4 text-blue-600" />
-                                        <span>Team: {project.teamInfo.name || project.teamInfo.team_name || 'Unassigned'}</span>
+                                        <span>Team: {String(project.teamInfo.name || project.teamInfo.team_name || 'Unassigned')}</span>
                                       </div>
                                       {(project.teamInfo.needs && project.teamInfo.needs.length > 0) && (
                                         <div className="flex items-center gap-2 text-xs">
@@ -1223,13 +1223,13 @@ export default function Meetings() {
                                   {project.progress !== undefined && (
                                     <div className="flex items-center gap-2">
                                       <TrendingUp className="h-4 w-4 text-green-600" />
-                                      <span>Progress: {project.progress}%</span>
+                                      <span>Progress: {String(project.progress)}%</span>
                                     </div>
                                   )}
                                   {project.priority && (
                                     <div className="flex items-center gap-2">
                                       <AlertTriangle className="h-4 w-4 text-orange-600" />
-                                      <span>Priority: {project.priority}</span>
+                                      <span>Priority: {String(project.priority)}</span>
                                     </div>
                                   )}
                                 </div>
@@ -1237,7 +1237,7 @@ export default function Meetings() {
                                 {/* Active Issues */}
                                 {project.activeIssues && project.activeIssues.length > 0 && (
                                   <div className="border-t pt-3">
-                                    <h5 className="text-sm font-medium text-red-600 mb-2">Active Issues ({project.activeIssues.length})</h5>
+                                    <h5 className="text-sm font-medium text-red-600 mb-2">Active Issues ({String(project.activeIssues.length)})</h5>
                                     <div className="space-y-1">
                                       {project.activeIssues
                                         .filter((issue: any, index: number, arr: any[]) => 
@@ -1304,11 +1304,11 @@ export default function Meetings() {
                       <div className="space-y-4">
                         <h4 className="text-lg font-semibold">Team Status ({ptnProjects.teams.length})</h4>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                          {ptnProjects.teams.map((team: any, index: number) => (
+                          {(ptnProjects as any).teams.map((team: any, index: number) => (
                             <Card key={team.id || index} className="border-l-4 border-l-green-500">
                               <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                  <CardTitle className="text-base">{team.name || `Team ${index + 1}`}</CardTitle>
+                                  <CardTitle className="text-base">{String(team.name || `Team ${index + 1}`)}</CardTitle>
                                   <Badge variant={team.status === 'active' ? 'default' : 'secondary'}>
                                     {String(team.status || 'INACTIVE').toUpperCase()}
                                   </Badge>
@@ -1317,12 +1317,12 @@ export default function Meetings() {
                               <CardContent className="space-y-2">
                                 <div className="flex items-center gap-2 text-sm">
                                   <Users className="h-4 w-4 text-blue-600" />
-                                  <span>{team.members || 0} members</span>
+                                  <span>{String(team.members || 0)} members</span>
                                 </div>
                                 {team.currentProject && (
                                   <div className="flex items-center gap-2 text-sm">
                                     <Briefcase className="h-4 w-4 text-green-600" />
-                                    <span className="truncate">{team.currentProject}</span>
+                                    <span className="truncate">{String(team.currentProject)}</span>
                                   </div>
                                 )}
                                 {team.efficiency && (
