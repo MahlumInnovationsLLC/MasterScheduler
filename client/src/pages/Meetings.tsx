@@ -180,6 +180,20 @@ export default function Meetings() {
     refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
   });
 
+  // Fetch detailed PTN projects for Tier II section
+  const { data: ptnProjects, isLoading: ptnProjectsLoading } = useQuery({
+    queryKey: ['/api/ptn-projects'],
+    retry: false,
+    refetchInterval: 60 * 1000 // Refresh every minute for real-time data
+  });
+
+  // Fetch PTN production status for Live Production Status widget
+  const { data: ptnProductionStatus, isLoading: ptnStatusLoading } = useQuery({
+    queryKey: ['/api/ptn-production-status'],
+    retry: false,
+    refetchInterval: 30 * 1000 // Refresh every 30 seconds for live status
+  });
+
   // Fetch all project tasks for real-time task display
   const { data: allTasks = [] } = useQuery({
     queryKey: ['/api/tasks'],
@@ -686,16 +700,17 @@ export default function Meetings() {
               </div>
             ) : ptnMetrics?.error ? (
               <div className="col-span-4">
-                <Card className="border-yellow-200 bg-yellow-50">
+                <Card className="border-red-200 bg-red-50">
                   <CardContent className="pt-6">
-                    <div className="flex items-center text-yellow-700">
+                    <div className="flex items-center text-red-700">
                       <WifiOff className="h-5 w-5 mr-2" />
                       <div>
-                        <p className="font-medium">PTN Connection Issue</p>
+                        <p className="font-medium">PTN Connection Error</p>
                         <p className="text-sm">
-                          {ptnMetrics.error.includes('Unexpected token') 
-                            ? 'PTN API endpoints are not available or authentication failed' 
-                            : ptnMetrics.error}
+                          PTN enhanced summary endpoint not available - using fallback data structure
+                        </p>
+                        <p className="text-xs mt-1">
+                          Last attempted: {new Date().toLocaleTimeString()}
                         </p>
                       </div>
                     </div>
@@ -777,28 +792,88 @@ export default function Meetings() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {ptnTeamNeedsLoading ? (
+                {ptnStatusLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading team status...</span>
+                    <span className="ml-2 text-sm text-muted-foreground">Loading production status...</span>
                   </div>
-                ) : ptnTeamNeeds?.error ? (
+                ) : ptnProductionStatus?.error ? (
                   <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                     <div className="flex items-center text-yellow-700">
                       <WifiOff className="h-4 w-4 mr-2" />
                       <div>
                         <p className="text-sm font-medium">PTN Connection Issue</p>
-                        <p className="text-xs">{ptnTeamNeeds.error}</p>
+                        <p className="text-xs">{ptnProductionStatus.error}</p>
                       </div>
                     </div>
                   </div>
-                ) : ptnTeamNeeds?.teams && ptnTeamNeeds.teams.length > 0 ? (
-                  <div className="space-y-3">
-                    {ptnTeamNeeds.teams.map((team: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-3 rounded-lg border bg-blue-50 border-blue-200">
+                ) : ptnProductionStatus?.status === 'connected' ? (
+                  <div className="space-y-4">
+                    {/* Active Alerts Summary */}
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
                         <div>
-                          <div className="font-medium text-blue-900">
-                            {team.name || `Team ${index + 1}`}
+                          <p className="text-sm font-medium text-green-800">
+                            {ptnProductionStatus.activeAlerts === 0 ? 'No Active Alerts' : `${ptnProductionStatus.activeAlerts} Active Alerts`}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {ptnProductionStatus.criticalIssues === 0 ? 'All teams operating normally' : `${ptnProductionStatus.criticalIssues} critical issues`}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={ptnProductionStatus.activeAlerts === 0 ? "default" : "destructive"}>
+                        {ptnProductionStatus.activeAlerts === 0 ? 'NORMAL' : 'ALERTS'}
+                      </Badge>
+                    </div>
+
+                    {/* Active Projects Summary */}
+                    {ptnProductionStatus.projects && ptnProductionStatus.projects.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-muted-foreground">Active PTN Projects</h4>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {ptnProductionStatus.projects.slice(0, 5).map((project: any, index: number) => (
+                            <div key={project.id || index} className="flex items-center justify-between p-2 bg-white rounded border">
+                              <div className="flex items-center space-x-2">
+                                <div className={`w-2 h-2 rounded-full ${project.status === 'active' ? 'bg-green-500' : project.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                                <div>
+                                  <p className="text-sm font-medium">{project.name || `Project ${index + 1}`}</p>
+                                  <p className="text-xs text-muted-foreground">{project.team || 'No team assigned'}</p>
+                                </div>
+                              </div>
+                              <Badge variant={project.status === 'active' ? 'default' : project.status === 'warning' ? 'secondary' : 'destructive'}>
+                                {project.status?.toUpperCase() || 'UNKNOWN'}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Teams Status Summary */}
+                    {ptnProductionStatus.teams && ptnProductionStatus.teams.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-muted-foreground">Team Status</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {ptnProductionStatus.teams.slice(0, 4).map((team: any, index: number) => (
+                            <div key={team.id || index} className="flex items-center space-x-2 p-2 bg-white rounded border">
+                              <div className={`w-2 h-2 rounded-full ${team.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{team.name || `Team ${index + 1}`}</p>
+                                <p className="text-xs text-muted-foreground">{team.members || 0} members</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <WifiOff className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">PTN connection unavailable</p>
+                    <p className="text-xs text-muted-foreground">Unable to fetch live production data</p>
+                  </div>
                           </div>
                           <div className="text-sm text-blue-700">
                             {team.description || 'Production team active'}

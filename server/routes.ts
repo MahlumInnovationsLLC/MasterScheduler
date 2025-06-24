@@ -97,6 +97,7 @@ import {
 } from "./routes/deliveryTracking";
 import { countWorkingDays } from "@shared/utils/date-utils";
 import { format, differenceInDays, addDays } from "date-fns";
+import { setupPTNRoutes } from "./routes/ptnApi";
 import {
   analyzeProjectHealth,
   generateBillingInsights,
@@ -6263,6 +6264,9 @@ Response format:
 
   // Setup project health routes
   setupProjectHealthRoutes(app);
+  
+  // Setup enhanced PTN API routes
+  setupPTNRoutes(app);
 
   const httpServer = createServer(app);
   // Quality Assurance API routes
