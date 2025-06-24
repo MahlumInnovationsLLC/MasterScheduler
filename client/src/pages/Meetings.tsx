@@ -1280,7 +1280,7 @@ export default function Meetings() {
                                       {project.alerts.slice(0, 2).map((alert: any, alertIndex: number) => (
                                         <div key={alertIndex} className="flex items-center gap-2 text-xs p-2 bg-yellow-50 rounded">
                                           <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                                          <span className="flex-1">{alert.message || 'Alert triggered'}</span>
+                                          <span className="flex-1">{String(alert.message || 'Alert triggered')}</span>
                                         </div>
                                       ))}
                                     </div>
