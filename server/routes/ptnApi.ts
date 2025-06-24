@@ -167,6 +167,7 @@ export function setupPTNRoutes(app: Express) {
             displayId: project.project_number || project.projectNumber || project.id,
             displayName: project.project_number || project.projectNumber || project.name || `Project ${project.id}`,
             status: project.status || 'active',
+            team: project.team_name || project.teamName || project.assigned_team || 'Unassigned',
             teamInfo: null,
             activeIssues: [],
             alerts: []

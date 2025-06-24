@@ -1198,7 +1198,7 @@ export default function Meetings() {
                                   </Badge>
                                 </div>
                                 <CardDescription className="text-sm">
-                                  {project.description || 'No description available'}
+                                  Team: {project.team || project.team_name || 'Unassigned'} • Status: {project.status || 'Active'}
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-3">
