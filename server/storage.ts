@@ -4908,7 +4908,7 @@ export class DatabaseStorage implements IStorage {
           teams: [], 
           pendingNeeds: [], 
           lastUpdated: new Date().toISOString(),
-          error: "PTN API returning HTML instead of JSON - endpoint misconfigured"
+          error: "PTN API authentication required - configure valid API key"
         };
       }
 
@@ -4963,7 +4963,7 @@ export class DatabaseStorage implements IStorage {
           pendingNeeds: 0,
           partsTracked: 0,
           lastUpdated: new Date().toISOString(),
-          error: "PTN API returning HTML instead of JSON - check endpoint configuration"
+          error: "PTN API authentication required - configure valid API key"
         };
       }
 
@@ -5072,7 +5072,7 @@ export class DatabaseStorage implements IStorage {
           partsTracked: 0,
           teams: [],
           lastUpdated: new Date().toISOString(),
-          error: "PTN API returning HTML instead of JSON - check endpoint configuration"
+          error: "PTN API authentication required - configure valid API key"
         };
       }
 

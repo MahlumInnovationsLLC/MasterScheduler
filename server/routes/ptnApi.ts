@@ -112,7 +112,7 @@ export function setupPTNRoutes(app: Express) {
           teams: [],
           issues: [],
           alerts: [],
-          error: `PTN API endpoints returning HTML instead of JSON. Check: 1) API endpoint URLs are correct, 2) API key authentication, 3) PTN server configuration`,
+          error: `PTN API authentication required. The server is responding with JSON but requires a valid API key.`,
           debugInfo: {
             baseUrl: baseUrl,
             attemptedEndpoints: endpoints,

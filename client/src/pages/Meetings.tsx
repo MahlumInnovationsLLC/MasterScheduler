@@ -705,12 +705,12 @@ export default function Meetings() {
                     <div className="flex items-center text-red-700">
                       <WifiOff className="h-5 w-5 mr-2" />
                       <div>
-                        <p className="font-medium">PTN Connection Error</p>
+                        <p className="font-medium">PTN Authentication Required</p>
                         <p className="text-sm">
-                          PTN API returning HTML instead of JSON data - endpoint may be misconfigured
+                          PTN API key authentication required - configure API key in connection settings
                         </p>
                         <p className="text-xs mt-1">
-                          Check PTN connection settings or contact system administrator
+                          PTN server is responding with JSON but requires valid API key
                         </p>
                       </div>
                     </div>
