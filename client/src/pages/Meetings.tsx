@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Calendar, Users, FileText, Download, Edit, Trash2, Clock, MapPin, Settings, Copy, AlertTriangle, CheckCircle, ArrowUp, ExternalLink, BarChart, Building, Zap, RotateCcw, TrendingUp, Loader2, WifiOff, AlertCircle } from "lucide-react";
+import { Plus, Calendar, Users, FileText, Download, Edit, Trash2, Clock, MapPin, Settings, Copy, AlertTriangle, CheckCircle, ArrowUp, ExternalLink, BarChart, Building, Zap, RotateCcw, TrendingUp, Loader2, WifiOff, AlertCircle, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -698,7 +698,7 @@ export default function Meetings() {
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                 <span className="ml-2 text-sm text-muted-foreground">Loading PTN production data...</span>
               </div>
-            ) : ptnMetrics?.error ? (
+            ) : (ptnMetrics as any)?.error ? (
               <div className="col-span-4">
                 <Card className="border-red-200 bg-red-50">
                   <CardContent className="pt-6">
@@ -797,7 +797,7 @@ export default function Meetings() {
                     <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                     <span className="ml-2 text-sm text-muted-foreground">Loading production status...</span>
                   </div>
-                ) : ptnProductionStatus?.error ? (
+                ) : (ptnProductionStatus as any)?.error ? (
                   <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                     <div className="flex items-center text-yellow-700">
                       <WifiOff className="h-4 w-4 mr-2" />
@@ -832,17 +832,17 @@ export default function Meetings() {
                       <div className="space-y-2">
                         <h4 className="text-sm font-medium text-muted-foreground">Active PTN Projects</h4>
                         <div className="space-y-2 max-h-32 overflow-y-auto">
-                            {ptnProductionStatus.projects.slice(0, 5).map((project: any, index: number) => (
+                            {(ptnProductionStatus as any).projects.slice(0, 5).map((project: any, index: number) => (
                             <div key={project.id || index} className="flex items-center justify-between p-2 bg-white rounded border">
                               <div className="flex items-center space-x-2">
                                 <div className={`w-2 h-2 rounded-full ${project.status === 'active' ? 'bg-green-500' : project.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
                                 <div>
-                                  <p className="text-sm font-medium">{project.name || `Project ${index + 1}`}</p>
-                                  <p className="text-xs text-muted-foreground">{project.team || 'No team assigned'}</p>
+                                  <p className="text-sm font-medium">{String(project.name || project.project_name || project.displayName || `Project ${index + 1}`)}</p>
+                                  <p className="text-xs text-muted-foreground">{String(project.team || project.team_name || 'No team assigned')}</p>
                                 </div>
                               </div>
                               <Badge variant={project.status === 'active' ? 'default' : project.status === 'warning' ? 'secondary' : 'destructive'}>
-                                {project.status?.toUpperCase() || 'UNKNOWN'}
+                                {String(project.status || 'UNKNOWN').toUpperCase()}
                               </Badge>
                             </div>
                           ))}
@@ -1196,11 +1196,11 @@ export default function Meetings() {
                                     {project.displayName || project.project_name || project.name || project.title || project.project_number || `Project ${project.id || 'Unknown'}`}
                                   </CardTitle>
                                   <Badge variant={project.status === 'active' ? 'default' : project.status === 'warning' ? 'secondary' : 'destructive'}>
-                                    {project.status?.toUpperCase() || 'UNKNOWN'}
+                                    {String(project.status || 'UNKNOWN').toUpperCase()}
                                   </Badge>
                                 </div>
                                 <CardDescription className="text-sm">
-                                  Team: {project.team || project.team_name || 'Unassigned'} • Status: {project.status || 'Active'}
+                                  Team: {project.team || project.team_name || 'Unassigned'} • Status: {String(project.status || 'Active')}
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-3">
@@ -1310,7 +1310,7 @@ export default function Meetings() {
                                 <div className="flex items-center justify-between">
                                   <CardTitle className="text-base">{team.name || `Team ${index + 1}`}</CardTitle>
                                   <Badge variant={team.status === 'active' ? 'default' : 'secondary'}>
-                                    {team.status?.toUpperCase() || 'INACTIVE'}
+                                    {String(team.status || 'INACTIVE').toUpperCase()}
                                   </Badge>
                                 </div>
                               </CardHeader>
