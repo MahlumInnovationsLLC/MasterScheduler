@@ -168,7 +168,7 @@ export function setupPTNRoutes(app: Express) {
 
         results.projects = activeProjects.map((project: any, index: number) => {
           // Map PTN project structure to display structure
-          console.log(`Mapping project ${index}:`, JSON.stringify(project, null, 2));
+          console.log(`✅ Mapping updated project ${index}:`, JSON.stringify(project, null, 2));
           
           // Handle both new structured format and current numeric key format
           let projectData = project;
@@ -322,10 +322,13 @@ export function setupPTNRoutes(app: Express) {
           console.log('PTN projects raw data type:', typeof projects, 'Array?', Array.isArray(projects));
           console.log('PTN projects sample:', JSON.stringify(projects).substring(0, 500));
           
-          // Log detailed structure for debugging
+          // Log detailed structure for debugging updated API
           if (projects && typeof projects === 'object' && !Array.isArray(projects)) {
             console.log('PTN API returning object with keys:', Object.keys(projects).slice(0, 10));
             console.log('Sample object values:', Object.values(projects).slice(0, 3));
+          } else if (Array.isArray(projects)) {
+            console.log('✅ PTN API now returning proper array structure!');
+            console.log('First project sample:', JSON.stringify(projects[0], null, 2));
           }
           
           if (Array.isArray(projects)) {
