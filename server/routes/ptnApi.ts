@@ -266,7 +266,16 @@ export function setupPTNRoutes(app: Express) {
             lastUpdated: new Date().toISOString()
           });
         } else {
-          throw new Error(`PTN endpoint returned ${contentType}, expected JSON`);
+          console.log(`⚠️ PTN status endpoint returned ${contentType}, falling back to summary data`);
+          res.json({
+            status: "error",
+            activeAlerts: 0,
+            criticalIssues: 0,
+            teams: [],
+            projects: [],
+            error: `PTN status endpoint returned ${contentType} instead of JSON`,
+            lastUpdated: new Date().toISOString()
+          });
         }
       } catch (fetchError) {
         res.json({

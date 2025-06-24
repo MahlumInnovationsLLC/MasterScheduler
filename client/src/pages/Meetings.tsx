@@ -1205,9 +1205,17 @@ export default function Meetings() {
                                 {/* Project Details */}
                                 <div className="space-y-2 text-sm">
                                   {project.teamInfo && (
-                                    <div className="flex items-center gap-2">
-                                      <Users className="h-4 w-4 text-blue-600" />
-                                      <span>Team: {project.teamInfo.name || 'Unassigned'}</span>
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-blue-600" />
+                                        <span>Team: {project.teamInfo.name || project.teamInfo.team_name || 'Unassigned'}</span>
+                                      </div>
+                                      {(project.teamInfo.needs && project.teamInfo.needs.length > 0) && (
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <AlertCircle className="h-3 w-3 text-orange-500" />
+                                          <span className="text-orange-600">Active Needs: {project.teamInfo.needs.length}</span>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                   {project.progress !== undefined && (
