@@ -1192,7 +1192,7 @@ export default function Meetings() {
                             <Card key={project.id || index} className="border-l-4 border-l-blue-500">
                               <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                  <CardTitle className="text-base truncate">{project.name || `Project ${index + 1}`}</CardTitle>
+                                  <CardTitle className="text-base truncate">{project.displayName || project.project_number || project.name || `Project ${project.id}`}</CardTitle>
                                   <Badge variant={project.status === 'active' ? 'default' : project.status === 'warning' ? 'secondary' : 'destructive'}>
                                     {project.status?.toUpperCase() || 'UNKNOWN'}
                                   </Badge>
