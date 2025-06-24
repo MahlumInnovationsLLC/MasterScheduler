@@ -4907,7 +4907,7 @@ export class DatabaseStorage implements IStorage {
           teams: [], 
           pendingNeeds: [], 
           lastUpdated: new Date().toISOString(),
-          error: "PTN team-needs endpoint not available - using fallback data structure"
+          error: "PTN API returning HTML instead of JSON - endpoint misconfigured"
         };
       }
 
@@ -4961,7 +4961,7 @@ export class DatabaseStorage implements IStorage {
           pendingNeeds: 0,
           partsTracked: 0,
           lastUpdated: new Date().toISOString(),
-          error: "PTN summary endpoint not available - using fallback data structure"
+          error: "PTN API returning HTML instead of JSON - check endpoint configuration"
         };
       }
 
@@ -5068,7 +5068,7 @@ export class DatabaseStorage implements IStorage {
           partsTracked: 0,
           teams: [],
           lastUpdated: new Date().toISOString(),
-          error: "PTN enhanced summary endpoint not available - using fallback data structure"
+          error: "PTN API returning HTML instead of JSON - check endpoint configuration"
         };
       }
 

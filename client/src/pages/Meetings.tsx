@@ -707,10 +707,10 @@ export default function Meetings() {
                       <div>
                         <p className="font-medium">PTN Connection Error</p>
                         <p className="text-sm">
-                          PTN enhanced summary endpoint not available - using fallback data structure
+                          PTN API returning HTML instead of JSON data - endpoint may be misconfigured
                         </p>
                         <p className="text-xs mt-1">
-                          Last attempted: {new Date().toLocaleTimeString()}
+                          Check PTN connection settings or contact system administrator
                         </p>
                       </div>
                     </div>
@@ -873,24 +873,6 @@ export default function Meetings() {
                     <WifiOff className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">PTN connection unavailable</p>
                     <p className="text-xs text-muted-foreground">Unable to fetch live production data</p>
-                  </div>
-                          </div>
-                          <div className="text-sm text-blue-700">
-                            {team.description || 'Production team active'}
-                          </div>
-                        </div>
-                        <Badge className="bg-blue-100 text-blue-800 text-xs">
-                          ACTIVE
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-center text-green-700">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      <p className="text-sm">No active alerts - All teams operating normally</p>
-                    </div>
                   </div>
                 )}
               </CardContent>
@@ -1169,6 +1151,202 @@ export default function Meetings() {
                 <p className="text-sm text-muted-foreground">No team data available</p>
               </div>
             )}
+          </div>
+
+          {/* Enhanced PTN Projects and Issues Section */}
+          <div className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart className="h-5 w-5 text-blue-600" />
+                  PTN Projects & Issues Tracking
+                </CardTitle>
+                <CardDescription>
+                  Live production data from PTN system showing active projects, teams, and critical issues
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {ptnProjectsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading PTN project data...</span>
+                  </div>
+                ) : ptnProjects?.error ? (
+                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="flex items-center text-yellow-700">
+                      <WifiOff className="h-5 w-5 mr-2" />
+                      <div>
+                        <p className="font-medium">PTN Projects Connection Issue</p>
+                        <p className="text-sm">{ptnProjects.error}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Projects Grid */}
+                    {ptnProjects?.projects && ptnProjects.projects.length > 0 ? (
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold">Active Projects ({ptnProjects.projects.length})</h4>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {ptnProjects.projects.map((project: any, index: number) => (
+                            <Card key={project.id || index} className="border-l-4 border-l-blue-500">
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className="text-base truncate">{project.name || `Project ${index + 1}`}</CardTitle>
+                                  <Badge variant={project.status === 'active' ? 'default' : project.status === 'warning' ? 'secondary' : 'destructive'}>
+                                    {project.status?.toUpperCase() || 'UNKNOWN'}
+                                  </Badge>
+                                </div>
+                                <CardDescription className="text-sm">
+                                  {project.description || 'No description available'}
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-3">
+                                {/* Project Details */}
+                                <div className="space-y-2 text-sm">
+                                  {project.teamInfo && (
+                                    <div className="flex items-center gap-2">
+                                      <Users className="h-4 w-4 text-blue-600" />
+                                      <span>Team: {project.teamInfo.name || 'Unassigned'}</span>
+                                    </div>
+                                  )}
+                                  {project.progress !== undefined && (
+                                    <div className="flex items-center gap-2">
+                                      <TrendingUp className="h-4 w-4 text-green-600" />
+                                      <span>Progress: {project.progress}%</span>
+                                    </div>
+                                  )}
+                                  {project.priority && (
+                                    <div className="flex items-center gap-2">
+                                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                                      <span>Priority: {project.priority}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Active Issues */}
+                                {project.activeIssues && project.activeIssues.length > 0 && (
+                                  <div className="border-t pt-3">
+                                    <h5 className="text-sm font-medium text-red-600 mb-2">Active Issues ({project.activeIssues.length})</h5>
+                                    <div className="space-y-1">
+                                      {project.activeIssues.slice(0, 3).map((issue: any, issueIndex: number) => (
+                                        <div key={issueIndex} className="flex items-center gap-2 text-xs p-2 bg-red-50 rounded">
+                                          <AlertCircle className="h-3 w-3 text-red-500" />
+                                          <span className="flex-1">{issue.title || issue.description || 'Issue reported'}</span>
+                                          <Badge variant="destructive" className="text-xs">
+                                            {issue.severity || 'HIGH'}
+                                          </Badge>
+                                        </div>
+                                      ))}
+                                      {project.activeIssues.length > 3 && (
+                                        <p className="text-xs text-muted-foreground">+ {project.activeIssues.length - 3} more issues</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Alerts */}
+                                {project.alerts && project.alerts.length > 0 && (
+                                  <div className="border-t pt-3">
+                                    <h5 className="text-sm font-medium text-yellow-600 mb-2">Alerts ({project.alerts.length})</h5>
+                                    <div className="space-y-1">
+                                      {project.alerts.slice(0, 2).map((alert: any, alertIndex: number) => (
+                                        <div key={alertIndex} className="flex items-center gap-2 text-xs p-2 bg-yellow-50 rounded">
+                                          <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                                          <span className="flex-1">{alert.message || 'Alert triggered'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <BarChart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-lg font-medium text-muted-foreground">No Active PTN Projects</p>
+                        <p className="text-sm text-muted-foreground">No projects currently tracked in PTN system</p>
+                      </div>
+                    )}
+
+                    {/* Teams Overview */}
+                    {ptnProjects?.teams && ptnProjects.teams.length > 0 && (
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold">Team Status ({ptnProjects.teams.length})</h4>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                          {ptnProjects.teams.map((team: any, index: number) => (
+                            <Card key={team.id || index} className="border-l-4 border-l-green-500">
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className="text-base">{team.name || `Team ${index + 1}`}</CardTitle>
+                                  <Badge variant={team.status === 'active' ? 'default' : 'secondary'}>
+                                    {team.status?.toUpperCase() || 'INACTIVE'}
+                                  </Badge>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Users className="h-4 w-4 text-blue-600" />
+                                  <span>{team.members || 0} members</span>
+                                </div>
+                                {team.currentProject && (
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <Briefcase className="h-4 w-4 text-green-600" />
+                                    <span className="truncate">{team.currentProject}</span>
+                                  </div>
+                                )}
+                                {team.efficiency && (
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <TrendingUp className="h-4 w-4 text-orange-600" />
+                                    <span>Efficiency: {team.efficiency}%</span>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Global Issues */}
+                    {ptnProjects?.issues && ptnProjects.issues.length > 0 && (
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-red-600">System-Wide Issues ({ptnProjects.issues.length})</h4>
+                        <div className="space-y-3">
+                          {ptnProjects.issues.map((issue: any, index: number) => (
+                            <Card key={index} className="border-l-4 border-l-red-500">
+                              <CardContent className="pt-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5 text-red-500" />
+                                    <p className="font-medium">{issue.title || 'System Issue'}</p>
+                                  </div>
+                                  <Badge variant="destructive">
+                                    {issue.severity || 'HIGH'}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {issue.description || 'No description available'}
+                                </p>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span>Reported: {issue.reportedAt || 'Unknown'}</span>
+                                  {issue.affectedTeams && (
+                                    <span>Affects: {issue.affectedTeams} teams</span>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* PTN System Info */}
