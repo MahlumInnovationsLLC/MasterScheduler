@@ -4881,10 +4881,11 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
-      console.log(`🔄 Fetching PTN team needs data from ${connection.url}`);
-      console.log(`Trying endpoint: ${connection.url}/api/export/team-needs`);
+      const baseUrl = connection.url.replace(/\/api$/, '');
+      console.log(`🔄 Fetching PTN team needs data from ${baseUrl}`);
+      console.log(`Trying endpoint: ${baseUrl}/api/export/team-needs`);
 
-      const response = await fetch(`${connection.url}/api/export/team-needs`, {
+      const response = await fetch(`${baseUrl}/api/export/team-needs`, {
         headers: {
           'X-API-Key': connection.apiKey,
           'Accept': 'application/json',
@@ -4933,8 +4934,9 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
-      console.log(`🔄 Fetching PTN production metrics from ${connection.url}`);
-      console.log(`Trying endpoint: ${connection.url}/api/export/summary`);
+      const baseUrl = connection.url.replace(/\/api$/, '');
+      console.log(`🔄 Fetching PTN production metrics from ${baseUrl}`);
+      console.log(`Trying endpoint: ${baseUrl}/api/export/summary`);
 
       const response = await fetch(`${connection.url}/api/export/summary`, {
         headers: {
@@ -4989,10 +4991,11 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
-      console.log(`🔄 Fetching PTN teams data from ${connection.url}`);
-      console.log(`Trying endpoint: ${connection.url}/api/export/teams`);
+      const baseUrl = connection.url.replace(/\/api$/, '');
+      console.log(`🔄 Fetching PTN teams data from ${baseUrl}`);
+      console.log(`Trying endpoint: ${baseUrl}/api/export/teams`);
 
-      const response = await fetch(`${connection.url}/api/export/teams`, {
+      const response = await fetch(`${baseUrl}/api/export/teams`, {
         headers: {
           'X-API-Key': connection.apiKey || '',
           'Accept': 'application/json',
@@ -5039,8 +5042,9 @@ export class DatabaseStorage implements IStorage {
         return { error: "PTN connection not configured or disabled" };
       }
 
-      console.log(`🔄 Fetching PTN enhanced summary from ${connection.url}`);
-      console.log(`Trying endpoint: ${connection.url}/api/export/summary`);
+      const baseUrl = connection.url.replace(/\/api$/, '');
+      console.log(`🔄 Fetching PTN enhanced summary from ${baseUrl}`);
+      console.log(`Trying endpoint: ${baseUrl}/api/export/summary`);
 
       const response = await fetch(`${connection.url}/api/export/summary`, {
         headers: {

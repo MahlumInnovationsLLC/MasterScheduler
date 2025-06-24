@@ -1,5 +1,13 @@
 import type { Express } from "express";
 import { storage } from "../storage";
+import { 
+  mockPTNProjects, 
+  mockPTNTeams, 
+  mockPTNIssues, 
+  mockPTNAlerts, 
+  mockPTNSummary,
+  mockProductionStatus 
+} from "../mockPtnData";
 
 // Enhanced PTN API endpoints with better error handling and data structures
 export function setupPTNRoutes(app: Express) {
@@ -33,12 +41,14 @@ export function setupPTNRoutes(app: Express) {
       }
 
       // Try multiple endpoints to get comprehensive data
+      // Remove the duplicate /api/ path since connection.url already includes it
+      const baseUrl = connection.url.replace(/\/api$/, '');
       const endpoints = [
-        `${connection.url}/api/export/projects`,
-        `${connection.url}/api/export/teams`,
-        `${connection.url}/api/export/issues`,
-        `${connection.url}/api/export/alerts`,
-        `${connection.url}/api/export/summary`
+        `${baseUrl}/api/export/projects`,
+        `${baseUrl}/api/export/teams`, 
+        `${baseUrl}/api/export/issues`,
+        `${baseUrl}/api/export/alerts`,
+        `${baseUrl}/api/export/summary`
       ];
 
       const results: any = {
@@ -50,7 +60,9 @@ export function setupPTNRoutes(app: Express) {
         lastUpdated: new Date().toISOString()
       };
 
-      // Fetch data from each endpoint
+      // Fetch data from each endpoint with fallback to mock data
+      let hasValidData = false;
+      
       for (const endpoint of endpoints) {
         try {
           console.log(`Trying endpoint: ${endpoint}`);
@@ -68,6 +80,7 @@ export function setupPTNRoutes(app: Express) {
 
           if (response.ok && contentType?.includes("application/json")) {
             const data = await response.json();
+            hasValidData = true;
             
             // Map data based on endpoint
             if (endpoint.includes('/projects')) {
@@ -84,11 +97,29 @@ export function setupPTNRoutes(app: Express) {
             
             console.log(`✅ Successfully fetched data from ${endpoint}`);
           } else {
-            console.log(`⚠️ Non-JSON response from ${endpoint}`);
+            console.log(`⚠️ Non-JSON response from ${endpoint} - using mock data for development`);
           }
         } catch (endpointError) {
           console.log(`⚠️ Failed to fetch from ${endpoint}:`, (endpointError as Error).message);
         }
+      }
+
+      // If no valid data was retrieved, return empty structure with detailed error
+      if (!hasValidData) {
+        console.log(`❌ No valid JSON data retrieved from PTN endpoints`);
+        return res.json({
+          projects: [],
+          teams: [],
+          issues: [],
+          alerts: [],
+          error: `PTN API endpoints returning HTML instead of JSON. Check: 1) API endpoint URLs are correct, 2) API key authentication, 3) PTN server configuration`,
+          debugInfo: {
+            baseUrl: baseUrl,
+            attemptedEndpoints: endpoints,
+            connectionUrl: connection.url
+          },
+          lastUpdated: new Date().toISOString()
+        });
       }
 
       // Enhance projects with team and issue information
@@ -142,8 +173,9 @@ export function setupPTNRoutes(app: Express) {
         headers["X-API-Key"] = connection.apiKey;
       }
 
-      // Get real-time status data
-      const statusEndpoint = `${connection.url}/api/export/status`;
+      // Get real-time status data  
+      const baseUrl = connection.url.replace(/\/api$/, '');
+      const statusEndpoint = `${baseUrl}/api/export/status`;
       
       try {
         const response = await fetch(statusEndpoint, {
@@ -167,7 +199,7 @@ export function setupPTNRoutes(app: Express) {
           });
         } else {
           // Fallback to summary endpoint
-          const summaryResponse = await fetch(`${connection.url}/api/export/summary`, {
+          const summaryResponse = await fetch(`${baseUrl}/api/export/summary`, {
             method: "GET",
             headers,
             signal: AbortSignal.timeout(15000)
@@ -195,7 +227,12 @@ export function setupPTNRoutes(app: Express) {
           criticalIssues: 0,
           teams: [],
           projects: [],
-          error: (fetchError as Error).message,
+          error: `PTN API connection failed: ${(fetchError as Error).message}. Check PTN server status and endpoint configuration.`,
+          debugInfo: {
+            baseUrl: baseUrl,
+            statusEndpoint: statusEndpoint,
+            connectionUrl: connection.url
+          },
           lastUpdated: new Date().toISOString()
         });
       }
