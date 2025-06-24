@@ -1,13 +1,5 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { 
-  mockPTNProjects, 
-  mockPTNTeams, 
-  mockPTNIssues, 
-  mockPTNAlerts, 
-  mockPTNSummary,
-  mockProductionStatus 
-} from "../mockPtnData";
 
 // Enhanced PTN API endpoints with better error handling and data structures
 export function setupPTNRoutes(app: Express) {
@@ -178,12 +170,27 @@ export function setupPTNRoutes(app: Express) {
           // Map PTN project structure to display structure
           console.log(`Mapping project ${index}:`, JSON.stringify(project, null, 2));
           
+          // Handle both new structured format and current numeric key format
+          let projectData = project;
+          
+          // If project is an array (numeric keys converted to array), try to parse it
+          if (Array.isArray(project) && project.length > 0) {
+            // Attempt to reconstruct project data from array values
+            projectData = {
+              id: project[0] || `proj-${index}`,
+              project_number: project[1] || `${project[0] || index}`,
+              project_name: project[2] || `Project ${index + 1}`,
+              status: project[3] || 'active',
+              team_name: project[4] || 'Unassigned'
+            };
+          }
+          
           const mappedProject = {
-            ...project,
-            displayId: project.project_number || project.projectNumber || project.name || project.title || project.id || `Project ${index + 1}`,
-            displayName: project.project_name || project.name || project.title || project.project_number || project.projectNumber || `Project ${index + 1}`,
-            status: project.status || project.state || 'active',
-            team: project.team_name || project.teamName || project.assigned_team || project.team || 'Unassigned',
+            ...projectData,
+            displayId: projectData.project_number || projectData.projectNumber || projectData.id || `proj-${index}`,
+            displayName: projectData.project_name || projectData.name || projectData.title || projectData.project_number || projectData.projectNumber || `Project ${index + 1}`,
+            status: projectData.status || projectData.state || 'active',
+            team: projectData.team_name || projectData.teamName || projectData.assigned_team || projectData.team || 'Unassigned',
             teamInfo: null,
             activeIssues: [],
             alerts: []
@@ -314,6 +321,12 @@ export function setupPTNRoutes(app: Express) {
           let projectsArray = [];
           console.log('PTN projects raw data type:', typeof projects, 'Array?', Array.isArray(projects));
           console.log('PTN projects sample:', JSON.stringify(projects).substring(0, 500));
+          
+          // Log detailed structure for debugging
+          if (projects && typeof projects === 'object' && !Array.isArray(projects)) {
+            console.log('PTN API returning object with keys:', Object.keys(projects).slice(0, 10));
+            console.log('Sample object values:', Object.values(projects).slice(0, 3));
+          }
           
           if (Array.isArray(projects)) {
             projectsArray = projects;
