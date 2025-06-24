@@ -150,12 +150,17 @@ export function setupPTNRoutes(app: Express) {
 
       // Handle PTN projects data structure
       let projectsArray = [];
+      console.log('PTN projects data received:', typeof results.projects, Array.isArray(results.projects));
+      console.log('PTN projects sample:', JSON.stringify(results.projects).substring(0, 500));
+      
       if (Array.isArray(results.projects)) {
         projectsArray = results.projects;
       } else if (results.projects && results.projects.data && Array.isArray(results.projects.data)) {
         projectsArray = results.projects.data;
       } else if (results.projects && typeof results.projects === 'object') {
+        // PTN API returns projects as object with numeric keys
         projectsArray = Object.values(results.projects);
+        console.log('Converted object to array:', projectsArray.length, 'projects');
       }
 
       // Filter for active projects only and enhance with team information
@@ -213,8 +218,9 @@ export function setupPTNRoutes(app: Express) {
               (issue.project_number && issue.project_number === project.project_number) ||
               (issue.project_name && issue.project_name === project.project_name);
             
+            // If no specific project match, don't assign the issue to avoid duplication
             return projectMatches;
-          });
+          }).slice(0, 10); // Limit issues per project to prevent overwhelming display
 
           // Find related alerts - only assign alerts that actually belong to this specific project
           mappedProject.alerts = results.alerts.filter((alert: any) => {
@@ -225,8 +231,9 @@ export function setupPTNRoutes(app: Express) {
               (alert.project_number && alert.project_number === project.project_number) ||
               (alert.project_name && alert.project_name === project.project_name);
             
+            // If no specific project match, don't assign the alert to avoid duplication
             return projectMatches;
-          });
+          }).slice(0, 5); // Limit alerts per project
 
           return mappedProject;
         });
@@ -382,11 +389,12 @@ export function setupPTNRoutes(app: Express) {
 
           // Filter for active projects only
           const activeProjects = projects
-            .filter((project: any) => 
-              project.status !== 'completed' && 
-              project.status !== 'cancelled' &&
-              project.status !== 'delivered'
-            )
+            .filter((project: any) => {
+              console.log('Status endpoint - filtering project:', project);
+              return project.status !== 'completed' && 
+                     project.status !== 'cancelled' &&
+                     project.status !== 'delivered';
+            })
             .slice(0, 15);
 
           const mappedProjects = activeProjects.map((project: any) => ({

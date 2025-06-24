@@ -1239,8 +1239,17 @@ export default function Meetings() {
                                   <div className="border-t pt-3">
                                     <h5 className="text-sm font-medium text-red-600 mb-2">Active Issues ({project.activeIssues.length})</h5>
                                     <div className="space-y-1">
-                                      {project.activeIssues.slice(0, 3).map((issue: any, issueIndex: number) => (
-                                        <div key={issueIndex} className="flex items-center gap-2 text-xs p-2 bg-red-50 rounded">
+                                      {project.activeIssues
+                                        .filter((issue: any, index: number, arr: any[]) => 
+                                          // Remove duplicates based on title, name, or description
+                                          arr.findIndex(i => 
+                                            (i.title || i.name || i.description) === 
+                                            (issue.title || issue.name || issue.description)
+                                          ) === index
+                                        )
+                                        .slice(0, 3)
+                                        .map((issue: any, issueIndex: number) => (
+                                        <div key={`${project.id}-issue-${issueIndex}`} className="flex items-center gap-2 text-xs p-2 bg-red-50 rounded">
                                           <AlertCircle className="h-3 w-3 text-red-500" />
                                           <span className="flex-1">{issue.title || issue.description || 'Issue reported'}</span>
                                           <Badge variant="destructive" className="text-xs">
@@ -1248,9 +1257,17 @@ export default function Meetings() {
                                           </Badge>
                                         </div>
                                       ))}
-                                      {project.activeIssues.length > 3 && (
-                                        <p className="text-xs text-muted-foreground">+ {project.activeIssues.length - 3} more issues</p>
-                                      )}
+                                      {(() => {
+                                        const uniqueIssues = project.activeIssues.filter((issue: any, index: number, arr: any[]) => 
+                                          arr.findIndex(i => 
+                                            (i.title || i.name || i.description) === 
+                                            (issue.title || issue.name || issue.description)
+                                          ) === index
+                                        );
+                                        return uniqueIssues.length > 3 && (
+                                          <p className="text-xs text-muted-foreground">+ {uniqueIssues.length - 3} more issues</p>
+                                        );
+                                      })()}
                                     </div>
                                   </div>
                                 )}
