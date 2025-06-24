@@ -1215,7 +1215,7 @@ export default function Meetings() {
                                       {(project.teamInfo.needs && project.teamInfo.needs.length > 0) && (
                                         <div className="flex items-center gap-2 text-xs">
                                           <AlertCircle className="h-3 w-3 text-orange-500" />
-                                          <span className="text-orange-600">Active Needs: {project.teamInfo.needs.length}</span>
+                                          <span className="text-orange-600">Active Needs: {String(project.teamInfo.needs.length)}</span>
                                         </div>
                                       )}
                                     </div>
@@ -1251,9 +1251,9 @@ export default function Meetings() {
                                         .map((issue: any, issueIndex: number) => (
                                         <div key={`${project.id}-issue-${issueIndex}`} className="flex items-center gap-2 text-xs p-2 bg-red-50 rounded">
                                           <AlertCircle className="h-3 w-3 text-red-500" />
-                                          <span className="flex-1">{issue.title || issue.description || 'Issue reported'}</span>
+                                          <span className="flex-1">{String(issue.title || issue.description || 'Issue reported')}</span>
                                           <Badge variant="destructive" className="text-xs">
-                                            {issue.severity || 'HIGH'}
+                                            {String(issue.severity || 'HIGH')}
                                           </Badge>
                                         </div>
                                       ))}
@@ -1265,7 +1265,7 @@ export default function Meetings() {
                                           ) === index
                                         );
                                         return uniqueIssues.length > 3 && (
-                                          <p className="text-xs text-muted-foreground">+ {uniqueIssues.length - 3} more issues</p>
+                                          <p className="text-xs text-muted-foreground">+ {String(uniqueIssues.length - 3)} more issues</p>
                                         );
                                       })()}
                                     </div>
@@ -1275,7 +1275,7 @@ export default function Meetings() {
                                 {/* Alerts */}
                                 {project.alerts && project.alerts.length > 0 && (
                                   <div className="border-t pt-3">
-                                    <h5 className="text-sm font-medium text-yellow-600 mb-2">Alerts ({project.alerts.length})</h5>
+                                    <h5 className="text-sm font-medium text-yellow-600 mb-2">Alerts ({String(project.alerts.length)})</h5>
                                     <div className="space-y-1">
                                       {project.alerts.slice(0, 2).map((alert: any, alertIndex: number) => (
                                         <div key={alertIndex} className="flex items-center gap-2 text-xs p-2 bg-yellow-50 rounded">
@@ -1302,7 +1302,7 @@ export default function Meetings() {
                     {/* Teams Overview */}
                     {ptnProjects?.teams && ptnProjects.teams.length > 0 && (
                       <div className="space-y-4">
-                        <h4 className="text-lg font-semibold">Team Status ({ptnProjects.teams.length})</h4>
+                        <h4 className="text-lg font-semibold">Team Status ({(ptnProjects as any).teams.length})</h4>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                           {(ptnProjects as any).teams.map((team: any, index: number) => (
                             <Card key={team.id || index} className="border-l-4 border-l-green-500">
@@ -1341,7 +1341,7 @@ export default function Meetings() {
                     {/* Global Issues */}
                     {ptnProjects?.issues && ptnProjects.issues.length > 0 && (
                       <div className="space-y-4">
-                        <h4 className="text-lg font-semibold text-red-600">System-Wide Issues ({ptnProjects.issues.length})</h4>
+                        <h4 className="text-lg font-semibold text-red-600">System-Wide Issues ({(ptnProjects as any).issues.length})</h4>
                         <div className="space-y-3">
                           {ptnProjects.issues.map((issue: any, index: number) => (
                             <Card key={index} className="border-l-4 border-l-red-500">
@@ -1349,19 +1349,19 @@ export default function Meetings() {
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2">
                                     <AlertCircle className="h-5 w-5 text-red-500" />
-                                    <p className="font-medium">{issue.title || 'System Issue'}</p>
+                                    <p className="font-medium">{String(issue.title || 'System Issue')}</p>
                                   </div>
                                   <Badge variant="destructive">
-                                    {issue.severity || 'HIGH'}
+                                    {String(issue.severity || 'HIGH')}
                                   </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-2">
-                                  {issue.description || 'No description available'}
+                                  {String(issue.description || 'No description available')}
                                 </p>
                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  <span>Reported: {issue.reportedAt || 'Unknown'}</span>
+                                  <span>Reported: {String(issue.reportedAt || 'Unknown')}</span>
                                   {issue.affectedTeams && (
-                                    <span>Affects: {issue.affectedTeams} teams</span>
+                                    <span>Affects: {String(issue.affectedTeams)} teams</span>
                                   )}
                                 </div>
                               </CardContent>
