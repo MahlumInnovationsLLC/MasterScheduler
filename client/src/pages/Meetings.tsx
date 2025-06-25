@@ -1525,8 +1525,8 @@ export default function Meetings() {
             </div>
           </div>
 
-          {/* Tier III Statistics and FAB Section */}
-          <div className="grid gap-4 md:grid-cols-4">
+          {/* Tier III Statistics */}
+          <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Ready to Ship</CardTitle>
@@ -1556,15 +1556,19 @@ export default function Meetings() {
                 <div className="text-2xl font-bold text-red-600">{tierIVConcerns.length}</div>
               </CardContent>
             </Card>
-            
-            {/* FAB Projects Section */}
-            <Card className="row-span-2">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Currently in FAB</CardTitle>
-                <Settings className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-2xl font-bold text-blue-600">
+          </div>
+
+          {/* FAB Projects Section - Full Width */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <div>
+                <CardTitle className="text-lg font-medium">Projects Currently in Fabrication (FAB)</CardTitle>
+                <CardDescription>
+                  Projects where today's date falls between FAB start and assembly start dates - next phase: Assembly/Production
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
                   {(() => {
                     const today = new Date();
                     const projectsInFab = projects.filter(project => {
@@ -1574,81 +1578,126 @@ export default function Meetings() {
                       return today >= fabStart && today < assemblyStart;
                     });
                     return projectsInFab.length;
-                  })()}
-                </div>
-                <div className="text-xs text-muted-foreground mb-2">Projects in fabrication phase</div>
+                  })()} in FAB
+                </Badge>
+                <Settings className="h-5 w-5 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const today = new Date();
+                const projectsInFab = projects.filter(project => {
+                  if (!project.fabricationStart || !project.assemblyStart) return false;
+                  const fabStart = new Date(project.fabricationStart + 'T00:00:00');
+                  const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
+                  return today >= fabStart && today < assemblyStart;
+                });
                 
-                {/* List of FAB Projects */}
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {(() => {
-                    const today = new Date();
-                    const projectsInFab = projects.filter(project => {
-                      if (!project.fabricationStart || !project.assemblyStart) return false;
-                      const fabStart = new Date(project.fabricationStart + 'T00:00:00');
-                      const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
-                      return today >= fabStart && today < assemblyStart;
-                    });
-                    
-                    if (projectsInFab.length === 0) {
-                      return (
-                        <div className="text-xs text-muted-foreground italic">
-                          No projects currently in FAB phase
-                        </div>
-                      );
-                    }
-                    
-                    return projectsInFab.map((project: any) => (
-                      <div key={project.id} className="p-2 bg-blue-50 dark:bg-blue-950/20 rounded border-l-2 border-l-blue-500">
-                        <div className="flex justify-between items-start mb-1">
-                          <Link 
-                            href={`/project/${project.id}`}
-                            className="text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline truncate flex-1 mr-2"
-                          >
-                            {project.projectNumber}
-                          </Link>
-                          <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50">
-                            FAB
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate mb-2">
-                          {project.name}
-                        </div>
-                        <div className="text-xs space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">FAB Start:</span>
-                            <span>{format(new Date(project.fabricationStart + 'T00:00:00'), 'MMM d')}</span>
+                if (projectsInFab.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Settings className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-lg font-medium">No projects currently in FAB phase</p>
+                      <p className="text-sm">Projects will appear here when their dates fall between fabrication start and assembly start</p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {projectsInFab.map((project: any) => (
+                      <Card key={project.id} className="border-l-4 border-l-blue-500">
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <Link 
+                                href={`/project/${project.id}`}
+                                className="text-sm font-medium text-blue-700 dark:text-blue-300 hover:underline block"
+                              >
+                                {project.projectNumber}
+                              </Link>
+                              <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {project.name}
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50 ml-2">
+                              FAB ACTIVE
+                            </Badge>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Next Phase:</span>
-                            <span>{format(new Date(project.assemblyStart + 'T00:00:00'), 'MMM d')}</span>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground">FAB Started:</span>
+                              <span className="font-medium">{format(new Date(project.fabricationStart + 'T00:00:00'), 'MMM d, yyyy')}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground">Next Phase (Assembly):</span>
+                              <span className="font-medium text-indigo-600">{format(new Date(project.assemblyStart + 'T00:00:00'), 'MMM d, yyyy')}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground">PM Owner:</span>
+                              <span className="font-medium">{project.pmOwner || 'Unassigned'}</span>
+                            </div>
                           </div>
-                        </div>
-                        
-                        {/* Notes Section */}
-                        <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
-                          <div className="text-xs font-medium text-muted-foreground mb-1">Notes:</div>
-                          <Textarea 
-                            placeholder="Add FAB notes..."
-                            className="text-xs min-h-[60px] resize-none"
-                            defaultValue={project.notes || ''}
-                            onBlur={(e) => {
-                              // Auto-save notes when user clicks away
-                              if (e.target.value !== (project.notes || '')) {
-                                updateProjectNotes.mutate({
-                                  projectId: project.id,
-                                  notes: e.target.value
-                                });
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                          
+                          {/* Progress toward Assembly */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-xs">
+                              <span className="text-muted-foreground">FAB Progress</span>
+                              <span className="text-muted-foreground">
+                                {(() => {
+                                  const fabStart = new Date(project.fabricationStart + 'T00:00:00');
+                                  const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
+                                  const totalDays = Math.max(1, (assemblyStart.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
+                                  const daysPassed = Math.max(0, (today.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
+                                  const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100));
+                                  return `${Math.round(progress)}%`;
+                                })()}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                style={{ 
+                                  width: `${(() => {
+                                    const fabStart = new Date(project.fabricationStart + 'T00:00:00');
+                                    const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
+                                    const totalDays = Math.max(1, (assemblyStart.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
+                                    const daysPassed = Math.max(0, (today.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
+                                    const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100));
+                                    return Math.round(progress);
+                                  })()}%`
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                          
+                          {/* Notes Section */}
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium text-muted-foreground">FAB Notes:</div>
+                            <Textarea 
+                              placeholder="Add notes about FAB progress, issues, or updates..."
+                              className="text-xs min-h-[70px] resize-none"
+                              defaultValue={project.notes || ''}
+                              onBlur={(e) => {
+                                if (e.target.value !== (project.notes || '')) {
+                                  updateProjectNotes.mutate({
+                                    projectId: project.id,
+                                    notes: e.target.value
+                                  });
+                                }
+                              }}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
 
           {/* Top 20 Ready to Ship Projects */}
           <div className="grid gap-4 grid-cols-1">
