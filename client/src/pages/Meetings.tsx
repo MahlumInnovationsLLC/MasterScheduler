@@ -1579,7 +1579,23 @@ export default function Meetings() {
                       
                       // Apply location filter
                       if (tierIIILocationFilter !== 'all') {
-                        return isInFabPhase && project.location === tierIIILocationFilter;
+                        if (tierIIILocationFilter === 'CFALLS') {
+                          // Handle all Columbia Falls variants
+                          return isInFabPhase && (
+                            project.location === 'CFALLS' || 
+                            project.location === 'CFalls' || 
+                            project.location === 'Columbia Falls, MT'
+                          );
+                        } else if (tierIIILocationFilter === 'LIBBY') {
+                          // Handle all Libby variants
+                          return isInFabPhase && (
+                            project.location === 'LIBBY' || 
+                            project.location === 'Libby' || 
+                            project.location === 'Libby, MT'
+                          );
+                        } else {
+                          return isInFabPhase && project.location === tierIIILocationFilter;
+                        }
                       }
                       
                       return isInFabPhase;
@@ -1601,7 +1617,23 @@ export default function Meetings() {
                   
                   // Apply location filter
                   if (tierIIILocationFilter !== 'all') {
-                    return isInFabPhase && project.location === tierIIILocationFilter;
+                    if (tierIIILocationFilter === 'CFALLS') {
+                      // Handle all Columbia Falls variants
+                      return isInFabPhase && (
+                        project.location === 'CFALLS' || 
+                        project.location === 'CFalls' || 
+                        project.location === 'Columbia Falls, MT'
+                      );
+                    } else if (tierIIILocationFilter === 'LIBBY') {
+                      // Handle all Libby variants
+                      return isInFabPhase && (
+                        project.location === 'LIBBY' || 
+                        project.location === 'Libby' || 
+                        project.location === 'Libby, MT'
+                      );
+                    } else {
+                      return isInFabPhase && project.location === tierIIILocationFilter;
+                    }
                   }
                   
                   return isInFabPhase;
