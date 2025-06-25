@@ -439,7 +439,7 @@ export default function Meetings() {
     return 'low';
   };
 
-  // Filter projects for Tier III (top 20 ready to ship, earliest first) with location filter
+  // Filter projects for Tier III (top 30 ready to ship, earliest first) with location filter
   const tierIIIProjects = (projects as Project[])
     .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
     .filter((p: Project) => {
@@ -455,25 +455,9 @@ export default function Meetings() {
       }
     })
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
-    .slice(0, 20);
+    .slice(0, 30);
 
-  // Get next 30 ready to ship projects for Tier III with location filter
-  const nextTierIIIProjects = (projects as Project[])
-    .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
-    .filter((p: Project) => {
-      if (tierIIILocationFilter === "all") return true;
-      if (tierIIILocationFilter === 'CFALLS') {
-        // Handle all Columbia Falls variants
-        return p.location === 'CFALLS' || p.location === 'CFalls' || p.location === 'Columbia Falls, MT';
-      } else if (tierIIILocationFilter === 'LIBBY') {
-        // Handle all Libby variants
-        return p.location === 'LIBBY' || p.location === 'Libby' || p.location === 'Libby, MT';
-      } else {
-        return p.location === tierIIILocationFilter;
-      }
-    })
-    .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
-    .slice(20, 50);
+
 
   // Filter projects for Tier IV (MAJOR and MINOR issues only) - sorted by ship date
   const tierIVProjects = (projects as Project[]).filter((p: Project) => 
@@ -1524,7 +1508,7 @@ export default function Meetings() {
             <div>
               <h2 className="text-xl font-semibold">Tier III - Project Readiness</h2>
               <p className="text-muted-foreground">
-                Top 20 projects ready to ship, sorted by earliest ship date first
+                Top 30 projects ready to ship, sorted by earliest ship date first
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -2117,96 +2101,7 @@ export default function Meetings() {
             ))}
           </div>
 
-          {/* Next 30 Ready to Ship Projects - Compact */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Next 30 Ready to Ship</h3>
-            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {nextTierIIIProjects.map((project: Project) => (
-                <Card key={project.id} className="w-full border-l-4 border-l-blue-500">
-                  <CardHeader className="pb-2">
-                    <div className="space-y-1">
-                      <CardTitle className="text-sm font-medium break-words">{project.name}</CardTitle>
-                      <Link 
-                        href={`/project/${project.id}`}
-                        className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
-                      >
-                        {project.projectNumber}
-                      </Link>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-2">
-                    <div className="text-xs space-y-1">
-                      <div className="truncate">
-                        <span className="font-medium">Ship:</span> {project.shipDate ? (() => {
-                          const date = new Date(project.shipDate + 'T00:00:00');
-                          return format(date, 'MMM d');
-                        })() : "TBD"}
-                      </div>
-                      <div className="truncate">
-                        <span className="font-medium">PM:</span> {project.pmOwner || "Unassigned"}
-                      </div>
-                    </div>
-                    
-                    {/* Compact Progress Bar */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Progress</span>
-                        <span>{Math.round((project as any).percentComplete || 0)}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                        <div 
-                          className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
-                          style={{ width: `${(project as any).percentComplete || 0}%` }}
-                        ></div>
-                      </div>
-                    </div>
 
-                    {/* Compact Tasks Section */}
-                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-2 border-l-blue-500">
-                      {(() => {
-                        const projectTasks = (allTasks as any[]).filter((task: any) => {
-                          return task.projectId === project.id && !task.isCompleted;
-                        });
-                        
-                        return projectTasks.length > 0 ? (
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-blue-800 dark:text-blue-200">Tasks</span>
-                              <Badge variant="outline" className="text-xs border-blue-300 text-blue-800 dark:border-blue-400 dark:text-blue-200">
-                                {projectTasks.length}
-                              </Badge>
-                            </div>
-                            {projectTasks.slice(0, 1).map((task: any) => (
-                              <div key={task.id} className="text-xs">
-                                <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{task.name}</div>
-                                {task.dueDate && (
-                                  <div className="text-red-600 dark:text-red-400">
-                                    Due: {(() => {
-                                      const date = new Date(task.dueDate + 'T00:00:00');
-                                      return format(date, 'MMM d');
-                                    })()}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                            {projectTasks.length > 1 && (
-                              <div className="text-xs text-center text-gray-600 dark:text-gray-400">
-                                +{projectTasks.length - 1} more
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-center">
-                            <span className="text-xs text-gray-600 dark:text-gray-400">NO TASKS</span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
 
           {/* Elevated Concerns Section */}
           <div className="space-y-4">
