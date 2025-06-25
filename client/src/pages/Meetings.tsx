@@ -122,6 +122,37 @@ export default function Meetings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Mutation for updating project notes
+  const updateProjectNotes = useMutation({
+    mutationFn: async ({ projectId, notes }: { projectId: number; notes: string }) => {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update project notes');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "Notes updated",
+        description: "Project notes have been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update project notes.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Fetch current user
   const { data: currentUser } = useQuery({
     queryKey: ['/api/user'],
@@ -1494,8 +1525,8 @@ export default function Meetings() {
             </div>
           </div>
 
-          {/* Tier III Statistics */}
-          <div className="grid gap-4 md:grid-cols-3">
+          {/* Tier III Statistics and FAB Section */}
+          <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Ready to Ship</CardTitle>
@@ -1523,6 +1554,98 @@ export default function Meetings() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{tierIVConcerns.length}</div>
+              </CardContent>
+            </Card>
+            
+            {/* FAB Projects Section */}
+            <Card className="row-span-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Currently in FAB</CardTitle>
+                <Settings className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-2xl font-bold text-blue-600">
+                  {(() => {
+                    const today = new Date();
+                    const projectsInFab = projects.filter(project => {
+                      if (!project.fabricationStart || !project.assemblyStart) return false;
+                      const fabStart = new Date(project.fabricationStart + 'T00:00:00');
+                      const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
+                      return today >= fabStart && today < assemblyStart;
+                    });
+                    return projectsInFab.length;
+                  })()}
+                </div>
+                <div className="text-xs text-muted-foreground mb-2">Projects in fabrication phase</div>
+                
+                {/* List of FAB Projects */}
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {(() => {
+                    const today = new Date();
+                    const projectsInFab = projects.filter(project => {
+                      if (!project.fabricationStart || !project.assemblyStart) return false;
+                      const fabStart = new Date(project.fabricationStart + 'T00:00:00');
+                      const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
+                      return today >= fabStart && today < assemblyStart;
+                    });
+                    
+                    if (projectsInFab.length === 0) {
+                      return (
+                        <div className="text-xs text-muted-foreground italic">
+                          No projects currently in FAB phase
+                        </div>
+                      );
+                    }
+                    
+                    return projectsInFab.map((project: any) => (
+                      <div key={project.id} className="p-2 bg-blue-50 dark:bg-blue-950/20 rounded border-l-2 border-l-blue-500">
+                        <div className="flex justify-between items-start mb-1">
+                          <Link 
+                            href={`/project/${project.id}`}
+                            className="text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline truncate flex-1 mr-2"
+                          >
+                            {project.projectNumber}
+                          </Link>
+                          <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50">
+                            FAB
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate mb-2">
+                          {project.name}
+                        </div>
+                        <div className="text-xs space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">FAB Start:</span>
+                            <span>{format(new Date(project.fabricationStart + 'T00:00:00'), 'MMM d')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Next Phase:</span>
+                            <span>{format(new Date(project.assemblyStart + 'T00:00:00'), 'MMM d')}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Notes Section */}
+                        <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                          <div className="text-xs font-medium text-muted-foreground mb-1">Notes:</div>
+                          <Textarea 
+                            placeholder="Add FAB notes..."
+                            className="text-xs min-h-[60px] resize-none"
+                            defaultValue={project.notes || ''}
+                            onBlur={(e) => {
+                              // Auto-save notes when user clicks away
+                              if (e.target.value !== (project.notes || '')) {
+                                updateProjectNotes.mutate({
+                                  projectId: project.id,
+                                  notes: e.target.value
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
               </CardContent>
             </Card>
           </div>
