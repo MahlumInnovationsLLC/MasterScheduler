@@ -457,7 +457,7 @@ export default function Meetings() {
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
     .slice(0, 20);
 
-  // Get next 20 ready to ship projects for Tier III with location filter
+  // Get next 30 ready to ship projects for Tier III with location filter
   const nextTierIIIProjects = (projects as Project[])
     .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
     .filter((p: Project) => {
@@ -473,7 +473,7 @@ export default function Meetings() {
       }
     })
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
-    .slice(20, 40);
+    .slice(20, 50);
 
   // Filter projects for Tier IV (MAJOR and MINOR issues only) - sorted by ship date
   const tierIVProjects = (projects as Project[]).filter((p: Project) => 
@@ -2117,9 +2117,9 @@ export default function Meetings() {
             ))}
           </div>
 
-          {/* Next 20 Ready to Ship Projects - Compact */}
+          {/* Next 30 Ready to Ship Projects - Compact */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Next 20 Ready to Ship</h3>
+            <h3 className="text-lg font-semibold">Next 30 Ready to Ship</h3>
             <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
               {nextTierIIIProjects.map((project: Project) => (
                 <Card key={project.id} className="w-full border-l-4 border-l-blue-500">
