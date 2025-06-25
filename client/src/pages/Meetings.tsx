@@ -442,14 +442,36 @@ export default function Meetings() {
   // Filter projects for Tier III (top 20 ready to ship, earliest first) with location filter
   const tierIIIProjects = (projects as Project[])
     .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
-    .filter((p: Project) => tierIIILocationFilter === "all" || p.location === tierIIILocationFilter)
+    .filter((p: Project) => {
+      if (tierIIILocationFilter === "all") return true;
+      if (tierIIILocationFilter === 'CFALLS') {
+        // Handle all Columbia Falls variants
+        return p.location === 'CFALLS' || p.location === 'CFalls' || p.location === 'Columbia Falls, MT';
+      } else if (tierIIILocationFilter === 'LIBBY') {
+        // Handle all Libby variants
+        return p.location === 'LIBBY' || p.location === 'Libby' || p.location === 'Libby, MT';
+      } else {
+        return p.location === tierIIILocationFilter;
+      }
+    })
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
     .slice(0, 20);
 
   // Get next 20 ready to ship projects for Tier III with location filter
   const nextTierIIIProjects = (projects as Project[])
     .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
-    .filter((p: Project) => tierIIILocationFilter === "all" || p.location === tierIIILocationFilter)
+    .filter((p: Project) => {
+      if (tierIIILocationFilter === "all") return true;
+      if (tierIIILocationFilter === 'CFALLS') {
+        // Handle all Columbia Falls variants
+        return p.location === 'CFALLS' || p.location === 'CFalls' || p.location === 'Columbia Falls, MT';
+      } else if (tierIIILocationFilter === 'LIBBY') {
+        // Handle all Libby variants
+        return p.location === 'LIBBY' || p.location === 'Libby' || p.location === 'Libby, MT';
+      } else {
+        return p.location === tierIIILocationFilter;
+      }
+    })
     .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
     .slice(20, 40);
 
