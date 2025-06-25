@@ -1575,7 +1575,14 @@ export default function Meetings() {
                       if (!project.fabricationStart || !project.assemblyStart) return false;
                       const fabStart = new Date(project.fabricationStart + 'T00:00:00');
                       const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
-                      return today >= fabStart && today < assemblyStart;
+                      const isInFabPhase = today >= fabStart && today < assemblyStart;
+                      
+                      // Apply location filter
+                      if (tierIIILocationFilter !== 'all') {
+                        return isInFabPhase && project.location === tierIIILocationFilter;
+                      }
+                      
+                      return isInFabPhase;
                     });
                     return projectsInFab.length;
                   })()} in FAB
@@ -1590,7 +1597,14 @@ export default function Meetings() {
                   if (!project.fabricationStart || !project.assemblyStart) return false;
                   const fabStart = new Date(project.fabricationStart + 'T00:00:00');
                   const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
-                  return today >= fabStart && today < assemblyStart;
+                  const isInFabPhase = today >= fabStart && today < assemblyStart;
+                  
+                  // Apply location filter
+                  if (tierIIILocationFilter !== 'all') {
+                    return isInFabPhase && project.location === tierIIILocationFilter;
+                  }
+                  
+                  return isInFabPhase;
                 });
                 
                 if (projectsInFab.length === 0) {
@@ -1671,24 +1685,6 @@ export default function Meetings() {
                                 }}
                               ></div>
                             </div>
-                          </div>
-                          
-                          {/* Notes Section */}
-                          <div className="space-y-2">
-                            <div className="text-xs font-medium text-muted-foreground">FAB Notes:</div>
-                            <Textarea 
-                              placeholder="Add notes about FAB progress, issues, or updates..."
-                              className="text-xs min-h-[70px] resize-none"
-                              defaultValue={project.notes || ''}
-                              onBlur={(e) => {
-                                if (e.target.value !== (project.notes || '')) {
-                                  updateProjectNotes.mutate({
-                                    projectId: project.id,
-                                    notes: e.target.value
-                                  });
-                                }
-                              }}
-                            />
                           </div>
                         </CardContent>
                       </Card>
