@@ -758,6 +758,48 @@ const Dashboard = () => {
       ),
     },
     {
+      accessorKey: 'paintStart',
+      header: 'Paint Start',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <svg className="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8 2a1 1 0 000 2h4a1 1 0 100-2H8zM3 7a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm2 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" clipRule="evenodd" />
+          </svg>
+          <div className="text-sm">
+            {formatDate(row.original.paintStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'itStart',
+      header: 'IT Start',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <svg className="h-4 w-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-3.22l.123.493.006.024c.01.041.017.082.017.123a.75.75 0 01-.22.53l-.22.22a.75.75 0 01-1.06 0l-.22-.22A.75.75 0 0110 15.25a.75.75 0 01.75-.75H15a.5.5 0 00.5-.5V5a.5.5 0 00-.5-.5H5a.5.5 0 00-.5.5v9.5a.5.5 0 00.5.5h4.25a.75.75 0 010 1.5H5a2 2 0 01-2-2V5z" clipRule="evenodd" />
+          </svg>
+          <div className="text-sm">
+            {formatDate(row.original.itStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'execReview',
+      header: 'Exec Review',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <svg className="h-4 w-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+          </svg>
+          <div className="text-sm">
+            {formatDate(row.original.execReview)}
+          </div>
+        </div>
+      ),
+    },
+    {
       accessorKey: 'contractDate',
       header: 'Contract Date',
       cell: ({ row }) => (
