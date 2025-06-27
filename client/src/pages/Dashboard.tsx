@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { 
@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Dashboard = () => {
+  // ALL HOOKS MUST BE CALLED FIRST - NO CONDITIONAL LOGIC BEFORE THIS POINT
   const { user, isLoading: authLoading } = useAuth();
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
   const { toast } = useToast();
@@ -289,7 +290,7 @@ const Dashboard = () => {
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
-    
+
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
@@ -312,7 +313,7 @@ const Dashboard = () => {
 
     // Apply time-based filtering
     let timeFilteredProjects = enhancedProjects;
-    
+
     if (timeFilter === 'this-week') {
       timeFilteredProjects = enhancedProjects.filter((p: any) => {
         const shipDate = getValidDate(p.shipDate);
@@ -394,12 +395,12 @@ const Dashboard = () => {
       ? projects.filter(p => {
           const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
           const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
-          
+
           // Filter out Field or FSW category projects
           if (p.team === 'Field' || p.team === 'FSW') {
             return false;
           }
-          
+
           if (isUnscheduled) {
             console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
           }
@@ -1196,7 +1197,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      
+
 
       {/* Project Search for Bay Schedule */}
       <div className="mb-6 flex items-center gap-4">
