@@ -223,6 +223,12 @@ export function calculateWeeklyBayUtilization(
 ): WeeklyUtilization[] {
   const utilizations: WeeklyUtilization[] = [];
   
+  // Force current date if startDate is in the future relative to June 2025
+  const currentDate = new Date('2025-06-27');
+  const actualStartDate = startDate > currentDate ? currentDate : startDate;
+  
+  console.log(`🔍 BAY UTILIZATION: Using start date: ${format(actualStartDate, 'yyyy-MM-dd')} (original: ${format(startDate, 'yyyy-MM-dd')})`);
+  
   // Filter out LIBBY team - check for multiple variations
   const filteredBays = bays.filter(bay => 
     bay.team && 
@@ -230,9 +236,9 @@ export function calculateWeeklyBayUtilization(
     !bay.name.toUpperCase().includes('LIBBY')
   );
   
-  // Generate weeks
+  // Generate weeks using the corrected start date
   for (let weekOffset = 0; weekOffset < weeksCount; weekOffset++) {
-    const weekStart = startOfWeek(addWeeks(startDate, weekOffset), { weekStartsOn: 1 }); // Monday start
+    const weekStart = startOfWeek(addWeeks(actualStartDate, weekOffset), { weekStartsOn: 1 }); // Monday start
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     const weekKey = format(weekStart, 'yyyy-MM-dd');
     
