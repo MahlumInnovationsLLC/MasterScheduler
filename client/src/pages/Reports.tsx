@@ -453,6 +453,7 @@ const ReportsPage = () => {
 
   // Future Predictions Functions
   const getFutureBayUtilization = () => {
+    console.log('🔍 FUTURE BAY UTILIZATION FUNCTION CALLED');
     const futureMonths = [];
     // Force current date to be June 27, 2025 (today)
     const now = new Date('2025-06-27');
@@ -561,13 +562,23 @@ const ReportsPage = () => {
         };
       });
       
+      // Only include bays/teams that have active projects in the average
+      const activeBays = Object.values(futureBayData).filter(bay => bay.projects > 0);
+      const monthlyAverage = activeBays.length > 0 
+        ? Math.round(activeBays.reduce((sum, bay) => sum + bay.utilization, 0) / activeBays.length)
+        : 0;
+      
+      // Debug: Log monthly average calculation
+      if (i < 3) { // Log first 3 months
+        console.log(`📊 MONTH ${monthKey}: Total bays: ${Object.values(futureBayData).length}, Active bays: ${activeBays.length}`);
+        console.log(`📊 Active bay utilizations:`, activeBays.map(b => `${b.bay}: ${Math.round(b.utilization)}% (${b.projects} projects)`));
+        console.log(`📊 Final average utilization = ${monthlyAverage}%`);
+      }
+      
       futureMonths.push({
         month: monthKey,
         bays: Object.values(futureBayData),
-        averageUtilization: Math.round(
-          Object.values(futureBayData).reduce((sum, bay) => sum + bay.utilization, 0) / 
-          Math.max(1, Object.values(futureBayData).length)
-        )
+        averageUtilization: monthlyAverage
       });
     }
     
