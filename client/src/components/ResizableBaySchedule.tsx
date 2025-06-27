@@ -22,6 +22,7 @@ import {
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import DurationCalculator from './DurationCalculator';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
+import { calculateCurrentWeekTeamUtilization } from '@shared/utils/bay-utilization';
 // Function will be defined inside the component
 import { TeamManagementDialog } from './TeamManagementDialog';
 import FinancialImpactPopup from './FinancialImpactPopup';
@@ -3563,26 +3564,37 @@ export default function ResizableBaySchedule({
                         <Users className="h-3.5 w-3.5 mr-1" />
                         <span>
                           {(() => {
-                            // Get current week's start and end date using real current date
-                            const today = new Date(); // Current real date
-                            const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday as start of week
-                            const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                            // Skip calculation for LIBBY team
+                            if (team[0]?.team?.toUpperCase() === 'LIBBY') {
+                              return 'N/A - LIBBY';
+                            }
                             
-                            // Count projects active in current week only
-                            const currentWeekProjects = scheduleBars.filter(bar => {
-                              // Check if team owns this bay
-                              const isTeamBay = team.some(b => b.id === bar.bayId);
-                              if (!isTeamBay) return false;
-                              
-                              // Check if schedule overlaps with current week
-                              const scheduleStart = new Date(bar.startDate);
-                              const scheduleEnd = new Date(bar.endDate);
-                              return (
-                                (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
-                              );
-                            }).length;
+                            // Use new phase-based calculation for project count
+                            const utilizationData = calculateCurrentWeekTeamUtilization(
+                              scheduleBars.map(bar => ({
+                                id: bar.id,
+                                projectId: bar.projectId,
+                                bayId: bar.bayId,
+                                startDate: new Date(bar.startDate),
+                                endDate: new Date(bar.endDate),
+                                totalHours: bar.totalHours || 1000
+                              })),
+                              projects.map(p => ({
+                                id: p.id,
+                                name: p.name,
+                                projectNumber: p.projectNumber,
+                                totalHours: p.totalHours,
+                                fabPercentage: parseFloat(p.fabPercentage?.toString() || '27'),
+                                paintPercentage: parseFloat(p.paintPercentage?.toString() || '7'),
+                                productionPercentage: parseFloat(p.productionPercentage?.toString() || '60'),
+                                itPercentage: parseFloat(p.itPercentage?.toString() || '7'),
+                                ntcPercentage: parseFloat(p.ntcPercentage?.toString() || '7'),
+                                qcPercentage: parseFloat(p.qcPercentage?.toString() || '7')
+                              })),
+                              team
+                            );
                             
-                            return `${currentWeekProjects} projects`;
+                            return `${utilizationData.projectCount} aligned`;
                           })()}
                         </span>
                       </div>
@@ -3766,36 +3778,37 @@ export default function ResizableBaySchedule({
                             <Zap className="h-3 w-3 mr-1" />
                             <span>
                               {(() => {
-                                // Get current week's start and end date
-                                const today = new Date();
-                                const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-                                const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                                // Skip calculation for LIBBY team
+                                if (team[0]?.team?.toUpperCase() === 'LIBBY') {
+                                  return 'N/A - LIBBY Team';
+                                }
                                 
-                                // Count projects active in current week only
-                                const currentWeekProjects = scheduleBars.filter(bar => {
-                                  // Check if team owns this bay
-                                  const isTeamBay = team.some(b => b.id === bar.bayId);
-                                  if (!isTeamBay) return false;
-                                  
-                                  // Check if schedule overlaps with current week
-                                  const scheduleStart = new Date(bar.startDate);
-                                  const scheduleEnd = new Date(bar.endDate);
-                                  return (
-                                    (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
-                                  );
-                                }).length;
+                                // Use new phase-based utilization calculation
+                                const utilizationData = calculateCurrentWeekTeamUtilization(
+                                  scheduleBars.map(bar => ({
+                                    id: bar.id,
+                                    projectId: bar.projectId,
+                                    bayId: bar.bayId,
+                                    startDate: new Date(bar.startDate),
+                                    endDate: new Date(bar.endDate),
+                                    totalHours: bar.totalHours || 1000
+                                  })),
+                                  projects.map(p => ({
+                                    id: p.id,
+                                    name: p.name,
+                                    projectNumber: p.projectNumber,
+                                    totalHours: p.totalHours,
+                                    fabPercentage: parseFloat(p.fabPercentage?.toString() || '27'),
+                                    paintPercentage: parseFloat(p.paintPercentage?.toString() || '7'),
+                                    productionPercentage: parseFloat(p.productionPercentage?.toString() || '60'),
+                                    itPercentage: parseFloat(p.itPercentage?.toString() || '7'),
+                                    ntcPercentage: parseFloat(p.ntcPercentage?.toString() || '7'),
+                                    qcPercentage: parseFloat(p.qcPercentage?.toString() || '7')
+                                  })),
+                                  team
+                                );
                                 
-                                // Calculate utilization percentage based on team capacity
-                                // Use team length as base capacity (1 project per bay)
-                                const teamCapacity = team.length;
-                                const percentage = teamCapacity > 0 ? Math.min(
-                                  Math.round(
-                                    (currentWeekProjects / teamCapacity) * 100
-                                  ), 
-                                  100
-                                ) : 0;
-                                
-                                return `${currentWeekProjects} projects, ${percentage}% utilization`;
+                                return `${utilizationData.projectCount} aligned, ${utilizationData.utilizationPercentage}% utilization`;
                               })()}
                             </span>
                           </div>
