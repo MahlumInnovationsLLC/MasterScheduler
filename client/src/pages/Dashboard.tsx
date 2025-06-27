@@ -42,6 +42,7 @@ import { Loader2 } from "lucide-react";
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
 
@@ -81,6 +82,8 @@ const Dashboard = () => {
     amount: number;
     milestones: any[];
   } | null>(null);
+  const [columnFilter, setColumnFilter] = useState('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState('all');
 
   // Project scroll function - same logic as bay scheduling module
   const scrollToProject = (searchQuery) => {
@@ -253,8 +256,89 @@ const Dashboard = () => {
       };
     });
 
+    // Apply date range filter
+    const getDateRangeFilteredProjects = (projects) => {
+      if (dateRangeFilter === 'all') return projects;
+
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Start of this week (Sunday)
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // End of this week (Saturday)
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      const startOfNextWeek = new Date(endOfWeek);
+      startOfNextWeek.setDate(endOfWeek.getDate() + 1);
+      startOfNextWeek.setHours(0, 0, 0, 0);
+
+      const endOfNextWeek = new Date(startOfNextWeek);
+      endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
+      endOfNextWeek.setHours(23, 59, 59, 999);
+
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59, 999);
+
+      return projects.filter(project => {
+        // Get the date field based on column filter
+        let dateField = null;
+        if (columnFilter === 'all') {
+          // For 'all', check any date field that starts in the range
+          const dateFields = [
+            project.mechShop, project.fabricationStart, project.paintStart,
+            project.assemblyStart, project.itStart, project.ntcTestStart,
+            project.qcStart, project.execReview, project.contractDate, project.shipDate
+          ];
+          
+          for (const field of dateFields) {
+            const date = getValidDate(field);
+            if (date) {
+              dateField = date;
+              break; // Use the first valid date found
+            }
+          }
+        } else {
+          // Use specific column's date
+          dateField = getValidDate(project[columnFilter]);
+        }
+
+        if (!dateField) return false;
+
+        switch (dateRangeFilter) {
+          case 'thisWeek':
+            return dateField >= startOfWeek && dateField <= endOfWeek;
+          case 'nextWeek':
+            return dateField >= startOfNextWeek && dateField <= endOfNextWeek;
+          case 'thisMonth':
+            return dateField >= startOfMonth && dateField <= endOfMonth;
+          case 'nextMonth':
+            return dateField >= startOfNextMonth && dateField <= endOfNextMonth;
+          default:
+            return true;
+        }
+      });
+    };
+
+    // Apply column filter (if not 'all', show only projects with valid dates in that column)
+    const getColumnFilteredProjects = (projects) => {
+      if (columnFilter === 'all') return projects;
+      
+      return projects.filter(project => {
+        const dateValue = getValidDate(project[columnFilter]);
+        return dateValue !== null;
+      });
+    };
+
+    // Apply filters
+    let filteredByColumn = getColumnFilteredProjects(enhancedProjects);
+    let filteredByDateRange = getDateRangeFilteredProjects(filteredByColumn);
+
     // Sort ALL projects by ship date but ensure delivered projects are always at the bottom
-    const sortedByShipDate = enhancedProjects
+    const sortedByShipDate = filteredByDateRange
       .sort((a, b) => {
         // FIRST PRIORITY: delivered projects always go to the bottom
         const aDelivered = a.status === 'delivered';
@@ -298,7 +382,7 @@ const Dashboard = () => {
     ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
 
     setFilteredProjects(finalList);
-  }, [projects]);
+  }, [projects, columnFilter, dateRangeFilter]);
 
   // Get label statistics  
   const labelStats = useProjectLabelStats();
@@ -1001,6 +1085,65 @@ const Dashboard = () => {
             View All Projects
           </Button>
         </Link>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="mb-4 flex gap-4 items-center">
+        <div className="flex items-center gap-2">
+          <label htmlFor="columnFilter" className="text-sm font-medium text-gray-300">
+            Show Column:
+          </label>
+          <Select value={columnFilter} onValueChange={setColumnFilter}>
+            <SelectTrigger className="w-48 bg-input border-none rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
+              <SelectValue placeholder="Select column" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Columns</SelectItem>
+              <SelectItem value="mechShop">MECH Shop</SelectItem>
+              <SelectItem value="fabricationStart">FAB Start</SelectItem>
+              <SelectItem value="paintStart">Paint Start</SelectItem>
+              <SelectItem value="assemblyStart">Production Start</SelectItem>
+              <SelectItem value="itStart">IT Start</SelectItem>
+              <SelectItem value="ntcTestStart">NTC Test</SelectItem>
+              <SelectItem value="qcStart">QC Start</SelectItem>
+              <SelectItem value="execReview">Exec Review</SelectItem>
+              <SelectItem value="contractDate">Contract Date</SelectItem>
+              <SelectItem value="shipDate">Ship Date</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="dateRangeFilter" className="text-sm font-medium text-gray-300">
+            Date Range:
+          </label>
+          <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+            <SelectTrigger className="w-48 bg-input border-none rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
+              <SelectValue placeholder="Select date range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Dates</SelectItem>
+              <SelectItem value="thisWeek">This Week</SelectItem>
+              <SelectItem value="nextWeek">Next Week</SelectItem>
+              <SelectItem value="thisMonth">This Month</SelectItem>
+              <SelectItem value="nextMonth">Next Month</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {(columnFilter !== 'all' || dateRangeFilter !== 'all') && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setColumnFilter('all');
+              setDateRangeFilter('all');
+            }}
+            className="ml-2"
+          >
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       <div className="w-full mb-8">
