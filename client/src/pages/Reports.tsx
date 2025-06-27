@@ -1607,7 +1607,11 @@ const ReportsPage = () => {
                       <AreaChart data={futureBayUtilization} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
-                        <YAxis tickFormatter={(value) => `${value}%`} />
+                        <YAxis 
+                          tickFormatter={(value) => `${value}%`}
+                          domain={[0, 120]}
+                          ticks={[0, 20, 40, 60, 80, 100, 120]}
+                        />
                         <Tooltip 
                           formatter={(value, name) => [`${value}%`, 'Average Utilization']}
                           labelFormatter={(label) => `Month: ${label}`}

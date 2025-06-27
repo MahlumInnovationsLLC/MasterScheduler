@@ -242,10 +242,15 @@ export function calculateWeeklyBayUtilization(
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     const weekKey = format(weekStart, 'yyyy-MM-dd');
     
-    // Calculate for each bay
+    // Group bays by team to calculate team-based utilization
+    const teamProjects = new Map<string, Set<number>>();
+    
+    // First pass: collect all active projects for each team during this week
     filteredBays.forEach(bay => {
-      // Get projects that have ANY active phase in this week for this bay
-      const activeProjectsInWeek = new Set<number>();
+      const teamName = bay.team || 'Unknown';
+      if (!teamProjects.has(teamName)) {
+        teamProjects.set(teamName, new Set<number>());
+      }
       
       // Check each schedule for this bay
       const baySchedules = schedules.filter(s => s.bayId === bay.id);
@@ -263,35 +268,37 @@ export function calculateWeeklyBayUtilization(
         const ntcActive = phases.ntc.start <= weekEnd && phases.ntc.end >= weekStart;
         
         if (productionActive || itActive || ntcActive) {
-          activeProjectsInWeek.add(project.id);
+          teamProjects.get(teamName)!.add(project.id);
         }
       });
+    });
+    
+    // Second pass: assign team utilization to each bay
+    filteredBays.forEach(bay => {
+      const teamName = bay.team || 'Unknown';
+      const teamProjectCount = teamProjects.get(teamName)?.size || 0;
+      const utilizationPercentage = calculateUtilizationPercentage(teamProjectCount);
       
-      const projectCount = activeProjectsInWeek.size;
-      const utilizationPercentage = calculateUtilizationPercentage(projectCount);
-      
-      // Debug logging for utilization calculation
+      // Debug logging for team-based utilization calculation
       if (weekOffset < 2 && bay.name.includes('Bay 1')) { // Only log first 2 weeks for Bay 1 to avoid spam
-        console.log(`🔍 UTILIZATION DEBUG for ${bay.name} (${format(weekStart, 'MMM dd')}):`, {
+        console.log(`🔍 TEAM UTILIZATION DEBUG for ${bay.name} (Team: ${teamName}) (${format(weekStart, 'MMM dd')}):`, {
           weekStart: format(weekStart, 'yyyy-MM-dd'),
           weekEnd: format(weekEnd, 'yyyy-MM-dd'),
-          activeProjects: Array.from(activeProjectsInWeek),
-          projectCount,
+          teamActiveProjects: Array.from(teamProjects.get(teamName) || []),
+          teamProjectCount,
           utilizationPercentage,
-          baySchedulesCount: baySchedules.length,
-          sampleSchedule: baySchedules.length > 0 ? {
-            projectId: baySchedules[0].projectId,
-            startDate: format(baySchedules[0].startDate, 'yyyy-MM-dd'),
-            endDate: format(baySchedules[0].endDate, 'yyyy-MM-dd')
-          } : null
+          teamName
         });
       }
       
-      // Create phase alignments for detailed tracking
+      // Create phase alignments for detailed tracking using team projects
       const alignedPhases: PhaseAlignment[] = [];
+      const teamActiveProjects = teamProjects.get(bay.team || 'Unknown') || new Set<number>();
+      
+      const baySchedules = schedules.filter(s => s.bayId === bay.id);
       baySchedules.forEach(schedule => {
         const project = projects.find(p => p.id === schedule.projectId);
-        if (!project || !activeProjectsInWeek.has(project.id)) return;
+        if (!project || !teamActiveProjects.has(project.id)) return;
         
         const phases = calculatePhaseDates(schedule, project);
         
