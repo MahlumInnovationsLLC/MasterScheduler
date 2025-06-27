@@ -47,11 +47,86 @@ import { useToast } from "@/hooks/use-toast";
 import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
 
 const Dashboard = () => {
+  // Authentication checks must be done first before any other hooks
   const { user, isLoading: authLoading } = useAuth();
+
+  // Show loading if auth is still loading
+  if (authLoading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-sans font-bold mb-6">Dashboard</h1>
+        <div className="animate-pulse space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
+            ))}
+          </div>
+          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Authentication check - must happen before other hooks
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card className="border-border bg-card backdrop-blur-sm shadow-lg">
+            <CardContent className="p-8 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <Shield className="h-16 w-16 text-blue-500 opacity-20" />
+                  <LogIn className="h-8 w-8 text-blue-400 absolute top-4 left-4" />
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <div className="text-primary font-bold text-3xl font-sans mb-2">
+                  <span>TIER</span>
+                  <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span>
+                  <span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Manufacturing Management Platform
+                </p>
+              </div>
+
+              <h1 className="text-2xl font-bold mb-4 text-white dark:text-white">Login Required</h1>
+              <p className="text-gray-300 dark:text-gray-300 mb-8 leading-relaxed">
+                Please sign in to access your manufacturing dashboard and project management tools.
+              </p>
+
+              <div className="space-y-4">
+                <Link href="/auth">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In to Continue
+                  </Button>
+                </Link>
+
+                <div className="grid grid-cols-2 gap-3 text-xs text-gray-400">
+                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
+                    <Building2 className="h-4 w-4 mx-auto mb-1 text-blue-400" />
+                    <div className="font-medium">Project Management</div>
+                  </div>
+                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
+                    <BarChart3 className="h-4 w-4 mx-auto mb-1 text-green-400" />
+                    <div className="font-medium">Analytics & Reports</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Now all hooks can be called safely after auth checks
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
   const { toast } = useToast();
 
-  // All hooks must be called before any conditional returns
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
   });
@@ -657,78 +732,7 @@ const Dashboard = () => {
     };
   }, [manufacturingSchedules, manufacturingBays]);
 
-  // Authentication checks after all hooks are declared
-  if (!authLoading && !user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <Card className="border-border bg-card backdrop-blur-sm shadow-lg">
-            <CardContent className="p-8 text-center">
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <Shield className="h-16 w-16 text-blue-500 opacity-20" />
-                  <LogIn className="h-8 w-8 text-blue-400 absolute top-4 left-4" />
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <div className="text-primary font-bold text-3xl font-sans mb-2">
-                  <span>TIER</span>
-                  <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span>
-                  <span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Manufacturing Management Platform
-                </p>
-              </div>
-
-              <h1 className="text-2xl font-bold mb-4 text-white dark:text-white">Login Required</h1>
-              <p className="text-gray-300 dark:text-gray-300 mb-8 leading-relaxed">
-                Please sign in to access your manufacturing dashboard and project management tools.
-              </p>
-
-              <div className="space-y-4">
-                <Link href="/auth">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Sign In to Continue
-                  </Button>
-                </Link>
-
-                <div className="grid grid-cols-2 gap-3 text-xs text-gray-400">
-                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
-                    <Building2 className="h-4 w-4 mx-auto mb-1 text-blue-400" />
-                    <div className="font-medium">Project Management</div>
-                  </div>
-                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
-                    <BarChart3 className="h-4 w-4 mx-auto mb-1 text-green-400" />
-                    <div className="font-medium">Analytics & Reports</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading if auth is still loading
-  if (authLoading) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Dashboard</h1>
-        <div className="animate-pulse space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
-            ))}
-          </div>
-          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
-        </div>
-      </div>
-    );
-  }
+  
 
   // Helper function to format dates consistently without timezone issues
   const formatDate = (dateStr) => {
