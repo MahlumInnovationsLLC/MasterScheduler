@@ -200,14 +200,18 @@ export function getPhaseAlignmentsForWeek(
 }
 
 /**
- * Calculate utilization percentage based on aligned phases
- * 1 project = 50%, 2 projects = 85%, 3+ projects = 115%
+ * Calculate utilization percentage based on team project count
+ * This represents team capacity based purely on active project workload:
+ * 0 projects = 0% (team idle)
+ * 1 project = 75% (team working but has capacity for more)
+ * 2 projects = 100% (team at full capacity) 
+ * 3+ projects = 120% (team overloaded)
  */
-export function calculateUtilizationPercentage(alignedPhaseCount: number): number {
-  if (alignedPhaseCount === 0) return 0;
-  if (alignedPhaseCount === 1) return 50;
-  if (alignedPhaseCount === 2) return 85;
-  return 115; // 3 or more projects
+export function calculateUtilizationPercentage(projectCount: number): number {
+  if (projectCount === 0) return 0;
+  if (projectCount === 1) return 75;
+  if (projectCount === 2) return 100;
+  return 120; // 3 or more projects = overloaded
 }
 
 /**
@@ -253,6 +257,11 @@ export function calculateWeeklyBayUtilization(
     // Group bays by team to calculate team-based utilization
     const teamProjects = new Map<string, Set<number>>();
     
+    // Initialize all teams with empty project sets to ensure they appear even with 0% utilization
+    includedTeams.forEach(teamName => {
+      teamProjects.set(teamName, new Set<number>());
+    });
+    
     // First pass: collect all active projects for each team during this week
     filteredBays.forEach(bay => {
       const teamName = bay.team || 'Unknown';
@@ -287,16 +296,9 @@ export function calculateWeeklyBayUtilization(
       const teamProjectCount = teamProjects.get(teamName)?.size || 0;
       const utilizationPercentage = calculateUtilizationPercentage(teamProjectCount);
       
-      // Debug logging for team-based utilization calculation
-      if (weekOffset < 2 && bay.name.includes('Bay 1')) { // Only log first 2 weeks for Bay 1 to avoid spam
-        console.log(`🔍 TEAM UTILIZATION DEBUG for ${bay.name} (Team: ${teamName}) (${format(weekStart, 'MMM dd')}):`, {
-          weekStart: format(weekStart, 'yyyy-MM-dd'),
-          weekEnd: format(weekEnd, 'yyyy-MM-dd'),
-          teamActiveProjects: Array.from(teamProjects.get(teamName) || []),
-          teamProjectCount,
-          utilizationPercentage,
-          teamName
-        });
+      // Reduced debug logging - only show summary for first week
+      if (weekOffset === 0 && bay.name.includes('Bay 1')) {
+        console.log(`📊 Team ${teamName}: ${teamProjectCount} projects = ${utilizationPercentage}% utilization`);
       }
       
       // Create phase alignments for detailed tracking using team projects

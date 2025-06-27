@@ -140,6 +140,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated 133 projects with precise MECH shop dates using PostgreSQL working day calculations
   - Verified all MECH shop dates are exactly 30 working days before their respective production start dates
   - Set current calculated MECH shop dates as OP (Original Plan) baseline dates for all 133 projects
+- June 27, 2025: Enhanced Bay Utilization Calculation System
+  - Completely redesigned utilization calculation to be purely team project count based
+  - Implemented realistic capacity model: 1 project = 75%, 2 projects = 100%, 3+ projects = 120%
+  - Teams with 2+ projects now show at full capacity (100%) until projects end
+  - Removed physical bay row considerations, focusing entirely on team workload
+  - Successfully includes all 7 manufacturing teams except LIBBY teams
+  - Enhanced Future Predictions chart to show accurate team utilization over time
 
 ## User Preferences
 
