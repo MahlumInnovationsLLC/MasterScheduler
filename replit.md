@@ -139,6 +139,7 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added MECH shop date calculations: 30 working days before Production start date
   - Updated 133 projects with precise MECH shop dates using PostgreSQL working day calculations
   - Verified all MECH shop dates are exactly 30 working days before their respective production start dates
+  - Set current calculated MECH shop dates as OP (Original Plan) baseline dates for all 133 projects
 
 ## User Preferences
 
