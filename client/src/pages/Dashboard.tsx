@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useProjectLabelStats } from '../hooks/use-project-label-stats';
 import { Link } from 'wouter';
-import { format, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addWeeks, addMonths } from 'date-fns';
 import { 
   Folders, 
   Calendar, 
@@ -44,7 +44,8 @@ const Dashboard = () => {
   const { toast } = useToast();
 
   // Filter states for Next 10 ready to ship table
-  const [timeFilter, setTimeFilter] = useState<'all' | 'this-week' | 'this-month'>('all');
+  const [timeFilter, setTimeFilter] = useState<'all' | 'this-week' | 'next-week' | 'this-month' | 'next-month'>('all');
+  const [selectedPhase, setSelectedPhase] = useState<'all' | 'mechShop' | 'fabStart' | 'paintStart' | 'productionStart' | 'it' | 'ntc' | 'qc' | 'executiveReview'>('all');
   const [phaseFilters, setPhaseFilters] = useState<{
     mechShop: boolean;
     fabStart: boolean;
@@ -352,7 +353,7 @@ const Dashboard = () => {
     }
   };
 
-  // Filter projects based on time filter
+  // Filter projects based on time filter and selected phase
   useEffect(() => {
     if (!projects || !Array.isArray(projects) || projects.length === 0) {
       setFilteredProjects([]);
@@ -361,28 +362,148 @@ const Dashboard = () => {
 
     const now = new Date();
     let filteredList = projects.filter((project: any) => {
-      // Only include projects with ship dates
-      if (!project.shipDate) return false;
+      // Time-based filtering
+      let passesTimeFilter = false;
       
-      const shipDate = new Date(project.shipDate);
+      if (selectedPhase === 'all') {
+        // For "all phases", filter by ship date
+        if (!project.shipDate) return false;
+        const shipDate = new Date(project.shipDate);
+        
+        switch (timeFilter) {
+          case 'this-week':
+            passesTimeFilter = shipDate >= startOfWeek(now) && shipDate <= endOfWeek(now);
+            break;
+          case 'next-week':
+            const nextWeekStart = addWeeks(startOfWeek(now), 1);
+            const nextWeekEnd = addWeeks(endOfWeek(now), 1);
+            passesTimeFilter = shipDate >= nextWeekStart && shipDate <= nextWeekEnd;
+            break;
+          case 'this-month':
+            passesTimeFilter = shipDate >= startOfMonth(now) && shipDate <= endOfMonth(now);
+            break;
+          case 'next-month':
+            const nextMonthStart = addMonths(startOfMonth(now), 1);
+            const nextMonthEnd = addMonths(endOfMonth(now), 1);
+            passesTimeFilter = shipDate >= nextMonthStart && shipDate <= nextMonthEnd;
+            break;
+          default:
+            passesTimeFilter = true;
+        }
+      } else {
+        // For specific phases, filter by the phase date
+        let phaseDate: Date | null = null;
+        
+        switch (selectedPhase) {
+          case 'mechShop':
+            phaseDate = project.mechShop ? new Date(project.mechShop) : null;
+            break;
+          case 'fabStart':
+            phaseDate = project.fabricationStart ? new Date(project.fabricationStart) : null;
+            break;
+          case 'paintStart':
+            phaseDate = project.paintStart ? new Date(project.paintStart) : null;
+            break;
+          case 'productionStart':
+            phaseDate = project.assemblyStart ? new Date(project.assemblyStart) : null;
+            break;
+          case 'it':
+            phaseDate = project.itStart ? new Date(project.itStart) : null;
+            break;
+          case 'ntc':
+            phaseDate = project.ntcTestStart ? new Date(project.ntcTestStart) : null;
+            break;
+          case 'qc':
+            phaseDate = project.qcStart ? new Date(project.qcStart) : null;
+            break;
+          case 'executiveReview':
+            phaseDate = project.executiveReview ? new Date(project.executiveReview) : null;
+            break;
+        }
+        
+        if (!phaseDate) return false;
+        
+        switch (timeFilter) {
+          case 'this-week':
+            passesTimeFilter = phaseDate >= startOfWeek(now) && phaseDate <= endOfWeek(now);
+            break;
+          case 'next-week':
+            const nextWeekStart = addWeeks(startOfWeek(now), 1);
+            const nextWeekEnd = addWeeks(endOfWeek(now), 1);
+            passesTimeFilter = phaseDate >= nextWeekStart && phaseDate <= nextWeekEnd;
+            break;
+          case 'this-month':
+            passesTimeFilter = phaseDate >= startOfMonth(now) && phaseDate <= endOfMonth(now);
+            break;
+          case 'next-month':
+            const nextMonthStart = addMonths(startOfMonth(now), 1);
+            const nextMonthEnd = addMonths(endOfMonth(now), 1);
+            passesTimeFilter = phaseDate >= nextMonthStart && phaseDate <= nextMonthEnd;
+            break;
+          default:
+            passesTimeFilter = true;
+        }
+      }
       
-      switch (timeFilter) {
-        case 'this-week':
-          return shipDate >= startOfWeek(now) && shipDate <= endOfWeek(now);
-        case 'this-month':
-          return shipDate >= startOfMonth(now) && shipDate <= endOfMonth(now);
-        default:
-          return true;
+      return passesTimeFilter;
+    });
+
+    // Sort by the appropriate date
+    filteredList = filteredList.sort((a: any, b: any) => {
+      if (selectedPhase === 'all') {
+        // Sort by ship date
+        const aDate = a.shipDate ? new Date(a.shipDate).getTime() : 0;
+        const bDate = b.shipDate ? new Date(b.shipDate).getTime() : 0;
+        return aDate - bDate;
+      } else {
+        // Sort by phase date
+        let aPhaseDate = 0;
+        let bPhaseDate = 0;
+        
+        switch (selectedPhase) {
+          case 'mechShop':
+            aPhaseDate = a.mechShop ? new Date(a.mechShop).getTime() : 0;
+            bPhaseDate = b.mechShop ? new Date(b.mechShop).getTime() : 0;
+            break;
+          case 'fabStart':
+            aPhaseDate = a.fabricationStart ? new Date(a.fabricationStart).getTime() : 0;
+            bPhaseDate = b.fabricationStart ? new Date(b.fabricationStart).getTime() : 0;
+            break;
+          case 'paintStart':
+            aPhaseDate = a.paintStart ? new Date(a.paintStart).getTime() : 0;
+            bPhaseDate = b.paintStart ? new Date(b.paintStart).getTime() : 0;
+            break;
+          case 'productionStart':
+            aPhaseDate = a.assemblyStart ? new Date(a.assemblyStart).getTime() : 0;
+            bPhaseDate = b.assemblyStart ? new Date(b.assemblyStart).getTime() : 0;
+            break;
+          case 'it':
+            aPhaseDate = a.itStart ? new Date(a.itStart).getTime() : 0;
+            bPhaseDate = b.itStart ? new Date(b.itStart).getTime() : 0;
+            break;
+          case 'ntc':
+            aPhaseDate = a.ntcTestStart ? new Date(a.ntcTestStart).getTime() : 0;
+            bPhaseDate = b.ntcTestStart ? new Date(b.ntcTestStart).getTime() : 0;
+            break;
+          case 'qc':
+            aPhaseDate = a.qcStart ? new Date(a.qcStart).getTime() : 0;
+            bPhaseDate = b.qcStart ? new Date(b.qcStart).getTime() : 0;
+            break;
+          case 'executiveReview':
+            aPhaseDate = a.executiveReview ? new Date(a.executiveReview).getTime() : 0;
+            bPhaseDate = b.executiveReview ? new Date(b.executiveReview).getTime() : 0;
+            break;
+        }
+        
+        return aPhaseDate - bPhaseDate;
       }
     });
 
-    // Sort by ship date (earliest first) and limit to 10
-    const finalList = filteredList
-      .sort((a: any, b: any) => new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime())
-      .slice(0, 10);
+    // Apply limit only when showing "all phases" - no limit for specific phase filtering
+    const finalList = selectedPhase === 'all' ? filteredList.slice(0, 10) : filteredList;
 
     setFilteredProjects(finalList);
-  }, [projects, timeFilter]);
+  }, [projects, timeFilter, selectedPhase]);
 
   // Calculate delivered projects count
   const deliveredProjectsCount = Array.isArray(deliveredProjects) ? deliveredProjects.length : 0;
@@ -525,16 +646,80 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Next 10 Ready to Ship
+              {selectedPhase === 'all' ? 'Next 10 Ready to Ship' : 
+               `${selectedPhase === 'mechShop' ? 'Mech Shop' :
+                 selectedPhase === 'fabStart' ? 'FAB Start' :
+                 selectedPhase === 'paintStart' ? 'Paint Start' :
+                 selectedPhase === 'productionStart' ? 'Production Start' :
+                 selectedPhase === 'it' ? 'IT' :
+                 selectedPhase === 'ntc' ? 'NTC' :
+                 selectedPhase === 'qc' ? 'QC' :
+                 'Executive Review'} Projects`}
+              {filteredProjects.length > 0 && selectedPhase !== 'all' && (
+                <Badge variant="secondary" className="ml-2">
+                  {filteredProjects.length} projects
+                </Badge>
+              )}
             </CardTitle>
             <div className="flex items-center gap-2">
+              {/* Phase Filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    {selectedPhase === 'all' ? 'All Phases' :
+                     selectedPhase === 'mechShop' ? 'Mech Shop' :
+                     selectedPhase === 'fabStart' ? 'FAB Start' :
+                     selectedPhase === 'paintStart' ? 'Paint Start' :
+                     selectedPhase === 'productionStart' ? 'Production Start' :
+                     selectedPhase === 'it' ? 'IT' :
+                     selectedPhase === 'ntc' ? 'NTC' :
+                     selectedPhase === 'qc' ? 'QC' :
+                     'Executive Review'}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setSelectedPhase('all')}>
+                    All Phases
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSelectedPhase('mechShop')}>
+                    Mech Shop
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedPhase('fabStart')}>
+                    FAB Start
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedPhase('paintStart')}>
+                    Paint Start
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedPhase('productionStart')}>
+                    Production Start
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedPhase('it')}>
+                    IT
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedPhase('ntc')}>
+                    NTC
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedPhase('qc')}>
+                    QC
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedPhase('executiveReview')}>
+                    Executive Review
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               {/* Time Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     {timeFilter === 'all' ? 'All Time' : 
-                     timeFilter === 'this-week' ? 'This Week' : 'This Month'}
+                     timeFilter === 'this-week' ? 'This Week' :
+                     timeFilter === 'next-week' ? 'Next Week' :
+                     timeFilter === 'this-month' ? 'This Month' : 'Next Month'}
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -545,8 +730,14 @@ const Dashboard = () => {
                   <DropdownMenuItem onClick={() => setTimeFilter('this-week')}>
                     This Week
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTimeFilter('next-week')}>
+                    Next Week
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setTimeFilter('this-month')}>
                     This Month
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTimeFilter('next-month')}>
+                    Next Month
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
