@@ -342,7 +342,7 @@ export function calculateWeeklyBayUtilization(
         teamName: bay.team || 'Unknown',
         alignedPhases,
         utilizationPercentage,
-        projectCount
+        projectCount: teamProjectCount
       });
     });
   }
