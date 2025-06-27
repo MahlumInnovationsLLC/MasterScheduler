@@ -354,13 +354,13 @@ const Dashboard = () => {
 
   // Filter projects based on time filter
   useEffect(() => {
-    if (!projects || !(projects as any[]).length) {
+    if (!projects || !Array.isArray(projects) || projects.length === 0) {
       setFilteredProjects([]);
       return;
     }
 
     const now = new Date();
-    let filteredList = (projects as any[]).filter((project: any) => {
+    let filteredList = projects.filter((project: any) => {
       // Only include projects with ship dates
       if (!project.shipDate) return false;
       
@@ -385,11 +385,11 @@ const Dashboard = () => {
   }, [projects, timeFilter]);
 
   // Calculate delivered projects count
-  const deliveredProjectsCount = deliveredProjects?.length || 0;
+  const deliveredProjectsCount = Array.isArray(deliveredProjects) ? deliveredProjects.length : 0;
 
   // Calculate project stats
   const projectStats = React.useMemo(() => {
-    if (!projects || (projects as any[]).length === 0) return null;
+    if (!projects || !Array.isArray(projects) || projects.length === 0) return null;
 
     // Get projects by schedule state
     const getProjectScheduleState = (schedules: any[], projectId: number) => {
@@ -405,16 +405,16 @@ const Dashboard = () => {
       return 'Complete';
     };
 
-    const scheduledProjects = manufacturingSchedules 
-      ? (projects as any[]).filter((p: any) => getProjectScheduleState(manufacturingSchedules as any[], p.id) === 'Scheduled')
+    const scheduledProjects = manufacturingSchedules && Array.isArray(manufacturingSchedules)
+      ? projects.filter((p: any) => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
       : [];
-    const inProgressProjects = manufacturingSchedules
-      ? (projects as any[]).filter((p: any) => getProjectScheduleState(manufacturingSchedules as any[], p.id) === 'In Progress')
+    const inProgressProjects = manufacturingSchedules && Array.isArray(manufacturingSchedules)
+      ? projects.filter((p: any) => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
       : [];
-    const completeProjects = (projects as any[]).filter((p: any) => p.status === 'completed');
-    const unscheduledProjects = manufacturingSchedules
-      ? (projects as any[]).filter((p: any) => {
-          const scheduleState = getProjectScheduleState(manufacturingSchedules as any[], p.id);
+    const completeProjects = projects.filter((p: any) => p.status === 'completed');
+    const unscheduledProjects = manufacturingSchedules && Array.isArray(manufacturingSchedules)
+      ? projects.filter((p: any) => {
+          const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
           const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
           
           // Filter out Field or FSW category projects
@@ -448,15 +448,15 @@ const Dashboard = () => {
         name: p.name, 
         projectNumber: p.projectNumber 
       })),
-      delivered: (deliveredProjects || []).map((p: any) => ({ 
+      delivered: Array.isArray(deliveredProjects) ? deliveredProjects.map((p: any) => ({ 
         id: p.id, 
         name: p.name || 'Unknown Project', 
         projectNumber: p.projectNumber 
-      }))
+      })) : []
     };
 
     return {
-      total: (projects as any[]).length,
+      total: projects.length,
       major: labelStats.major,
       minor: labelStats.minor,
       good: labelStats.good,
@@ -618,7 +618,7 @@ const Dashboard = () => {
           <DataTable
             columns={projectColumns}
             data={filteredProjects}
-            searchKey="projectNumber"
+            filterColumn="projectNumber"
             searchPlaceholder="Search projects..."
           />
         </CardContent>
