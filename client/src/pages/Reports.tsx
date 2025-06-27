@@ -42,7 +42,8 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
-import { format, subMonths, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, isBefore, isAfter, differenceInDays } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, isBefore, isAfter, differenceInDays, startOfWeek, endOfWeek } from 'date-fns';
+import { calculateWeeklyBayUtilization } from '@shared/utils/bay-utilization';
 import { Download, FileText, Calendar as CalendarIcon, RefreshCw, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -463,43 +464,52 @@ const ReportsPage = () => {
       const monthStart = startOfMonth(futureDate);
       const monthEnd = endOfMonth(futureDate);
       
+      // Use new phase-based weekly calculation and aggregate by month
+      const weeksInMonth = Math.ceil(differenceInDays(monthEnd, monthStart) / 7);
+      const weeklyUtilizations = calculateWeeklyBayUtilization(
+        filteredSchedules.map(schedule => ({
+          id: schedule.id,
+          projectId: schedule.projectId,
+          bayId: schedule.bayId,
+          startDate: new Date(schedule.startDate),
+          endDate: new Date(schedule.endDate),
+          totalHours: schedule.totalHours || 1000
+        })),
+        filteredProjects.map(project => ({
+          id: project.id,
+          name: project.name,
+          projectNumber: project.projectNumber,
+          totalHours: project.totalHours,
+          fabPercentage: parseFloat(project.fabPercentage?.toString() || '27'),
+          paintPercentage: parseFloat(project.paintPercentage?.toString() || '7'),
+          productionPercentage: parseFloat(project.productionPercentage?.toString() || '60'),
+          itPercentage: parseFloat(project.itPercentage?.toString() || '7'),
+          ntcPercentage: parseFloat(project.ntcPercentage?.toString() || '7'),
+          qcPercentage: parseFloat(project.qcPercentage?.toString() || '7')
+        })),
+        manufacturingBays.filter(bay => bay.team?.toUpperCase() !== 'LIBBY'),
+        monthStart,
+        weeksInMonth
+      );
+      
+      // Group by bay and calculate monthly averages
       const futureBayData: Record<string, { bay: string, utilization: number, scheduledHours: number, projects: number }> = {};
       
       manufacturingBays.forEach(bay => {
-        const baySchedules = filteredSchedules.filter(schedule => {
-          const scheduleStart = new Date(schedule.startDate);
-          const scheduleEnd = new Date(schedule.endDate);
-          return schedule.bayId === bay.id && 
-                 scheduleStart <= monthEnd && 
-                 scheduleEnd >= monthStart;
-        });
+        if (bay.team?.toUpperCase() === 'LIBBY') return; // Skip LIBBY team
         
-        const totalHours = baySchedules.reduce((sum, schedule) => {
-          const scheduleStart = new Date(schedule.startDate);
-          const scheduleEnd = new Date(schedule.endDate);
-          
-          // Calculate overlap between schedule and month
-          const overlapStart = scheduleStart > monthStart ? scheduleStart : monthStart;
-          const overlapEnd = scheduleEnd < monthEnd ? scheduleEnd : monthEnd;
-          
-          if (overlapStart <= overlapEnd) {
-            const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
-            const scheduleDays = Math.ceil((scheduleEnd.getTime() - scheduleStart.getTime()) / (1000 * 60 * 60 * 24));
-            const proportionalHours = scheduleDays > 0 ? (schedule.totalHours || 0) * (overlapDays / scheduleDays) : 0;
-            return sum + proportionalHours;
-          }
-          return sum;
-        }, 0);
+        const bayWeeklyData = weeklyUtilizations.filter(w => w.bayId === bay.id);
+        const avgUtilization = bayWeeklyData.length > 0 
+          ? Math.round(bayWeeklyData.reduce((sum, w) => sum + w.utilizationPercentage, 0) / bayWeeklyData.length)
+          : 0;
         
-        // Estimate available hours in month (22 working days * 8 hours)
-        const availableHours = 22 * 8;
-        const utilization = Math.min(100, (totalHours / availableHours) * 100);
+        const totalProjects = new Set(bayWeeklyData.flatMap(w => w.alignedPhases.map(p => p.projectId))).size;
         
         futureBayData[bay.name] = {
           bay: bay.name,
-          utilization: Math.round(utilization),
-          scheduledHours: Math.round(totalHours),
-          projects: baySchedules.length
+          utilization: avgUtilization,
+          scheduledHours: 0, // Not directly calculated in phase-based approach
+          projects: totalProjects
         };
       });
       
