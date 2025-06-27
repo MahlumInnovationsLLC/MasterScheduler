@@ -751,7 +751,6 @@ const ProjectStatus = () => {
     deliveryDate: true,
     // Making the required columns visible
     fabricationStart: true,
-    assemblyStart: true,
     paintStart: true,
     productionStart: true,
     wrapDate: true,
@@ -1581,15 +1580,6 @@ const ProjectStatus = () => {
         value={value} 
         opValue={(project as any).opFabricationStart}
         opField="opFabricationStart"
-      />,
-      { size: 170 }),
-    createColumn('assemblyStart', 'assemblyStart', 'Assembly Start', 
-      (value, project) => <EditableDateFieldWithOP 
-        projectId={project.id} 
-        field="assemblyStart" 
-        value={value} 
-        opValue={(project as any).opAssemblyStart}
-        opField="opAssemblyStart"
       />,
       { size: 170 }),
     createColumn('paintStart', 'paintStart', 'PAINT Start', 

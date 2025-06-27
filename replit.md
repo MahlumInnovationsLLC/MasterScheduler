@@ -134,6 +134,11 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added OP (Original Plan) date columns for PAINT start, Production start, and IT start phases
   - Set current calculated dates as baseline OP dates for tracking future changes
   - All date calculations properly account for weekends using working day calculations
+- June 27, 2025: Assembly Start Column Removal and MECH Shop Date Implementation
+  - Removed Assembly Start column from project table (redundant with Production Start)
+  - Added MECH shop date calculations: 30 working days before Production start date
+  - Updated 133 projects with precise MECH shop dates using PostgreSQL working day calculations
+  - Verified all MECH shop dates are exactly 30 working days before their respective production start dates
 
 ## User Preferences
 
