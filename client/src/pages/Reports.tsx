@@ -480,12 +480,12 @@ const ReportsPage = () => {
           name: project.name,
           projectNumber: project.projectNumber,
           totalHours: project.totalHours,
-          fabPercentage: parseFloat(project.fabPercentage?.toString() || '27'),
-          paintPercentage: parseFloat(project.paintPercentage?.toString() || '7'),
-          productionPercentage: parseFloat(project.productionPercentage?.toString() || '60'),
-          itPercentage: parseFloat(project.itPercentage?.toString() || '7'),
-          ntcPercentage: parseFloat(project.ntcPercentage?.toString() || '7'),
-          qcPercentage: parseFloat(project.qcPercentage?.toString() || '7')
+          fabPercentage: 27,
+          paintPercentage: 7,
+          productionPercentage: 60,
+          itPercentage: 7,
+          ntcPercentage: 7,
+          qcPercentage: 7
         })),
         manufacturingBays.filter(bay => bay.team?.toUpperCase() !== 'LIBBY'),
         monthStart,

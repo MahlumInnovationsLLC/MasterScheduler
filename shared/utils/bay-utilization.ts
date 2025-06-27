@@ -129,6 +129,7 @@ export function calculatePhaseDates(
 /**
  * Check if a phase is aligned (active) in a given week
  * Only PRODUCTION, IT, and NTC phases count for utilization
+ * This uses the exact same logic as the visual bay schedule bars
  */
 export function getPhaseAlignmentsForWeek(
   weekStart: Date,
@@ -146,13 +147,23 @@ export function getPhaseAlignmentsForWeek(
     const project = projects.find(p => p.id === schedule.projectId);
     if (!project) return;
     
-    // Calculate phase dates for this project
+    // Check if the overall schedule overlaps with this week first
+    const scheduleStart = new Date(schedule.startDate);
+    const scheduleEnd = new Date(schedule.endDate);
+    
+    // If schedule doesn't overlap with week at all, skip it
+    if (scheduleEnd < weekStart || scheduleStart > weekEnd) {
+      return;
+    }
+    
+    // Calculate phase dates for this project using the same logic as the visual bars
     const phases = calculatePhaseDates(schedule, project);
     
-    // Check if PRODUCTION phase overlaps with this week
-    if (isWithinInterval(weekStart, { start: phases.production.start, end: phases.production.end }) ||
-        isWithinInterval(weekEnd, { start: phases.production.start, end: phases.production.end }) ||
-        (weekStart >= phases.production.start && weekEnd <= phases.production.end)) {
+    // Check each phase for overlap with the week
+    // A phase is "aligned" if any part of it falls within the week
+    
+    // PRODUCTION phase check
+    if (phases.production.start <= weekEnd && phases.production.end >= weekStart) {
       alignments.push({
         projectId: project.id,
         projectNumber: project.projectNumber,
@@ -162,10 +173,8 @@ export function getPhaseAlignmentsForWeek(
       });
     }
     
-    // Check if IT phase overlaps with this week
-    if (isWithinInterval(weekStart, { start: phases.it.start, end: phases.it.end }) ||
-        isWithinInterval(weekEnd, { start: phases.it.start, end: phases.it.end }) ||
-        (weekStart >= phases.it.start && weekEnd <= phases.it.end)) {
+    // IT phase check
+    if (phases.it.start <= weekEnd && phases.it.end >= weekStart) {
       alignments.push({
         projectId: project.id,
         projectNumber: project.projectNumber,
@@ -175,10 +184,8 @@ export function getPhaseAlignmentsForWeek(
       });
     }
     
-    // Check if NTC phase overlaps with this week
-    if (isWithinInterval(weekStart, { start: phases.ntc.start, end: phases.ntc.end }) ||
-        isWithinInterval(weekEnd, { start: phases.ntc.start, end: phases.ntc.end }) ||
-        (weekStart >= phases.ntc.start && weekEnd <= phases.ntc.end)) {
+    // NTC phase check
+    if (phases.ntc.start <= weekEnd && phases.ntc.end >= weekStart) {
       alignments.push({
         projectId: project.id,
         projectNumber: project.projectNumber,
@@ -205,6 +212,7 @@ export function calculateUtilizationPercentage(alignedPhaseCount: number): numbe
 
 /**
  * Calculate weekly utilization for all bays (excluding LIBBY team)
+ * Uses exact visual bar positioning logic from ResizableBaySchedule
  */
 export function calculateWeeklyBayUtilization(
   schedules: ManufacturingSchedule[],
@@ -228,19 +236,81 @@ export function calculateWeeklyBayUtilization(
     
     // Calculate for each bay
     filteredBays.forEach(bay => {
-      const alignedPhases = getPhaseAlignmentsForWeek(
-        weekStart,
-        weekEnd,
-        schedules,
-        projects,
-        bay.id
-      );
+      // Get projects that have ANY active phase in this week for this bay
+      const activeProjectsInWeek = new Set<number>();
       
-      // Count unique projects (a project can have multiple phases aligned)
-      const uniqueProjects = new Set(alignedPhases.map(a => a.projectId));
-      const projectCount = uniqueProjects.size;
+      // Check each schedule for this bay
+      const baySchedules = schedules.filter(s => s.bayId === bay.id);
       
+      baySchedules.forEach(schedule => {
+        const project = projects.find(p => p.id === schedule.projectId);
+        if (!project) return;
+        
+        // Calculate all phase dates for this project
+        const phases = calculatePhaseDates(schedule, project);
+        
+        // Check if ANY of the key phases (PRODUCTION, IT, NTC) are active in this week
+        const productionActive = phases.production.start <= weekEnd && phases.production.end >= weekStart;
+        const itActive = phases.it.start <= weekEnd && phases.it.end >= weekStart;
+        const ntcActive = phases.ntc.start <= weekEnd && phases.ntc.end >= weekStart;
+        
+        if (productionActive || itActive || ntcActive) {
+          activeProjectsInWeek.add(project.id);
+        }
+      });
+      
+      const projectCount = activeProjectsInWeek.size;
       const utilizationPercentage = calculateUtilizationPercentage(projectCount);
+      
+      // Debug logging for utilization calculation
+      if (weekOffset < 4 && bay.name.includes('Bay 1')) { // Only log first 4 weeks for Bay 1 to avoid spam
+        console.log(`🔍 UTILIZATION DEBUG for ${bay.name} (${format(weekStart, 'MMM dd')}):`, {
+          weekStart: format(weekStart, 'yyyy-MM-dd'),
+          activeProjects: Array.from(activeProjectsInWeek),
+          projectCount,
+          utilizationPercentage,
+          baySchedulesCount: baySchedules.length
+        });
+      }
+      
+      // Create phase alignments for detailed tracking
+      const alignedPhases: PhaseAlignment[] = [];
+      baySchedules.forEach(schedule => {
+        const project = projects.find(p => p.id === schedule.projectId);
+        if (!project || !activeProjectsInWeek.has(project.id)) return;
+        
+        const phases = calculatePhaseDates(schedule, project);
+        
+        if (phases.production.start <= weekEnd && phases.production.end >= weekStart) {
+          alignedPhases.push({
+            projectId: project.id,
+            projectNumber: project.projectNumber,
+            phase: 'PRODUCTION',
+            startDate: phases.production.start,
+            endDate: phases.production.end
+          });
+        }
+        
+        if (phases.it.start <= weekEnd && phases.it.end >= weekStart) {
+          alignedPhases.push({
+            projectId: project.id,
+            projectNumber: project.projectNumber,
+            phase: 'IT',
+            startDate: phases.it.start,
+            endDate: phases.it.end
+          });
+        }
+        
+        if (phases.ntc.start <= weekEnd && phases.ntc.end >= weekStart) {
+          alignedPhases.push({
+            projectId: project.id,
+            projectNumber: project.projectNumber,
+            phase: 'NTC',
+            startDate: phases.ntc.start,
+            endDate: phases.ntc.end
+          });
+        }
+      });
       
       utilizations.push({
         weekStart,
