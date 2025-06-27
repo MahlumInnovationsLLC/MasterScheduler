@@ -223,9 +223,11 @@ export function calculateWeeklyBayUtilization(
 ): WeeklyUtilization[] {
   const utilizations: WeeklyUtilization[] = [];
   
-  // Filter out LIBBY team
+  // Filter out LIBBY team - check for multiple variations
   const filteredBays = bays.filter(bay => 
-    bay.team && bay.team.toUpperCase() !== 'LIBBY'
+    bay.team && 
+    !bay.team.toUpperCase().includes('LIBBY') &&
+    !bay.name.toUpperCase().includes('LIBBY')
   );
   
   // Generate weeks
@@ -263,13 +265,19 @@ export function calculateWeeklyBayUtilization(
       const utilizationPercentage = calculateUtilizationPercentage(projectCount);
       
       // Debug logging for utilization calculation
-      if (weekOffset < 4 && bay.name.includes('Bay 1')) { // Only log first 4 weeks for Bay 1 to avoid spam
+      if (weekOffset < 2 && bay.name.includes('Bay 1')) { // Only log first 2 weeks for Bay 1 to avoid spam
         console.log(`🔍 UTILIZATION DEBUG for ${bay.name} (${format(weekStart, 'MMM dd')}):`, {
           weekStart: format(weekStart, 'yyyy-MM-dd'),
+          weekEnd: format(weekEnd, 'yyyy-MM-dd'),
           activeProjects: Array.from(activeProjectsInWeek),
           projectCount,
           utilizationPercentage,
-          baySchedulesCount: baySchedules.length
+          baySchedulesCount: baySchedules.length,
+          sampleSchedule: baySchedules.length > 0 ? {
+            projectId: baySchedules[0].projectId,
+            startDate: format(baySchedules[0].startDate, 'yyyy-MM-dd'),
+            endDate: format(baySchedules[0].endDate, 'yyyy-MM-dd')
+          } : null
         });
       }
       

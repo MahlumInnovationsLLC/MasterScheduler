@@ -453,19 +453,27 @@ const ReportsPage = () => {
   // Future Predictions Functions
   const getFutureBayUtilization = () => {
     const futureMonths = [];
-    const now = new Date();
+    // Force current date to be June 27, 2025 (today)
+    const now = new Date('2025-06-27');
+    console.log(`🔍 FUTURE PREDICTIONS: Starting from current date: ${format(now, 'yyyy-MM-dd')}`);
     
-    // Generate predictions for next 6 months
-    for (let i = 1; i <= 6; i++) {
+    // Generate predictions for next 6 months starting from current month
+    for (let i = 0; i <= 5; i++) {
       const futureDate = addMonths(now, i);
       const monthKey = format(futureDate, 'MMM yyyy');
       
       // Calculate future schedules that extend into this month
-      const monthStart = startOfMonth(futureDate);
+      const monthStart = i === 0 ? now : startOfMonth(futureDate); // Start from today for current month
       const monthEnd = endOfMonth(futureDate);
       
       // Use new phase-based weekly calculation and aggregate by month
       const weeksInMonth = Math.ceil(differenceInDays(monthEnd, monthStart) / 7);
+      
+      // Debug: Log the month we're calculating for
+      if (i === 0) {
+        console.log(`🔍 FUTURE PREDICTIONS: Calculating for month ${monthKey}, start: ${format(monthStart, 'yyyy-MM-dd')}, end: ${format(monthEnd, 'yyyy-MM-dd')}`);
+      }
+      
       const weeklyUtilizations = calculateWeeklyBayUtilization(
         filteredSchedules.map(schedule => ({
           id: schedule.id,
@@ -487,7 +495,11 @@ const ReportsPage = () => {
           ntcPercentage: 7,
           qcPercentage: 7
         })),
-        manufacturingBays.filter(bay => bay.team?.toUpperCase() !== 'LIBBY'),
+        manufacturingBays.filter(bay => 
+          bay.team && 
+          !bay.team.toUpperCase().includes('LIBBY') &&
+          !bay.name.toUpperCase().includes('LIBBY')
+        ),
         monthStart,
         weeksInMonth
       );
