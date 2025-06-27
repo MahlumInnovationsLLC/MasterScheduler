@@ -371,15 +371,23 @@ const Dashboard = () => {
         return 0;
       });
 
-    // Take exactly the top 10 projects (excluding delivered projects from the count)
-    const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
-    const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
+    // Apply different limits based on filter state
+    let finalList;
+    
+    if (dateRangeFilter === 'all' && columnFilter === 'all') {
+      // No filters applied - limit to top 10 projects
+      const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
+      const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
 
-    // Take top 10 non-delivered projects, then add any delivered projects at the end
-    const finalList = [
-      ...nonDeliveredProjects.slice(0, 10),
-      ...deliveredProjects
-    ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
+      // Take top 10 non-delivered projects, then add any delivered projects at the end
+      finalList = [
+        ...nonDeliveredProjects.slice(0, 10),
+        ...deliveredProjects
+      ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
+    } else {
+      // Any filter is applied - show ALL matching projects (no limit)
+      finalList = sortedByShipDate;
+    }
 
     setFilteredProjects(finalList);
   }, [projects, columnFilter, dateRangeFilter]);
@@ -1078,7 +1086,10 @@ const Dashboard = () => {
 
       {/* Projects Table */}
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-sans font-bold">Next Projects Ready to Ship (Top 10)</h2>
+        <h2 className="text-xl font-sans font-bold">
+          Next Projects Ready to Ship 
+          {(dateRangeFilter === 'all' && columnFilter === 'all') ? ' (Top 10)' : ` (${filteredProjects.length})`}
+        </h2>
         <Link href="/projects">
           <Button variant="outline" size="sm">
             <ArrowUpRight className="h-4 w-4 mr-2" />
