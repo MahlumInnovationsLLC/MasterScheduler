@@ -337,6 +337,9 @@ export const projects = pgTable("projects", {
   opExecutiveReviewDate: date("op_executive_review_date"),
   opShipDate: date("op_ship_date"),
   opDeliveryDate: date("op_delivery_date"),
+  opPaintStart: date("op_paint_start"),
+  opProductionStart: date("op_production_start"),
+  opItStart: date("op_it_start"),
 
   // Text overrides for date fields (stores "N/A", "PENDING", etc.)
   fabricationStartText: text("fabrication_start_text"),

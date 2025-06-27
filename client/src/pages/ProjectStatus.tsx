@@ -1597,8 +1597,8 @@ const ProjectStatus = () => {
         projectId={project.id} 
         field="paintStart" 
         value={value} 
-        opValue={null}
-        opField={null}
+        opValue={(project as any).opPaintStart}
+        opField="opPaintStart"
       />,
       { size: 140 }),
     createColumn('productionStart', 'productionStart', 'Production Start', 
@@ -1606,8 +1606,8 @@ const ProjectStatus = () => {
         projectId={project.id} 
         field="productionStart" 
         value={value} 
-        opValue={null}
-        opField={null}
+        opValue={(project as any).opProductionStart}
+        opField="opProductionStart"
       />,
       { size: 170 }),
     createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
