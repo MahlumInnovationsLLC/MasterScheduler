@@ -1624,8 +1624,8 @@ const ProjectStatus = () => {
         projectId={project.id} 
         field="itStart" 
         value={value} 
-        opValue={null}
-        opField={null}
+        opValue={(project as any).opItStart}
+        opField="opItStart"
       />,
       { size: 140 }),
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 

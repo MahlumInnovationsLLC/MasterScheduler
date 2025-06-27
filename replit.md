@@ -127,6 +127,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added project delivery predictions with risk assessment
   - Real-time calculations based on current manufacturing schedules
   - Interactive charts using Area, Bar, and timeline visualizations
+- June 27, 2025: PAINT and IT Start Date Implementation
+  - Added PAINT start and IT start columns to database schema and project table
+  - Implemented automated date calculations: PAINT starts 7 working days before production, IT starts 7 working days before NTC testing
+  - Populated 133 projects with PAINT start dates and 116 projects with IT start dates
+  - Added OP (Original Plan) date columns for PAINT start, Production start, and IT start phases
+  - Set current calculated dates as baseline OP dates for tracking future changes
+  - All date calculations properly account for weekends using working day calculations
 
 ## User Preferences
 
