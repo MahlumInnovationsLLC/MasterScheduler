@@ -236,6 +236,14 @@ export function calculateWeeklyBayUtilization(
     !bay.name.toUpperCase().includes('LIBBY')
   );
   
+  // Debug: log all teams being included/excluded (only once per calculation)
+  const allTeams = [...new Set(bays.map(b => b.team).filter(t => t))];
+  const includedTeams = [...new Set(filteredBays.map(b => b.team).filter(t => t))];
+  const excludedTeams = allTeams.filter(t => !includedTeams.includes(t));
+  console.log(`🔍 TEAM FILTERING: All teams (${allTeams.length}):`, allTeams);
+  console.log(`🔍 TEAM FILTERING: Included teams (${includedTeams.length}):`, includedTeams);
+  console.log(`🔍 TEAM FILTERING: Excluded teams (${excludedTeams.length}):`, excludedTeams);
+  
   // Generate weeks using the corrected start date
   for (let weekOffset = 0; weekOffset < weeksCount; weekOffset++) {
     const weekStart = startOfWeek(addWeeks(actualStartDate, weekOffset), { weekStartsOn: 1 }); // Monday start
