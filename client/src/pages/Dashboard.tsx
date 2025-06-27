@@ -746,7 +746,7 @@ const Dashboard = () => {
   };
 
   // Enhanced project table columns matching Projects Module exactly
-  const projectColumns = [
+  const allProjectColumns = [
     {
       accessorKey: 'projectNumber',
       header: 'Project',
@@ -943,6 +943,33 @@ const Dashboard = () => {
     },
     
   ];
+
+  // Filter columns based on column filter - show only selected column and next column
+  const projectColumns = React.useMemo(() => {
+    if (columnFilter === 'all') {
+      return allProjectColumns;
+    }
+
+    // Find the index of the selected column
+    const selectedColumnIndex = allProjectColumns.findIndex(col => col.accessorKey === columnFilter);
+    
+    if (selectedColumnIndex === -1) {
+      return allProjectColumns; // Fallback to all columns if not found
+    }
+
+    // Always include project number column for context
+    const projectNumberColumn = allProjectColumns.find(col => col.accessorKey === 'projectNumber');
+    const selectedColumn = allProjectColumns[selectedColumnIndex];
+    const nextColumn = allProjectColumns[selectedColumnIndex + 1];
+
+    // Return project number + selected column + next column (if exists)
+    const filteredColumns = [projectNumberColumn, selectedColumn];
+    if (nextColumn && nextColumn.accessorKey !== 'projectNumber') {
+      filteredColumns.push(nextColumn);
+    }
+
+    return filteredColumns.filter(Boolean); // Remove any undefined columns
+  }, [columnFilter]);
 
   if (isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays) {
     return (
