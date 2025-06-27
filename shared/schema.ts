@@ -318,6 +318,9 @@ export const projects = pgTable("projects", {
   executiveReviewDate: date("executive_review_date"),
   shipDate: date("ship_date"),
   deliveryDate: date("delivery_date"),
+  paintStart: date("paint_start"),
+  productionStart: date("production_start"),
+  itStart: date("it_start"),
 
   // Originally Planned (OP) dates - for tracking original timeline baselines
   opContractDate: date("op_contract_date"),

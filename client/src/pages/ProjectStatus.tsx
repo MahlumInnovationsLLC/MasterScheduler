@@ -752,7 +752,10 @@ const ProjectStatus = () => {
     // Making the required columns visible
     fabricationStart: true,
     assemblyStart: true,
+    paintStart: true,
+    productionStart: true,
     wrapDate: true,
+    itStart: true,
     ntcTestingDate: true,
     executiveReviewDate: true,
     dpasRating: true,
@@ -1589,6 +1592,24 @@ const ProjectStatus = () => {
         opField="opAssemblyStart"
       />,
       { size: 170 }),
+    createColumn('paintStart', 'paintStart', 'PAINT Start', 
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="paintStart" 
+        value={value} 
+        opValue={null}
+        opField={null}
+      />,
+      { size: 140 }),
+    createColumn('productionStart', 'productionStart', 'Production Start', 
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="productionStart" 
+        value={value} 
+        opValue={null}
+        opField={null}
+      />,
+      { size: 170 }),
     createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
       (value, project) => <EditableDateFieldWithOP 
         projectId={project.id} 
@@ -1598,6 +1619,15 @@ const ProjectStatus = () => {
         opField="opWrapDate"
       />,
       { size: 170 }),
+    createColumn('itStart', 'itStart', 'IT Start', 
+      (value, project) => <EditableDateFieldWithOP 
+        projectId={project.id} 
+        field="itStart" 
+        value={value} 
+        opValue={null}
+        opField={null}
+      />,
+      { size: 140 }),
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
       (value, project) => <EditableDateFieldWithOP 
         projectId={project.id} 
