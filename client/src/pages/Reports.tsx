@@ -542,16 +542,16 @@ const ReportsPage = () => {
         const bayWeeklyData = weeklyUtilizations.filter(w => w.bayId === bay.id);
         const totalProjects = new Set(bayWeeklyData.flatMap(w => w.alignedPhases.map(p => p.projectId))).size;
         
-        // Calculate utilization, but boost values to reflect real manufacturing capacity
-        // Active bays should show high utilization (80-115%) during production periods
-        const rawUtilization = bayWeeklyData.length > 0 
+        // Use the new team-based utilization calculation directly without scaling
+        // The team utilization is already correctly calculated (75%, 100%, 120%)
+        const avgUtilization = bayWeeklyData.length > 0 
           ? bayWeeklyData.reduce((sum, w) => sum + w.utilizationPercentage, 0) / bayWeeklyData.length
           : 0;
         
-        // If bay has active projects, boost utilization to realistic manufacturing levels
-        const avgUtilization = totalProjects > 0 
-          ? Math.min(115, Math.max(80, rawUtilization * 2)) // Scale up active bays to 80-115%
-          : Math.max(0, rawUtilization * 0.5); // Scale down inactive bays
+        // Debug: Log final bay utilization for first month
+        if (i === 0 && totalProjects > 0) {
+          console.log(`📊 CHART DATA - ${bay.name} (${bay.team}): ${totalProjects} projects = ${Math.round(avgUtilization)}% utilization`);
+        }
         
         futureBayData[bay.name] = {
           bay: bay.name,
