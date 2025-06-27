@@ -568,6 +568,8 @@ const ReportsPage = () => {
       
 
       
+
+      
       futureMonths.push({
         month: monthKey,
         bays: Object.values(futureBayData),

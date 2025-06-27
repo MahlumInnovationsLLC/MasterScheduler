@@ -148,7 +148,9 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Successfully includes all 7 manufacturing teams except LIBBY teams
   - Fixed Future Predictions chart aggregation to only include active teams with projects
   - Chart now displays accurate 100%+ utilization when teams are at capacity instead of constant 60%
-  - Utilization drops to 0% when projects end, providing realistic capacity forecasting
+  - Fixed date forcing issue that was calculating all future months based on current projects
+  - Utilization now properly drops to 0% when projects end, providing realistic capacity forecasting
+  - Chart accurately shows team capacity declining as projects complete and no new ones are scheduled
 
 ## User Preferences
 

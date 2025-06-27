@@ -227,11 +227,8 @@ export function calculateWeeklyBayUtilization(
 ): WeeklyUtilization[] {
   const utilizations: WeeklyUtilization[] = [];
   
-  // Force current date if startDate is in the future relative to June 2025
-  const currentDate = new Date('2025-06-27');
-  const actualStartDate = startDate > currentDate ? currentDate : startDate;
-  
-  console.log(`🔍 BAY UTILIZATION: Using start date: ${format(actualStartDate, 'yyyy-MM-dd')} (original: ${format(startDate, 'yyyy-MM-dd')})`);
+  // Use the actual start date for future predictions - don't force it back to current date
+  const actualStartDate = startDate;
   
   // Filter out LIBBY team - check for multiple variations
   const filteredBays = bays.filter(bay => 
