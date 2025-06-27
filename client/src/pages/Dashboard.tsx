@@ -1,60 +1,34 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { useProjectLabelStats } from '../hooks/use-project-label-stats';
 import { Link } from 'wouter';
+import { format, isAfter, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { 
   Folders, 
+  Calendar, 
   DollarSign, 
-  Building2, 
-  Flag,
-  LineChart,
-  Banknote,
-  CheckSquare,
-  Calendar,
-  Users,
-  Plus,
-  Filter,
-  SortDesc,
-  ArrowUpRight,
-  Shield,
-  LogIn,
-  BarChart3,
-  Eye,
-  Hammer,
-  Wrench,
+  Building, 
+  TrendingUp, 
   Clock,
-  CheckCircle,
   Search,
+  Filter,
+  ChevronDown,
+  Wrench,
+  Hammer,
   Palette,
   Settings,
-  UserCheck,
-  AlertTriangle
+  CheckCircle,
+  Shield,
+  UserCheck
 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ProjectStatsCard } from '@/components/ProjectStatusCard';
-import { BillingStatusCard } from '@/components/BillingStatusCard';
-import { ManufacturingCard } from '@/components/ManufacturingCard';
-import { ProgressBadge } from '@/components/ui/progress-badge';
-import { formatDate, formatCurrency, getProjectStatusColor, getProjectScheduleState, calculateBayUtilization, getBayStatusInfo } from '@/lib/utils';
-import { DashboardTable } from '@/components/ui/dashboard-table';
-import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownCard';
-import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
-import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
-import ResizableBaySchedule from '@/components/ResizableBaySchedule';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DataTable } from '@/components/ui/data-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,7 +73,7 @@ const Dashboard = () => {
     milestones: any[];
   } | null>(null);
 
-  // All hooks must be called before any conditional returns
+  // All hooks called in consistent order
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
   });
@@ -116,7 +90,6 @@ const Dashboard = () => {
     queryKey: ['/api/manufacturing-bays'],
   });
 
-  // Fetch delivered projects for analytics
   const { data: deliveredProjects } = useQuery({
     queryKey: ['/api/delivered-projects'],
     staleTime: 0,
@@ -126,597 +99,12 @@ const Dashboard = () => {
   // Get label statistics  
   const labelStats = useProjectLabelStats();
 
-  // Project scroll function - same logic as bay scheduling module
-  const scrollToProject = (searchQuery) => {
-    if (!searchQuery.trim()) {
-      toast({
-        title: "Search Required",
-        description: "Please enter a project number to search",
-        variant: "destructive",
-        duration: 3000
-      });
-      return false;
-    }
-
-    try {
-      const searchTerm = searchQuery.toLowerCase().trim();
-
-      // Find the project in data first
-      const targetProject = (projects || []).find(project => 
-        project.projectNumber.toLowerCase().includes(searchTerm) ||
-        project.name.toLowerCase().includes(searchTerm)
-      );
-
-      if (!targetProject) {
-        toast({
-          title: "Project Not Found",
-          description: `No project found matching "${searchQuery}"`,
-          variant: "destructive",
-          duration: 3000
-        });
-        return false;
-      }
-
-      // Find the project schedule
-      const projectSchedule = (manufacturingSchedules || []).find(schedule => 
-        schedule.projectId === targetProject.id
-      );
-
-      if (!projectSchedule) {
-        toast({
-          title: "Project Not Scheduled",
-          description: `Project ${targetProject.projectNumber} is not currently scheduled in any bay`,
-          variant: "destructive",
-          duration: 3000
-        });
-        return false;
-      }
-
-      // Find the project bar in the DOM - multiple selectors to catch different structures
-      const possibleSelectors = [
-        '.project-bar',
-        '[data-project-number]',
-        '[data-project-id]',
-        '.schedule-bar',
-        '.manufacturing-bar',
-        '.project-timeline-bar'
-      ];
-
-      let targetBar = null;
-
-      for (const selector of possibleSelectors) {
-        const elements = document.querySelectorAll(selector);
-
-        for (let i = 0; i < elements.length; i++) {
-          const bar = elements[i];
-          const barProjectNumber = bar.getAttribute('data-project-number') || 
-                                  bar.getAttribute('data-project-id') || 
-                                  bar.textContent || '';
-          const barProjectName = bar.getAttribute('data-project-name') || 
-                                bar.getAttribute('title') || 
-                                bar.textContent || '';
-
-          if (barProjectNumber.toLowerCase().includes(searchTerm) || 
-              barProjectName.toLowerCase().includes(searchTerm)) {
-            targetBar = bar;
-            break;
-          }
-        }
-
-        if (targetBar) break;
-      }
-
-      // If still not found, try searching by visible text content
-      if (!targetBar) {
-        const allElements = document.querySelectorAll('*');
-        for (let i = 0; i < allElements.length; i++) {
-          const element = allElements[i];
-          const textContent = element.textContent || '';
-
-          if (textContent.includes(targetProject.projectNumber) || 
-              textContent.includes(targetProject.name)) {
-            // Find the closest parent that looks like a project bar
-            let parent = element;
-            while (parent && parent !== document.body) {
-              if (parent.classList.contains('project-bar') || 
-                  parent.style.backgroundColor || 
-                  parent.style.width) {
-                targetBar = parent;
-                break;
-              }
-              parent = parent.parentElement;
-            }
-            if (targetBar) break;
-          }
-        }
-      }
-
-      if (!targetBar) {
-        toast({
-          title: "Project Bar Not Found",
-          description: "Project found but not visible in current schedule view",
-          variant: "destructive",
-          duration: 3000
-        });
-        return false;
-      }
-
-      // Scroll to the project bar
-      targetBar.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center',
-        inline: 'center'
-      });
-
-      // Success message
-      toast({
-        title: "Found Project",
-        description: `Scrolled to project ${targetProject.projectNumber} (${targetProject.name})`,
-        duration: 3000
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Project search scrolling failed:", error);
-      toast({
-        title: "Search Failed", 
-        description: "Could not scroll to the project",
-        variant: "destructive",
-        duration: 3000
-      });
-      return false;
-    }
-  };
-
-  // Show the top 10 projects that are ready to ship next with enhanced filtering
-  useEffect(() => {
-    if (!projects) return;
-
-    // Helper to get valid dates and handle null/invalid dates with UTC
-    const getValidDate = (dateStr: any) => {
-      if (!dateStr) return null;
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? null : date;
-    };
-
-    // Calculate phase dates based on ship date using UTC
-    const calculatePhaseDate = (shipDate: any, daysBeforeShip: any) => {
-      if (!shipDate) return null;
-      const date = new Date(shipDate);
-      date.setUTCDate(date.getUTCDate() - daysBeforeShip);
-      return date.toISOString();
-    };
-
-    // Get current date and time ranges for filtering
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-    // Enhance projects with calculated phase dates and filter by time
-    const enhancedProjects = (projects as any[]).map((p: any) => {
-      const shipDate = getValidDate(p.shipDate);
-      return {
-        ...p,
-        ntcTestStart: p.ntcTestStart || calculatePhaseDate(shipDate, 14), // 2 weeks before ship
-        qcStart: p.qcStart || calculatePhaseDate(shipDate, 7), // 1 week before ship
-        paintStart: p.paintStart || calculatePhaseDate(shipDate, 21), // 3 weeks before ship
-        itStart: p.itStart || calculatePhaseDate(shipDate, 10), // 10 days before ship
-        executiveReview: p.executiveReview || calculatePhaseDate(shipDate, 3), // 3 days before ship
-      };
-    });
-
-    // Apply time-based filtering
-    let timeFilteredProjects = enhancedProjects;
-    
-    if (timeFilter === 'this-week') {
-      timeFilteredProjects = enhancedProjects.filter((p: any) => {
-        const shipDate = getValidDate(p.shipDate);
-        return shipDate && shipDate >= startOfWeek && shipDate <= endOfWeek;
-      });
-    } else if (timeFilter === 'this-month') {
-      timeFilteredProjects = enhancedProjects.filter((p: any) => {
-        const shipDate = getValidDate(p.shipDate);
-        return shipDate && shipDate >= startOfMonth && shipDate <= endOfMonth;
-      });
-    }
-
-    // Sort projects by ship date with delivered projects at bottom
-    const sortedByShipDate = timeFilteredProjects
-      .sort((a: any, b: any) => {
-        // FIRST PRIORITY: delivered projects always go to the bottom
-        const aDelivered = a.status === 'delivered';
-        const bDelivered = b.status === 'delivered';
-
-        if (aDelivered && !bDelivered) return 1;  // a goes to bottom
-        if (!aDelivered && bDelivered) return -1; // b goes to bottom
-
-        // SECOND PRIORITY: for non-delivered projects, sort by ship date
-        if (!aDelivered && !bDelivered) {
-          const dateA = getValidDate(a.shipDate);
-          const dateB = getValidDate(b.shipDate);
-
-          // Projects with ship dates come first, sorted by earliest date
-          if (dateA && dateB) {
-            return dateA.getTime() - dateB.getTime();
-          }
-
-          // Projects with ship dates come before those without
-          if (dateA && !dateB) return -1;
-          if (!dateA && dateB) return 1;
-
-          // For projects without ship dates, sort by project number (most recent first)
-          const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
-          const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
-          return numB - numA;
-        }
-
-        // If both are delivered, maintain original order
-        return 0;
-      });
-
-    // Take exactly the top 10 projects (excluding delivered projects from the count)
-    const nonDeliveredProjects = sortedByShipDate.filter((p: any) => p.status !== 'delivered');
-    const deliveredProjects = sortedByShipDate.filter((p: any) => p.status === 'delivered');
-
-    // Take top 10 non-delivered projects, then add any delivered projects at the end
-    const finalList = [
-      ...nonDeliveredProjects.slice(0, 10),
-      ...deliveredProjects
-    ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
-
-    setFilteredProjects(finalList as any);
-  }, [projects, timeFilter]);
-
-  // Calculate delivered projects count
-  const deliveredProjectsCount = deliveredProjects?.length || 0;
-
-  // Calculate project stats
-  const projectStats = React.useMemo(() => {
-    if (!projects || (projects as any[]).length === 0) return null;
-
-    // Get projects by schedule state
-    const scheduledProjects = manufacturingSchedules 
-      ? (projects as any[]).filter((p: any) => getProjectScheduleState(manufacturingSchedules as any[], p.id) === 'Scheduled')
-      : [];
-    const inProgressProjects = manufacturingSchedules
-      ? (projects as any[]).filter((p: any) => getProjectScheduleState(manufacturingSchedules as any[], p.id) === 'In Progress')
-      : [];
-    const completeProjects = (projects as any[]).filter((p: any) => p.status === 'completed');
-    const unscheduledProjects = manufacturingSchedules
-      ? (projects as any[]).filter((p: any) => {
-          const scheduleState = getProjectScheduleState(manufacturingSchedules as any[], p.id);
-          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
-          
-          // Filter out Field or FSW category projects
-          if (p.team === 'Field' || p.team === 'FSW') {
-            return false;
-          }
-          
-          if (isUnscheduled) {
-            console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
-          }
-          return isUnscheduled;
-        })
-      : [];
-
-    // Simple project info for the popover display
-    const projectLists = {
-      scheduled: scheduledProjects.map((p: any) => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      inProgress: inProgressProjects.map((p: any) => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      complete: completeProjects.map((p: any) => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      unscheduled: unscheduledProjects.map((p: any) => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      delivered: (deliveredProjects || []).map((p: any) => ({ 
-        id: p.id, 
-        name: p.name || 'Unknown Project', 
-        projectNumber: p.projectNumber 
-      }))
-    };
-
-    console.log('Dashboard Debug - Project counts:');
-    console.log('Total projects:', (projects as any[]).length);
-    console.log('Unscheduled projects found:', unscheduledProjects.length);
-    console.log('Delivered projects found:', deliveredProjectsCount);
-    console.log('Project lists for hover:', {
-      unscheduled: projectLists.unscheduled.length,
-      scheduled: projectLists.scheduled.length,
-      inProgress: projectLists.inProgress.length,
-      complete: projectLists.complete.length,
-      delivered: projectLists.delivered.length
-    });
-
-    return {
-      total: (projects as any[]).length,
-      major: labelStats.major,
-      minor: labelStats.minor,
-      good: labelStats.good,
-      scheduled: scheduledProjects.length,
-      inProgress: inProgressProjects.length,
-      complete: completeProjects.length,
-      unscheduled: unscheduledProjects.length,
-      delivered: deliveredProjectsCount,
-      projectLists
-    };
-  }, [projects, manufacturingSchedules, labelStats, deliveredProjects, deliveredProjectsCount]);
-
-  // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
-  useEffect(() => {
-    if (manufacturingSchedules && manufacturingBays && projects) {
-      // Wait for the schedule to render, then snap to today
-      const timer = setTimeout(() => {
-        const todayMarker = document.querySelector('.today-marker');
-        if (todayMarker) {
-          // Get the parent scrollable container
-          const scrollContainer = todayMarker.closest('.overflow-auto');
-          if (scrollContainer) {
-            const markerRect = todayMarker.getBoundingClientRect();
-            const containerRect = scrollContainer.getBoundingClientRect();
-
-            // Calculate horizontal scroll position to center the today marker
-            const markerLeft = todayMarker.offsetLeft;
-            const containerWidth = scrollContainer.clientWidth;
-            const scrollLeft = markerLeft - (containerWidth / 2);
-
-            // Scroll horizontally only, preserve current vertical position
-            scrollContainer.scrollTo({
-              left: Math.max(0, scrollLeft),
-              top: scrollContainer.scrollTop, // Keep current vertical position
-              behavior: 'smooth'
-            });
-          }
-        }
-      }, 1000); // Give the component time to render
-
-      return () => clearTimeout(timer);
-    }
-  }, [manufacturingSchedules, manufacturingBays, projects]);
-
-  // Calculate billing stats with revenue forecast
-  const billingStats = React.useMemo(() => {
-    if (!billingMilestones || billingMilestones.length === 0) return null;
-
-    const completed = billingMilestones.filter(m => m.status === 'paid').length;
-    const inProgress = billingMilestones.filter(m => m.status === 'invoiced').length;
-    const overdue = billingMilestones.filter(m => m.status === 'delayed').length;
-    const upcoming = billingMilestones.filter(m => m.status === 'upcoming').length;
-
-    // Calculate total amounts
-    const totalReceived = billingMilestones
-      .filter(m => m.status === 'paid')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-    const totalPending = billingMilestones
-      .filter(m => m.status === 'invoiced')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-    const totalOverdue = billingMilestones
-      .filter(m => m.status === 'delayed')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-    // Calculate forecast for next 12 months
-    const today = new Date();
-    const nextTwelveMonths = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-      return date;
-    });
-
-    const monthNames = nextTwelveMonths.map(date => 
-      date.toLocaleDateString('default', { month: 'short' })
-    );
-
-    const forecastValues = nextTwelveMonths.map(month => {
-      const nextMonth = new Date(month);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-
-      // Calculate revenue for milestones due in this month
-      const monthlyRevenue = billingMilestones
-        .filter(m => {
-          if (!m.targetInvoiceDate) return false;
-          const milestoneDate = new Date(m.targetInvoiceDate);
-          return milestoneDate >= month && milestoneDate < nextMonth;
-        })
-        .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-      return monthlyRevenue;
-    });
-
-    return {
-      milestones: {
-        completed,
-        inProgress,
-        overdue,
-        upcoming
-      },
-      amounts: {
-        received: totalReceived,
-        pending: totalPending,
-        overdue: totalOverdue
-      },
-      forecast: {
-        labels: monthNames,
-        values: forecastValues
-      }
-    };
-  }, [billingMilestones]);
-
-  // Calculate upcoming milestones (billing milestones due in next 30 days)
-  const upcomingMilestonesData = React.useMemo(() => {
-    if (!billingMilestones || !projects) return [];
-
-    const now = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-    return billingMilestones
-      .filter(milestone => {
-        if (!milestone.targetInvoiceDate) return false;
-        const targetDate = new Date(milestone.targetInvoiceDate);
-        return targetDate >= now && targetDate <= thirtyDaysFromNow && milestone.status !== 'paid';
-      })
-      .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime())
-      .map(milestone => {
-        // Find the associated project to get project name
-        const project = projects.find(p => p.id === milestone.projectId);
-        return {
-          id: milestone.id,
-          name: milestone.name,
-          projectNumber: project?.projectNumber || 'Unknown',
-          projectName: project?.name || 'Unknown Project',
-          amount: milestone.amount?.toString() || '0',
-          dueDate: milestone.targetInvoiceDate,
-          targetInvoiceDate: milestone.targetInvoiceDate,
-          status: milestone.status
-        };
-      });
-  }, [billingMilestones, projects]);
-
-
-  // Manufacturing bay stats
-  const manufacturingStats = React.useMemo(() => {
-    if (!manufacturingSchedules || !manufacturingBays) return null;
-
-    // Get active bays (bays with active manufacturing schedules)
-    const activeBayIds = manufacturingSchedules
-      .filter(s => s.status === 'in_progress')
-      .map(s => s.bayId);
-
-    // Remove duplicates to get unique active bays
-    const uniqueActiveBayIds = [...new Set(activeBayIds)];
-    const active = uniqueActiveBayIds.length;
-
-    // Get scheduled bays (bays with scheduled manufacturing but not active)
-    const scheduledBayIds = manufacturingSchedules
-      .filter(s => s.status === 'scheduled')
-      .map(s => s.bayId);
-
-    // Remove duplicates and exclude bays that are already active
-    const uniqueScheduledBayIds = [...new Set(scheduledBayIds)]
-      .filter(id => !uniqueActiveBayIds.includes(id));
-    const scheduled = uniqueScheduledBayIds.length;
-
-    // For display purposes, count completed and maintenance schedules
-    const completed = manufacturingSchedules.filter(s => s.status === 'complete').length;
-    const maintenance = manufacturingSchedules.filter(s => s.status === 'maintenance').length;
-
-    // Total bays from the manufacturing bays data
-    const totalBays = manufacturingBays.length;
-
-    // Calculate utilization percentage using the standardized utility function
-    const utilization = calculateBayUtilization(manufacturingBays, manufacturingSchedules);
-
-    return {
-      active,
-      scheduled,
-      completed,
-      maintenance,
-      total: totalBays,
-      utilization
-    };
-  }, [manufacturingSchedules, manufacturingBays]);
-
-  // Authentication checks after all hooks are declared
-  if (!authLoading && !user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <Card className="border-border bg-card backdrop-blur-sm shadow-lg">
-            <CardContent className="p-8 text-center">
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <Shield className="h-16 w-16 text-blue-500 opacity-20" />
-                  <LogIn className="h-8 w-8 text-blue-400 absolute top-4 left-4" />
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <div className="text-primary font-bold text-3xl font-sans mb-2">
-                  <span>TIER</span>
-                  <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span>
-                  <span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Manufacturing Management Platform
-                </p>
-              </div>
-
-              <h1 className="text-2xl font-bold mb-4 text-white dark:text-white">Login Required</h1>
-              <p className="text-gray-300 dark:text-gray-300 mb-8 leading-relaxed">
-                Please sign in to access your manufacturing dashboard and project management tools.
-              </p>
-
-              <div className="space-y-4">
-                <Link href="/auth">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Sign In to Continue
-                  </Button>
-                </Link>
-
-                <div className="grid grid-cols-2 gap-3 text-xs text-gray-400">
-                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
-                    <Building2 className="h-4 w-4 mx-auto mb-1 text-blue-400" />
-                    <div className="font-medium">Project Management</div>
-                  </div>
-                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
-                    <BarChart3 className="h-4 w-4 mx-auto mb-1 text-green-400" />
-                    <div className="font-medium">Analytics & Reports</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading if auth is still loading
-  if (authLoading) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Dashboard</h1>
-        <div className="animate-pulse space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
-            ))}
-          </div>
-          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
-        </div>
-      </div>
-    );
-  }
-
-  // Helper function to format dates consistently without timezone issues
-  const formatDate = (dateStr) => {
+  // Helper function to format dates consistently
+  const formatDate = (dateStr: any) => {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return 'N/A';
 
-    // Use UTC methods to avoid timezone issues
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',
@@ -932,6 +320,156 @@ const Dashboard = () => {
     return baseColumns;
   }, [phaseFilters]);
 
+  // Project scroll function
+  const scrollToProject = (searchQuery: string) => {
+    if (!searchQuery.trim()) {
+      toast({
+        title: "Search Required",
+        description: "Please enter a project number to search",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const projectElement = document.querySelector(`[data-project-number="${searchQuery}"]`);
+    if (projectElement) {
+      projectElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      (projectElement as HTMLElement).style.backgroundColor = '#1f2937';
+      (projectElement as HTMLElement).style.transition = 'background-color 0.3s ease';
+      
+      setTimeout(() => {
+        const element = document.querySelector(`[data-project-number="${searchQuery}"]`) as HTMLElement;
+        if (element) {
+          element.style.backgroundColor = '';
+        }
+      }, 2000);
+    } else {
+      toast({
+        title: "Project Not Found",
+        description: `Project ${searchQuery} is not visible in the current view`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filter projects based on time filter
+  useEffect(() => {
+    if (!projects || !(projects as any[]).length) {
+      setFilteredProjects([]);
+      return;
+    }
+
+    const now = new Date();
+    let filteredList = (projects as any[]).filter((project: any) => {
+      // Only include projects with ship dates
+      if (!project.shipDate) return false;
+      
+      const shipDate = new Date(project.shipDate);
+      
+      switch (timeFilter) {
+        case 'this-week':
+          return shipDate >= startOfWeek(now) && shipDate <= endOfWeek(now);
+        case 'this-month':
+          return shipDate >= startOfMonth(now) && shipDate <= endOfMonth(now);
+        default:
+          return true;
+      }
+    });
+
+    // Sort by ship date (earliest first) and limit to 10
+    const finalList = filteredList
+      .sort((a: any, b: any) => new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime())
+      .slice(0, 10);
+
+    setFilteredProjects(finalList);
+  }, [projects, timeFilter]);
+
+  // Calculate delivered projects count
+  const deliveredProjectsCount = deliveredProjects?.length || 0;
+
+  // Calculate project stats
+  const projectStats = React.useMemo(() => {
+    if (!projects || (projects as any[]).length === 0) return null;
+
+    // Get projects by schedule state
+    const getProjectScheduleState = (schedules: any[], projectId: number) => {
+      const schedule = schedules.find((s: any) => s.projectId === projectId);
+      if (!schedule) return 'Unscheduled';
+      
+      const now = new Date();
+      const startDate = new Date(schedule.startDate);
+      const endDate = new Date(schedule.endDate);
+      
+      if (now < startDate) return 'Scheduled';
+      if (now >= startDate && now <= endDate) return 'In Progress';
+      return 'Complete';
+    };
+
+    const scheduledProjects = manufacturingSchedules 
+      ? (projects as any[]).filter((p: any) => getProjectScheduleState(manufacturingSchedules as any[], p.id) === 'Scheduled')
+      : [];
+    const inProgressProjects = manufacturingSchedules
+      ? (projects as any[]).filter((p: any) => getProjectScheduleState(manufacturingSchedules as any[], p.id) === 'In Progress')
+      : [];
+    const completeProjects = (projects as any[]).filter((p: any) => p.status === 'completed');
+    const unscheduledProjects = manufacturingSchedules
+      ? (projects as any[]).filter((p: any) => {
+          const scheduleState = getProjectScheduleState(manufacturingSchedules as any[], p.id);
+          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
+          
+          // Filter out Field or FSW category projects
+          if (p.team === 'Field' || p.team === 'FSW') {
+            return false;
+          }
+          
+          return isUnscheduled;
+        })
+      : [];
+
+    // Simple project info for the popover display
+    const projectLists = {
+      scheduled: scheduledProjects.map((p: any) => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      inProgress: inProgressProjects.map((p: any) => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      complete: completeProjects.map((p: any) => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      unscheduled: unscheduledProjects.map((p: any) => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      delivered: (deliveredProjects || []).map((p: any) => ({ 
+        id: p.id, 
+        name: p.name || 'Unknown Project', 
+        projectNumber: p.projectNumber 
+      }))
+    };
+
+    return {
+      total: (projects as any[]).length,
+      major: labelStats.major,
+      minor: labelStats.minor,
+      good: labelStats.good,
+      scheduled: scheduledProjects.length,
+      inProgress: inProgressProjects.length,
+      complete: completeProjects.length,
+      unscheduled: unscheduledProjects.length,
+      delivered: deliveredProjectsCount,
+      projectLists
+    };
+  }, [projects, manufacturingSchedules, labelStats, deliveredProjects, deliveredProjectsCount]);
+
+  // Loading state
   if (isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays) {
     return (
       <div className="p-6">
@@ -957,428 +495,132 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <ProjectStatsCard
-          title="Total Projects"
-          value={projectStats?.total || 0}
-          icon={<Folders className="text-primary" />}
-          tags={[
-            { label: "Major", value: projectStats?.major || 0, status: "Critical" },
-            { label: "Minor", value: projectStats?.minor || 0, status: "Delayed" },
-            { label: "Good", value: projectStats?.good || 0, status: "On Track" }
-          ]}
-          stateBreakdown={{
-            unscheduled: projectStats?.unscheduled || 0,
-            scheduled: projectStats?.scheduled || 0,
-            inProgress: projectStats?.inProgress || 0,
-            complete: projectStats?.complete || 0,
-            delivered: deliveredProjectsCount || 0
-          }}
-          projectLists={projectStats?.projectLists}
-        />
-
-        <ProjectStatsCard
-          title="Upcoming Milestones"
-          value={upcomingMilestonesData.length}
-          icon={<Calendar className="text-primary" />}
-          tags={[
-            { label: "due in 30 days", value: upcomingMilestonesData.length, status: "Upcoming" }
-          ]}
-          upcomingMilestones={upcomingMilestonesData}
-        />
-
-        <BillingStatusCard
-          title="Revenue Forecast"
-          value={selectedMonthData ? 
-            formatCurrency(selectedMonthData.amount) : 
-            formatCurrency(billingStats?.forecast?.values[0] || 0)
-          }
-          type="forecast"
-          chart={billingStats?.forecast ? {
-            labels: billingStats.forecast.labels,
-            values: billingStats.forecast.values
-          } : {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-          }}
-          onMonthSelect={(year, month) => {
-            // Handle special YTD and 12-month cases
-            if (month === -1) { // YTD button
-              const currentYear = new Date().getFullYear();
-              const ytdMilestones = (billingMilestones || []).filter(milestone => {
-                const milestoneDate = new Date(milestone.targetInvoiceDate);
-                return milestoneDate.getFullYear() === currentYear;
-              });
-              const ytdAmount = ytdMilestones.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
-
-              setSelectedMonthData({
-                month: -1,
-                year: currentYear,
-                amount: ytdAmount,
-                milestones: ytdMilestones
-              });
-              console.log(`YTD ${currentYear}: $${ytdAmount} from ${ytdMilestones.length} milestones`);
-              return;
-            }
-
-            if (month === -2) { // 12-month button
-              const next12Months = (billingMilestones || []).filter(milestone => {
-                const milestoneDate = new Date(milestone.targetInvoiceDate);
-                const today = new Date();
-                const twelveMonthsFromNow = new Date(today.getFullYear(), today.getMonth() + 12, today.getDate());
-                return milestoneDate >= today && milestoneDate <= twelveMonthsFromNow;
-              });
-              const twelveMonthAmount = next12Months.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
-
-              setSelectedMonthData({
-                month: -2,
-                year: new Date().getFullYear(),
-                amount: twelveMonthAmount,
-                milestones: next12Months
-              });
-              console.log(`Next 12 months: $${twelveMonthAmount} from ${next12Months.length} milestones`);
-              return;
-            }
-
-            // Regular month filtering - use same logic as chart forecast
-            const startOfMonth = new Date(year, month, 1);
-            const startOfNextMonth = new Date(year, month + 1, 1);
-
-            const selectedMonthMilestones = (billingMilestones || []).filter(milestone => {
-              if (!milestone.targetInvoiceDate) return false;
-              const milestoneDate = new Date(milestone.targetInvoiceDate);
-              return milestoneDate >= startOfMonth && milestoneDate < startOfNextMonth;
-            });
-
-            const monthlyAmount = selectedMonthMilestones.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
-
-            setSelectedMonthData({
-              month,
-              year,
-              amount: monthlyAmount,
-              milestones: selectedMonthMilestones
-            });
-
-            console.log(`Month ${month + 1}/${year}: $${monthlyAmount} from ${selectedMonthMilestones.length} milestones`);
-          }}
-        />
-      </div>
-
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="md:col-span-3">
-          <HighRiskProjectsCard projects={projects || []} />
-        </div>
-      </div>
-
-      {/* Projects Table with Enhanced Filtering */}
-      <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-sans font-bold">Next 10 Ready to Ship</h2>
-        <div className="flex items-center gap-3">
-          {/* Time Filter */}
-          <Select value={timeFilter} onValueChange={(value: 'all' | 'this-week' | 'this-month') => setTimeFilter(value)}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Time Filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="this-week">This Week</SelectItem>
-              <SelectItem value="this-month">This Month</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Phase Filter */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Columns ({Object.values(phaseFilters).filter(Boolean).length})
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.mechShop}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, mechShop: checked }))}
-              >
-                Mech Shop
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.fabStart}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, fabStart: checked }))}
-              >
-                FAB Start
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.paintStart}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, paintStart: checked }))}
-              >
-                Paint Start
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.productionStart}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, productionStart: checked }))}
-              >
-                Production Start
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.it}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, it: checked }))}
-              >
-                IT
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.ntc}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, ntc: checked }))}
-              >
-                NTC
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.qc}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, qc: checked }))}
-              >
-                QC
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.executiveReview}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, executiveReview: checked }))}
-              >
-                Executive Review
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Link href="/projects">
-            <Button variant="outline" size="sm">
-              <ArrowUpRight className="h-4 w-4 mr-2" />
-              View All Projects
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="w-full mb-8">
-        <DashboardTable
-          columns={projectColumns}
-          data={filteredProjects}
-          showPagination={false}
-        />
-      </div>
-
-      {/* Mini Bay Schedule Viewer */}
-      <div className="mb-4 flex justify-between items-start">
-        <h2 className="text-xl font-sans font-bold">Manufacturing Bay Schedule Snapshot</h2>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              // Snap to today functionality
-              const todayMarker = document.querySelector('.today-marker');
-              if (todayMarker) {
-                todayMarker.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'center', 
-                  inline: 'center' 
-                });
+      {/* Project Search */}
+      <div className="mb-6">
+        <div className="flex gap-2 max-w-md">
+          <Input
+            placeholder="Search by project number..."
+            value={projectSearchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectSearchQuery(e.target.value)}
+            className="flex-1"
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                scrollToProject(projectSearchQuery);
               }
             }}
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Today
-          </Button>
-          <Link href="/bay-scheduling">
-            <Button variant="outline" size="sm">
-              <Eye className="h-4 w-4 mr-2" />
-              Open Full Schedule
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      
-
-      {/* Project Search for Bay Schedule */}
-      <div className="mb-6 flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
-            </div>
-            <Input
-              type="text"
-              placeholder="Search project number..."
-              value={projectSearchQuery}
-              onChange={(e) => setProjectSearchQuery(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  scrollToProject(projectSearchQuery);
-                }
-              }}
-              className="pl-10 pr-4 py-2 w-48 text-sm bg-white text-gray-900 placeholder-gray-500 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          <Button
+          />
+          <Button 
             onClick={() => scrollToProject(projectSearchQuery)}
-            variant="outline"
-            size="sm"
-            className="whitespace-nowrap"
+            className="flex items-center gap-2"
           >
-            Find Project
+            <Search className="h-4 w-4" />
+            Search
           </Button>
         </div>
       </div>
 
-      <Card className="bg-darkCard border-gray-800">
-        <CardContent className="p-0">
-          <div className="h-[1200px] w-full overflow-auto">
-            {manufacturingSchedules && manufacturingBays && projects ? (
-              <div 
-                className="bay-schedule-readonly min-w-full"
-                style={{
-                  pointerEvents: 'none',
-                  userSelect: 'none',
-                  cursor: 'default'
-                }}
-                onMouseDown={(e) => e.preventDefault()}
-                onContextMenu={(e) => e.preventDefault()}
-                onDragStart={(e) => e.preventDefault()}
-                onDrop={(e) => e.preventDefault()}
-              >
-                <style>{`
-                  .bay-schedule-readonly * {
-                    pointer-events: none !important;
-                    user-select: none !important;
-                    cursor: default !important;
-                  }
-                  .bay-schedule-readonly .scrollable-area {
-                    pointer-events: auto !important;
-                    overflow: auto !important;
-                  }
-                  .bay-schedule-readonly .project-bar {
-                    cursor: default !important;
-                  }
-                  .bay-schedule-readonly .project-bar:hover {
-                    cursor: default !important;
-                    transform: none !important;
-                  }
-                  .bay-schedule-readonly button {
-                    pointer-events: none !important;
-                    cursor: default !important;
-                  }
-                  /* Enable only left/right scroll navigation buttons */
-                  .bay-schedule-readonly button[aria-label="Scroll timeline left"],
-                  .bay-schedule-readonly button[aria-label="Scroll timeline right"] {
-                    pointer-events: auto !important;
-                    cursor: pointer !important;
-                  }
-                  .bay-schedule-readonly button[aria-label="Scroll timeline left"]:hover,
-                  .bay-schedule-readonly button[aria-label="Scroll timeline right"]:hover {
-                    pointer-events: auto !important;
-                    cursor: pointer !important;
-                    background-color: rgba(0, 0, 0, 0.8) !important;
-                  }
-                  .bay-schedule-readonly .drag-handle {
-                    display: none !important;
-                  }
-                  .bay-schedule-readonly .resize-handle {
-                    display: none !important;
-                  }
-                  /* Hide specific delete buttons with X icons and trash can icons */
-                  .bay-schedule-readonly .delete-button,
-                  .bay-schedule-readonly button[title="Delete Row"],
-                  .bay-schedule-readonly button[title="Add Row"],
-                  .bay-schedule-readonly .row-delete-button,
-                  .bay-schedule-readonly .row-management-buttons,
-                  .bay-schedule-readonly button[title*="Delete"],
-                  .bay-schedule-readonly button[title*="Remove"],
-                  .bay-schedule-readonly .trash-icon,
-                  .bay-schedule-readonly [data-testid*="delete"],
-                  .bay-schedule-readonly [data-testid*="trash"],
-                  .bay-schedule-readonly svg[class*="trash"],
-                  .bay-schedule-readonly .lucide-trash,
-                  .bay-schedule-readonly .lucide-trash-2 {
-                    display: none !important;
-                  }
-                  /* Hide ONLY the "+" icon and team management buttons */
-                  .bay-schedule-readonly .bg-green-700,
-                  .bay-schedule-readonly .bg-blue-700,
-                  .bay-schedule-readonly .bg-orange-700,
-                  .bay-schedule-readonly .bg-purple-700,
-                  .bay-schedule-readonly .bg-gray-700:not([aria-label]) {
-                    display: none !important;
-                  }
-                  /* Hide ALL red elements including delete team buttons */
-                  .bay-schedule-readonly .bg-red-500,
-                  .bay-schedule-readonly .bg-red-600,
-                  .bay-schedule-readonly .bg-red-700,
-                  .bay-schedule-readonly button[class*="bg-red"],
-                  .bay-schedule-readonly .text-red-500,
-                  .bay-schedule-readonly .text-red-600,
-                  .bay-schedule-readonly .text-red-700 {
-                    display: none !important;
-                  }
-                  /* Keep only today marker visible */
-                  .bay-schedule-readonly .today-marker,
-                  .bay-schedule-readonly [class*="today"] {
-                    display: block !important;
-                  }
-                  /* Ensure phases (FAB, PROD, NTC, QC) remain visible */
-                  .bay-schedule-readonly .dept-fab-phase,
-                  .bay-schedule-readonly .dept-prod-phase,
-                  .bay-schedule-readonly .dept-production-phase,
-                  .bay-schedule-readonly .dept-ntc-phase,
-                  .bay-schedule-readonly .dept-qc-phase,
-                  .bay-schedule-readonly .dept-paint-phase,
-                  .bay-schedule-readonly .dept-it-phase,
-                  .bay-schedule-readonly .fab-phase,
-                  .bay-schedule-readonly .production-phase,
-                  .bay-schedule-readonly .ntc-phase,
-                  .bay-schedule-readonly .qc-phase,
-                  .bay-schedule-readonly .paint-phase,
-                  .bay-schedule-readonly .it-phase {
-                    display: block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                  }
-                  /* Ensure TODAY marker remains visible */
-                  .bay-schedule-readonly .today-marker,
-                  .bay-schedule-readonly .bg-red-500 {
-                    display: block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    pointer-events: none !important;
-                  }
+      {/* Enhanced Next 10 Ready to Ship Table */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Next 10 Ready to Ship
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {/* Time Filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {timeFilter === 'all' ? 'All Time' : 
+                     timeFilter === 'this-week' ? 'This Week' : 'This Month'}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setTimeFilter('all')}>
+                    All Time
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTimeFilter('this-week')}>
+                    This Week
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTimeFilter('this-month')}>
+                    This Month
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-                `}</style>
-                <ResizableBaySchedule
-                  schedules={manufacturingSchedules}
-                  projects={projects}
-                  bays={manufacturingBays}
-                  onScheduleChange={async () => {}} // Read-only - no editing
-                  onScheduleCreate={async () => {}} // Read-only - no editing
-                  onScheduleDelete={async () => {}} // Read-only - no editing
-                  onBayCreate={async () => {}} // Read-only - no editing
-                  onBayUpdate={async () => {}} // Read-only - no editing
-                  onBayDelete={async () => {}} // Read-only - no editing
-                  dateRange={{
-                    start: new Date(2025, 0, 1), // January 1, 2025
-                    end: new Date(new Date().setMonth(new Date().getMonth() + 6))
-                  }}
-                  viewMode="week"
-                  enableFinancialImpact={false}
-                  isSandboxMode={true}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-32">
-                <div className="text-center text-gray-400">
-                  <Building2 className="h-8 w-8 mx-auto mb-2" />
-                  <p>Loading bay schedule data...</p>
-                </div>
-              </div>
-            )}
+              {/* Phase Filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Columns
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuCheckboxItem
+                    checked={phaseFilters.mechShop}
+                    onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, mechShop: checked }))}
+                  >
+                    Mech Shop
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={phaseFilters.fabStart}
+                    onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, fabStart: checked }))}
+                  >
+                    FAB Start
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={phaseFilters.paintStart}
+                    onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, paintStart: checked }))}
+                  >
+                    Paint Start
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={phaseFilters.productionStart}
+                    onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, productionStart: checked }))}
+                  >
+                    Production Start
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={phaseFilters.it}
+                    onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, it: checked }))}
+                  >
+                    IT
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={phaseFilters.ntc}
+                    onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, ntc: checked }))}
+                  >
+                    NTC
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={phaseFilters.qc}
+                    onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, qc: checked }))}
+                  >
+                    QC
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={phaseFilters.executiveReview}
+                    onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, executiveReview: checked }))}
+                  >
+                    Executive Review
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={projectColumns}
+            data={filteredProjects}
+            searchKey="projectNumber"
+            searchPlaceholder="Search projects..."
+          />
         </CardContent>
       </Card>
     </div>
