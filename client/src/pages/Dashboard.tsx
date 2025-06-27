@@ -28,6 +28,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import ProjectStatsCard from '../components/ProjectStatsCard';
+import BillingStatusCard from '../components/BillingStatusCard';
+import BillingChart from '../components/BillingChart';
+import BayScheduleSnapshot from '../components/BayScheduleSnapshot';
 import { DataTable } from '@/components/ui/data-table';
 import {
   DropdownMenu,
@@ -508,6 +512,138 @@ const Dashboard = () => {
   // Calculate delivered projects count
   const deliveredProjectsCount = Array.isArray(deliveredProjects) ? deliveredProjects.length : 0;
 
+  // Calculate upcoming milestones data
+  const upcomingMilestonesData = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return [];
+    
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    
+    return billingMilestones
+      .filter((milestone: any) => {
+        if (!milestone.dueDate) return false;
+        const dueDate = new Date(milestone.dueDate);
+        const now = new Date();
+        return dueDate >= now && dueDate <= thirtyDaysFromNow;
+      })
+      .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .map((milestone: any) => ({
+        ...milestone,
+        project: Array.isArray(projects) ? projects.find((p: any) => p.id === milestone.projectId) : null
+      }));
+  }, [billingMilestones, projects]);
+
+  // Calculate billing data
+  const billingChartData = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return [];
+    
+    const monthlyData: { [key: string]: { month: number; year: number; amount: number; milestones: any[] } } = {};
+    
+    billingMilestones.forEach((milestone: any) => {
+      if (!milestone.dueDate || !milestone.amount) return;
+      
+      const date = new Date(milestone.dueDate);
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = {
+          month: date.getMonth(),
+          year: date.getFullYear(),
+          amount: 0,
+          milestones: []
+        };
+      }
+      
+      monthlyData[monthKey].amount += Number(milestone.amount);
+      monthlyData[monthKey].milestones.push(milestone);
+    });
+    
+    return Object.values(monthlyData)
+      .sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        return a.month - b.month;
+      });
+  }, [billingMilestones]);
+
+  // Calculate revenue totals
+  const totalRevenue = React.useMemo(() => {
+    return billingChartData.reduce((sum: number, item: any) => sum + item.amount, 0);
+  }, [billingChartData]);
+
+  const paidAmount = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
+    return billingMilestones
+      .filter((m: any) => m.status === 'paid')
+      .reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+  }, [billingMilestones]);
+
+  const pendingAmount = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
+    return billingMilestones
+      .filter((m: any) => m.status === 'pending')
+      .reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+  }, [billingMilestones]);
+
+  const overdueAmount = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
+    const now = new Date();
+    return billingMilestones
+      .filter((m: any) => m.status === 'pending' && m.dueDate && new Date(m.dueDate) < now)
+      .reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+  }, [billingMilestones]);
+
+  const futureAmount = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
+    const now = new Date();
+    return billingMilestones
+      .filter((m: any) => m.status === 'pending' && m.dueDate && new Date(m.dueDate) >= now)
+      .reduce((sum: number, m: any) => sum + Number(m.amount || 0), 0);
+  }, [billingMilestones]);
+
+  // Calculate bay utilization
+  const bayUtilization = React.useMemo(() => {
+    if (!manufacturingSchedules || !Array.isArray(manufacturingSchedules) || !manufacturingBays || !Array.isArray(manufacturingBays)) {
+      return 0;
+    }
+    
+    const now = new Date();
+    const activeBaysSet = new Set();
+    
+    manufacturingSchedules.forEach((schedule: any) => {
+      const startDate = new Date(schedule.startDate);
+      const endDate = new Date(schedule.endDate);
+      
+      if (now >= startDate && now <= endDate) {
+        activeBaysSet.add(schedule.bayId);
+      }
+    });
+    
+    const utilization = manufacturingBays.length > 0 ? (activeBaysSet.size / manufacturingBays.length) * 100 : 0;
+    console.log('Bay utilization calculation:', Math.round(utilization) + '% (based on project count per bay)');
+    
+    return Math.round(utilization);
+  }, [manufacturingSchedules, manufacturingBays]);
+
+  const activeBays = React.useMemo(() => {
+    if (!manufacturingSchedules || !Array.isArray(manufacturingSchedules)) return 0;
+    
+    const now = new Date();
+    const activeBaysSet = new Set();
+    
+    manufacturingSchedules.forEach((schedule: any) => {
+      const startDate = new Date(schedule.startDate);
+      const endDate = new Date(schedule.endDate);
+      
+      if (now >= startDate && now <= endDate) {
+        activeBaysSet.add(schedule.bayId);
+      }
+    });
+    
+    return activeBaysSet.size;
+  }, [manufacturingSchedules]);
+
+  const totalBays = Array.isArray(manufacturingBays) ? manufacturingBays.length : 0;
+
   // Calculate project stats
   const projectStats = React.useMemo(() => {
     if (!projects || !Array.isArray(projects) || projects.length === 0) return null;
@@ -638,6 +774,97 @@ const Dashboard = () => {
             Search
           </Button>
         </div>
+      </div>
+
+      {/* Stats Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <ProjectStatsCard
+          title="Total Projects"
+          value={projectStats?.total || 0}
+          icon={<Folders className="text-primary" />}
+          tags={[
+            { label: "Major", value: projectStats?.major || 0, status: "Critical" },
+            { label: "Minor", value: projectStats?.minor || 0, status: "Delayed" },
+            { label: "Good", value: projectStats?.good || 0, status: "On Track" }
+          ]}
+          stateBreakdown={{
+            unscheduled: projectStats?.unscheduled || 0,
+            scheduled: projectStats?.scheduled || 0,
+            inProgress: projectStats?.inProgress || 0,
+            complete: projectStats?.complete || 0,
+            delivered: deliveredProjectsCount || 0
+          }}
+          projectLists={projectStats?.projectLists}
+        />
+
+        <ProjectStatsCard
+          title="Upcoming Milestones"
+          value={upcomingMilestonesData.length}
+          icon={<Calendar className="text-primary" />}
+          tags={[
+            { label: "due in 30 days", value: upcomingMilestonesData.length, status: "Upcoming" }
+          ]}
+          upcomingMilestones={upcomingMilestonesData}
+        />
+
+        <BillingStatusCard
+          title="Revenue Forecast"
+          value={selectedMonthData ? 
+            `$${(selectedMonthData.amount / 1000).toFixed(0)}K` : 
+            `$${(totalRevenue / 1000).toFixed(0)}K`}
+          icon={<DollarSign className="text-primary" />}
+          chart={billingChartData}
+          onMonthSelect={setSelectedMonthData}
+          selectedMonth={selectedMonthData}
+          billingBreakdown={{
+            paid: paidAmount,
+            pending: pendingAmount,
+            overdue: overdueAmount,
+            future: futureAmount
+          }}
+        />
+      </div>
+
+      {/* Middle row with Billing Forecast and Bay Utilization */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Billing Forecast Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Billing Forecast
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BillingChart 
+              data={billingChartData} 
+              onMonthClick={(monthData) => setSelectedMonthData(monthData)}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Bay Utilization */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Bay Utilization ({bayUtilization}%)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="w-full bg-gray-800 rounded-full h-3">
+                <div 
+                  className="h-3 rounded-full bg-gradient-to-r from-green-400 via-yellow-500 to-red-500" 
+                  style={{ width: `${bayUtilization}%` }}
+                />
+              </div>
+              <div className="text-sm text-gray-400">
+                {activeBays} of {totalBays} bays active
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Enhanced Next 10 Ready to Ship Table */}
