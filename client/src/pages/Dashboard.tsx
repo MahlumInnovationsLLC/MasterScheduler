@@ -91,6 +91,14 @@ const Dashboard = () => {
     executiveReview: true,
   });
 
+  const [filteredProjects, setFilteredProjects] = useState<any[]>([]);
+  const [selectedMonthData, setSelectedMonthData] = useState<{
+    month: number;
+    year: number;
+    amount: number;
+    milestones: any[];
+  } | null>(null);
+
   // All hooks must be called before any conditional returns
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
@@ -115,13 +123,8 @@ const Dashboard = () => {
     gcTime: 0,
   });
 
-  const [filteredProjects, setFilteredProjects] = useState([]);
-  const [selectedMonthData, setSelectedMonthData] = useState<{
-    month: number;
-    year: number;
-    amount: number;
-    milestones: any[];
-  } | null>(null);
+  // Get label statistics  
+  const labelStats = useProjectLabelStats();
 
   // Project scroll function - same logic as bay scheduling module
   const scrollToProject = (searchQuery) => {
@@ -372,27 +375,24 @@ const Dashboard = () => {
     setFilteredProjects(finalList as any);
   }, [projects, timeFilter]);
 
-  // Get label statistics  
-  const labelStats = useProjectLabelStats();
-
   // Calculate delivered projects count
   const deliveredProjectsCount = deliveredProjects?.length || 0;
 
   // Calculate project stats
   const projectStats = React.useMemo(() => {
-    if (!projects || projects.length === 0) return null;
+    if (!projects || (projects as any[]).length === 0) return null;
 
     // Get projects by schedule state
     const scheduledProjects = manufacturingSchedules 
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
+      ? (projects as any[]).filter((p: any) => getProjectScheduleState(manufacturingSchedules as any[], p.id) === 'Scheduled')
       : [];
     const inProgressProjects = manufacturingSchedules
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
+      ? (projects as any[]).filter((p: any) => getProjectScheduleState(manufacturingSchedules as any[], p.id) === 'In Progress')
       : [];
-    const completeProjects = projects.filter(p => p.status === 'completed');
+    const completeProjects = (projects as any[]).filter((p: any) => p.status === 'completed');
     const unscheduledProjects = manufacturingSchedules
-      ? projects.filter(p => {
-          const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
+      ? (projects as any[]).filter((p: any) => {
+          const scheduleState = getProjectScheduleState(manufacturingSchedules as any[], p.id);
           const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
           
           // Filter out Field or FSW category projects
@@ -409,27 +409,27 @@ const Dashboard = () => {
 
     // Simple project info for the popover display
     const projectLists = {
-      scheduled: scheduledProjects.map(p => ({ 
+      scheduled: scheduledProjects.map((p: any) => ({ 
         id: p.id, 
         name: p.name, 
         projectNumber: p.projectNumber 
       })),
-      inProgress: inProgressProjects.map(p => ({ 
+      inProgress: inProgressProjects.map((p: any) => ({ 
         id: p.id, 
         name: p.name, 
         projectNumber: p.projectNumber 
       })),
-      complete: completeProjects.map(p => ({ 
+      complete: completeProjects.map((p: any) => ({ 
         id: p.id, 
         name: p.name, 
         projectNumber: p.projectNumber 
       })),
-      unscheduled: unscheduledProjects.map(p => ({ 
+      unscheduled: unscheduledProjects.map((p: any) => ({ 
         id: p.id, 
         name: p.name, 
         projectNumber: p.projectNumber 
       })),
-      delivered: (deliveredProjects || []).map(p => ({ 
+      delivered: (deliveredProjects || []).map((p: any) => ({ 
         id: p.id, 
         name: p.name || 'Unknown Project', 
         projectNumber: p.projectNumber 
@@ -437,7 +437,7 @@ const Dashboard = () => {
     };
 
     console.log('Dashboard Debug - Project counts:');
-    console.log('Total projects:', projects.length);
+    console.log('Total projects:', (projects as any[]).length);
     console.log('Unscheduled projects found:', unscheduledProjects.length);
     console.log('Delivered projects found:', deliveredProjectsCount);
     console.log('Project lists for hover:', {
@@ -449,7 +449,7 @@ const Dashboard = () => {
     });
 
     return {
-      total: projects.length,
+      total: (projects as any[]).length,
       major: labelStats.major,
       minor: labelStats.minor,
       good: labelStats.good,
