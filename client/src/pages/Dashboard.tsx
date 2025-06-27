@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { 
@@ -23,11 +23,7 @@ import {
   Wrench,
   Clock,
   CheckCircle,
-  Search,
-  Palette,
-  Settings,
-  UserCheck,
-  AlertTriangle
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
@@ -48,49 +44,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
 
 const Dashboard = () => {
-  // ALL HOOKS MUST BE CALLED FIRST - NO CONDITIONAL LOGIC BEFORE THIS POINT
   const { user, isLoading: authLoading } = useAuth();
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
   const { toast } = useToast();
-
-  // Filter states for Next 10 ready to ship table
-  const [timeFilter, setTimeFilter] = useState<'all' | 'this-week' | 'this-month'>('all');
-  const [phaseFilters, setPhaseFilters] = useState<{
-    mechShop: boolean;
-    fabStart: boolean;
-    paintStart: boolean;
-    productionStart: boolean;
-    it: boolean;
-    ntc: boolean;
-    qc: boolean;
-    executiveReview: boolean;
-  }>({
-    mechShop: true,
-    fabStart: true,
-    paintStart: true,
-    productionStart: true,
-    it: true,
-    ntc: true,
-    qc: true,
-    executiveReview: true,
-  });
 
   // All hooks must be called before any conditional returns
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
@@ -266,69 +224,38 @@ const Dashboard = () => {
     }
   };
 
-  // Show the top 10 projects that are ready to ship next with enhanced filtering
+  // Show the top 10 projects that are ready to ship next with enhanced date calculations
   useEffect(() => {
     if (!projects) return;
 
     // Helper to get valid dates and handle null/invalid dates with UTC
-    const getValidDate = (dateStr: any) => {
+    const getValidDate = (dateStr) => {
       if (!dateStr) return null;
       const date = new Date(dateStr);
       return isNaN(date.getTime()) ? null : date;
     };
 
-    // Calculate phase dates based on ship date using UTC
-    const calculatePhaseDate = (shipDate: any, daysBeforeShip: any) => {
+    // Calculate NTC Test and QC Start dates based on ship date using UTC
+    const calculatePhaseDate = (shipDate, daysBeforeShip) => {
       if (!shipDate) return null;
       const date = new Date(shipDate);
       date.setUTCDate(date.getUTCDate() - daysBeforeShip);
       return date.toISOString();
     };
 
-    // Get current date and time ranges for filtering
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-    // Enhance projects with calculated phase dates and filter by time
-    const enhancedProjects = (projects as any[]).map((p: any) => {
+    // Enhance projects with calculated phase dates
+    const enhancedProjects = projects.map(p => {
       const shipDate = getValidDate(p.shipDate);
       return {
         ...p,
         ntcTestStart: p.ntcTestStart || calculatePhaseDate(shipDate, 14), // 2 weeks before ship
-        qcStart: p.qcStart || calculatePhaseDate(shipDate, 7), // 1 week before ship
-        paintStart: p.paintStart || calculatePhaseDate(shipDate, 21), // 3 weeks before ship
-        itStart: p.itStart || calculatePhaseDate(shipDate, 10), // 10 days before ship
-        executiveReview: p.executiveReview || calculatePhaseDate(shipDate, 3), // 3 days before ship
+        qcStart: p.qcStart || calculatePhaseDate(shipDate, 7) // 1 week before ship
       };
     });
 
-    // Apply time-based filtering
-    let timeFilteredProjects = enhancedProjects;
-
-    if (timeFilter === 'this-week') {
-      timeFilteredProjects = enhancedProjects.filter((p: any) => {
-        const shipDate = getValidDate(p.shipDate);
-        return shipDate && shipDate >= startOfWeek && shipDate <= endOfWeek;
-      });
-    } else if (timeFilter === 'this-month') {
-      timeFilteredProjects = enhancedProjects.filter((p: any) => {
-        const shipDate = getValidDate(p.shipDate);
-        return shipDate && shipDate >= startOfMonth && shipDate <= endOfMonth;
-      });
-    }
-
-    // Sort projects by ship date with delivered projects at bottom
-    const sortedByShipDate = timeFilteredProjects
-      .sort((a: any, b: any) => {
+    // Sort ALL projects by ship date but ensure delivered projects are always at the bottom
+    const sortedByShipDate = enhancedProjects
+      .sort((a, b) => {
         // FIRST PRIORITY: delivered projects always go to the bottom
         const aDelivered = a.status === 'delivered';
         const bDelivered = b.status === 'delivered';
@@ -361,8 +288,8 @@ const Dashboard = () => {
       });
 
     // Take exactly the top 10 projects (excluding delivered projects from the count)
-    const nonDeliveredProjects = sortedByShipDate.filter((p: any) => p.status !== 'delivered');
-    const deliveredProjects = sortedByShipDate.filter((p: any) => p.status === 'delivered');
+    const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
+    const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
 
     // Take top 10 non-delivered projects, then add any delivered projects at the end
     const finalList = [
@@ -370,8 +297,8 @@ const Dashboard = () => {
       ...deliveredProjects
     ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
 
-    setFilteredProjects(finalList as any);
-  }, [projects, timeFilter]);
+    setFilteredProjects(finalList);
+  }, [projects]);
 
   // Get label statistics  
   const labelStats = useProjectLabelStats();
@@ -395,12 +322,12 @@ const Dashboard = () => {
       ? projects.filter(p => {
           const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
           const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
-
+          
           // Filter out Field or FSW category projects
           if (p.team === 'Field' || p.team === 'FSW') {
             return false;
           }
-
+          
           if (isUnscheduled) {
             console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
           }
@@ -726,212 +653,162 @@ const Dashboard = () => {
     });
   };
 
-  // Enhanced project table columns with filtering capabilities
-  const projectColumns = useMemo(() => {
-    const baseColumns = [
-      {
-        accessorKey: 'projectNumber',
-        header: 'Project',
-        cell: ({ row }: any) => {
-          const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
-          const isSalesEstimate = row.original.isSalesEstimate;
+  // Enhanced project table columns matching Projects Module exactly
+  const projectColumns = [
+    {
+      accessorKey: 'projectNumber',
+      header: 'Project',
+      cell: ({ row }) => {
+        const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
+        const isSalesEstimate = row.original.isSalesEstimate;
 
-          return (
-            <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : isSalesEstimate ? 'bg-yellow-500/10 rounded' : ''}`}>
-              <div className="ml-2 p-1">
-                <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : isSalesEstimate ? 'text-yellow-400' : 'text-white'} whitespace-normal`}>
-                  <Link to={`/project/${row.original.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : isSalesEstimate ? 'text-yellow-400 font-semibold' : 'text-primary'} hover:underline`}>
-                    {isSalesEstimate && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mr-2">PROPOSED</span>}
-                    {row.original.projectNumber}
-                  </Link>
-                </div>
-                <div 
-                  className={`text-xs ${isSalesEstimate ? 'text-yellow-400/70' : 'text-gray-400'} line-clamp-2 overflow-hidden`}
-                  title={row.original.name}
-                >
-                  {row.original.name}
-                </div>
+        return (
+          <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : isSalesEstimate ? 'bg-yellow-500/10 rounded' : ''}`}>
+            <div className="ml-2 p-1">
+              <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : isSalesEstimate ? 'text-yellow-400' : 'text-white'} whitespace-normal`}>
+                <Link to={`/project/${row.original.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : isSalesEstimate ? 'text-yellow-400 font-semibold' : 'text-primary'} hover:underline`}>
+                  {isSalesEstimate && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mr-2">PROPOSED</span>}
+                  {row.original.projectNumber}
+                </Link>
+              </div>
+              <div 
+                className={`text-xs ${isSalesEstimate ? 'text-yellow-400/70' : 'text-gray-400'} line-clamp-2 overflow-hidden`}
+                title={row.original.name}
+              >
+                {row.original.name}
               </div>
             </div>
-          );
-        },
+          </div>
+        );
       },
-      {
-        accessorKey: 'location',
-        header: 'Location',
-        cell: ({ row }: any) => (
-          <div className="flex items-center">
-            <div className="px-3 py-1 rounded font-medium text-white border border-gray-500 shadow-lg" 
-                 style={{ 
-                   background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
-                   boxShadow: '0 2px 8px rgba(107, 114, 128, 0.3)'
-                 }}>
-              {row.original.location || 'N/A'}
-            </div>
+    },
+    {
+      accessorKey: 'location',
+      header: 'Location',
+      cell: ({ row }) => (
+        <div className="flex items-center">
+          <div className="px-3 py-1 rounded font-medium text-white border border-gray-500 shadow-lg" 
+               style={{ 
+                 background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                 boxShadow: '0 2px 8px rgba(107, 114, 128, 0.3)'
+               }}>
+            {row.original.location || 'N/A'}
           </div>
-        ),
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'mechShop',
+      header: 'MECH Shop',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Wrench className="h-4 w-4 text-gray-400" />
+          <div className="text-sm">
+            {formatDate(row.original.mechShop)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'fabricationStart',
+      header: 'FAB Start',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Hammer className="h-4 w-4 text-blue-400" />
+          <div className="text-sm">
+            {formatDate(row.original.fabricationStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'assemblyStart',
+      header: 'Production Start',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Wrench className="h-4 w-4 text-green-400" />
+          <div className="text-sm">
+            {formatDate(row.original.assemblyStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'ntcTestStart',
+      header: 'NTC Test',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <CheckCircle className="h-4 w-4 text-orange-400" />
+          <div className="text-sm">
+            {formatDate(row.original.ntcTestStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'qcStart',
+      header: 'QC Start',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Shield className="h-4 w-4 text-purple-400" />
+          <div className="text-sm">
+            {formatDate(row.original.qcStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'contractDate',
+      header: 'Contract Date',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Clock className="h-4 w-4 text-blue-500" />
+          <div className="text-sm">
+            {formatDate(row.original.contractDate)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'shipDate',
+      header: 'Ship Date',
+      cell: ({ row }) => {
+        const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
+        return (
+          <div className={`text-sm ${isPastDue ? 'text-red-400 font-semibold' : ''}`}>
+            {formatDate(row.original.shipDate)}
+          </div>
+        );
       },
-    ];
-
-    // Add phase columns based on filters
-    if (phaseFilters.mechShop) {
-      baseColumns.push({
-        accessorKey: 'mechShop',
-        header: 'Mech Shop',
-        cell: ({ row }: any) => (
-          <div className="flex items-center gap-1">
-            <Wrench className="h-4 w-4 text-gray-400" />
-            <div className="text-sm">
-              {formatDate(row.original.mechShop)}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    if (phaseFilters.fabStart) {
-      baseColumns.push({
-        accessorKey: 'fabricationStart',
-        header: 'FAB Start',
-        cell: ({ row }: any) => (
-          <div className="flex items-center gap-1">
-            <Hammer className="h-4 w-4 text-blue-400" />
-            <div className="text-sm">
-              {formatDate(row.original.fabricationStart)}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    if (phaseFilters.paintStart) {
-      baseColumns.push({
-        accessorKey: 'paintStart',
-        header: 'Paint Start',
-        cell: ({ row }: any) => (
-          <div className="flex items-center gap-1">
-            <Palette className="h-4 w-4 text-pink-400" />
-            <div className="text-sm">
-              {formatDate(row.original.paintStart)}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    if (phaseFilters.productionStart) {
-      baseColumns.push({
-        accessorKey: 'assemblyStart',
-        header: 'Production Start',
-        cell: ({ row }: any) => (
-          <div className="flex items-center gap-1">
-            <Settings className="h-4 w-4 text-green-400" />
-            <div className="text-sm">
-              {formatDate(row.original.assemblyStart)}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    if (phaseFilters.it) {
-      baseColumns.push({
-        accessorKey: 'itStart',
-        header: 'IT',
-        cell: ({ row }: any) => (
-          <div className="flex items-center gap-1">
-            <Settings className="h-4 w-4 text-cyan-400" />
-            <div className="text-sm">
-              {formatDate(row.original.itStart)}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    if (phaseFilters.ntc) {
-      baseColumns.push({
-        accessorKey: 'ntcTestStart',
-        header: 'NTC',
-        cell: ({ row }: any) => (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="h-4 w-4 text-orange-400" />
-            <div className="text-sm">
-              {formatDate(row.original.ntcTestStart)}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    if (phaseFilters.qc) {
-      baseColumns.push({
-        accessorKey: 'qcStart',
-        header: 'QC',
-        cell: ({ row }: any) => (
-          <div className="flex items-center gap-1">
-            <Shield className="h-4 w-4 text-purple-400" />
-            <div className="text-sm">
-              {formatDate(row.original.qcStart)}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    if (phaseFilters.executiveReview) {
-      baseColumns.push({
-        accessorKey: 'executiveReview',
-        header: 'Executive Review',
-        cell: ({ row }: any) => (
-          <div className="flex items-center gap-1">
-            <UserCheck className="h-4 w-4 text-yellow-400" />
-            <div className="text-sm">
-              {formatDate(row.original.executiveReview)}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    // Always include ship date and progress
-    baseColumns.push(
-      {
-        accessorKey: 'shipDate',
-        header: 'Ship Date',
-        cell: ({ row }: any) => {
-          const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
-          return (
-            <div className={`text-sm ${isPastDue ? 'text-red-400 font-semibold' : ''}`}>
-              {formatDate(row.original.shipDate)}
-            </div>
-          );
-        },
-      },
-      {
-        accessorKey: 'percentComplete',
-        header: 'Progress',
-        cell: ({ row }: any) => {
-          const percentValue = typeof row.original.percentComplete === 'string' ? parseFloat(row.original.percentComplete) : Number(row.original.percentComplete);
-          return (
-            <div className="flex items-center gap-2">
-              <div className="w-full bg-gray-800 rounded-full h-2.5 relative overflow-hidden">
-                <div 
-                  className="h-2.5 rounded-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 relative overflow-hidden" 
-                  style={{ width: `${percentValue}%` }}
-                >
-                  <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-                </div>
+    },
+    {
+      accessorKey: 'pmOwner',
+      header: 'PM Owner',
+      cell: ({ row }) => <div className="text-sm">{row.original.pmOwner || 'Unassigned'}</div>,
+    },
+    {
+      accessorKey: 'percentComplete',
+      header: 'Progress',
+      cell: ({ row }) => {
+        const percentValue = typeof row.original.percentComplete === 'string' ? parseFloat(row.original.percentComplete) : Number(row.original.percentComplete);
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-full bg-gray-800 rounded-full h-2.5 relative overflow-hidden">
+              <div 
+                className="h-2.5 rounded-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 relative overflow-hidden" 
+                style={{ width: `${percentValue}%` }}
+              >
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
               </div>
-              <span className="text-xs font-medium">{percentValue}%</span>
             </div>
-          );
-        },
-      }
-    );
-
-    return baseColumns;
-  }, [phaseFilters]);
+            <span className="text-xs font-medium">{percentValue}%</span>
+          </div>
+        );
+      },
+    },
+    
+  ];
 
   if (isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays) {
     return (
@@ -1073,89 +950,15 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Projects Table with Enhanced Filtering */}
+      {/* Projects Table */}
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-sans font-bold">Next 10 Ready to Ship</h2>
-        <div className="flex items-center gap-3">
-          {/* Time Filter */}
-          <Select value={timeFilter} onValueChange={(value: 'all' | 'this-week' | 'this-month') => setTimeFilter(value)}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Time Filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="this-week">This Week</SelectItem>
-              <SelectItem value="this-month">This Month</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Phase Filter */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Columns ({Object.values(phaseFilters).filter(Boolean).length})
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.mechShop}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, mechShop: checked }))}
-              >
-                Mech Shop
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.fabStart}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, fabStart: checked }))}
-              >
-                FAB Start
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.paintStart}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, paintStart: checked }))}
-              >
-                Paint Start
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.productionStart}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, productionStart: checked }))}
-              >
-                Production Start
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.it}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, it: checked }))}
-              >
-                IT
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.ntc}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, ntc: checked }))}
-              >
-                NTC
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.qc}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, qc: checked }))}
-              >
-                QC
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={phaseFilters.executiveReview}
-                onCheckedChange={(checked) => setPhaseFilters(prev => ({ ...prev, executiveReview: checked }))}
-              >
-                Executive Review
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Link href="/projects">
-            <Button variant="outline" size="sm">
-              <ArrowUpRight className="h-4 w-4 mr-2" />
-              View All Projects
-            </Button>
-          </Link>
-        </div>
+        <h2 className="text-xl font-sans font-bold">Next Projects Ready to Ship (Top 10)</h2>
+        <Link href="/projects">
+          <Button variant="outline" size="sm">
+            <ArrowUpRight className="h-4 w-4 mr-2" />
+            View All Projects
+          </Button>
+        </Link>
       </div>
 
       <div className="w-full mb-8">
@@ -1197,7 +1000,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-
+      
 
       {/* Project Search for Bay Schedule */}
       <div className="mb-6 flex items-center gap-4">
