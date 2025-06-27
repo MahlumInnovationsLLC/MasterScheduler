@@ -39,9 +39,11 @@ import {
   PieChart,
   Pie,
   Cell,
+  AreaChart,
+  Area,
 } from 'recharts';
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { Download, FileText, Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
+import { format, subMonths, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, isBefore, isAfter, differenceInDays } from 'date-fns';
+import { Download, FileText, Calendar as CalendarIcon, RefreshCw, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -447,6 +449,235 @@ const ReportsPage = () => {
   const projectStatusData = getProjectStatusData();
   const manufacturingData = getManufacturingData();
 
+  // Future Predictions Functions
+  const getFutureBayUtilization = () => {
+    const futureMonths = [];
+    const now = new Date();
+    
+    // Generate predictions for next 6 months
+    for (let i = 1; i <= 6; i++) {
+      const futureDate = addMonths(now, i);
+      const monthKey = format(futureDate, 'MMM yyyy');
+      
+      // Calculate future schedules that extend into this month
+      const monthStart = startOfMonth(futureDate);
+      const monthEnd = endOfMonth(futureDate);
+      
+      const futureBayData: Record<string, { bay: string, utilization: number, scheduledHours: number, projects: number }> = {};
+      
+      manufacturingBays.forEach(bay => {
+        const baySchedules = filteredSchedules.filter(schedule => {
+          const scheduleStart = new Date(schedule.startDate);
+          const scheduleEnd = new Date(schedule.endDate);
+          return schedule.bayId === bay.id && 
+                 scheduleStart <= monthEnd && 
+                 scheduleEnd >= monthStart;
+        });
+        
+        const totalHours = baySchedules.reduce((sum, schedule) => {
+          const scheduleStart = new Date(schedule.startDate);
+          const scheduleEnd = new Date(schedule.endDate);
+          
+          // Calculate overlap between schedule and month
+          const overlapStart = scheduleStart > monthStart ? scheduleStart : monthStart;
+          const overlapEnd = scheduleEnd < monthEnd ? scheduleEnd : monthEnd;
+          
+          if (overlapStart <= overlapEnd) {
+            const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+            const scheduleDays = Math.ceil((scheduleEnd.getTime() - scheduleStart.getTime()) / (1000 * 60 * 60 * 24));
+            const proportionalHours = scheduleDays > 0 ? (schedule.totalHours || 0) * (overlapDays / scheduleDays) : 0;
+            return sum + proportionalHours;
+          }
+          return sum;
+        }, 0);
+        
+        // Estimate available hours in month (22 working days * 8 hours)
+        const availableHours = 22 * 8;
+        const utilization = Math.min(100, (totalHours / availableHours) * 100);
+        
+        futureBayData[bay.name] = {
+          bay: bay.name,
+          utilization: Math.round(utilization),
+          scheduledHours: Math.round(totalHours),
+          projects: baySchedules.length
+        };
+      });
+      
+      futureMonths.push({
+        month: monthKey,
+        bays: Object.values(futureBayData),
+        averageUtilization: Math.round(
+          Object.values(futureBayData).reduce((sum, bay) => sum + bay.utilization, 0) / 
+          Math.max(1, Object.values(futureBayData).length)
+        )
+      });
+    }
+    
+    return futureMonths;
+  };
+
+  const getNextAvailableBays = () => {
+    const now = new Date();
+    const bayAvailability: Array<{
+      bayId: number;
+      bayName: string;
+      nextAvailable: Date;
+      daysUntilFree: number;
+      currentProject?: string;
+      currentProjectEnd?: Date;
+    }> = [];
+    
+    manufacturingBays.forEach(bay => {
+      const baySchedules = filteredSchedules
+        .filter(schedule => schedule.bayId === bay.id)
+        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      
+      let nextAvailable = now;
+      let currentProject = '';
+      let currentProjectEnd: Date | undefined;
+      
+      // Find the latest end date for this bay
+      baySchedules.forEach(schedule => {
+        const scheduleEnd = new Date(schedule.endDate);
+        if (scheduleEnd > nextAvailable) {
+          nextAvailable = scheduleEnd;
+          const project = projects.find(p => p.id === schedule.projectId);
+          currentProject = project?.name || `Project ${schedule.projectId}`;
+          currentProjectEnd = scheduleEnd;
+        }
+      });
+      
+      // If bay is currently free, it's available now
+      const activeSchedule = baySchedules.find(schedule => {
+        const start = new Date(schedule.startDate);
+        const end = new Date(schedule.endDate);
+        return start <= now && end >= now;
+      });
+      
+      if (!activeSchedule) {
+        nextAvailable = now;
+        currentProject = '';
+        currentProjectEnd = undefined;
+      }
+      
+      bayAvailability.push({
+        bayId: bay.id,
+        bayName: bay.name,
+        nextAvailable,
+        daysUntilFree: Math.max(0, Math.ceil((nextAvailable.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))),
+        currentProject: currentProject || undefined,
+        currentProjectEnd
+      });
+    });
+    
+    return bayAvailability.sort((a, b) => a.daysUntilFree - b.daysUntilFree);
+  };
+
+  const getProjectDeliveryPredictions = () => {
+    const now = new Date();
+    const predictions = [];
+    
+    // Focus on active projects with schedules
+    const activeProjects = filteredProjects
+      .filter(project => project.status === 'active' || project.status === 'pending')
+      .slice(0, 20); // Limit to top 20 for performance
+    
+    activeProjects.forEach(project => {
+      const projectSchedules = filteredSchedules.filter(s => s.projectId === project.id);
+      
+      if (projectSchedules.length > 0) {
+        // Find latest end date among all schedules for this project
+        const latestEndDate = projectSchedules.reduce((latest, schedule) => {
+          const scheduleEnd = new Date(schedule.endDate);
+          return scheduleEnd > latest ? scheduleEnd : latest;
+        }, new Date(0));
+        
+        const daysUntilCompletion = Math.ceil((latestEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const totalHours = projectSchedules.reduce((sum, s) => sum + (s.totalHours || 0), 0);
+        
+        // Predict delivery based on manufacturing completion + buffer time
+        const predictedDelivery = addDays(latestEndDate, 7); // 7-day buffer for final assembly/QC
+        
+        predictions.push({
+          projectId: project.id,
+          projectName: project.name,
+          projectNumber: project.projectNumber,
+          manufacturingComplete: latestEndDate,
+          predictedDelivery,
+          daysUntilDelivery: Math.ceil((predictedDelivery.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+          totalHours,
+          scheduledBays: projectSchedules.length,
+          riskLevel: daysUntilCompletion < 0 ? 'high' : daysUntilCompletion < 30 ? 'medium' : 'low'
+        });
+      }
+    });
+    
+    return predictions.sort((a, b) => a.daysUntilDelivery - b.daysUntilDelivery);
+  };
+
+  const getCapacityForecast = () => {
+    const forecast = [];
+    const now = new Date();
+    
+    // Generate 12-week forecast
+    for (let week = 1; week <= 12; week++) {
+      const weekStart = addWeeks(now, week);
+      const weekEnd = addDays(weekStart, 6);
+      const weekLabel = `Week ${week} (${format(weekStart, 'MMM d')})`;
+      
+      let totalCapacity = 0;
+      let usedCapacity = 0;
+      
+      manufacturingBays.forEach(bay => {
+        // Assume 40 hours per week per bay
+        totalCapacity += 40;
+        
+        const weekSchedules = filteredSchedules.filter(schedule => {
+          const scheduleStart = new Date(schedule.startDate);
+          const scheduleEnd = new Date(schedule.endDate);
+          return schedule.bayId === bay.id && 
+                 scheduleStart <= weekEnd && 
+                 scheduleEnd >= weekStart;
+        });
+        
+        weekSchedules.forEach(schedule => {
+          const scheduleStart = new Date(schedule.startDate);
+          const scheduleEnd = new Date(schedule.endDate);
+          
+          // Calculate overlap
+          const overlapStart = scheduleStart > weekStart ? scheduleStart : weekStart;
+          const overlapEnd = scheduleEnd < weekEnd ? scheduleEnd : weekEnd;
+          
+          if (overlapStart <= overlapEnd) {
+            const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+            const scheduleDays = Math.ceil((scheduleEnd.getTime() - scheduleStart.getTime()) / (1000 * 60 * 60 * 24));
+            const proportionalHours = scheduleDays > 0 ? (schedule.totalHours || 0) * (overlapDays / Math.max(1, scheduleDays)) : 0;
+            usedCapacity += proportionalHours;
+          }
+        });
+      });
+      
+      const utilizationPercent = totalCapacity > 0 ? Math.min(100, (usedCapacity / totalCapacity) * 100) : 0;
+      
+      forecast.push({
+        week: weekLabel,
+        weekNumber: week,
+        totalCapacity: Math.round(totalCapacity),
+        usedCapacity: Math.round(usedCapacity),
+        availableCapacity: Math.round(totalCapacity - usedCapacity),
+        utilization: Math.round(utilizationPercent)
+      });
+    }
+    
+    return forecast;
+  };
+
+  // Generate predictions data
+  const futureBayUtilization = getFutureBayUtilization();
+  const nextAvailableBays = getNextAvailableBays();
+  const projectDeliveryPredictions = getProjectDeliveryPredictions();
+  const capacityForecast = getCapacityForecast();
+
   // Colors for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -506,11 +737,12 @@ const ReportsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <Tabs defaultValue="financial" value={reportType} onValueChange={setReportType}>
-            <TabsList className="grid grid-cols-4 mb-4">
+            <TabsList className="grid grid-cols-5 mb-4">
               <TabsTrigger value="financial">Financial Reports</TabsTrigger>
               <TabsTrigger value="project">Project Status</TabsTrigger>
               <TabsTrigger value="manufacturing">Manufacturing</TabsTrigger>
               <TabsTrigger value="mech-shop">Mech Shop</TabsTrigger>
+              <TabsTrigger value="future-predictions">Future Predictions</TabsTrigger>
             </TabsList>
 
             {/* Financial Reports Tab */}
@@ -1210,6 +1442,238 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Future Predictions Tab */}
+            <TabsContent value="future-predictions">
+              {/* Predictions Overview Cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-blue-500" />
+                      Next Available Bay
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-500">
+                      {nextAvailableBays[0]?.daysUntilFree === 0 ? 'Available Now' : `${nextAvailableBays[0]?.daysUntilFree || 0} Days`}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {nextAvailableBays[0]?.bayName || 'No bays found'}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-green-500" />
+                      Avg Future Utilization
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-500">
+                      {futureBayUtilization.length > 0 
+                        ? Math.round(futureBayUtilization.reduce((sum, month) => sum + month.averageUtilization, 0) / futureBayUtilization.length)
+                        : 0}%
+                    </div>
+                    <p className="text-xs text-gray-400">Next 6 months average</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                      High Risk Projects
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-yellow-500">
+                      {projectDeliveryPredictions.filter(p => p.riskLevel === 'high').length}
+                    </div>
+                    <p className="text-xs text-gray-400">Projects at risk</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-purple-500" />
+                      Capacity Peak Week
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-purple-500">
+                      {capacityForecast.length > 0 
+                        ? Math.max(...capacityForecast.map(week => week.utilization))
+                        : 0}%
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Week {capacityForecast.length > 0 
+                        ? capacityForecast.find(week => week.utilization === Math.max(...capacityForecast.map(w => w.utilization)))?.weekNumber || 1
+                        : 1}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Future Bay Utilization Chart */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Future Bay Utilization Predictions</CardTitle>
+                  <CardDescription>Predicted bay utilization over the next 6 months based on current schedules</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={futureBayUtilization} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis tickFormatter={(value) => `${value}%`} />
+                        <Tooltip 
+                          formatter={(value, name) => [`${value}%`, 'Average Utilization']}
+                          labelFormatter={(label) => `Month: ${label}`}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="averageUtilization" 
+                          stroke="#8884d8" 
+                          fill="#8884d8" 
+                          fillOpacity={0.3}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Bay Availability Timeline */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Bay Availability Timeline</CardTitle>
+                  <CardDescription>When each manufacturing bay will become available for new projects</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {nextAvailableBays.slice(0, 8).map(bay => (
+                      <div key={bay.bayId} className="flex items-center justify-between p-4 border border-gray-700 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-lg">{bay.bayName}</span>
+                            <Badge className={`
+                              ${bay.daysUntilFree === 0 && 'bg-green-500'} 
+                              ${bay.daysUntilFree > 0 && bay.daysUntilFree <= 7 && 'bg-yellow-500'} 
+                              ${bay.daysUntilFree > 7 && bay.daysUntilFree <= 30 && 'bg-orange-500'}
+                              ${bay.daysUntilFree > 30 && 'bg-red-500'}
+                            `}>
+                              {bay.daysUntilFree === 0 ? 'Available Now' : 
+                               bay.daysUntilFree === 1 ? '1 Day' : 
+                               `${bay.daysUntilFree} Days`}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-gray-400 mt-2 grid grid-cols-2 gap-4">
+                            <div>
+                              Available: {bay.daysUntilFree === 0 ? 'Now' : format(bay.nextAvailable, 'MMM d, yyyy')}
+                            </div>
+                            <div>
+                              Current: {bay.currentProject || 'No active project'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 12-Week Capacity Forecast */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>12-Week Capacity Forecast</CardTitle>
+                  <CardDescription>Manufacturing capacity utilization and availability over the next 12 weeks</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={capacityForecast} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="week" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                          interval={0}
+                        />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            name === 'utilization' ? `${value}%` : `${value} hours`,
+                            name === 'utilization' ? 'Utilization' : 
+                            name === 'usedCapacity' ? 'Used Hours' : 'Available Hours'
+                          ]}
+                        />
+                        <Legend />
+                        <Bar dataKey="usedCapacity" name="Used Capacity" fill="#ef4444" />
+                        <Bar dataKey="availableCapacity" name="Available Capacity" fill="#10b981" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Project Delivery Predictions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Delivery Predictions</CardTitle>
+                  <CardDescription>Predicted completion and delivery dates for active projects based on current schedules</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {projectDeliveryPredictions.slice(0, 15).map(prediction => (
+                      <div key={prediction.projectId} className="flex items-center justify-between p-4 border border-gray-700 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-medium">{prediction.projectName}</span>
+                            <Badge variant="outline">{prediction.projectNumber}</Badge>
+                            <Badge className={`
+                              ${prediction.riskLevel === 'low' && 'bg-green-500'} 
+                              ${prediction.riskLevel === 'medium' && 'bg-yellow-500'} 
+                              ${prediction.riskLevel === 'high' && 'bg-red-500'}
+                            `}>
+                              {prediction.riskLevel.toUpperCase()} RISK
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-gray-400 grid grid-cols-3 gap-4">
+                            <div>
+                              Manufacturing Complete: {format(prediction.manufacturingComplete, 'MMM d, yyyy')}
+                            </div>
+                            <div>
+                              Predicted Delivery: {format(prediction.predictedDelivery, 'MMM d, yyyy')}
+                            </div>
+                            <div>
+                              Total Hours: {prediction.totalHours}h across {prediction.scheduledBays} bays
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold">
+                            {prediction.daysUntilDelivery} Days
+                          </div>
+                          <div className="text-xs text-gray-400">Until delivery</div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {projectDeliveryPredictions.length === 0 && (
+                      <div className="text-center py-8 text-gray-400">
+                        No active projects with schedules found for predictions
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
 
@@ -1231,6 +1695,7 @@ const ReportsPage = () => {
                     <SelectItem value="project">Project Status</SelectItem>
                     <SelectItem value="manufacturing">Manufacturing</SelectItem>
                     <SelectItem value="mech-shop">Mech Shop</SelectItem>
+                    <SelectItem value="future-predictions">Future Predictions</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
