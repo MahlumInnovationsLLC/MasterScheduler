@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
@@ -10,9 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, subMonths, startOfYear, startOfMonth } from 'date-fns';
-import { ArrowLeft, Download, FileType, Save, PlusCircle, Calendar, File, FileSpreadsheet, FileText, Settings, Columns, Edit, Trash, FileOutput, Clock } from 'lucide-react';
+import { ArrowLeft, Download, FileType, Save, PlusCircle, Calendar, File, FileSpreadsheet, FileText, Settings, Columns, Edit, Trash, FileOutput, Clock, RefreshCw, BarChart3 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Badge } from '@/components/ui/badge';
 import { 
   Dialog,
   DialogContent,
@@ -23,6 +25,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/hooks/use-auth';
+import { Project, BillingMilestone, ManufacturingSchedule } from '@shared/schema';
 
 // Define template types
 interface ReportTemplate {
@@ -112,7 +116,7 @@ const REPORT_MODULES = [
   },
   {
     id: 'delivery',
-    name: 'Delivery',
+    name: 'Delivery & OTD',
     icon: <FileText className="h-5 w-5" />,
     subTypes: [
       { id: 'delivered-projects', name: 'Delivered Projects' },
@@ -130,6 +134,46 @@ const REPORT_MODULES = [
       { id: 'tracking_number', name: 'Tracking Number' },
       { id: 'status', name: 'Status' },
       { id: 'notes', name: 'Notes' }
+    ]
+  },
+  {
+    id: 'mech-shop',
+    name: 'Mech Shop',
+    icon: <Settings className="h-5 w-5" />,
+    subTypes: [
+      { id: 'mech-shop-schedule', name: 'Mech Shop Schedule' },
+      { id: 'mech-shop-utilization', name: 'Mech Shop Utilization' },
+      { id: 'mech-shop-summary', name: 'Mech Shop Summary' }
+    ],
+    availableFields: [
+      { id: 'project_id', name: 'Project ID' },
+      { id: 'project_number', name: 'Project Number' },
+      { id: 'project_name', name: 'Project Name' },
+      { id: 'mech_shop_date', name: 'Mech Shop Date' },
+      { id: 'production_start', name: 'Production Start' },
+      { id: 'days_before_production', name: 'Days Before Production' },
+      { id: 'status', name: 'Status' }
+    ]
+  },
+  {
+    id: 'nomad-gcs-analytics',
+    name: 'Nomad GCS Analytics',
+    icon: <BarChart3 className="h-5 w-5" />,
+    subTypes: [
+      { id: 'phase-handoffs', name: 'Phase Handoff Performance' },
+      { id: 'schedule-changes', name: 'Schedule Change Control' },
+      { id: 'delivery-variance', name: 'Delivery vs Original Plan' },
+      { id: 'timeline-recovery', name: 'Timeline Recovery Analysis' }
+    ],
+    availableFields: [
+      { id: 'project_id', name: 'Project ID' },
+      { id: 'project_number', name: 'Project Number' },
+      { id: 'project_name', name: 'Project Name' },
+      { id: 'phase_type', name: 'Phase Type' },
+      { id: 'original_date', name: 'Original Planned Date' },
+      { id: 'actual_date', name: 'Actual Date' },
+      { id: 'variance_days', name: 'Variance (Days)' },
+      { id: 'recovery_status', name: 'Recovery Status' }
     ]
   }
 ];
@@ -187,18 +231,46 @@ const DEFAULT_TEMPLATES: ReportTemplate[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     isDefault: true
+  },
+  {
+    id: 'mech-shop-default',
+    name: 'Mech Shop Schedule Report',
+    description: 'Default mech shop schedule with production timing',
+    module: 'mech-shop',
+    subType: 'mech-shop-schedule',
+    format: 'csv',
+    dateRange: '6months',
+    fields: ['project_number', 'project_name', 'mech_shop_date', 'production_start', 'days_before_production', 'status'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    isDefault: true
+  },
+  {
+    id: 'nomad-gcs-default',
+    name: 'Nomad GCS Performance Report',
+    description: 'Default Nomad GCS analytics with phase performance',
+    module: 'nomad-gcs-analytics',
+    subType: 'phase-handoffs',
+    format: 'csv',
+    dateRange: '6months',
+    fields: ['project_number', 'project_name', 'phase_type', 'original_date', 'actual_date', 'variance_days', 'recovery_status'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    isDefault: true
   }
 ];
 
 const ExportReportsPage = () => {
   const { toast } = useToast();
   const [_, navigate] = useLocation();
+  const { isAuthenticated } = useAuth();
   
   // Main states
   const [activeTab, setActiveTab] = useState('templates');
   const [selectedModule, setSelectedModule] = useState('financial');
   const [selectedSubType, setSelectedSubType] = useState('billing-milestones');
   const [timeRange, setTimeRange] = useState('6months');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [exportFormat, setExportFormat] = useState<'csv' | 'pdf' | 'docx'>('csv');
   const [isExporting, setIsExporting] = useState(false);
   
@@ -216,6 +288,112 @@ const ExportReportsPage = () => {
   const availableFields = currentModule?.availableFields || [];
   const availableSubTypes = currentModule?.subTypes || [];
 
+  // Get current date range for filtering
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate;
+
+    switch (timeRange) {
+      case '3months':
+        startDate = startOfMonth(subMonths(now, 3));
+        break;
+      case '6months':
+        startDate = startOfMonth(subMonths(now, 6));
+        break;
+      case '12months':
+        startDate = startOfMonth(subMonths(now, 12));
+        break;
+      case 'ytd':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        startDate = startOfMonth(subMonths(now, 6));
+    }
+
+    return {
+      startDate: format(startDate, 'yyyy-MM-dd'),
+      endDate: format(now, 'yyyy-MM-dd')
+    };
+  };
+
+  const dateRange = getDateRange();
+
+  // Fetch live data from API endpoints with auto-refresh
+  const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+    queryFn: () => fetch('/api/projects').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const { data: billingMilestones = [], isLoading: milestonesLoading, refetch: refetchMilestones } = useQuery<BillingMilestone[]>({
+    queryKey: ['/api/billing-milestones'],
+    queryFn: () => fetch('/api/billing-milestones').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  const { data: manufacturingSchedules = [], isLoading: schedulesLoading, refetch: refetchSchedules } = useQuery<ManufacturingSchedule[]>({
+    queryKey: ['/api/manufacturing-schedules'],
+    queryFn: () => fetch('/api/manufacturing-schedules').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  const { data: deliveredProjectsData = [], isLoading: deliveredProjectsLoading, refetch: refetchDeliveredProjects } = useQuery({
+    queryKey: ['/api/delivered-projects'],
+    queryFn: () => fetch('/api/delivered-projects').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    refetchProjects();
+    refetchMilestones();
+    refetchSchedules();
+    refetchDeliveredProjects();
+    toast({
+      title: "Data refreshed",
+      description: "All export data has been updated with the latest information",
+    });
+  };
+
+  // Filter data based on selected criteria
+  const filteredProjects = projects.filter(project => {
+    if (projectFilter !== 'all' && project.id.toString() !== projectFilter) return false;
+
+    // Filter by date range - check if project has activity in the date range
+    const projectDate = new Date(project.createdAt || 0);
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+
+    return projectDate >= startDate || projectDate <= endDate;
+  });
+
+  const filteredMilestones = billingMilestones.filter(milestone => {
+    if (projectFilter !== 'all' && milestone.projectId.toString() !== projectFilter) return false;
+
+    if (milestone.targetInvoiceDate) {
+      const milestoneDate = new Date(milestone.targetInvoiceDate);
+      const startDate = new Date(dateRange.startDate);
+      const endDate = new Date(dateRange.endDate);
+      return milestoneDate >= startDate && milestoneDate <= endDate;
+    }
+    return true;
+  });
+
+  const filteredSchedules = manufacturingSchedules.filter(schedule => {
+    if (projectFilter !== 'all' && schedule.projectId.toString() !== projectFilter) return false;
+
+    const scheduleStart = new Date(schedule.startDate);
+    const scheduleEnd = new Date(schedule.endDate);
+    const rangeStart = new Date(dateRange.startDate);
+    const rangeEnd = new Date(dateRange.endDate);
+
+    return (scheduleStart <= rangeEnd && scheduleEnd >= rangeStart);
+  });
+
   // Initialize selectedFields with default fields when module changes
   useEffect(() => {
     if (currentModule && currentModule.availableFields) {
@@ -231,12 +409,6 @@ const ExportReportsPage = () => {
       setSelectedSubType(availableSubTypes[0].id);
     }
   }, [selectedModule]);
-
-  // Query data
-  const { data: projects } = useQuery({
-    queryKey: ['/api/projects'],
-    queryFn: () => fetch('/api/projects').then(res => res.json()),
-  });
 
   // Calculate date range based on selected time range
   const getDateRangeStrings = (range = timeRange) => {
@@ -395,7 +567,8 @@ const ExportReportsPage = () => {
         dateRange: dateRange,
         format: exportFileFormat, // This is the file format (csv, pdf, docx)
         fields: fieldList,
-        templateName: template?.name || 'Custom Export'
+        templateName: template?.name || 'Custom Export',
+        projectId: projectFilter !== 'all' ? parseInt(projectFilter) : undefined
       };
       
       console.log('Exporting report with data:', exportData);
@@ -479,8 +652,11 @@ const ExportReportsPage = () => {
     return templates.filter(t => t.module === moduleId);
   };
 
+  const isLoading = projectsLoading || milestonesLoading || schedulesLoading || deliveredProjectsLoading;
+
   return (
-    <div className="container mx-auto py-6 max-w-6xl px-4">
+    <div className="container mx-auto py-6 max-w-7xl px-4 sm:px-6">
+      {/* Header with Action Buttons */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
           <Button 
@@ -493,245 +669,424 @@ const ExportReportsPage = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Export Reports</h1>
-            <p className="text-muted-foreground">Create custom reports for manufacturing data</p>
+            <p className="text-muted-foreground">Create and export custom reports with live data</p>
           </div>
         </div>
+
+        {/* Top Action Buttons */}
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh Data
+          </Button>
+
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Time Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3months">Last 3 Months</SelectItem>
+              <SelectItem value="6months">Last 6 Months</SelectItem>
+              <SelectItem value="12months">Last 12 Months</SelectItem>
+              <SelectItem value="ytd">Year-to-Date</SelectItem>
+              <SelectItem value="mtd">Month-to-Date</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button onClick={() => handleExport()} disabled={isExporting || selectedFields.length === 0}>
+            {isExporting ? (
+              <>
+                <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent text-primary rounded-full" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </>
+            )}
+          </Button>
+        </div>
       </div>
-      
-      <Tabs 
-        defaultValue="templates" 
-        className="w-full" 
-        value={activeTab}
-        onValueChange={setActiveTab}
-      >
-        <TabsList className="mb-4">
-          <TabsTrigger value="templates">Saved Templates</TabsTrigger>
-          <TabsTrigger value="custom">Custom Report</TabsTrigger>
-        </TabsList>
-        
-        {/* Saved Templates Tab */}
-        <TabsContent value="templates" className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Report Templates</h2>
-            <Button onClick={openCreateTemplateDialog}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Create Template
-            </Button>
-          </div>
-          
-          {REPORT_MODULES.map(module => {
-            const moduleTemplates = getModuleTemplates(module.id);
-            if (moduleTemplates.length === 0) return null;
+
+      {/* Loading Indicator */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-4 mb-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary mr-3"></div>
+          <span className="text-blue-700">Loading latest data...</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main Content Area */}
+        <div className="lg:col-span-3">
+          <Tabs 
+            defaultValue="templates" 
+            className="w-full" 
+            value={activeTab}
+            onValueChange={setActiveTab}
+          >
+            <TabsList className="mb-4">
+              <TabsTrigger value="templates">Saved Templates</TabsTrigger>
+              <TabsTrigger value="custom">Custom Report</TabsTrigger>
+            </TabsList>
             
-            return (
-              <div key={module.id} className="mb-6">
-                <div className="flex items-center mb-3">
-                  {module.icon}
-                  <h3 className="text-lg font-medium ml-2">{module.name} Reports</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {moduleTemplates.map(template => (
-                    <Card key={template.id} className={template.isDefault ? "border-primary border-2" : ""}>
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-base">{template.name}</CardTitle>
-                          {template.isDefault && (
-                            <span className="bg-primary/20 text-primary text-xs px-2 py-1 rounded-full">Default</span>
-                          )}
-                        </div>
-                        <CardDescription className="text-xs line-clamp-2">{template.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="pb-2">
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <div className="flex items-center">
-                            <FileType className="h-3 w-3 mr-1" />
-                            <span>Format: {template.format.toUpperCase()}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            <span>Time Range: {
-                              template.dateRange === '3months' ? 'Last 3 Months' :
-                              template.dateRange === '6months' ? 'Last 6 Months' :
-                              template.dateRange === '12months' ? 'Last 12 Months' :
-                              template.dateRange === 'ytd' ? 'Year to Date' :
-                              template.dateRange === 'mtd' ? 'Month to Date' : template.dateRange
-                            }</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Columns className="h-3 w-3 mr-1" />
-                            <span>Fields: {template.fields.length}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-between pt-2">
-                        <Button variant="outline" size="sm" onClick={() => handleExport(template)} disabled={isExporting}>
-                          <Download className="h-3 w-3 mr-1" />
-                          Export
-                        </Button>
-                        {!template.isDefault && (
-                          <div className="flex">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditTemplate(template)}>
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteTemplate(template.id)}>
-                              <Trash className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </TabsContent>
-        
-        {/* Custom Report Tab */}
-        <TabsContent value="custom" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Create Custom Report</CardTitle>
-              <CardDescription>Configure a one-time custom report export</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label>Module</Label>
-                    <Select value={selectedModule} onValueChange={setSelectedModule}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Module" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {REPORT_MODULES.map(module => (
-                          <SelectItem key={module.id} value={module.id}>
-                            <div className="flex items-center">
-                              {module.icon}
-                              <span className="ml-2">{module.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label>Report Type</Label>
-                    <Select 
-                      value={selectedSubType} 
-                      onValueChange={setSelectedSubType}
-                      disabled={availableSubTypes.length === 0}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Report Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSubTypes.map(subType => (
-                          <SelectItem key={subType.id} value={subType.id}>
-                            {subType.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label>Time Range</Label>
-                    <Select value={timeRange} onValueChange={setTimeRange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Time Range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3months">Last 3 Months</SelectItem>
-                        <SelectItem value="6months">Last 6 Months</SelectItem>
-                        <SelectItem value="12months">Last 12 Months</SelectItem>
-                        <SelectItem value="ytd">Year to Date</SelectItem>
-                        <SelectItem value="mtd">Month to Date</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label>Export Format</Label>
-                    <RadioGroup 
-                      value={exportFormat} 
-                      onValueChange={(value) => setExportFormat(value as 'csv' | 'pdf' | 'docx')}
-                      className="flex space-x-4 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="csv" id="csv" />
-                        <Label htmlFor="csv" className="flex items-center">
-                          <FileSpreadsheet className="h-4 w-4 mr-1" />
-                          CSV
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="pdf" id="pdf" />
-                        <Label htmlFor="pdf" className="flex items-center">
-                          <FileOutput className="h-4 w-4 mr-1" />
-                          PDF
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="docx" id="docx" />
-                        <Label htmlFor="docx" className="flex items-center">
-                          <FileText className="h-4 w-4 mr-1" />
-                          Word
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="mb-2 block">Select Fields to Include</Label>
-                  <ScrollArea className="h-[300px] border rounded-md p-4">
-                    <div className="space-y-2">
-                      {availableFields.map(field => (
-                        <div key={field.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`field-${field.id}`} 
-                            checked={selectedFields.includes(field.id)}
-                            onCheckedChange={() => toggleFieldSelection(field.id)}
-                          />
-                          <Label htmlFor={`field-${field.id}`} className="cursor-pointer">
-                            {field.name}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    Selected {selectedFields.length} of {availableFields.length} fields
-                  </div>
-                </div>
+            {/* Saved Templates Tab */}
+            <TabsContent value="templates" className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Report Templates</h2>
+                <Button onClick={openCreateTemplateDialog}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Create Template
+                </Button>
               </div>
               
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={openCreateTemplateDialog}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save as Template
+              {REPORT_MODULES.map(module => {
+                const moduleTemplates = getModuleTemplates(module.id);
+                if (moduleTemplates.length === 0) return null;
+                
+                return (
+                  <div key={module.id} className="mb-6">
+                    <div className="flex items-center mb-3">
+                      {module.icon}
+                      <h3 className="text-lg font-medium ml-2">{module.name} Reports</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {moduleTemplates.map(template => (
+                        <Card key={template.id} className={template.isDefault ? "border-primary border-2" : ""}>
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                              <CardTitle className="text-base">{template.name}</CardTitle>
+                              {template.isDefault && (
+                                <span className="bg-primary/20 text-primary text-xs px-2 py-1 rounded-full">Default</span>
+                              )}
+                            </div>
+                            <CardDescription className="text-xs line-clamp-2">{template.description}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pb-2">
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <div className="flex items-center">
+                                <FileType className="h-3 w-3 mr-1" />
+                                <span>Format: {template.format.toUpperCase()}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="h-3 w-3 mr-1" />
+                                <span>Time Range: {
+                                  template.dateRange === '3months' ? 'Last 3 Months' :
+                                  template.dateRange === '6months' ? 'Last 6 Months' :
+                                  template.dateRange === '12months' ? 'Last 12 Months' :
+                                  template.dateRange === 'ytd' ? 'Year to Date' :
+                                  template.dateRange === 'mtd' ? 'Month to Date' : template.dateRange
+                                }</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Columns className="h-3 w-3 mr-1" />
+                                <span>Fields: {template.fields.length}</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                          <CardFooter className="flex justify-between pt-2">
+                            <Button variant="outline" size="sm" onClick={() => handleExport(template)} disabled={isExporting}>
+                              <Download className="h-3 w-3 mr-1" />
+                              Export
+                            </Button>
+                            {!template.isDefault && (
+                              <div className="flex">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditTemplate(template)}>
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteTemplate(template.id)}>
+                                  <Trash className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </TabsContent>
+            
+            {/* Custom Report Tab */}
+            <TabsContent value="custom" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Custom Report</CardTitle>
+                  <CardDescription>Configure a one-time custom report export</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Module</Label>
+                        <Select value={selectedModule} onValueChange={setSelectedModule}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Module" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {REPORT_MODULES.map(module => (
+                              <SelectItem key={module.id} value={module.id}>
+                                <div className="flex items-center">
+                                  {module.icon}
+                                  <span className="ml-2">{module.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label>Report Type</Label>
+                        <Select 
+                          value={selectedSubType} 
+                          onValueChange={setSelectedSubType}
+                          disabled={availableSubTypes.length === 0}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Report Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableSubTypes.map(subType => (
+                              <SelectItem key={subType.id} value={subType.id}>
+                                {subType.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label>Time Range</Label>
+                        <Select value={timeRange} onValueChange={setTimeRange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Time Range" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="3months">Last 3 Months</SelectItem>
+                            <SelectItem value="6months">Last 6 Months</SelectItem>
+                            <SelectItem value="12months">Last 12 Months</SelectItem>
+                            <SelectItem value="ytd">Year to Date</SelectItem>
+                            <SelectItem value="mtd">Month to Date</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label>Export Format</Label>
+                        <RadioGroup 
+                          value={exportFormat} 
+                          onValueChange={(value) => setExportFormat(value as 'csv' | 'pdf' | 'docx')}
+                          className="flex space-x-4 mt-2"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="csv" id="csv" />
+                            <Label htmlFor="csv" className="flex items-center">
+                              <FileSpreadsheet className="h-4 w-4 mr-1" />
+                              CSV
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="pdf" id="pdf" />
+                            <Label htmlFor="pdf" className="flex items-center">
+                              <FileOutput className="h-4 w-4 mr-1" />
+                              PDF
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="docx" id="docx" />
+                            <Label htmlFor="docx" className="flex items-center">
+                              <FileText className="h-4 w-4 mr-1" />
+                              Word
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="mb-2 block">Select Fields to Include</Label>
+                      <ScrollArea className="h-[300px] border rounded-md p-4">
+                        <div className="space-y-2">
+                          {availableFields.map(field => (
+                            <div key={field.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`field-${field.id}`} 
+                                checked={selectedFields.includes(field.id)}
+                                onCheckedChange={() => toggleFieldSelection(field.id)}
+                              />
+                              <Label htmlFor={`field-${field.id}`} className="cursor-pointer">
+                                {field.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        Selected {selectedFields.length} of {availableFields.length} fields
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <Button variant="outline" onClick={openCreateTemplateDialog}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save as Template
+                    </Button>
+                    <Button onClick={() => handleExport()} disabled={isExporting || selectedFields.length === 0}>
+                      {isExporting ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent text-primary rounded-full" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Export Report
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Sidebar - Report Filters and Live Data Status */}
+        <div className="space-y-6">
+          {/* Report Filters Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Report Filters</CardTitle>
+              <CardDescription>Configure your report parameters</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Report Type</Label>
+                <Select value={selectedModule} onValueChange={setSelectedModule}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Report Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REPORT_MODULES.map(module => (
+                      <SelectItem key={module.id} value={module.id}>
+                        <div className="flex items-center">
+                          {module.icon}
+                          <span className="ml-2">{module.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Time Range</Label>
+                <Select value={timeRange} onValueChange={setTimeRange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Time Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3months">Last 3 Months</SelectItem>
+                    <SelectItem value="6months">Last 6 Months</SelectItem>
+                    <SelectItem value="12months">Last 12 Months</SelectItem>
+                    <SelectItem value="ytd">Year-to-Date</SelectItem>
+                    <SelectItem value="mtd">Month-to-Date</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Filter by Project</Label>
+                <Select value={projectFilter} onValueChange={setProjectFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Projects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Projects</SelectItem>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id.toString()}>
+                        {project.projectNumber} - {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              <div className="pt-2 space-y-2">
+                <Button variant="outline" className="w-full">
+                  <FileText className="mr-2 h-4 w-4" /> 
+                  Generate PDF Report
                 </Button>
-                <Button onClick={() => handleExport()} disabled={isExporting || selectedFields.length === 0}>
-                  {isExporting ? (
-                    <>
-                      <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent text-primary rounded-full" />
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      Export Report
-                    </>
-                  )}
+                <Button variant="outline" className="w-full" onClick={() => handleExport()} disabled={isExporting}>
+                  <Download className="mr-2 h-4 w-4" /> 
+                  Export to CSV
                 </Button>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+
+          {/* Live Data Status Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Live Data Status</CardTitle>
+              <CardDescription>
+                {dateRange.startDate} to {dateRange.endDate}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground mb-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Total Projects:</span>
+                  <Badge variant="outline">{filteredProjects.length}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total Milestones:</span>
+                  <Badge variant="outline">{filteredMilestones.length}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Active Schedules:</span>
+                  <Badge variant="outline">{filteredSchedules.length}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Delivered Projects:</span>
+                  <Badge variant="outline">{deliveredProjectsData.length}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Last Updated:</span>
+                  <Badge variant="secondary">{format(new Date(), 'HH:mm:ss')}</Badge>
+                </div>
+              </div>
+
+              <div className="border border-border p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Data Refresh</span>
+                </div>
+                <div className="text-xs text-muted-foreground mb-3">
+                  Reports automatically refresh every 30 seconds
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full" 
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`mr-2 h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh Now
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
       
       {/* Template creation/edit dialog */}
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
