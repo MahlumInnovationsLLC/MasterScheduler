@@ -145,6 +145,12 @@ const SupplyChain = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  
+  // Settings state
+  const [updateOption, setUpdateOption] = useState<'all' | 'selected' | 'new'>('new');
+  const [selectedProjectsForUpdate, setSelectedProjectsForUpdate] = useState<number[]>([]);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [isSavingBenchmarkSettings, setIsSavingBenchmarkSettings] = useState(false);
 
   // Query for all benchmarks
   const { data: benchmarks, isLoading: loadingBenchmarks } = useQuery({
@@ -879,6 +885,7 @@ const SupplyChain = () => {
         <div className="flex justify-between items-center mb-8">
           <TabsList>
             <TabsTrigger value="project-benchmarks">Project Benchmarks</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
             <Button
