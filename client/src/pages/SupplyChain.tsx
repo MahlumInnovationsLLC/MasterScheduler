@@ -2191,7 +2191,6 @@ const SupplyChain = () => {
                       <option value="FABRICATION">Fabrication</option>
                       <option value="PAINT">Paint</option>
                       <option value="PRODUCTION">Production</option>
-                      <option value="ASSEMBLY">Assembly</option>
                       <option value="IT">IT</option>
                       <option value="NTC">NTC Testing</option>
                       <option value="QC">QC</option>
