@@ -307,6 +307,14 @@ const ReportsPage = () => {
     refetchInterval: 30000,
   });
 
+  // Fetch actual delivered projects data from OTD module
+  const { data: deliveredProjectsData, isLoading: deliveredProjectsLoading } = useQuery({
+    queryKey: ['/api/delivered-projects'],
+    queryFn: () => fetch('/api/delivered-projects').then(res => res.json()),
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
   // Prepare project status data
   const getProjectStatusData = () => {
     const statusCounts = {
@@ -2473,7 +2481,7 @@ const ReportsPage = () => {
                             Delivery Performance vs Original Plan
                           </CardTitle>
                           <CardDescription>
-                            Real data from delivered projects comparing actual vs planned delivery dates
+                            Real data from On Time Delivery module comparing actual vs planned delivery dates
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -2481,15 +2489,13 @@ const ReportsPage = () => {
                             <div className="grid grid-cols-2 gap-4">
                               <div className="text-center p-4 bg-green-50 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">
-                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
-                                    new Date(p.deliveryDate) <= new Date(p.opDeliveryDate)).length}
+                                  {(deliveredProjectsData || []).filter(p => p.daysLate <= 0).length}
                                 </div>
                                 <div className="text-sm text-green-700">On-Time Deliveries</div>
                               </div>
                               <div className="text-center p-4 bg-red-50 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">
-                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
-                                    new Date(p.deliveryDate) > new Date(p.opDeliveryDate)).length}
+                                  {(deliveredProjectsData || []).filter(p => p.daysLate > 0).length}
                                 </div>
                                 <div className="text-sm text-red-700">Late Deliveries</div>
                               </div>
@@ -2499,9 +2505,9 @@ const ReportsPage = () => {
                               <div className="text-center p-4 bg-blue-50 rounded-lg">
                                 <div className="text-2xl font-bold text-blue-600">
                                   {(() => {
-                                    const deliveredWithData = filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate);
-                                    const onTimeDeliveries = deliveredWithData.filter(p => new Date(p.deliveryDate!) <= new Date(p.opDeliveryDate!));
-                                    return deliveredWithData.length > 0 ? Math.round((onTimeDeliveries.length / deliveredWithData.length) * 100) : 0;
+                                    const totalDelivered = (deliveredProjectsData || []).length;
+                                    const onTimeDeliveries = (deliveredProjectsData || []).filter(p => p.daysLate <= 0).length;
+                                    return totalDelivered > 0 ? Math.round((onTimeDeliveries / totalDelivered) * 100) : 0;
                                   })()}%
                                 </div>
                                 <div className="text-sm text-blue-700">On-Time Delivery Rate</div>
@@ -2512,11 +2518,11 @@ const ReportsPage = () => {
                               <div className="text-xs text-gray-500 space-y-1">
                                 <div className="flex justify-between">
                                   <span>Total Delivered:</span>
-                                  <span className="font-medium">{filteredProjects.filter(p => p.status === 'delivered').length}</span>
+                                  <span className="font-medium">{(deliveredProjectsData || []).length}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span>With Delivery Data:</span>
-                                  <span className="font-medium">{filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate).length}</span>
+                                  <span>From OTD Module:</span>
+                                  <span className="font-medium text-green-600">✓ Using actual data</span>
                                 </div>
                               </div>
                             </div>
@@ -2528,7 +2534,7 @@ const ReportsPage = () => {
                         <CardHeader>
                           <CardTitle>Delivery Variance Analysis</CardTitle>
                           <CardDescription>
-                            Statistical analysis of delivery delays and early deliveries
+                            Statistical analysis of delivery delays and early deliveries from OTD module
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -2536,38 +2542,32 @@ const ReportsPage = () => {
                             <div className="text-center p-4 bg-yellow-50 rounded-lg">
                               <div className="text-2xl font-bold text-yellow-600">
                                 {(() => {
-                                  const deliveredWithData = filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate);
-                                  if (deliveredWithData.length === 0) return '0';
-                                  const totalVariance = deliveredWithData.reduce((sum, p) => {
-                                    const variance = Math.abs(new Date(p.deliveryDate!).getTime() - new Date(p.opDeliveryDate!).getTime()) / (1000 * 60 * 60 * 24);
-                                    return sum + variance;
-                                  }, 0);
-                                  return Math.round(totalVariance / deliveredWithData.length);
+                                  const lateProjects = (deliveredProjectsData || []).filter(p => p.daysLate > 0);
+                                  if (lateProjects.length === 0) return '0';
+                                  const totalDaysLate = lateProjects.reduce((sum, p) => sum + p.daysLate, 0);
+                                  return Math.round(totalDaysLate / lateProjects.length);
                                 })()}
                               </div>
-                              <div className="text-sm text-yellow-700">Avg Days Variance</div>
+                              <div className="text-sm text-yellow-700">Avg Days Late</div>
                             </div>
                             
                             <div className="space-y-2">
                               <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
                                 <span>Early Deliveries:</span>
                                 <Badge variant="outline" className="text-green-600">
-                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
-                                    new Date(p.deliveryDate) < new Date(p.opDeliveryDate)).length}
+                                  {(deliveredProjectsData || []).filter(p => p.daysLate < 0).length}
                                 </Badge>
                               </div>
                               <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
                                 <span>Exact On-Time:</span>
                                 <Badge variant="outline" className="text-blue-600">
-                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
-                                    new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime()).length}
+                                  {(deliveredProjectsData || []).filter(p => p.daysLate === 0).length}
                                 </Badge>
                               </div>
                               <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
                                 <span>Late Deliveries:</span>
                                 <Badge variant="outline" className="text-red-600">
-                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
-                                    new Date(p.deliveryDate) > new Date(p.opDeliveryDate)).length}
+                                  {(deliveredProjectsData || []).filter(p => p.daysLate > 0).length}
                                 </Badge>
                               </div>
                             </div>
@@ -2579,23 +2579,18 @@ const ReportsPage = () => {
                         <CardHeader>
                           <CardTitle>Worst Delivery Variances</CardTitle>
                           <CardDescription>
-                            Projects with the largest delivery delays
+                            Projects with the largest delivery delays from OTD module
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
                             {(() => {
-                              const deliveredWithVariance = filteredProjects
-                                .filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate)
-                                .map(p => ({
-                                  ...p,
-                                  varianceDays: Math.round((new Date(p.deliveryDate!).getTime() - new Date(p.opDeliveryDate!).getTime()) / (1000 * 60 * 60 * 24))
-                                }))
-                                .filter(p => p.varianceDays > 0)
-                                .sort((a, b) => b.varianceDays - a.varianceDays)
+                              const worstVariances = (deliveredProjectsData || [])
+                                .filter(p => p.daysLate > 0)
+                                .sort((a, b) => b.daysLate - a.daysLate)
                                 .slice(0, 5);
 
-                              if (deliveredWithVariance.length === 0) {
+                              if (worstVariances.length === 0) {
                                 return (
                                   <div className="text-center py-6 text-gray-500">
                                     <div className="text-2xl font-bold text-green-600">Excellent!</div>
@@ -2604,7 +2599,7 @@ const ReportsPage = () => {
                                 );
                               }
 
-                              return deliveredWithVariance.map(project => (
+                              return worstVariances.map(project => (
                                 <div key={project.id} className="flex justify-between items-center p-2 bg-red-50 rounded text-sm">
                                   <div>
                                     <div className="font-medium text-gray-900">{project.projectNumber}</div>
@@ -2613,7 +2608,7 @@ const ReportsPage = () => {
                                     </div>
                                   </div>
                                   <Badge variant="destructive">
-                                    +{project.varianceDays} days
+                                    +{project.daysLate} days
                                   </Badge>
                                 </div>
                               ));
@@ -2636,15 +2631,16 @@ const ReportsPage = () => {
                           <div className="h-64 flex items-center justify-center">
                             {(() => {
                               const monthlyData = {};
-                              filteredProjects
-                                .filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate)
+                              (deliveredProjectsData || [])
+                                .filter(p => p.deliveryDate || p.actualDeliveryDate)
                                 .forEach(p => {
-                                  const month = format(new Date(p.deliveryDate!), 'MMM yyyy');
+                                  const deliveryDate = p.actualDeliveryDate || p.deliveryDate;
+                                  const month = format(new Date(deliveryDate), 'MMM yyyy');
                                   if (!monthlyData[month]) {
                                     monthlyData[month] = { total: 0, onTime: 0 };
                                   }
                                   monthlyData[month].total++;
-                                  if (new Date(p.deliveryDate!) <= new Date(p.opDeliveryDate!)) {
+                                  if (p.daysLate <= 0) {
                                     monthlyData[month].onTime++;
                                   }
                                 });
@@ -2685,7 +2681,7 @@ const ReportsPage = () => {
                         <CardContent>
                           <div className="space-y-4">
                             {(() => {
-                              const deliveredProjects = filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate);
+                              const deliveredProjects = deliveredProjectsData || [];
                               
                               // Categorize by project name patterns (rough complexity indicator)
                               const categories = {
@@ -2698,7 +2694,7 @@ const ReportsPage = () => {
                               return Object.entries(categories).map(([category, projects]) => {
                                 if (projects.length === 0) return null;
                                 
-                                const onTimeCount = projects.filter(p => new Date(p.deliveryDate!) <= new Date(p.opDeliveryDate!)).length;
+                                const onTimeCount = projects.filter(p => p.daysLate <= 0).length;
                                 const onTimeRate = Math.round((onTimeCount / projects.length) * 100);
                                 
                                 return (
