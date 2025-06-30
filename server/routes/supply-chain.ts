@@ -605,19 +605,30 @@ router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
 // Update benchmark settings
 router.post('/benchmarks/update-settings', async (req: Request, res: Response) => {
   try {
-    const { benchmarkId, weeksBeforePhase, updateOption, selectedProjectIds } = req.body;
+    const { benchmarkId, weeksBeforePhase, department, targetPhase, updateOption, selectedProjectIds } = req.body;
 
     // Validate input
     if (!benchmarkId || !weeksBeforePhase || !updateOption) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Prepare update data
+    const updateData: any = { 
+      weeksBeforePhase: weeksBeforePhase,
+      updatedAt: new Date()
+    };
+
+    // Add department and targetPhase if provided
+    if (department) {
+      updateData.department = department;
+    }
+    if (targetPhase) {
+      updateData.targetPhase = targetPhase;
+    }
+
     // Update the benchmark template
     await db.update(supplyChainBenchmarks)
-      .set({ 
-        weeksBeforePhase: weeksBeforePhase,
-        updatedAt: new Date()
-      })
+      .set(updateData)
       .where(eq(supplyChainBenchmarks.id, benchmarkId));
 
     // Handle existing project updates based on the option

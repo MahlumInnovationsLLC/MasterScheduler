@@ -360,7 +360,7 @@ const SupplyChain = () => {
 
   // Update benchmark settings mutation
   const updateBenchmarkSettingsMutation = useMutation({
-    mutationFn: async (data: { benchmarkId: number; weeksBeforePhase: number; updateOption: string; selectedProjectIds?: number[] }) => {
+    mutationFn: async (data: { benchmarkId: number; weeksBeforePhase: number; department?: string; targetPhase?: string; updateOption: string; selectedProjectIds?: number[] }) => {
       const response = await fetch('/api/benchmarks/update-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2167,6 +2167,40 @@ const SupplyChain = () => {
                 <h4 className="font-medium">New Settings</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <Label htmlFor="newDepartment">Department</Label>
+                    <select
+                      id="newDepartment"
+                      defaultValue={editingBenchmark.department}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="supply_chain">Supply Chain</option>
+                      <option value="engineering">Engineering</option>
+                      <option value="production">Production</option>
+                      <option value="quality">Quality</option>
+                      <option value="finance">Finance</option>
+                      <option value="sales">Sales</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="newTargetPhase">Target Phase</Label>
+                    <select
+                      id="newTargetPhase"
+                      defaultValue={editingBenchmark.targetPhase}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="FABRICATION">Fabrication</option>
+                      <option value="PAINT">Paint</option>
+                      <option value="PRODUCTION">Production</option>
+                      <option value="ASSEMBLY">Assembly</option>
+                      <option value="IT">IT</option>
+                      <option value="NTC">NTC Testing</option>
+                      <option value="QC">QC</option>
+                      <option value="EXECUTIVE_REVIEW">Executive Review</option>
+                      <option value="SHIP">Ship</option>
+                      <option value="DELIVERY">Delivery</option>
+                    </select>
+                  </div>
+                  <div>
                     <Label htmlFor="newWeeks">Weeks Before Phase</Label>
                     <Input
                       id="newWeeks"
@@ -2304,13 +2338,20 @@ const SupplyChain = () => {
                 <Button
                   onClick={async () => {
                     const newWeeksInput = document.getElementById('newWeeks') as HTMLInputElement;
-                    const newWeeks = parseInt(newWeeksInput.value);
+                    const newDepartmentInput = document.getElementById('newDepartment') as HTMLSelectElement;
+                    const newTargetPhaseInput = document.getElementById('newTargetPhase') as HTMLSelectElement;
                     
-                    if (newWeeks && newWeeks > 0) {
+                    const newWeeks = parseInt(newWeeksInput.value);
+                    const newDepartment = newDepartmentInput.value;
+                    const newTargetPhase = newTargetPhaseInput.value;
+                    
+                    if (newWeeks && newWeeks > 0 && newDepartment && newTargetPhase) {
                       setIsSavingBenchmarkSettings(true);
                       await updateBenchmarkSettingsMutation.mutateAsync({
                         benchmarkId: editingBenchmark.id,
                         weeksBeforePhase: newWeeks,
+                        department: newDepartment,
+                        targetPhase: newTargetPhase,
                         updateOption,
                         selectedProjectIds: updateOption === 'selected' ? selectedProjectsForUpdate : undefined
                       });
