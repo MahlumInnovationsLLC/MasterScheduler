@@ -93,6 +93,19 @@ export const userRoleEnum = pgEnum("user_role", [
   "pending",
 ]);
 
+export const departmentEnum = pgEnum("department", [
+  "supply_chain",
+  "engineering", 
+  "manufacturing",
+  "quality_assurance",
+  "sales",
+  "finance",
+  "it",
+  "human_resources",
+  "operations",
+  "other"
+]);
+
 export const notificationTypeEnum = pgEnum("notification_type", [
   "billing",
   "project",
@@ -1290,11 +1303,12 @@ export const insertFinancialGoalSchema = createInsertSchema(financialGoals).omit
 export type FinancialGoal = typeof financialGoals.$inferSelect;
 export type InsertFinancialGoal = z.infer<typeof insertFinancialGoalSchema>;
 
-// Supply Chain Benchmarks Table
+// Multi-Department Benchmarks Table (renamed from Supply Chain Benchmarks)
 export const supplyChainBenchmarks = pgTable("supply_chain_benchmarks", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  department: departmentEnum("department").notNull().default("supply_chain"),
   weeksBeforePhase: integer("weeks_before_phase").notNull(),
   targetPhase: text("target_phase").notNull(), // FAB, PRODUCTION, NTC, QC, SHIP
   isDefault: boolean("is_default").default(false),

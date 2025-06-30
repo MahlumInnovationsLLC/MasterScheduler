@@ -661,7 +661,12 @@ const SupplyChain = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
-      <h1 className="text-2xl font-bold mb-6">Benchmarks Management</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">Multi-Department Benchmarks</h1>
+        <p className="text-slate-600 dark:text-slate-400">
+          Track and manage benchmarks across all departments including Supply Chain, Engineering, and more
+        </p>
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex justify-between items-center mb-8">
