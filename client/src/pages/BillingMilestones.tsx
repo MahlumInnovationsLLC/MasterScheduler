@@ -840,8 +840,7 @@ const BillingMilestones = () => {
       cell: ({ row }) => {
         // Check if this is a delivery milestone
         const isDeliveryMilestone = row.original.isDeliveryMilestone || 
-          (row.original.name && row<replit_final_file>
-.original.name.toLowerCase().includes('delivery'));
+          (row.original.name && row.original.name.toLowerCase().includes('delivery'));
 
         // Get the project for this milestone to access delivery date
         const project = projects?.find(p => p.id === row.original.projectId);
