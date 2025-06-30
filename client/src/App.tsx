@@ -38,6 +38,7 @@ import QualityAssurance from "@/pages/QualityAssurance";
 import MetricsManagement from "@/pages/MetricsManagement";
 import Priorities from "@/pages/Priorities";
 import Tasks from "@/pages/Tasks";
+import MaterialManagement from "@/pages/MaterialManagement";
 import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -153,6 +154,7 @@ function MainContent() {
     if (location === '/export-reports') return 'Export Reports';
     if (location === '/import') return 'Import Data';
     if (location === '/supply-chain') return 'Supply Chain';
+    if (location === '/material-management') return 'Material Management';
     if (location === '/archived-projects') return 'Archived Projects';
     if (location === '/delivered-projects') return 'Delivered Projects';
     if (location === '/settings/user') return 'Settings';
@@ -199,6 +201,7 @@ function MainContent() {
             <ProtectedRoute path="/export-reports" component={ExportReports} />
             <ViewerRestrictedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
+            <ProtectedRoute path="/material-management" component={MaterialManagement} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <ProtectedRoute path="/settings" component={Settings} />

@@ -20,7 +20,8 @@ import {
   MessageSquare,
   Shield,
   Flag,
-  CheckCircle
+  CheckCircle,
+  Package
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
@@ -226,6 +227,16 @@ const Sidebar = () => {
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Benchmarks">
                   <CheckCircle size={20} className={`${isActive('/supply-chain') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Benchmarks</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('material-management') && (
+              <li>
+                <SidebarLink href="/material-management" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/material-management') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Material Management">
+                  <Package size={20} className={`${isActive('/material-management') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Material Management</span>}
                 </SidebarLink>
               </li>
             )}
