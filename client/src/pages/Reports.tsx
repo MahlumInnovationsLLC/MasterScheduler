@@ -1878,102 +1878,61 @@ const ReportsPage = () => {
                             
                             <div className="pt-4">
                               <h4 className="font-medium mb-3">Phase Performance Breakdown</h4>
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                  <div>
-                                    <span className="text-sm font-medium">PAINT Phase Handoffs</span>
-                                    <div className="text-xs text-gray-500">
-                                      Avg variance: {(() => {
-                                        const paintProjects = filteredProjects.filter(p => p.paintStart && p.opPaintStart);
-                                        if (paintProjects.length === 0) return '0 days';
-                                        const totalVariance = paintProjects.reduce((sum, p) => {
-                                          const variance = Math.abs(new Date(p.paintStart!).getTime() - new Date(p.opPaintStart!).getTime()) / (1000 * 60 * 60 * 24);
-                                          return sum + variance;
-                                        }, 0);
-                                        return `${Math.round(totalVariance / paintProjects.length)} days`;
-                                      })()}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <Badge variant={
-                                      filteredProjects.filter(p => p.paintStart && p.opPaintStart).length > 0 ? "default" : "secondary"
-                                    }>
-                                      {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
-                                        new Date(p.paintStart) <= new Date(p.opPaintStart)).length}/
-                                      {filteredProjects.filter(p => p.paintStart && p.opPaintStart).length} On-Time
-                                    </Badge>
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {filteredProjects.filter(p => p.paintStart && p.opPaintStart).length > 0 ? 
-                                        Math.round((filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
-                                          new Date(p.paintStart) <= new Date(p.opPaintStart)).length / 
-                                          filteredProjects.filter(p => p.paintStart && p.opPaintStart).length) * 100) : 0}% rate
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                  <div>
-                                    <span className="text-sm font-medium">Production Phase Handoffs</span>
-                                    <div className="text-xs text-gray-500">
-                                      Avg variance: {(() => {
-                                        const prodProjects = filteredProjects.filter(p => p.productionStart && p.opProductionStart);
-                                        if (prodProjects.length === 0) return '0 days';
-                                        const totalVariance = prodProjects.reduce((sum, p) => {
-                                          const variance = Math.abs(new Date(p.productionStart!).getTime() - new Date(p.opProductionStart!).getTime()) / (1000 * 60 * 60 * 24);
-                                          return sum + variance;
-                                        }, 0);
-                                        return `${Math.round(totalVariance / prodProjects.length)} days`;
-                                      })()}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <Badge variant={
-                                      filteredProjects.filter(p => p.productionStart && p.opProductionStart).length > 0 ? "default" : "secondary"
-                                    }>
-                                      {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
-                                        new Date(p.productionStart) <= new Date(p.opProductionStart)).length}/
-                                      {filteredProjects.filter(p => p.productionStart && p.opProductionStart).length} On-Time
-                                    </Badge>
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {filteredProjects.filter(p => p.productionStart && p.opProductionStart).length > 0 ? 
-                                        Math.round((filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
-                                          new Date(p.productionStart) <= new Date(p.opProductionStart)).length / 
-                                          filteredProjects.filter(p => p.productionStart && p.opProductionStart).length) * 100) : 0}% rate
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                  <div>
-                                    <span className="text-sm font-medium">IT Phase Handoffs</span>
-                                    <div className="text-xs text-gray-500">
-                                      Avg variance: {(() => {
-                                        const itProjects = filteredProjects.filter(p => p.itStart && p.opItStart);
-                                        if (itProjects.length === 0) return '0 days';
-                                        const totalVariance = itProjects.reduce((sum, p) => {
-                                          const variance = Math.abs(new Date(p.itStart!).getTime() - new Date(p.opItStart!).getTime()) / (1000 * 60 * 60 * 24);
-                                          return sum + variance;
-                                        }, 0);
-                                        return `${Math.round(totalVariance / itProjects.length)} days`;
-                                      })()}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <Badge variant={
-                                      filteredProjects.filter(p => p.itStart && p.opItStart).length > 0 ? "default" : "secondary"
-                                    }>
-                                      {filteredProjects.filter(p => p.itStart && p.opItStart && 
-                                        new Date(p.itStart) <= new Date(p.opItStart)).length}/
-                                      {filteredProjects.filter(p => p.itStart && p.opItStart).length} On-Time
-                                    </Badge>
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {filteredProjects.filter(p => p.itStart && p.opItStart).length > 0 ? 
-                                        Math.round((filteredProjects.filter(p => p.itStart && p.opItStart && 
-                                          new Date(p.itStart) <= new Date(p.opItStart)).length / 
-                                          filteredProjects.filter(p => p.itStart && p.opItStart).length) * 100) : 0}% rate
-                                    </div>
-                                  </div>
-                                </div>
+                              <div className="space-y-2 max-h-96 overflow-y-auto">
+                                {(() => {
+                                  const phaseConfigs = [
+                                    { current: 'fabricationStart', original: 'opFabricationStart', name: 'Fabrication Phase Handoffs' },
+                                    { current: 'paintStart', original: 'opPaintStart', name: 'PAINT Phase Handoffs' },
+                                    { current: 'productionStart', original: 'opProductionStart', name: 'Production Phase Handoffs' },
+                                    { current: 'itStart', original: 'opItStart', name: 'IT Phase Handoffs' },
+                                    { current: 'wrapDate', original: 'opWrapDate', name: 'Wrap Date Handoffs' },
+                                    { current: 'ntcTestingDate', original: 'opNtcTestingDate', name: 'NTC Testing Handoffs' },
+                                    { current: 'qcStartDate', original: 'opQcStartDate', name: 'QC Start Handoffs' },
+                                    { current: 'executiveReviewDate', original: 'opExecutiveReviewDate', name: 'Executive Review Handoffs' },
+                                    { current: 'shipDate', original: 'opShipDate', name: 'Ship Date Handoffs' },
+                                    { current: 'deliveryDate', original: 'opDeliveryDate', name: 'Delivery Date Handoffs' }
+                                  ];
+
+                                  return phaseConfigs.map((phase, index) => {
+                                    const phaseProjects = filteredProjects.filter(p => 
+                                      p[phase.current as keyof typeof p] && p[phase.original as keyof typeof p]
+                                    );
+                                    const onTimeProjects = phaseProjects.filter(p => 
+                                      new Date(p[phase.current as keyof typeof p] as string) <= 
+                                      new Date(p[phase.original as keyof typeof p] as string)
+                                    );
+                                    const onTimeRate = phaseProjects.length > 0 ? 
+                                      Math.round((onTimeProjects.length / phaseProjects.length) * 100) : 0;
+                                    
+                                    const avgVariance = phaseProjects.length > 0 ? 
+                                      Math.round(phaseProjects.reduce((sum, p) => {
+                                        const variance = Math.abs(
+                                          new Date(p[phase.current as keyof typeof p] as string).getTime() - 
+                                          new Date(p[phase.original as keyof typeof p] as string).getTime()
+                                        ) / (1000 * 60 * 60 * 24);
+                                        return sum + variance;
+                                      }, 0) / phaseProjects.length) : 0;
+
+                                    return (
+                                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                        <div>
+                                          <span className="font-medium">{phase.name}</span>
+                                          <div className="text-xs text-gray-500">
+                                            Avg variance: {avgVariance} days
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <Badge variant={phaseProjects.length > 0 ? "default" : "secondary"} className="text-xs">
+                                            {onTimeProjects.length}/{phaseProjects.length} On-Time
+                                          </Badge>
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {onTimeRate}% rate
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  });
+                                })()}
                               </div>
                             </div>
                           </div>
