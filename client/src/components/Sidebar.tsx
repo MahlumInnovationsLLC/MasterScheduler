@@ -151,9 +151,9 @@ const Sidebar = () => {
               <li>
                 <SidebarLink href="/reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/reports') ? 'active' : ''
-                } ${isCollapsed ? 'justify-center' : ''}`} title="Reports">
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Reports & Analytics">
                   <BarChart3 size={20} className={`${isActive('/reports') ? 'text-primary' : ''}`} />
-                  {!isCollapsed && <span>Reports</span>}
+                  {!isCollapsed && <span>Reports & Analytics</span>}
                 </SidebarLink>
               </li>
             )}

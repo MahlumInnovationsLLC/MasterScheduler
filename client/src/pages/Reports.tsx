@@ -44,7 +44,7 @@ import {
 } from 'recharts';
 import { format, subMonths, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, isBefore, isAfter, differenceInDays, startOfWeek, endOfWeek } from 'date-fns';
 import { calculateWeeklyBayUtilization } from '@shared/utils/bay-utilization';
-import { Download, FileText, Calendar as CalendarIcon, RefreshCw, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
+import { Download, FileText, Calendar as CalendarIcon, RefreshCw, TrendingUp, Clock, AlertTriangle, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -801,12 +801,13 @@ const ReportsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <Tabs defaultValue="financial" value={reportType} onValueChange={setReportType}>
-            <TabsList className="grid grid-cols-5 mb-4">
+            <TabsList className="grid grid-cols-6 mb-4">
               <TabsTrigger value="financial">Financial Reports</TabsTrigger>
               <TabsTrigger value="project">Project Status</TabsTrigger>
               <TabsTrigger value="manufacturing">Manufacturing</TabsTrigger>
               <TabsTrigger value="mech-shop">Mech Shop</TabsTrigger>
               <TabsTrigger value="future-predictions">Future Predictions</TabsTrigger>
+              <TabsTrigger value="nomad-gcs-analytics">Nomad GCS Analytics</TabsTrigger>
             </TabsList>
 
             {/* Financial Reports Tab */}
@@ -1760,6 +1761,449 @@ const ReportsPage = () => {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Nomad GCS Analytics Tab */}
+            <TabsContent value="nomad-gcs-analytics">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold">Nomad GCS Internal Performance Analytics</h2>
+                  <Badge variant="outline" className="text-sm">
+                    Performance Tracking
+                  </Badge>
+                </div>
+
+                <Tabs defaultValue="phase-handoffs" className="w-full">
+                  <TabsList className="grid grid-cols-4 mb-6">
+                    <TabsTrigger value="phase-handoffs">Phase Handoff Performance</TabsTrigger>
+                    <TabsTrigger value="schedule-changes">Schedule Change Control</TabsTrigger>
+                    <TabsTrigger value="delivery-variance">Delivery vs Original Plan</TabsTrigger>
+                    <TabsTrigger value="timeline-recovery">Timeline Recovery Analysis</TabsTrigger>
+                  </TabsList>
+
+                  {/* Phase Handoff Performance */}
+                  <TabsContent value="phase-handoffs" className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Clock className="h-5 w-5" />
+                            Phase Handoff Timeline Performance
+                          </CardTitle>
+                          <CardDescription>
+                            Tracking how well we meet internal phase transition deadlines
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="text-center p-4 bg-green-50 rounded-lg">
+                                <div className="text-2xl font-bold text-green-600">
+                                  {filteredProjects.filter(p => {
+                                    // Calculate on-time handoffs based on actual vs planned dates
+                                    const productionOnTime = p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart) <= new Date(p.opProductionStart);
+                                    const paintOnTime = p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart) <= new Date(p.opPaintStart);
+                                    return productionOnTime || paintOnTime;
+                                  }).length}
+                                </div>
+                                <div className="text-sm text-green-700">On-Time Handoffs</div>
+                              </div>
+                              <div className="text-center p-4 bg-red-50 rounded-lg">
+                                <div className="text-2xl font-bold text-red-600">
+                                  {filteredProjects.filter(p => {
+                                    // Calculate delayed handoffs
+                                    const productionDelayed = p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart) > new Date(p.opProductionStart);
+                                    const paintDelayed = p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart) > new Date(p.opPaintStart);
+                                    return productionDelayed || paintDelayed;
+                                  }).length}
+                                </div>
+                                <div className="text-sm text-red-700">Delayed Handoffs</div>
+                              </div>
+                            </div>
+                            
+                            <div className="pt-4">
+                              <h4 className="font-medium mb-2">Phase Performance Breakdown</h4>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">PAINT Phase Handoffs</span>
+                                  <Badge variant={
+                                    filteredProjects.filter(p => p.paintStart && p.opPaintStart).length > 0 ? "default" : "secondary"
+                                  }>
+                                    {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart) <= new Date(p.opPaintStart)).length}/
+                                    {filteredProjects.filter(p => p.paintStart && p.opPaintStart).length} On-Time
+                                  </Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">Production Phase Handoffs</span>
+                                  <Badge variant={
+                                    filteredProjects.filter(p => p.productionStart && p.opProductionStart).length > 0 ? "default" : "secondary"
+                                  }>
+                                    {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart) <= new Date(p.opProductionStart)).length}/
+                                    {filteredProjects.filter(p => p.productionStart && p.opProductionStart).length} On-Time
+                                  </Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">IT Phase Handoffs</span>
+                                  <Badge variant={
+                                    filteredProjects.filter(p => p.itStart && p.opItStart).length > 0 ? "default" : "secondary"
+                                  }>
+                                    {filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                      new Date(p.itStart) <= new Date(p.opItStart)).length}/
+                                    {filteredProjects.filter(p => p.itStart && p.opItStart).length} On-Time
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5" />
+                            Timeline Recovery Rate
+                          </CardTitle>
+                          <CardDescription>
+                            Projects that recovered to original planned dates
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="text-center p-6 bg-blue-50 rounded-lg">
+                              <div className="text-3xl font-bold text-blue-600">
+                                {Math.round((filteredProjects.filter(p => {
+                                  // Check if project recovered to original dates
+                                  const recoveredProduction = p.productionStart && p.opProductionStart && 
+                                    new Date(p.productionStart) === new Date(p.opProductionStart);
+                                  const recoveredPaint = p.paintStart && p.opPaintStart && 
+                                    new Date(p.paintStart) === new Date(p.opPaintStart);
+                                  return recoveredProduction || recoveredPaint;
+                                }).length / Math.max(filteredProjects.length, 1)) * 100)}%
+                              </div>
+                              <div className="text-sm text-blue-700 mt-2">Timeline Recovery Rate</div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span>Projects Back on Track</span>
+                                <span className="font-medium">
+                                  {filteredProjects.filter(p => {
+                                    const recoveredProduction = p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart) === new Date(p.opProductionStart);
+                                    const recoveredPaint = p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart) === new Date(p.opPaintStart);
+                                    return recoveredProduction || recoveredPaint;
+                                  }).length}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span>Still Behind Schedule</span>
+                                <span className="font-medium text-orange-600">
+                                  {filteredProjects.filter(p => {
+                                    const behindProduction = p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart) > new Date(p.opProductionStart);
+                                    const behindPaint = p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart) > new Date(p.opPaintStart);
+                                    return behindProduction || behindPaint;
+                                  }).length}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Schedule Change Control */}
+                  <TabsContent value="schedule-changes" className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" />
+                            Schedule Change Control Boards
+                          </CardTitle>
+                          <CardDescription>
+                            Projects with formal schedule change approvals
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-3 gap-4 text-center">
+                              <div className="p-4 bg-yellow-50 rounded-lg">
+                                <div className="text-xl font-bold text-yellow-600">
+                                  {filteredProjects.filter(p => {
+                                    // Projects with schedule changes (any actual date different from OP date)
+                                    const hasProductionChange = p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime();
+                                    const hasPaintChange = p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime();
+                                    const hasItChange = p.itStart && p.opItStart && 
+                                      new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime();
+                                    return hasProductionChange || hasPaintChange || hasItChange;
+                                  }).length}
+                                </div>
+                                <div className="text-xs text-yellow-700 mt-1">Schedule Changes</div>
+                              </div>
+                              <div className="p-4 bg-green-50 rounded-lg">
+                                <div className="text-xl font-bold text-green-600">
+                                  {filteredProjects.filter(p => {
+                                    // Projects with no schedule changes
+                                    const noProductionChange = !p.productionStart || !p.opProductionStart || 
+                                      new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime();
+                                    const noPaintChange = !p.paintStart || !p.opPaintStart || 
+                                      new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime();
+                                    const noItChange = !p.itStart || !p.opItStart || 
+                                      new Date(p.itStart).getTime() === new Date(p.opItStart).getTime();
+                                    return noProductionChange && noPaintChange && noItChange;
+                                  }).length}
+                                </div>
+                                <div className="text-xs text-green-700 mt-1">No Changes</div>
+                              </div>
+                              <div className="p-4 bg-blue-50 rounded-lg">
+                                <div className="text-xl font-bold text-blue-600">
+                                  {Math.round((filteredProjects.filter(p => {
+                                    const noChanges = (!p.productionStart || !p.opProductionStart || 
+                                      new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()) &&
+                                      (!p.paintStart || !p.opPaintStart || 
+                                      new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()) &&
+                                      (!p.itStart || !p.opItStart || 
+                                      new Date(p.itStart).getTime() === new Date(p.opItStart).getTime());
+                                    return noChanges;
+                                  }).length / Math.max(filteredProjects.length, 1)) * 100)}%
+                                </div>
+                                <div className="text-xs text-blue-700 mt-1">Stability Rate</div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Change Impact Analysis</CardTitle>
+                          <CardDescription>
+                            Most common phases requiring schedule adjustments
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <span className="text-sm font-medium">Production Phase</span>
+                              <div className="text-right">
+                                <div className="text-sm font-bold">
+                                  {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                    new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime()).length}
+                                </div>
+                                <div className="text-xs text-gray-500">changes</div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <span className="text-sm font-medium">PAINT Phase</span>
+                              <div className="text-right">
+                                <div className="text-sm font-bold">
+                                  {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                    new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime()).length}
+                                </div>
+                                <div className="text-xs text-gray-500">changes</div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <span className="text-sm font-medium">IT Phase</span>
+                              <div className="text-right">
+                                <div className="text-sm font-bold">
+                                  {filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                    new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime()).length}
+                                </div>
+                                <div className="text-xs text-gray-500">changes</div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Delivery vs Original Plan */}
+                  <TabsContent value="delivery-variance" className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Calendar className="h-5 w-5" />
+                            Delivery Performance vs Original Plan
+                          </CardTitle>
+                          <CardDescription>
+                            Comparing actual delivery dates to original planned dates
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="text-center p-4 bg-green-50 rounded-lg">
+                                <div className="text-2xl font-bold text-green-600">
+                                  {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate && 
+                                    new Date(p.deliveryDate) <= new Date(p.opDeliveryDate)).length}
+                                </div>
+                                <div className="text-sm text-green-700">On-Time Deliveries</div>
+                              </div>
+                              <div className="text-center p-4 bg-red-50 rounded-lg">
+                                <div className="text-2xl font-bold text-red-600">
+                                  {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate && 
+                                    new Date(p.deliveryDate) > new Date(p.opDeliveryDate)).length}
+                                </div>
+                                <div className="text-sm text-red-700">Late Deliveries</div>
+                              </div>
+                            </div>
+                            
+                            <div className="pt-4">
+                              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length > 0 ?
+                                    Math.round((filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate && 
+                                      new Date(p.deliveryDate) <= new Date(p.opDeliveryDate)).length / 
+                                      filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length) * 100) : 0}%
+                                </div>
+                                <div className="text-sm text-blue-700">On-Time Delivery Rate</div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Average Delivery Variance</CardTitle>
+                          <CardDescription>
+                            Days variance from original planned delivery dates
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="text-center p-6 bg-gray-50 rounded-lg">
+                              <div className="text-3xl font-bold text-gray-700">
+                                {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length > 0 ?
+                                  Math.round(filteredProjects
+                                    .filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate)
+                                    .reduce((sum, p) => {
+                                      const variance = Math.abs(new Date(p.deliveryDate!).getTime() - new Date(p.opDeliveryDate!).getTime());
+                                      return sum + (variance / (1000 * 60 * 60 * 24)); // Convert to days
+                                    }, 0) / filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length) : 0}
+                              </div>
+                              <div className="text-sm text-gray-600 mt-2">Days Average Variance</div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span>Completed Projects</span>
+                                <span className="font-medium">
+                                  {filteredProjects.filter(p => p.status === 'completed').length}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span>With Delivery Data</span>
+                                <span className="font-medium">
+                                  {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Timeline Recovery Analysis */}
+                  <TabsContent value="timeline-recovery" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <RefreshCw className="h-5 w-5" />
+                          Timeline Recovery Analysis
+                        </CardTitle>
+                        <CardDescription>
+                          Analysis of projects that brought delayed milestones back to original planned dates
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          <div className="space-y-4">
+                            <h4 className="font-medium">Recovery Success Rate</h4>
+                            <div className="text-center p-4 bg-green-50 rounded-lg">
+                              <div className="text-2xl font-bold text-green-600">
+                                {filteredProjects.length > 0 ?
+                                  Math.round((filteredProjects.filter(p => {
+                                    // Check if any phase was recovered to original date
+                                    const productionRecovered = p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime();
+                                    const paintRecovered = p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime();
+                                    const itRecovered = p.itStart && p.opItStart && 
+                                      new Date(p.itStart).getTime() === new Date(p.opItStart).getTime();
+                                    return productionRecovered || paintRecovered || itRecovered;
+                                  }).length / filteredProjects.length) * 100) : 0}%
+                              </div>
+                              <div className="text-sm text-green-700">Projects Recovered</div>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <h4 className="font-medium">Most Recoverable Phase</h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                <span>Production</span>
+                                <Badge variant="outline">
+                                  {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                    new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()).length}
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                <span>PAINT</span>
+                                <Badge variant="outline">
+                                  {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                    new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()).length}
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                <span>IT</span>
+                                <Badge variant="outline">
+                                  {filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                    new Date(p.itStart).getTime() === new Date(p.opItStart).getTime()).length}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <h4 className="font-medium">Recovery Time Analysis</h4>
+                            <div className="text-center p-4 bg-blue-50 rounded-lg">
+                              <div className="text-xl font-bold text-blue-600">
+                                {filteredProjects.filter(p => {
+                                  const hasRecovery = 
+                                    (p.productionStart && p.opProductionStart && new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()) ||
+                                    (p.paintStart && p.opPaintStart && new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()) ||
+                                    (p.itStart && p.opItStart && new Date(p.itStart).getTime() === new Date(p.opItStart).getTime());
+                                  return hasRecovery;
+                                }).length}
+                              </div>
+                              <div className="text-sm text-blue-700">Total Recoveries</div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                </Tabs>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

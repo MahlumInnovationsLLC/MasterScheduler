@@ -151,6 +151,16 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Fixed date forcing issue that was calculating all future months based on current projects
   - Utilization now properly drops to 0% when projects end, providing realistic capacity forecasting
   - Chart accurately shows team capacity declining as projects complete and no new ones are scheduled
+- June 30, 2025: Reports & Analytics Module Enhancement
+  - Renamed "Reports" module to "Reports & Analytics" throughout the application
+  - Added comprehensive "Nomad GCS Analytics" tab with internal performance tracking
+  - Implemented Phase Handoff Performance analysis comparing actual vs original planned dates
+  - Added Schedule Change Control Board tracking for projects with formal schedule changes
+  - Created Delivery vs Original Plan variance analysis for completed projects
+  - Built Timeline Recovery Analysis to track projects that recovered to original dates
+  - All analytics use real project data including PAINT start, Production start, IT start dates
+  - Performance metrics calculate on-time vs delayed handoffs across all project phases
+  - Analytics provide actionable insights for internal process improvement and timeline management
 
 ## User Preferences
 
