@@ -120,6 +120,8 @@ const MaterialManagement = () => {
   // Status display mapping - converts database values to display names
   const getStatusDisplay = (status?: string | null) => {
     switch (status) {
+      case 'incoming':
+        return 'INCOMING';
       case 'in_qc':
         return 'IN QC';
       case 'in_work':
@@ -136,22 +138,26 @@ const MaterialManagement = () => {
   // Status color mapping
   const getStatusColor = (status?: string | null) => {
     switch (status) {
-      case 'in_qc':
-        return 'bg-orange-500 text-white';
-      case 'in_work':
-        return 'bg-blue-500 text-white';
-      case 'inventory_job_cart':
-        return 'bg-purple-500 text-white';
-      case 'shipped':
-        return 'bg-green-500 text-white';
-      default:
+      case 'incoming':
         return 'bg-gray-500 text-white';
+      case 'in_qc':
+        return 'bg-blue-300 text-black';
+      case 'in_work':
+        return 'bg-green-300 text-black';
+      case 'inventory_job_cart':
+        return 'bg-orange-500 text-white';
+      case 'shipped':
+        return 'bg-black text-white';
+      default:
+        return 'bg-gray-300 text-black';
     }
   };
 
   // Status icon mapping
   const getStatusIcon = (status?: string | null) => {
     switch (status) {
+      case 'incoming':
+        return <CheckCircle className="h-4 w-4" />;
       case 'in_qc':
         return <AlertCircle className="h-4 w-4" />;
       case 'in_work':
@@ -259,27 +265,33 @@ const MaterialManagement = () => {
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                        <SelectItem value="incoming" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-gray-500" />
+                            INCOMING
+                          </div>
+                        </SelectItem>
                         <SelectItem value="in_qc" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-orange-500" />
+                            <AlertCircle className="h-4 w-4 text-blue-300" />
                             IN QC
                           </div>
                         </SelectItem>
                         <SelectItem value="in_work" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-blue-500" />
+                            <Clock className="h-4 w-4 text-green-300" />
                             IN WORK
                           </div>
                         </SelectItem>
                         <SelectItem value="inventory_job_cart" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-purple-500" />
+                            <Package className="h-4 w-4 text-orange-500" />
                             Inventory Job Cart
                           </div>
                         </SelectItem>
                         <SelectItem value="shipped" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
-                            <Truck className="h-4 w-4 text-green-500" />
+                            <Truck className="h-4 w-4 text-black" />
                             SHIPPED
                           </div>
                         </SelectItem>

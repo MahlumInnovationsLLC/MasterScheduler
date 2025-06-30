@@ -87,6 +87,7 @@ export const manufacturingStatusEnum = pgEnum("manufacturing_status", [
 ]);
 
 export const materialManagementStatusEnum = pgEnum("material_management_status", [
+  "incoming",
   "in_qc",
   "in_work",
   "inventory_job_cart",
