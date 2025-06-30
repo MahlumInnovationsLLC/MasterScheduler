@@ -6912,7 +6912,7 @@ Response format:
     }
   });
 
-  app.get("/api/ccb/requests/:id", ensureAuthenticated, async (req, res) => {
+  app.get("/api/ccb/requests/:id", simpleAuth, async (req, res) => {
     try {
       const request = await storage.getCcbRequestById(Number(req.params.id));
       if (!request) {
@@ -6925,7 +6925,7 @@ Response format:
     }
   });
 
-  app.post("/api/ccb/requests", ensureAuthenticated, async (req, res) => {
+  app.post("/api/ccb/requests", simpleAuth, async (req, res) => {
     try {
       const request = await storage.createCcbRequest({
         ...req.body,
@@ -6940,7 +6940,7 @@ Response format:
     }
   });
 
-  app.put("/api/ccb/requests/:id", ensureAuthenticated, async (req, res) => {
+  app.put("/api/ccb/requests/:id", simpleAuth, async (req, res) => {
     try {
       const request = await storage.updateCcbRequest(Number(req.params.id), req.body);
       if (!request) {
@@ -6953,7 +6953,7 @@ Response format:
     }
   });
 
-  app.delete("/api/ccb/requests/:id", ensureAuthenticated, async (req, res) => {
+  app.delete("/api/ccb/requests/:id", simpleAuth, async (req, res) => {
     try {
       const success = await storage.deleteCcbRequest(Number(req.params.id));
       if (!success) {
@@ -6967,7 +6967,7 @@ Response format:
   });
 
   // CCB Comments endpoints
-  app.get("/api/ccb/requests/:id/comments", ensureAuthenticated, async (req, res) => {
+  app.get("/api/ccb/requests/:id/comments", simpleAuth, async (req, res) => {
     try {
       const comments = await storage.getCcbComments(Number(req.params.id));
       res.json(comments);
@@ -6977,7 +6977,7 @@ Response format:
     }
   });
 
-  app.post("/api/ccb/requests/:id/comments", ensureAuthenticated, async (req, res) => {
+  app.post("/api/ccb/requests/:id/comments", simpleAuth, async (req, res) => {
     try {
       const comment = await storage.createCcbComment({
         ...req.body,
@@ -6993,7 +6993,7 @@ Response format:
   });
 
   // CCB Approval endpoints
-  app.post("/api/ccb/requests/:id/approve", ensureAuthenticated, async (req, res) => {
+  app.post("/api/ccb/requests/:id/approve", simpleAuth, async (req, res) => {
     try {
       const { department, comments } = req.body;
       const request = await storage.approveCcbRequest(
@@ -7012,7 +7012,7 @@ Response format:
     }
   });
 
-  app.post("/api/ccb/requests/:id/reject", ensureAuthenticated, async (req, res) => {
+  app.post("/api/ccb/requests/:id/reject", simpleAuth, async (req, res) => {
     try {
       const { reason } = req.body;
       const request = await storage.rejectCcbRequest(Number(req.params.id), req.user.id, reason);
@@ -7026,7 +7026,7 @@ Response format:
     }
   });
 
-  app.post("/api/ccb/requests/:id/implement", ensureAuthenticated, async (req, res) => {
+  app.post("/api/ccb/requests/:id/implement", simpleAuth, async (req, res) => {
     try {
       const { notes } = req.body;
       const request = await storage.implementCcbRequest(Number(req.params.id), req.user.id, notes);

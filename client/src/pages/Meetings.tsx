@@ -2689,6 +2689,90 @@ export default function Meetings() {
             }
             return null;
           })()}
+            </TabsContent>
+
+            {/* CCB Tab */}
+            <TabsContent value="ccb" className="space-y-6 mt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Change Control Board</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Schedule change requests requiring departmental approval
+                  </p>
+                </div>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-center py-8">
+                      <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">CCB System Under Development</h3>
+                      <p className="text-muted-foreground mb-4">
+                        The Change Control Board feature is being implemented to handle
+                        schedule change requests from Tier III with full departmental approval workflow.
+                      </p>
+                      <div className="bg-muted/50 rounded-lg p-4 text-sm">
+                        <p className="font-medium mb-2">Planned Features:</p>
+                        <ul className="list-disc list-inside space-y-1 text-left">
+                          <li>Schedule CCB request submission from Tier III</li>
+                          <li>Departmental buy-off workflow (Sales, Engineering, etc.)</li>
+                          <li>Automatic OP date updates upon approval</li>
+                          <li>Orange variance highlight removal</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Concerns Tab */}
+            <TabsContent value="concerns" className="space-y-6 mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Escalated Concerns ({tierIVConcerns.length})</h3>
+                {tierIVConcerns.length > 0 ? (
+                  <div className="grid gap-4">
+                    {tierIVConcerns.map((concern: ElevatedConcern) => (
+                      <Card key={concern.id} className="border-l-4 border-l-orange-500">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="text-lg">{concern.title}</CardTitle>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant={concern.priority === "high" ? "destructive" : "secondary"}>
+                                  {concern.priority.toUpperCase()}
+                                </Badge>
+                                <Badge variant="outline">
+                                  {concern.status.replace("_", " ").toUpperCase()}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-muted-foreground mb-4">{concern.description}</p>
+                          {concern.dueDate && (
+                            <div className="text-sm">
+                              <span className="font-medium">Due:</span> {format(new Date(concern.dueDate), 'PPp')}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No Escalated Concerns</h3>
+                      <p className="text-muted-foreground">
+                        All concerns are being handled at the appropriate tier level.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
 
