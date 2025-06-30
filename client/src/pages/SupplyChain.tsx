@@ -647,7 +647,20 @@ const SupplyChain = () => {
       
       if (phaseDate) {
         dueDate = new Date(phaseDate);
+        console.log('🔍 DEBUG getBenchmarkDueInfo BEFORE calculation:', {
+          benchmarkName: benchmark.name,
+          targetPhase: benchmark.targetPhase,
+          weeksBeforePhase: benchmark.weeksBeforePhase,
+          phaseDate: phaseDate,
+          projectNumber: project.projectNumber
+        });
         dueDate.setDate(dueDate.getDate() - (benchmark.weeksBeforePhase * 7));
+        console.log('🔍 DEBUG getBenchmarkDueInfo AFTER calculation:', {
+          benchmarkName: benchmark.name,
+          originalPhaseDate: phaseDate,
+          calculatedDueDate: dueDate,
+          projectNumber: project.projectNumber
+        });
       }
     }
     
