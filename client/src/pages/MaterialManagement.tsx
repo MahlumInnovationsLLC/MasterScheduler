@@ -50,7 +50,7 @@ const MaterialManagement = () => {
   // Update material status mutation
   const updateMaterialStatus = useMutation({
     mutationFn: async ({ projectId, status }: { projectId: number; status: string }) => {
-      return await apiRequest(`/api/projects/${projectId}`, 'PATCH', {
+      return await apiRequest('PATCH', `/api/projects/${projectId}`, {
         materialManagementStatus: status
       });
     },
