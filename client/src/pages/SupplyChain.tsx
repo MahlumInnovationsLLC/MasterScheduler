@@ -143,12 +143,12 @@ const SupplyChain = () => {
   const [benchmarkFilter, setBenchmarkFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   
-  // List view sorting
-  const [sortColumn, setSortColumn] = useState<'project' | 'benchmarks' | 'progress' | 'upcoming' | null>(null);
+  // List view sorting with default sort by next due date
+  const [sortColumn, setSortColumn] = useState<'project' | 'benchmarks' | 'progress' | 'upcoming' | 'nextDue' | null>('nextDue');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Handle sorting
-  const handleSort = (column: 'project' | 'benchmarks' | 'progress' | 'upcoming') => {
+  const handleSort = (column: 'project' | 'benchmarks' | 'progress' | 'upcoming' | 'nextDue') => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -824,6 +824,21 @@ const SupplyChain = () => {
             const aUpcomingName = aUpcoming.length > 0 ? aUpcoming[0].name : '';
             const bUpcomingName = bUpcoming.length > 0 ? bUpcoming[0].name : '';
             comparison = aUpcomingName.localeCompare(bUpcomingName);
+            break;
+          case 'nextDue':
+            const aUpcomingItems = aProjectBenchmarks.filter(pb => !pb.isCompleted).sort((x, y) => {
+              const dateX = x.targetDate ? new Date(x.targetDate) : new Date('2099-12-31');
+              const dateY = y.targetDate ? new Date(y.targetDate) : new Date('2099-12-31');
+              return dateX.getTime() - dateY.getTime();
+            });
+            const bUpcomingItems = bProjectBenchmarks.filter(pb => !pb.isCompleted).sort((x, y) => {
+              const dateX = x.targetDate ? new Date(x.targetDate) : new Date('2099-12-31');
+              const dateY = y.targetDate ? new Date(y.targetDate) : new Date('2099-12-31');
+              return dateX.getTime() - dateY.getTime();
+            });
+            const aNextDate = aUpcomingItems.length > 0 && aUpcomingItems[0].targetDate ? new Date(aUpcomingItems[0].targetDate) : new Date('2099-12-31');
+            const bNextDate = bUpcomingItems.length > 0 && bUpcomingItems[0].targetDate ? new Date(bUpcomingItems[0].targetDate) : new Date('2099-12-31');
+            comparison = aNextDate.getTime() - bNextDate.getTime();
             break;
         }
         
@@ -1607,6 +1622,18 @@ const SupplyChain = () => {
                           </div>
                         </div>
                       </TableHead>
+                      <TableHead 
+                        className="text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600"
+                        onClick={() => handleSort('nextDue')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Next Due Date</span>
+                          <div className="flex flex-col">
+                            <ChevronUp className={`h-3 w-3 ${sortColumn === 'nextDue' && sortDirection === 'asc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                            <ChevronDown className={`h-3 w-3 -mt-1 ${sortColumn === 'nextDue' && sortDirection === 'desc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                          </div>
+                        </div>
+                      </TableHead>
                       <TableHead className="text-right text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
                         <div className="font-semibold">Actions</div>
                       </TableHead>
@@ -1669,6 +1696,27 @@ const SupplyChain = () => {
                                     <span className="text-sm text-slate-700 dark:text-slate-400">No upcoming tasks</span>
                                   )}
                                 </TableCell>
+                                <TableCell className="bg-white dark:bg-slate-800">
+                                  {upcomingBenchmarks.length > 0 ? (
+                                    (() => {
+                                      const dueInfo = getBenchmarkDueInfo(project, upcomingBenchmarks[0]);
+                                      return (
+                                        <div className="text-sm">
+                                          <div className={`font-medium ${dueInfo.isOverdue ? 'text-red-600' : 'text-black dark:text-slate-100'}`}>
+                                            {dueInfo.dueDateText}
+                                          </div>
+                                          {dueInfo.isOverdue && (
+                                            <div className="text-red-600 font-semibold text-xs">
+                                              {dueInfo.daysLate} days late
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })()
+                                  ) : (
+                                    <span className="text-sm text-slate-700 dark:text-slate-400">-</span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-right bg-white dark:bg-slate-800">
                                   <div className="flex items-center justify-end gap-2">
                                     {/* Complete All Tasks Button */}
@@ -1720,7 +1768,7 @@ const SupplyChain = () => {
                           })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
+                          <TableCell colSpan={6} className="text-center py-8">
                             <p className="text-lg text-slate-600 dark:text-slate-400">No projects match your filter criteria.</p>
                           </TableCell>
                         </TableRow>
