@@ -26,10 +26,31 @@ const MaterialManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch bay schedule data
-  const { data, isLoading, error } = useQuery<BayScheduleData>({
-    queryKey: ['/api/bay-schedule']
+  // Fetch data from separate endpoints
+  const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
+    queryKey: ['/api/projects']
   });
+
+  const { data: manufacturingBays, isLoading: isLoadingBays } = useQuery<ManufacturingBay[]>({
+    queryKey: ['/api/manufacturing-bays']
+  });
+
+  const { data: manufacturingSchedules, isLoading: isLoadingSchedules } = useQuery<ManufacturingSchedule[]>({
+    queryKey: ['/api/manufacturing-schedules']
+  });
+
+  // Combine loading states
+  const isLoading = isLoadingProjects || isLoadingBays || isLoadingSchedules;
+
+  // Combine data into expected format
+  const data = useMemo(() => {
+    if (!projects || !manufacturingBays || !manufacturingSchedules) return null;
+    return {
+      projects,
+      manufacturingBays,
+      manufacturingSchedules
+    };
+  }, [projects, manufacturingBays, manufacturingSchedules]);
 
   // Update material status mutation
   const updateMaterialStatus = useMutation({
@@ -39,7 +60,10 @@ const MaterialManagement = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/bay-schedule'] });
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
       toast({
         title: "Status Updated",
         description: "Material management status has been updated successfully.",
