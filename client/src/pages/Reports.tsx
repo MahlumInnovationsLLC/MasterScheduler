@@ -1800,17 +1800,14 @@ const ReportsPage = () => {
                               <div className="text-center p-4 bg-green-50 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">
                                   {(() => {
-                                    // Calculate on-time handoffs across all phases (including delivered projects)
-                                    const onTimeCount = filteredProjects.filter(p => {
-                                      const productionOnTime = p.productionStart && p.opProductionStart && 
-                                        new Date(p.productionStart) <= new Date(p.opProductionStart);
-                                      const paintOnTime = p.paintStart && p.opPaintStart && 
-                                        new Date(p.paintStart) <= new Date(p.opPaintStart);
-                                      const itOnTime = p.itStart && p.opItStart && 
-                                        new Date(p.itStart) <= new Date(p.opItStart);
-                                      return productionOnTime || paintOnTime || itOnTime;
-                                    }).length;
-                                    return onTimeCount;
+                                    // Count individual phase handoffs that were on-time (actual <= OP date)
+                                    let onTimeHandoffs = 0;
+                                    filteredProjects.forEach(p => {
+                                      if (p.productionStart && p.opProductionStart && new Date(p.productionStart) <= new Date(p.opProductionStart)) onTimeHandoffs++;
+                                      if (p.paintStart && p.opPaintStart && new Date(p.paintStart) <= new Date(p.opPaintStart)) onTimeHandoffs++;
+                                      if (p.itStart && p.opItStart && new Date(p.itStart) <= new Date(p.opItStart)) onTimeHandoffs++;
+                                    });
+                                    return onTimeHandoffs;
                                   })()}
                                 </div>
                                 <div className="text-sm text-green-700">On-Time Handoffs</div>
@@ -1818,17 +1815,14 @@ const ReportsPage = () => {
                               <div className="text-center p-4 bg-red-50 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">
                                   {(() => {
-                                    // Calculate delayed handoffs across all phases
-                                    const delayedCount = filteredProjects.filter(p => {
-                                      const productionDelayed = p.productionStart && p.opProductionStart && 
-                                        new Date(p.productionStart) > new Date(p.opProductionStart);
-                                      const paintDelayed = p.paintStart && p.opPaintStart && 
-                                        new Date(p.paintStart) > new Date(p.opPaintStart);
-                                      const itDelayed = p.itStart && p.opItStart && 
-                                        new Date(p.itStart) > new Date(p.opItStart);
-                                      return productionDelayed || paintDelayed || itDelayed;
-                                    }).length;
-                                    return delayedCount;
+                                    // Count individual phase handoffs that were delayed (actual > OP date)
+                                    let delayedHandoffs = 0;
+                                    filteredProjects.forEach(p => {
+                                      if (p.productionStart && p.opProductionStart && new Date(p.productionStart) > new Date(p.opProductionStart)) delayedHandoffs++;
+                                      if (p.paintStart && p.opPaintStart && new Date(p.paintStart) > new Date(p.opPaintStart)) delayedHandoffs++;
+                                      if (p.itStart && p.opItStart && new Date(p.itStart) > new Date(p.opItStart)) delayedHandoffs++;
+                                    });
+                                    return delayedHandoffs;
                                   })()}
                                 </div>
                                 <div className="text-sm text-red-700">Delayed Handoffs</div>
@@ -1836,22 +1830,24 @@ const ReportsPage = () => {
                               <div className="text-center p-4 bg-blue-50 rounded-lg">
                                 <div className="text-2xl font-bold text-blue-600">
                                   {(() => {
-                                    // Calculate overall on-time percentage
-                                    const totalWithDates = filteredProjects.filter(p => 
-                                      (p.productionStart && p.opProductionStart) ||
-                                      (p.paintStart && p.opPaintStart) ||
-                                      (p.itStart && p.opItStart)
-                                    ).length;
-                                    const onTimeCount = filteredProjects.filter(p => {
-                                      const productionOnTime = p.productionStart && p.opProductionStart && 
-                                        new Date(p.productionStart) <= new Date(p.opProductionStart);
-                                      const paintOnTime = p.paintStart && p.opPaintStart && 
-                                        new Date(p.paintStart) <= new Date(p.opPaintStart);
-                                      const itOnTime = p.itStart && p.opItStart && 
-                                        new Date(p.itStart) <= new Date(p.opItStart);
-                                      return productionOnTime || paintOnTime || itOnTime;
-                                    }).length;
-                                    return totalWithDates > 0 ? Math.round((onTimeCount / totalWithDates) * 100) : 0;
+                                    // Calculate overall on-time percentage based on individual handoffs
+                                    let onTimeHandoffs = 0;
+                                    let totalHandoffs = 0;
+                                    filteredProjects.forEach(p => {
+                                      if (p.productionStart && p.opProductionStart) {
+                                        totalHandoffs++;
+                                        if (new Date(p.productionStart) <= new Date(p.opProductionStart)) onTimeHandoffs++;
+                                      }
+                                      if (p.paintStart && p.opPaintStart) {
+                                        totalHandoffs++;
+                                        if (new Date(p.paintStart) <= new Date(p.opPaintStart)) onTimeHandoffs++;
+                                      }
+                                      if (p.itStart && p.opItStart) {
+                                        totalHandoffs++;
+                                        if (new Date(p.itStart) <= new Date(p.opItStart)) onTimeHandoffs++;
+                                      }
+                                    });
+                                    return totalHandoffs > 0 ? Math.round((onTimeHandoffs / totalHandoffs) * 100) : 100;
                                   })()}%
                                 </div>
                                 <div className="text-sm text-blue-700">Overall On-Time Rate</div>
@@ -2018,6 +2014,77 @@ const ReportsPage = () => {
                         </CardContent>
                       </Card>
                     </div>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Delivered Projects with Late Handoffs (Not Recovered)</CardTitle>
+                        <CardDescription>
+                          Projects that were delivered despite having delayed phase handoffs that were never brought back to original schedule
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {(() => {
+                            // Find delivered projects with late handoffs that were never recovered
+                            const deliveredWithLateHandoffs = filteredProjects.filter(p => {
+                              if (p.status !== 'delivered') return false;
+                              
+                              // Check for late handoffs that were never recovered
+                              const paintLateNotRecovered = p.paintStart && p.opPaintStart && 
+                                new Date(p.paintStart) > new Date(p.opPaintStart);
+                              const productionLateNotRecovered = p.productionStart && p.opProductionStart && 
+                                new Date(p.productionStart) > new Date(p.opProductionStart);
+                              const itLateNotRecovered = p.itStart && p.opItStart && 
+                                new Date(p.itStart) > new Date(p.opItStart);
+                              
+                              return paintLateNotRecovered || productionLateNotRecovered || itLateNotRecovered;
+                            }).slice(0, 10);
+
+                            if (deliveredWithLateHandoffs.length === 0) {
+                              return (
+                                <div className="text-center py-6 text-gray-500">
+                                  <div className="text-xl font-bold text-green-600">Excellent Performance!</div>
+                                  <div className="text-sm">All delivered projects met their phase handoff deadlines</div>
+                                </div>
+                              );
+                            }
+
+                            return deliveredWithLateHandoffs.map(project => {
+                              const latePhases = [];
+                              if (project.paintStart && project.opPaintStart && new Date(project.paintStart) > new Date(project.opPaintStart)) {
+                                const daysLate = Math.ceil((new Date(project.paintStart).getTime() - new Date(project.opPaintStart).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`PAINT (+${daysLate}d)`);
+                              }
+                              if (project.productionStart && project.opProductionStart && new Date(project.productionStart) > new Date(project.opProductionStart)) {
+                                const daysLate = Math.ceil((new Date(project.productionStart).getTime() - new Date(project.opProductionStart).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`Production (+${daysLate}d)`);
+                              }
+                              if (project.itStart && project.opItStart && new Date(project.itStart) > new Date(project.opItStart)) {
+                                const daysLate = Math.ceil((new Date(project.itStart).getTime() - new Date(project.opItStart).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`IT (+${daysLate}d)`);
+                              }
+
+                              return (
+                                <div key={project.id} className="flex justify-between items-center p-3 bg-red-50 rounded">
+                                  <div>
+                                    <div className="font-medium text-gray-900">{project.projectNumber}</div>
+                                    <div className="text-xs text-gray-500 truncate max-w-48" title={project.name}>
+                                      {project.name}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge variant="outline" className="text-red-700">
+                                      {latePhases.join(', ')}
+                                    </Badge>
+                                    <div className="text-xs text-red-500 mt-1">Delivered with delays</div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   {/* Schedule Change Control */}
