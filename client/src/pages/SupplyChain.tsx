@@ -54,7 +54,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock, ListFilter, Search, CheckCircle } from 'lucide-react';
+import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock, ListFilter, Search, CheckCircle, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface SupplyChainBenchmark {
   id: number;
@@ -143,11 +143,19 @@ const SupplyChain = () => {
   const [benchmarkFilter, setBenchmarkFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   
-  // List view filters
-  const [projectNumberFilter, setProjectNumberFilter] = useState<string>('');
-  const [benchmarkCountFilter, setBenchmarkCountFilter] = useState<string>('');
-  const [progressFilter, setProgressFilter] = useState<string>('');
-  const [upcomingTaskFilter, setUpcomingTaskFilter] = useState<string>('');
+  // List view sorting
+  const [sortColumn, setSortColumn] = useState<'project' | 'benchmarks' | 'progress' | 'upcoming' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Handle sorting
+  const handleSort = (column: 'project' | 'benchmarks' | 'progress' | 'upcoming') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -790,46 +798,37 @@ const SupplyChain = () => {
       });
     }
 
-    // List view specific filters (only apply in list view)
-    if (viewMode === 'list') {
-      // Project number filter
-      if (projectNumberFilter.trim()) {
-        const query = projectNumberFilter.toLowerCase();
-        filtered = filtered.filter(project =>
-          project.projectNumber.toLowerCase().includes(query)
-        );
-      }
-      
-      // Filter by benchmark count, progress, and upcoming tasks
-      if (benchmarkCountFilter.trim() || progressFilter.trim() || upcomingTaskFilter.trim()) {
-        filtered = filtered.filter(project => {
-          const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
-          const totalBenchmarks = projectBenchmarks.length;
-          const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
-          const progressPercentage = totalBenchmarks > 0 ? Math.round((completedBenchmarks / totalBenchmarks) * 100) : 0;
-          
-          // Benchmark count filter
-          if (benchmarkCountFilter.trim() && !totalBenchmarks.toString().includes(benchmarkCountFilter)) {
-            return false;
-          }
-          
-          // Progress filter
-          if (progressFilter.trim() && !progressPercentage.toString().includes(progressFilter)) {
-            return false;
-          }
-          
-          // Upcoming task filter
-          if (upcomingTaskFilter.trim()) {
-            const upcomingBenchmarks = projectBenchmarks.filter(b => !b.isCompleted);
-            const upcomingTaskName = upcomingBenchmarks.length > 0 ? upcomingBenchmarks[0].name : 'No upcoming tasks';
-            if (!upcomingTaskName.toLowerCase().includes(upcomingTaskFilter.toLowerCase())) {
-              return false;
-            }
-          }
-          
-          return true;
-        });
-      }
+    // Apply sorting for list view
+    if (viewMode === 'list' && sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        const aProjectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === a.id) || [];
+        const bProjectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === b.id) || [];
+        
+        let comparison = 0;
+        
+        switch (sortColumn) {
+          case 'project':
+            comparison = a.projectNumber.localeCompare(b.projectNumber);
+            break;
+          case 'benchmarks':
+            comparison = aProjectBenchmarks.length - bProjectBenchmarks.length;
+            break;
+          case 'progress':
+            const aProgress = aProjectBenchmarks.length > 0 ? (aProjectBenchmarks.filter(pb => pb.isCompleted).length / aProjectBenchmarks.length) * 100 : 0;
+            const bProgress = bProjectBenchmarks.length > 0 ? (bProjectBenchmarks.filter(pb => pb.isCompleted).length / bProjectBenchmarks.length) * 100 : 0;
+            comparison = aProgress - bProgress;
+            break;
+          case 'upcoming':
+            const aUpcoming = aProjectBenchmarks.filter(pb => !pb.isCompleted);
+            const bUpcoming = bProjectBenchmarks.filter(pb => !pb.isCompleted);
+            const aUpcomingName = aUpcoming.length > 0 ? aUpcoming[0].name : '';
+            const bUpcomingName = bUpcoming.length > 0 ? bUpcoming[0].name : '';
+            comparison = aUpcomingName.localeCompare(bUpcomingName);
+            break;
+        }
+        
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
     }
 
     return filtered;
@@ -845,10 +844,8 @@ const SupplyChain = () => {
     filteredProjectBenchmarks,
     benchmarks,
     viewMode,
-    projectNumberFilter,
-    benchmarkCountFilter,
-    progressFilter,
-    upcomingTaskFilter
+    sortColumn,
+    sortDirection
   ]);
 
   // Get unique benchmark names for filter
@@ -1562,51 +1559,55 @@ const SupplyChain = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b border-slate-200 dark:border-slate-700">
-                      <TableHead className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
-                        <div className="space-y-2">
-                          <div className="font-semibold">Project</div>
-                          <Input
-                            placeholder="Filter projects..."
-                            value={projectNumberFilter}
-                            onChange={(e) => setProjectNumberFilter(e.target.value)}
-                            className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
-                          />
+                      <TableHead 
+                        className="text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600"
+                        onClick={() => handleSort('project')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Project</span>
+                          <div className="flex flex-col">
+                            <ChevronUp className={`h-3 w-3 ${sortColumn === 'project' && sortDirection === 'asc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                            <ChevronDown className={`h-3 w-3 -mt-1 ${sortColumn === 'project' && sortDirection === 'desc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                          </div>
                         </div>
                       </TableHead>
-                      <TableHead className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
-                        <div className="space-y-2">
-                          <div className="font-semibold">Benchmarks</div>
-                          <Input
-                            placeholder="Filter count..."
-                            value={benchmarkCountFilter}
-                            onChange={(e) => setBenchmarkCountFilter(e.target.value)}
-                            className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
-                          />
+                      <TableHead 
+                        className="text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600"
+                        onClick={() => handleSort('benchmarks')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Benchmarks</span>
+                          <div className="flex flex-col">
+                            <ChevronUp className={`h-3 w-3 ${sortColumn === 'benchmarks' && sortDirection === 'asc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                            <ChevronDown className={`h-3 w-3 -mt-1 ${sortColumn === 'benchmarks' && sortDirection === 'desc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                          </div>
                         </div>
                       </TableHead>
-                      <TableHead className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
-                        <div className="space-y-2">
-                          <div className="font-semibold">Progress</div>
-                          <Input
-                            placeholder="Filter progress..."
-                            value={progressFilter}
-                            onChange={(e) => setProgressFilter(e.target.value)}
-                            className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
-                          />
+                      <TableHead 
+                        className="text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600"
+                        onClick={() => handleSort('progress')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Progress</span>
+                          <div className="flex flex-col">
+                            <ChevronUp className={`h-3 w-3 ${sortColumn === 'progress' && sortDirection === 'asc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                            <ChevronDown className={`h-3 w-3 -mt-1 ${sortColumn === 'progress' && sortDirection === 'desc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                          </div>
                         </div>
                       </TableHead>
-                      <TableHead className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
-                        <div className="space-y-2">
-                          <div className="font-semibold">Upcoming Tasks</div>
-                          <Input
-                            placeholder="Filter tasks..."
-                            value={upcomingTaskFilter}
-                            onChange={(e) => setUpcomingTaskFilter(e.target.value)}
-                            className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
-                          />
+                      <TableHead 
+                        className="text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600"
+                        onClick={() => handleSort('upcoming')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Upcoming Tasks</span>
+                          <div className="flex flex-col">
+                            <ChevronUp className={`h-3 w-3 ${sortColumn === 'upcoming' && sortDirection === 'asc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                            <ChevronDown className={`h-3 w-3 -mt-1 ${sortColumn === 'upcoming' && sortDirection === 'desc' ? 'text-blue-600' : 'text-slate-400'}`} />
+                          </div>
                         </div>
                       </TableHead>
-                      <TableHead className="text-right text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
+                      <TableHead className="text-right text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
                         <div className="font-semibold">Actions</div>
                       </TableHead>
                     </TableRow>
