@@ -522,19 +522,23 @@ export const requireAdmin = async (req: any, res: any, next: any) => {
   try {
     console.log(`[ADMIN MIDDLEWARE] Checking admin access for ${req.method} ${req.url}`);
     
-    if (!req.isAuthenticated() || !req.user) {
-      console.log(`[ADMIN MIDDLEWARE] ❌ Not authenticated`);
+    // Check session user first (consistent with main auth middleware)
+    const sessionUser = (req.session as any)?.user;
+    if (!sessionUser) {
+      console.log(`[ADMIN MIDDLEWARE] ❌ No session user found`);
       return res.status(401).json({ message: "Authentication required" });
     }
 
+    console.log(`[ADMIN MIDDLEWARE] Session user: ${sessionUser.email} with role ${sessionUser.role}`);
+
     // Get fresh user data from database to ensure role is current
-    const user = await storage.getUser(req.user.id);
+    const user = await storage.getUser(sessionUser.id);
     if (!user) {
       console.log(`[ADMIN MIDDLEWARE] ❌ User not found in database`);
       return res.status(401).json({ message: "User not found" });
     }
 
-    console.log(`[ADMIN MIDDLEWARE] User ${user.email} has role: ${user.role}`);
+    console.log(`[ADMIN MIDDLEWARE] Fresh user data - ${user.email} has role: ${user.role}`);
     
     if (user.role !== 'admin') {
       console.log(`[ADMIN MIDDLEWARE] ❌ Access denied - user role ${user.role} is not admin`);
@@ -553,20 +557,32 @@ export const requireAdmin = async (req: any, res: any, next: any) => {
 // Editor or Admin middleware
 export const requireEditor = async (req: any, res: any, next: any) => {
   try {
-    if (!req.isAuthenticated() || !req.user) {
+    console.log(`🔍 Auth middleware: Checking authentication for ${req.method} ${req.url}`);
+    
+    // Check session user first (consistent with main auth middleware)
+    const sessionUser = (req.session as any)?.user;
+    if (!sessionUser) {
+      console.log(`🔍 Auth middleware: ❌ No session user found`);
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    // Get fresh user data from database
-    const user = await storage.getUser(req.user.id);
+    console.log(`✅ Authenticated user: ${sessionUser.email} with role ${sessionUser.role}`);
+
+    // Get fresh user data from database to ensure role is current
+    const user = await storage.getUser(sessionUser.id);
     if (!user) {
+      console.log(`🔍 Auth middleware: ❌ User not found in database`);
       return res.status(401).json({ message: "User not found" });
     }
 
+    console.log(`🔍 Auth middleware: Fresh user data - ${user.email} has role: ${user.role}`);
+    
     if (user.role !== 'admin' && user.role !== 'editor') {
+      console.log(`🔍 Auth middleware: ❌ Access denied - user role ${user.role} is not admin or editor`);
       return res.status(403).json({ message: "Editor or Admin access required" });
     }
 
+    console.log(`✅ Editor access granted for: ${user.email}`);
     req.user = user; // Update req.user with fresh data
     return next();
   } catch (error) {
