@@ -939,15 +939,7 @@ const SupplyChain = () => {
                 </>
               )}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setActiveTab('benchmarks')}
-              className="flex items-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
-            </Button>
+
           </div>
         </div>
 
@@ -1621,7 +1613,13 @@ const SupplyChain = () => {
             <CardContent className="space-y-6">
               {benchmarks && benchmarks.length > 0 ? (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Benchmark Templates</h3>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Benchmark Templates</h3>
+                    <Button onClick={handleNewBenchmark} size="sm">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      New Benchmark
+                    </Button>
+                  </div>
                   <div className="grid gap-4">
                     {benchmarks.map((benchmark) => (
                       <div key={benchmark.id} className="border rounded-lg p-4 space-y-3">
