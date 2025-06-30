@@ -2106,17 +2106,27 @@ const ReportsPage = () => {
                               <div className="p-4 bg-red-50 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">
                                   {(() => {
-                                    // Projects with any schedule changes
+                                    // Projects with any schedule changes across ALL phases
                                     const withChanges = filteredProjects.filter(p => {
-                                      const hasProductionChange = p.productionStart && p.opProductionStart && 
-                                        new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime();
-                                      const hasPaintChange = p.paintStart && p.opPaintStart && 
-                                        new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime();
-                                      const hasItChange = p.itStart && p.opItStart && 
-                                        new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime();
-                                      const hasDeliveryChange = p.deliveryDate && p.opDeliveryDate && 
-                                        new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime();
-                                      return hasProductionChange || hasPaintChange || hasItChange || hasDeliveryChange;
+                                      const phaseComparisons = [
+                                        { current: 'fabricationStart', original: 'opFabricationStart' },
+                                        { current: 'paintStart', original: 'opPaintStart' },
+                                        { current: 'productionStart', original: 'opProductionStart' },
+                                        { current: 'itStart', original: 'opItStart' },
+                                        { current: 'wrapDate', original: 'opWrapDate' },
+                                        { current: 'ntcTestingDate', original: 'opNtcTestingDate' },
+                                        { current: 'qcStartDate', original: 'opQcStartDate' },
+                                        { current: 'executiveReviewDate', original: 'opExecutiveReviewDate' },
+                                        { current: 'shipDate', original: 'opShipDate' },
+                                        { current: 'deliveryDate', original: 'opDeliveryDate' }
+                                      ];
+                                      
+                                      return phaseComparisons.some(phase => 
+                                        p[phase.current as keyof typeof p] && 
+                                        p[phase.original as keyof typeof p] && 
+                                        new Date(p[phase.current as keyof typeof p] as string).getTime() !== 
+                                        new Date(p[phase.original as keyof typeof p] as string).getTime()
+                                      );
                                     }).length;
                                     return withChanges;
                                   })()}
@@ -2126,23 +2136,32 @@ const ReportsPage = () => {
                               <div className="p-4 bg-green-50 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">
                                   {(() => {
-                                    // Projects with no schedule changes
+                                    // Projects with no schedule changes across ALL phases
                                     const withoutChanges = filteredProjects.filter(p => {
-                                      const hasData = (p.productionStart && p.opProductionStart) || 
-                                                    (p.paintStart && p.opPaintStart) || 
-                                                    (p.itStart && p.opItStart) || 
-                                                    (p.deliveryDate && p.opDeliveryDate);
+                                      const phaseComparisons = [
+                                        { current: 'fabricationStart', original: 'opFabricationStart' },
+                                        { current: 'paintStart', original: 'opPaintStart' },
+                                        { current: 'productionStart', original: 'opProductionStart' },
+                                        { current: 'itStart', original: 'opItStart' },
+                                        { current: 'wrapDate', original: 'opWrapDate' },
+                                        { current: 'ntcTestingDate', original: 'opNtcTestingDate' },
+                                        { current: 'qcStartDate', original: 'opQcStartDate' },
+                                        { current: 'executiveReviewDate', original: 'opExecutiveReviewDate' },
+                                        { current: 'shipDate', original: 'opShipDate' },
+                                        { current: 'deliveryDate', original: 'opDeliveryDate' }
+                                      ];
+                                      
+                                      const hasData = phaseComparisons.some(phase => 
+                                        p[phase.current as keyof typeof p] && p[phase.original as keyof typeof p]
+                                      );
                                       if (!hasData) return false;
                                       
-                                      const noProductionChange = !p.productionStart || !p.opProductionStart || 
-                                        new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime();
-                                      const noPaintChange = !p.paintStart || !p.opPaintStart || 
-                                        new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime();
-                                      const noItChange = !p.itStart || !p.opItStart || 
-                                        new Date(p.itStart).getTime() === new Date(p.opItStart).getTime();
-                                      const noDeliveryChange = !p.deliveryDate || !p.opDeliveryDate || 
-                                        new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime();
-                                      return noProductionChange && noPaintChange && noItChange && noDeliveryChange;
+                                      return !phaseComparisons.some(phase => 
+                                        p[phase.current as keyof typeof p] && 
+                                        p[phase.original as keyof typeof p] && 
+                                        new Date(p[phase.current as keyof typeof p] as string).getTime() !== 
+                                        new Date(p[phase.original as keyof typeof p] as string).getTime()
+                                      );
                                     }).length;
                                     return withoutChanges;
                                   })()}
@@ -2197,109 +2216,56 @@ const ReportsPage = () => {
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <div>
-                                <span className="text-sm font-medium">Production Phase Changes</span>
-                                <div className="text-xs text-gray-500">
-                                  Avg impact: {(() => {
-                                    const changedProjects = filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
-                                      new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime());
-                                    if (changedProjects.length === 0) return '0 days';
-                                    const totalImpact = changedProjects.reduce((sum, p) => {
-                                      return sum + Math.abs(new Date(p.productionStart!).getTime() - new Date(p.opProductionStart!).getTime()) / (1000 * 60 * 60 * 24);
-                                    }, 0);
-                                    return `${Math.round(totalImpact / changedProjects.length)} days`;
-                                  })()}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <Badge variant={
-                                  filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
-                                    new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime()).length > 5 ? "destructive" : "secondary"
-                                }>
-                                  {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
-                                    new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime()).length}
-                                </Badge>
-                              </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <div>
-                                <span className="text-sm font-medium">PAINT Phase Changes</span>
-                                <div className="text-xs text-gray-500">
-                                  Avg impact: {(() => {
-                                    const changedProjects = filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
-                                      new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime());
-                                    if (changedProjects.length === 0) return '0 days';
-                                    const totalImpact = changedProjects.reduce((sum, p) => {
-                                      return sum + Math.abs(new Date(p.paintStart!).getTime() - new Date(p.opPaintStart!).getTime()) / (1000 * 60 * 60 * 24);
-                                    }, 0);
-                                    return `${Math.round(totalImpact / changedProjects.length)} days`;
-                                  })()}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <Badge variant={
-                                  filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
-                                    new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime()).length > 5 ? "destructive" : "secondary"
-                                }>
-                                  {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
-                                    new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime()).length}
-                                </Badge>
-                              </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <div>
-                                <span className="text-sm font-medium">IT Phase Changes</span>
-                                <div className="text-xs text-gray-500">
-                                  Avg impact: {(() => {
-                                    const changedProjects = filteredProjects.filter(p => p.itStart && p.opItStart && 
-                                      new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime());
-                                    if (changedProjects.length === 0) return '0 days';
-                                    const totalImpact = changedProjects.reduce((sum, p) => {
-                                      return sum + Math.abs(new Date(p.itStart!).getTime() - new Date(p.opItStart!).getTime()) / (1000 * 60 * 60 * 24);
-                                    }, 0);
-                                    return `${Math.round(totalImpact / changedProjects.length)} days`;
-                                  })()}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <Badge variant={
-                                  filteredProjects.filter(p => p.itStart && p.opItStart && 
-                                    new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime()).length > 5 ? "destructive" : "secondary"
-                                }>
-                                  {filteredProjects.filter(p => p.itStart && p.opItStart && 
-                                    new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime()).length}
-                                </Badge>
-                              </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <div>
-                                <span className="text-sm font-medium">Delivery Date Changes</span>
-                                <div className="text-xs text-gray-500">
-                                  Avg impact: {(() => {
-                                    const changedProjects = filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate && 
-                                      new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime());
-                                    if (changedProjects.length === 0) return '0 days';
-                                    const totalImpact = changedProjects.reduce((sum, p) => {
-                                      return sum + Math.abs(new Date(p.deliveryDate!).getTime() - new Date(p.opDeliveryDate!).getTime()) / (1000 * 60 * 60 * 24);
-                                    }, 0);
-                                    return `${Math.round(totalImpact / changedProjects.length)} days`;
-                                  })()}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <Badge variant={
-                                  filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate && 
-                                    new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime()).length > 10 ? "destructive" : "secondary"
-                                }>
-                                  {filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate && 
-                                    new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime()).length}
-                                </Badge>
-                              </div>
-                            </div>
+{(() => {
+                              // Define all phase comparisons with their display names
+                              const phaseComparisons = [
+                                { current: 'fabricationStart', original: 'opFabricationStart', name: 'Fabrication Start' },
+                                { current: 'paintStart', original: 'opPaintStart', name: 'PAINT Start' },
+                                { current: 'productionStart', original: 'opProductionStart', name: 'Production Start' },
+                                { current: 'itStart', original: 'opItStart', name: 'IT Start' },
+                                { current: 'wrapDate', original: 'opWrapDate', name: 'Wrap Date' },
+                                { current: 'ntcTestingDate', original: 'opNtcTestingDate', name: 'NTC Testing' },
+                                { current: 'qcStartDate', original: 'opQcStartDate', name: 'QC Start' },
+                                { current: 'executiveReviewDate', original: 'opExecutiveReviewDate', name: 'Executive Review' },
+                                { current: 'shipDate', original: 'opShipDate', name: 'Ship Date' },
+                                { current: 'deliveryDate', original: 'opDeliveryDate', name: 'Delivery Date' }
+                              ];
+
+                              return phaseComparisons.map((phase, index) => {
+                                const changedProjects = filteredProjects.filter(p => 
+                                  p[phase.current as keyof typeof p] && 
+                                  p[phase.original as keyof typeof p] && 
+                                  new Date(p[phase.current as keyof typeof p] as string).getTime() !== 
+                                  new Date(p[phase.original as keyof typeof p] as string).getTime()
+                                );
+
+                                const avgImpact = changedProjects.length === 0 ? '0 days' : (() => {
+                                  const totalImpact = changedProjects.reduce((sum, p) => {
+                                    return sum + Math.abs(
+                                      new Date(p[phase.current as keyof typeof p] as string).getTime() - 
+                                      new Date(p[phase.original as keyof typeof p] as string).getTime()
+                                    ) / (1000 * 60 * 60 * 24);
+                                  }, 0);
+                                  return `${Math.round(totalImpact / changedProjects.length)} days`;
+                                })();
+
+                                return (
+                                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                    <div>
+                                      <span className="text-sm font-medium">{phase.name} Changes</span>
+                                      <div className="text-xs text-gray-500">
+                                        Avg impact: {avgImpact}
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <Badge variant={changedProjects.length > 5 ? "destructive" : "secondary"}>
+                                        {changedProjects.length}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
                           </div>
                         </CardContent>
                       </Card>
@@ -2375,17 +2341,27 @@ const ReportsPage = () => {
                       <CardContent>
                         <div className="space-y-3 max-h-96 overflow-y-auto">
                           {(() => {
-                            // Get all projects with any schedule changes
+                            // Get all projects with any schedule changes across ALL phases
                             const projectsWithChanges = filteredProjects.filter(p => {
-                              const hasProductionChange = p.productionStart && p.opProductionStart && 
-                                new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime();
-                              const hasPaintChange = p.paintStart && p.opPaintStart && 
-                                new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime();
-                              const hasItChange = p.itStart && p.opItStart && 
-                                new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime();
-                              const hasDeliveryChange = p.deliveryDate && p.opDeliveryDate && 
-                                new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime();
-                              return hasProductionChange || hasPaintChange || hasItChange || hasDeliveryChange;
+                              const phaseComparisons = [
+                                { current: 'fabricationStart', original: 'opFabricationStart' },
+                                { current: 'paintStart', original: 'opPaintStart' },
+                                { current: 'productionStart', original: 'opProductionStart' },
+                                { current: 'itStart', original: 'opItStart' },
+                                { current: 'wrapDate', original: 'opWrapDate' },
+                                { current: 'ntcTestingDate', original: 'opNtcTestingDate' },
+                                { current: 'qcStartDate', original: 'opQcStartDate' },
+                                { current: 'executiveReviewDate', original: 'opExecutiveReviewDate' },
+                                { current: 'shipDate', original: 'opShipDate' },
+                                { current: 'deliveryDate', original: 'opDeliveryDate' }
+                              ];
+                              
+                              return phaseComparisons.some(phase => 
+                                p[phase.current as keyof typeof p] && 
+                                p[phase.original as keyof typeof p] && 
+                                new Date(p[phase.current as keyof typeof p] as string).getTime() !== 
+                                new Date(p[phase.original as keyof typeof p] as string).getTime()
+                              );
                             }).sort((a, b) => a.projectNumber.localeCompare(b.projectNumber));
 
                             if (projectsWithChanges.length === 0) {
@@ -2400,49 +2376,36 @@ const ReportsPage = () => {
                             return projectsWithChanges.map(project => {
                               const changes = [];
                               
-                              // Check Production changes
-                              if (project.productionStart && project.opProductionStart && 
-                                  new Date(project.productionStart).getTime() !== new Date(project.opProductionStart).getTime()) {
-                                const variance = Math.ceil((new Date(project.productionStart).getTime() - new Date(project.opProductionStart).getTime()) / (1000 * 60 * 60 * 24));
-                                changes.push({
-                                  phase: 'Production',
-                                  variance: variance,
-                                  color: variance > 0 ? 'text-red-600' : 'text-green-600'
-                                });
-                              }
+                              // Check ALL manufacturing phase changes
+                              const phaseComparisons = [
+                                { current: 'fabricationStart', original: 'opFabricationStart', name: 'Fab' },
+                                { current: 'paintStart', original: 'opPaintStart', name: 'PAINT' },
+                                { current: 'productionStart', original: 'opProductionStart', name: 'Prod' },
+                                { current: 'itStart', original: 'opItStart', name: 'IT' },
+                                { current: 'wrapDate', original: 'opWrapDate', name: 'Wrap' },
+                                { current: 'ntcTestingDate', original: 'opNtcTestingDate', name: 'NTC' },
+                                { current: 'qcStartDate', original: 'opQcStartDate', name: 'QC' },
+                                { current: 'executiveReviewDate', original: 'opExecutiveReviewDate', name: 'Exec' },
+                                { current: 'shipDate', original: 'opShipDate', name: 'Ship' },
+                                { current: 'deliveryDate', original: 'opDeliveryDate', name: 'Delivery' }
+                              ];
                               
-                              // Check PAINT changes
-                              if (project.paintStart && project.opPaintStart && 
-                                  new Date(project.paintStart).getTime() !== new Date(project.opPaintStart).getTime()) {
-                                const variance = Math.ceil((new Date(project.paintStart).getTime() - new Date(project.opPaintStart).getTime()) / (1000 * 60 * 60 * 24));
-                                changes.push({
-                                  phase: 'PAINT',
-                                  variance: variance,
-                                  color: variance > 0 ? 'text-red-600' : 'text-green-600'
-                                });
-                              }
-                              
-                              // Check IT changes
-                              if (project.itStart && project.opItStart && 
-                                  new Date(project.itStart).getTime() !== new Date(project.opItStart).getTime()) {
-                                const variance = Math.ceil((new Date(project.itStart).getTime() - new Date(project.opItStart).getTime()) / (1000 * 60 * 60 * 24));
-                                changes.push({
-                                  phase: 'IT',
-                                  variance: variance,
-                                  color: variance > 0 ? 'text-red-600' : 'text-green-600'
-                                });
-                              }
-                              
-                              // Check Delivery changes
-                              if (project.deliveryDate && project.opDeliveryDate && 
-                                  new Date(project.deliveryDate).getTime() !== new Date(project.opDeliveryDate).getTime()) {
-                                const variance = Math.ceil((new Date(project.deliveryDate).getTime() - new Date(project.opDeliveryDate).getTime()) / (1000 * 60 * 60 * 24));
-                                changes.push({
-                                  phase: 'Delivery',
-                                  variance: variance,
-                                  color: variance > 0 ? 'text-red-600' : 'text-green-600'
-                                });
-                              }
+                              phaseComparisons.forEach(phase => {
+                                if (project[phase.current as keyof typeof project] && 
+                                    project[phase.original as keyof typeof project] && 
+                                    new Date(project[phase.current as keyof typeof project] as string).getTime() !== 
+                                    new Date(project[phase.original as keyof typeof project] as string).getTime()) {
+                                  const variance = Math.ceil((
+                                    new Date(project[phase.current as keyof typeof project] as string).getTime() - 
+                                    new Date(project[phase.original as keyof typeof project] as string).getTime()
+                                  ) / (1000 * 60 * 60 * 24));
+                                  changes.push({
+                                    phase: phase.name,
+                                    variance: variance,
+                                    color: variance > 0 ? 'text-red-600' : 'text-green-600'
+                                  });
+                                }
+                              });
 
                               return (
                                 <div key={project.id} className="flex justify-between items-center p-3 bg-gray-50 rounded border">
