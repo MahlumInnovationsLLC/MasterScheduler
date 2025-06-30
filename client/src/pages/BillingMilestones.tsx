@@ -622,7 +622,7 @@ const BillingMilestones = () => {
     const last30Days = new Date();
     last30Days.setDate(last30Days.getDate() - 30);
 
-    const receivedLast30Days = billingMilestones
+    const receivedLast30DaysData = billingMilestones
       .filter(m => {
         const paidDate = m.paidDate ? new Date(m.paidDate) : null;
         return m.status === 'paid' && paidDate && paidDate >= last30Days;
@@ -638,7 +638,7 @@ const BillingMilestones = () => {
       },
       amounts: {
         received: totalReceived,
-        receivedLast30Days,
+        receivedLast30Days: receivedLast30DaysData,
         pending: totalPending,
         overdue: totalOverdue,
         upcoming: totalUpcoming,
