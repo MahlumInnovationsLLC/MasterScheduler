@@ -177,12 +177,12 @@ const MaterialManagement = () => {
     <div className="container mx-auto px-6 py-8">
       <div className="flex items-center gap-3 mb-8">
         <Package className="h-8 w-8 text-blue-500" />
-        <h1 className="text-3xl font-bold text-white">Material Management</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Material Management</h1>
       </div>
 
       {/* Description */}
-      <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
-        <p className="text-gray-300">
+      <div className="mb-6 p-4 bg-blue-50 dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-gray-700">
+        <p className="text-gray-700 dark:text-gray-300">
           Track and manage material status for all manufacturing teams and their projects. 
           Update status to keep the team informed about material availability and progress.
         </p>
@@ -196,7 +196,7 @@ const MaterialManagement = () => {
             placeholder="Search teams or projects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700 text-white"
+            className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
           />
         </div>
       </div>
@@ -204,23 +204,23 @@ const MaterialManagement = () => {
       {/* Teams Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredTeams.map((team) => (
-          <Card key={team.team} className="bg-gray-800 border-gray-700">
+          <Card key={team.team} className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-xl font-semibold text-white flex items-center gap-2">
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Package className="h-5 w-5 text-blue-500" />
                 {team.team}
               </CardTitle>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 {team.projects.length} project{team.projects.length !== 1 ? 's' : ''}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
               {team.projects.map((project) => (
-                <div key={project.id} className="p-4 bg-gray-900 rounded-lg border border-gray-600">
+                <div key={project.id} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-600">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="font-medium text-white">{project.projectNumber}</h4>
-                      <p className="text-sm text-gray-300 mt-1 line-clamp-2">{project.name}</p>
+                      <h4 className="font-medium text-gray-900 dark:text-white">{project.projectNumber}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{project.name}</p>
                     </div>
                   </div>
                   
@@ -238,29 +238,29 @@ const MaterialManagement = () => {
                       value={project.materialManagementStatus || ''}
                       onValueChange={(value) => handleStatusUpdate(project.id, value)}
                     >
-                      <SelectTrigger className="flex-1 bg-gray-800 border-gray-600 text-white">
+                      <SelectTrigger className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-600">
-                        <SelectItem value="IN QC" className="text-white hover:bg-gray-700">
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                        <SelectItem value="IN QC" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <AlertCircle className="h-4 w-4 text-orange-500" />
                             IN QC
                           </div>
                         </SelectItem>
-                        <SelectItem value="IN WORK" className="text-white hover:bg-gray-700">
+                        <SelectItem value="IN WORK" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-blue-500" />
                             IN WORK
                           </div>
                         </SelectItem>
-                        <SelectItem value="Inventory Job Cart" className="text-white hover:bg-gray-700">
+                        <SelectItem value="Inventory Job Cart" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <Package className="h-4 w-4 text-purple-500" />
                             Inventory Job Cart
                           </div>
                         </SelectItem>
-                        <SelectItem value="SHIPPED" className="text-white hover:bg-gray-700">
+                        <SelectItem value="SHIPPED" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <Truck className="h-4 w-4 text-green-500" />
                             SHIPPED
@@ -279,9 +279,9 @@ const MaterialManagement = () => {
       {/* No Results */}
       {filteredTeams.length === 0 && !isLoading && (
         <div className="text-center py-12">
-          <Package className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-          <h3 className="text-xl font-medium text-gray-400 mb-2">No teams found</h3>
-          <p className="text-gray-500">
+          <Package className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+          <h3 className="text-xl font-medium text-gray-600 dark:text-gray-400 mb-2">No teams found</h3>
+          <p className="text-gray-500 dark:text-gray-500">
             {searchTerm ? 'No teams match your search criteria.' : 'No manufacturing teams with projects found.'}
           </p>
         </div>
