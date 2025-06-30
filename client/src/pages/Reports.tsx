@@ -2039,6 +2039,110 @@ const ReportsPage = () => {
                     
                     <Card>
                       <CardHeader>
+                        <CardTitle>Current Projects with Delayed Handoffs</CardTitle>
+                        <CardDescription>
+                          Active projects currently experiencing phase delays from their original planned dates
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {(() => {
+                            // Find active projects with current delayed handoffs across ALL phases
+                            const activeWithDelayedHandoffs = filteredProjects.filter(p => {
+                              if (p.status === 'delivered') return false;
+                              
+                              const phaseComparisons = [
+                                { current: 'fabricationStart', original: 'opFabricationStart', name: 'Fab' },
+                                { current: 'paintStart', original: 'opPaintStart', name: 'PAINT' },
+                                { current: 'productionStart', original: 'opProductionStart', name: 'Prod' },
+                                { current: 'itStart', original: 'opItStart', name: 'IT' },
+                                { current: 'wrapDate', original: 'opWrapDate', name: 'Wrap' },
+                                { current: 'ntcTestingDate', original: 'opNtcTestingDate', name: 'NTC' },
+                                { current: 'qcStartDate', original: 'opQcStartDate', name: 'QC' },
+                                { current: 'executiveReviewDate', original: 'opExecutiveReviewDate', name: 'Exec' },
+                                { current: 'shipDate', original: 'opShipDate', name: 'Ship' },
+                                { current: 'deliveryDate', original: 'opDeliveryDate', name: 'Delivery' }
+                              ];
+                              
+                              return phaseComparisons.some(phase => 
+                                p[phase.current as keyof typeof p] && 
+                                p[phase.original as keyof typeof p] && 
+                                new Date(p[phase.current as keyof typeof p] as string) > 
+                                new Date(p[phase.original as keyof typeof p] as string)
+                              );
+                            }).sort((a, b) => a.projectNumber.localeCompare(b.projectNumber));
+
+                            if (activeWithDelayedHandoffs.length === 0) {
+                              return (
+                                <div className="text-center text-gray-500 py-4">
+                                  No current projects with delayed handoffs found
+                                </div>
+                              );
+                            }
+
+                            return activeWithDelayedHandoffs.map(project => {
+                              const delayedPhases: Array<{phase: string, variance: number, color: string}> = [];
+                              
+                              const phaseComparisons = [
+                                { current: 'fabricationStart', original: 'opFabricationStart', name: 'Fab' },
+                                { current: 'paintStart', original: 'opPaintStart', name: 'PAINT' },
+                                { current: 'productionStart', original: 'opProductionStart', name: 'Prod' },
+                                { current: 'itStart', original: 'opItStart', name: 'IT' },
+                                { current: 'wrapDate', original: 'opWrapDate', name: 'Wrap' },
+                                { current: 'ntcTestingDate', original: 'opNtcTestingDate', name: 'NTC' },
+                                { current: 'qcStartDate', original: 'opQcStartDate', name: 'QC' },
+                                { current: 'executiveReviewDate', original: 'opExecutiveReviewDate', name: 'Exec' },
+                                { current: 'shipDate', original: 'opShipDate', name: 'Ship' },
+                                { current: 'deliveryDate', original: 'opDeliveryDate', name: 'Delivery' }
+                              ];
+                              
+                              phaseComparisons.forEach(phase => {
+                                if (project[phase.current as keyof typeof project] && 
+                                    project[phase.original as keyof typeof project] && 
+                                    new Date(project[phase.current as keyof typeof project] as string) > 
+                                    new Date(project[phase.original as keyof typeof project] as string)) {
+                                  const variance = Math.ceil((
+                                    new Date(project[phase.current as keyof typeof project] as string).getTime() - 
+                                    new Date(project[phase.original as keyof typeof project] as string).getTime()
+                                  ) / (1000 * 60 * 60 * 24));
+                                  delayedPhases.push({
+                                    phase: phase.name,
+                                    variance: variance,
+                                    color: 'text-red-600'
+                                  });
+                                }
+                              });
+
+                              return (
+                                <div key={project.id} className="p-3 border rounded-lg bg-red-50">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <div className="font-medium text-gray-900">{project.projectNumber}</div>
+                                      <div className="text-sm text-gray-600 truncate max-w-64">{project.name}</div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="flex flex-wrap gap-1 justify-end">
+                                        {delayedPhases.map((phase, idx) => (
+                                          <Badge key={idx} variant="destructive" className="text-xs">
+                                            {phase.phase} (+{phase.variance}d)
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                      <div className="text-xs text-gray-500 mt-1">
+                                        {delayedPhases.length} phase{delayedPhases.length > 1 ? 's' : ''} delayed
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
                         <CardTitle>Delivered Projects with Late Handoffs (Not Recovered)</CardTitle>
                         <CardDescription>
                           Projects that were delivered despite having delayed phase handoffs that were never brought back to original schedule
