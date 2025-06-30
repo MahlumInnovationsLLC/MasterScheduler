@@ -330,15 +330,15 @@ const BillingMilestones = () => {
     if (!billingMilestones || billingMilestones.length === 0) return null;
 
     // Calculate milestone counts by status
-    const completed = billingMilestones.filter(m => m.status === 'paid').length;
-    const invoicedBilled = billingMilestones.filter(m => m.status === 'invoiced' || m.status === 'billed').length;
+    const invoiced = billingMilestones.filter(m => m.status === 'invoiced').length;
+    const billed = billingMilestones.filter(m => m.status === 'billed').length;
     const overdue = billingMilestones.filter(m => {
-      if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced') return false;
+      if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced' || m.status === 'billed') return false;
       const targetDate = new Date(m.targetInvoiceDate);
       return targetDate < new Date();
     }).length;
     const upcoming = billingMilestones.filter(m => {
-      if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced') return false;
+      if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced' || m.status === 'billed') return false;
       const targetDate = new Date(m.targetInvoiceDate);
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
@@ -631,8 +631,8 @@ const BillingMilestones = () => {
 
     return {
       milestones: {
-        completed,
-        invoicedBilled,
+        invoiced,
+        billed,
         overdue,
         upcoming
       },
@@ -1421,8 +1421,8 @@ const BillingMilestones = () => {
           value=""
           type="milestones"
           stats={[
-            { label: "Completed", value: billingStats?.milestones.completed || 0 },
-            { label: "Invoiced/Billed", value: billingStats?.milestones.invoicedBilled || 0 },
+            { label: "Invoiced", value: billingStats?.milestones.invoiced || 0 },
+            { label: "Billed", value: billingStats?.milestones.billed || 0 },
             { label: "Overdue", value: billingStats?.milestones.overdue || 0 },
             { label: "Upcoming", value: billingStats?.milestones.upcoming || 0 }
           ]}
