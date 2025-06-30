@@ -54,7 +54,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock, ListFilter, Search } from 'lucide-react';
+import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock, ListFilter, Search, CheckCircle } from 'lucide-react';
 
 interface SupplyChainBenchmark {
   id: number;
@@ -369,7 +369,7 @@ const SupplyChain = () => {
         apiRequest('PATCH', `/api/project-supply-chain-benchmarks/${benchmark.id}`, {
           isCompleted: true,
           completedDate: new Date().toISOString(),
-          completedBy: 'User' // You could get this from user context
+          completedBy: getCurrentUser()
         })
       );
       
@@ -1175,14 +1175,33 @@ const SupplyChain = () => {
                             <CardTitle className="text-md">{project.projectNumber}</CardTitle>
                             <CardDescription className="text-sm font-medium">{project.name}</CardDescription>
                           </div>
-                          <Button
-                            onClick={() => handleOpenProjectDetails(project)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-blue-500"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {/* Complete All Tasks Button */}
+                            {projectBenchmarks.some(b => !b.isCompleted) && (
+                              <Button
+                                onClick={() => completeAllBenchmarksMutation.mutate(project.id)}
+                                variant="ghost"
+                                size="sm"
+                                disabled={completeAllBenchmarksMutation.isPending}
+                                className="text-green-600 hover:text-green-700"
+                                title="Complete All Tasks"
+                              >
+                                {completeAllBenchmarksMutation.isPending ? (
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                ) : (
+                                  <Check className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                            <Button
+                              onClick={() => handleOpenProjectDetails(project)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-500"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
 
                         {/* Progress bar for benchmark completion */}
@@ -1330,31 +1349,50 @@ const SupplyChain = () => {
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Button
-                                    onClick={() => {
-                                      if (totalBenchmarks === 0) {
-                                        // Add default benchmarks if none exist
-                                        addDefaultBenchmarksMutation.mutate(project.id);
-                                      } else {
-                                        // Open the project details dialog if benchmarks exist
-                                        handleOpenProjectDetails(project);
-                                      }
-                                    }}
-                                    variant="ghost"
-                                    size="sm"
-                                  >
-                                    {totalBenchmarks === 0 ? (
-                                      <>
-                                        <PlusCircle className="h-4 w-4 mr-2" />
-                                        Add
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Edit className="h-4 w-4 mr-2" />
-                                        Edit
-                                      </>
+                                  <div className="flex items-center justify-end gap-2">
+                                    {/* Complete All Tasks Button */}
+                                    {projectBenchmarks.some(b => !b.isCompleted) && (
+                                      <Button
+                                        onClick={() => completeAllBenchmarksMutation.mutate(project.id)}
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={completeAllBenchmarksMutation.isPending}
+                                        className="text-green-600 hover:text-green-700"
+                                        title="Complete All Tasks"
+                                      >
+                                        {completeAllBenchmarksMutation.isPending ? (
+                                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                        ) : (
+                                          <Check className="h-4 w-4" />
+                                        )}
+                                      </Button>
                                     )}
-                                  </Button>
+                                    <Button
+                                      onClick={() => {
+                                        if (totalBenchmarks === 0) {
+                                          // Add default benchmarks if none exist
+                                          addDefaultBenchmarksMutation.mutate(project.id);
+                                        } else {
+                                          // Open the project details dialog if benchmarks exist
+                                          handleOpenProjectDetails(project);
+                                        }
+                                      }}
+                                      variant="ghost"
+                                      size="sm"
+                                    >
+                                      {totalBenchmarks === 0 ? (
+                                        <>
+                                          <PlusCircle className="h-4 w-4 mr-2" />
+                                          Add
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Edit className="h-4 w-4 mr-2" />
+                                          Edit
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             );
