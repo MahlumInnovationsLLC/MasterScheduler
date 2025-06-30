@@ -17,7 +17,7 @@ interface BayScheduleData {
 }
 
 interface TeamWithProjects {
-  teamName: string;
+  team: string;
   projects: Project[];
 }
 
@@ -28,8 +28,7 @@ const MaterialManagement = () => {
 
   // Fetch bay schedule data
   const { data, isLoading, error } = useQuery<BayScheduleData>({
-    queryKey: ['/api/bay-schedule'],
-    queryFn: () => fetch('/api/bay-schedule').then(res => res.json())
+    queryKey: ['/api/bay-schedule']
   });
 
   // Update material status mutation
@@ -63,15 +62,15 @@ const MaterialManagement = () => {
     // Get unique team names from manufacturing bays
     const teamNames = new Set(
       data.manufacturingBays
-        .filter((bay: ManufacturingBay) => bay.teamName && bay.teamName.trim() !== '')
-        .map((bay: ManufacturingBay) => bay.teamName)
+        .filter((bay: ManufacturingBay) => bay.team && bay.team.trim() !== '')
+        .map((bay: ManufacturingBay) => bay.team)
     );
 
     return Array.from(teamNames).map(teamName => {
       // Find all projects for this team
       const teamProjects = data.manufacturingSchedules
         .filter((schedule: ManufacturingSchedule) => 
-          data.manufacturingBays.some((b: ManufacturingBay) => b.teamName === teamName && b.id === schedule.bayId)
+          data.manufacturingBays.some((b: ManufacturingBay) => b.team === teamName && b.id === schedule.bayId)
         )
         .map((schedule: ManufacturingSchedule) => 
           data.projects.find((p: Project) => p.id === schedule.projectId)
@@ -79,7 +78,7 @@ const MaterialManagement = () => {
         .filter((p: Project | undefined): p is Project => p !== undefined);
 
       return {
-        teamName,
+        team: teamName,
         projects: teamProjects
       };
     }).filter(team => team.projects.length > 0);
@@ -90,7 +89,7 @@ const MaterialManagement = () => {
     if (!searchTerm) return teamsWithProjects;
     
     return teamsWithProjects.filter((team) =>
-      team.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      team.team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.projects.some((project: Project) =>
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.projectNumber.toLowerCase().includes(searchTerm.toLowerCase())
@@ -177,11 +176,11 @@ const MaterialManagement = () => {
       {/* Teams Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredTeams.map((team) => (
-          <Card key={team.teamName} className="bg-gray-800 border-gray-700">
+          <Card key={team.team} className="bg-gray-800 border-gray-700">
             <CardHeader>
               <CardTitle className="text-xl font-semibold text-white flex items-center gap-2">
                 <Package className="h-5 w-5 text-blue-500" />
-                {team.teamName}
+                {team.team}
               </CardTitle>
               <p className="text-sm text-gray-400">
                 {team.projects.length} project{team.projects.length !== 1 ? 's' : ''}
