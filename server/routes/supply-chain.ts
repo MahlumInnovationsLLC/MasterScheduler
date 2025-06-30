@@ -634,19 +634,33 @@ router.post('/benchmarks/update-settings', async (req: Request, res: Response) =
     // Handle existing project updates based on the option
     if (updateOption === 'all') {
       // Update all existing project benchmarks with this benchmark ID
+      const projectUpdateData: any = { 
+        weeksBeforePhase: weeksBeforePhase,
+        updatedAt: new Date()
+      };
+      
+      // Add targetPhase if provided
+      if (targetPhase) {
+        projectUpdateData.targetPhase = targetPhase;
+      }
+      
       await db.update(projectSupplyChainBenchmarks)
-        .set({ 
-          weeksBeforePhase: weeksBeforePhase,
-          updatedAt: new Date()
-        })
+        .set(projectUpdateData)
         .where(eq(projectSupplyChainBenchmarks.benchmarkId, benchmarkId));
     } else if (updateOption === 'selected' && selectedProjectIds && selectedProjectIds.length > 0) {
       // Update only selected projects
+      const selectedProjectUpdateData: any = { 
+        weeksBeforePhase: weeksBeforePhase,
+        updatedAt: new Date()
+      };
+      
+      // Add targetPhase if provided
+      if (targetPhase) {
+        selectedProjectUpdateData.targetPhase = targetPhase;
+      }
+      
       await db.update(projectSupplyChainBenchmarks)
-        .set({ 
-          weeksBeforePhase: weeksBeforePhase,
-          updatedAt: new Date()
-        })
+        .set(selectedProjectUpdateData)
         .where(
           and(
             eq(projectSupplyChainBenchmarks.benchmarkId, benchmarkId),
