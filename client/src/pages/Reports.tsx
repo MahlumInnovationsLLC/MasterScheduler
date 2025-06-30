@@ -1913,21 +1913,50 @@ const ReportsPage = () => {
                                         return sum + variance;
                                       }, 0) / phaseProjects.length) : 0;
 
+                                    // Color coding based on performance percentage
+                                    const getPerformanceColor = (rate: number) => {
+                                      if (rate >= 90) return { bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-800', badge: 'bg-green-600' };
+                                      if (rate >= 75) return { bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-800', badge: 'bg-blue-600' };
+                                      if (rate >= 60) return { bg: 'bg-yellow-100', border: 'border-yellow-300', text: 'text-yellow-800', badge: 'bg-yellow-600' };
+                                      if (rate >= 40) return { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-800', badge: 'bg-orange-600' };
+                                      return { bg: 'bg-red-100', border: 'border-red-300', text: 'text-red-800', badge: 'bg-red-600' };
+                                    };
+
+                                    const colors = getPerformanceColor(onTimeRate);
+
                                     return (
-                                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                                        <div>
-                                          <span className="font-medium">{phase.name}</span>
-                                          <div className="text-xs text-gray-500">
+                                      <div key={index} className={`flex justify-between items-center p-3 ${colors.bg} ${colors.border} border rounded-lg text-sm`}>
+                                        <div className="flex-1">
+                                          <span className={`font-medium ${colors.text}`}>{phase.name}</span>
+                                          <div className="text-xs text-gray-600 mt-1">
                                             Avg variance: {avgVariance} days
+                                          </div>
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {phaseProjects.length} total handoffs tracked
                                           </div>
                                         </div>
                                         <div className="text-right">
-                                          <Badge variant={phaseProjects.length > 0 ? "default" : "secondary"} className="text-xs">
-                                            {onTimeProjects.length}/{phaseProjects.length} On-Time
-                                          </Badge>
-                                          <div className="text-xs text-gray-500 mt-1">
-                                            {onTimeRate}% rate
+                                          <div className={`inline-flex items-center px-3 py-1 rounded-full text-white text-xs font-medium ${colors.badge} mb-1`}>
+                                            {onTimeRate}%
                                           </div>
+                                          <div className="text-xs text-gray-600">
+                                            {onTimeProjects.length}/{phaseProjects.length} On-Time
+                                          </div>
+                                          {onTimeRate >= 90 && (
+                                            <div className="text-xs text-green-600 font-medium mt-1">Excellent</div>
+                                          )}
+                                          {onTimeRate >= 75 && onTimeRate < 90 && (
+                                            <div className="text-xs text-blue-600 font-medium mt-1">Good</div>
+                                          )}
+                                          {onTimeRate >= 60 && onTimeRate < 75 && (
+                                            <div className="text-xs text-yellow-600 font-medium mt-1">Fair</div>
+                                          )}
+                                          {onTimeRate >= 40 && onTimeRate < 60 && (
+                                            <div className="text-xs text-orange-600 font-medium mt-1">Poor</div>
+                                          )}
+                                          {onTimeRate < 40 && (
+                                            <div className="text-xs text-red-600 font-medium mt-1">Critical</div>
+                                          )}
                                         </div>
                                       </div>
                                     );
