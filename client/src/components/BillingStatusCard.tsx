@@ -57,6 +57,13 @@ interface BillingStatusCardProps {
   }[];
   onGoalCreate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
   onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
+  periodData?: {
+    pastMonth: number;
+    quarter: number;
+    ytd: number;
+  };
+  onTargetUpdate?: (targetAmount: number) => void;
+  currentTarget?: number;
 }
 
 // Goal Setting Dialog Component
@@ -316,8 +323,14 @@ export function BillingStatusCard({
   fiscalWeekDisplay = 'below',
   goals,
   onGoalCreate,
-  onGoalUpdate
+  onGoalUpdate,
+  periodData,
+  onTargetUpdate,
+  currentTarget
 }: BillingStatusCardProps) {
+  const [showTargetDialog, setShowTargetDialog] = useState(false);
+  const [targetAmount, setTargetAmount] = useState(currentTarget?.toString() || "");
+  const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'ytd'>('ytd');
   // Create a ref for the goal dialog
   const goalDialogRef = useRef<GoalDialogRef>(null);
   const getIcon = () => {
@@ -823,6 +836,105 @@ export function BillingStatusCard({
             </div>
           ))}
         </div>
+      ) : type === 'revenue' && periodData ? (
+        <>
+          <div className="flex items-end justify-between">
+            <span className="text-3xl font-bold font-sans">{value}</span>
+            <div className="flex gap-1">
+              <Button
+                variant={selectedPeriod === 'month' ? "default" : "outline"}
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => setSelectedPeriod('month')}
+              >
+                Month
+              </Button>
+              <Button
+                variant={selectedPeriod === 'quarter' ? "default" : "outline"}
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => setSelectedPeriod('quarter')}
+              >
+                Quarter
+              </Button>
+              <Button
+                variant={selectedPeriod === 'ytd' ? "default" : "outline"}
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => setSelectedPeriod('ytd')}
+              >
+                YTD
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-2 text-sm text-gray-400">
+            {selectedPeriod === 'month' && `Past Month: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(periodData.pastMonth)}`}
+            {selectedPeriod === 'quarter' && `Quarter: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(periodData.quarter)}`}
+            {selectedPeriod === 'ytd' && `Year to Date: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(periodData.ytd)}`}
+          </div>
+          
+          {progress && (
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center flex-1">
+                <Progress value={progress.value} className="w-full bg-gray-800 h-2" />
+                <span className="ml-2 text-xs text-gray-400">{progress.label}</span>
+              </div>
+              {onTargetUpdate && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-2 h-6 px-2 text-xs"
+                  onClick={() => setShowTargetDialog(true)}
+                >
+                  <Edit className="h-3 w-3 mr-1" /> Target
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Target Update Dialog */}
+          <Dialog open={showTargetDialog} onOpenChange={setShowTargetDialog}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Update Revenue Target</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="flex items-center gap-4">
+                  <Label htmlFor="targetAmount" className="w-24 text-right">
+                    Target Amount:
+                  </Label>
+                  <div className="flex-1">
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                      <Input
+                        id="targetAmount"
+                        className="pl-7"
+                        value={targetAmount}
+                        onChange={(e) => setTargetAmount(e.target.value)}
+                        placeholder="Enter target amount"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowTargetDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => {
+                  const amount = parseFloat(targetAmount);
+                  if (!isNaN(amount) && onTargetUpdate) {
+                    onTargetUpdate(amount);
+                    setShowTargetDialog(false);
+                  }
+                }}>
+                  Update Target
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
       ) : (
         <>
           <div className="flex items-end">

@@ -50,39 +50,40 @@ const BillingMilestones = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // Default to current month
-  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0); // Default to first week
-  const [isAcceptingShipDate, setIsAcceptingShipDate] = useState<{[key: number]: boolean}>({}); // Track accept ship date state by milestone ID
-  const [activeTab, setActiveTab] = useState<'open' | 'invoiced'>('open'); // Tab state for filtering
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
+  const [isAcceptingShipDate, setIsAcceptingShipDate] = useState<{[key: number]: boolean}>({});
+  const [activeTab, setActiveTab] = useState<'open' | 'invoiced'>('open');
+  const [revenueTarget, setRevenueTarget] = useState(50000000); // Default 50M target
   const { toast } = useToast();
-  
+
   // Handler for viewing milestone details
   const handleViewMilestoneDetails = (milestone: any) => {
     setSelectedMilestone(milestone);
     setShowDetailsDialog(true);
   };
-  
+
   // Handler for selecting a month in the forecast
   const handleMonthSelect = (year: number, month: number) => {
     // Calculate the index based on current date
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
-    
+
     // Calculate how many months from current month
     const monthsDiff = (year - currentYear) * 12 + (month - 1 - currentMonth);
-    
+
     // Ensure the index is within the valid range (0-11) for 12 months
     const newIndex = Math.max(0, Math.min(11, monthsDiff));
-    
+
     // Reset selected week to first week when changing months
     // This prevents issues with different months having different numbers of weeks
     setSelectedWeekIndex(0);
-    
+
     // Update the selected month index
     setSelectedMonthIndex(newIndex);
   };
-  
+
   // Query for billing milestones
   const { data: allBillingMilestones, isLoading: isLoadingBilling } = useQuery({
     queryKey: ['/api/billing-milestones'],
@@ -91,7 +92,7 @@ const BillingMilestones = () => {
   // Filter milestones based on active tab
   const billingMilestones = React.useMemo(() => {
     if (!allBillingMilestones) return [];
-    
+
     return allBillingMilestones.filter(milestone => {
       if (activeTab === 'open') {
         return milestone.status !== 'invoiced' && milestone.status !== 'paid';
@@ -100,7 +101,7 @@ const BillingMilestones = () => {
       }
     });
   }, [allBillingMilestones, activeTab]);
-  
+
   // Query for financial goals
   const { data: financialGoals, isLoading: isLoadingGoals } = useQuery<{
     id: number;
@@ -117,7 +118,7 @@ const BillingMilestones = () => {
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
   });
-  
+
   // Delete milestone mutation
   const deleteMilestoneMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -140,7 +141,7 @@ const BillingMilestones = () => {
       });
     },
   });
-  
+
   // Create financial goal mutation
   const createGoalMutation = useMutation({
     mutationFn: async ({ year, month, targetAmount, description, week }: { 
@@ -174,7 +175,7 @@ const BillingMilestones = () => {
       });
     },
   });
-  
+
   // Update financial goal mutation
   const updateGoalMutation = useMutation({
     mutationFn: async ({ year, month, targetAmount, description, week }: { 
@@ -188,7 +189,7 @@ const BillingMilestones = () => {
       const endpoint = week !== undefined
         ? `/api/financial-goals/${year}/${month}/${week}`
         : `/api/financial-goals/${year}/${month}`;
-        
+
       const response = await apiRequest("PUT", endpoint, {
         targetAmount,
         description
@@ -210,21 +211,21 @@ const BillingMilestones = () => {
       });
     },
   });
-  
+
   // Handler for adding a new milestone
   const handleAddMilestone = () => {
     setSelectedMilestone(null);
     setIsEditing(false);
     setShowMilestoneForm(true);
   };
-  
+
   // Handler for editing a milestone
   const handleEditMilestone = (milestone: any) => {
     setSelectedMilestone(milestone);
     setIsEditing(true);
     setShowMilestoneForm(true);
   };
-  
+
   // Handler for deleting a milestone
   const handleDeleteMilestone = (id: number) => {
     if (confirm("Are you sure you want to delete this milestone?")) {
@@ -240,7 +241,7 @@ const BillingMilestones = () => {
         status: 'invoiced',
         actualInvoiceDate: format(new Date(), 'yyyy-MM-dd')
       });
-      
+
       if (response.ok) {
         console.log(`✅ Milestone ${id} marked as invoiced`);
         toast({
@@ -270,7 +271,7 @@ const BillingMilestones = () => {
         status: 'paid',
         paidDate: format(new Date(), 'yyyy-MM-dd')
       });
-      
+
       if (response.ok) {
         toast({
           title: "Success", 
@@ -289,17 +290,17 @@ const BillingMilestones = () => {
       });
     }
   };
-  
+
   // Handler for accepting ship date changes
   const handleAcceptShipDate = async (id: number) => {
     setIsAcceptingShipDate(prev => ({ ...prev, [id]: true }));
-    
+
     try {
       console.log(`📅 Accepting date change for milestone ${id}`);
       const response = await apiRequest("PATCH", `/api/billing-milestones/${id}`, {
         acceptDateChange: true
       });
-      
+
       if (response.ok) {
         console.log(`✅ Date change accepted for milestone ${id}`);
         toast({
@@ -328,34 +329,97 @@ const BillingMilestones = () => {
   const billingStats = React.useMemo(() => {
     if (!billingMilestones || billingMilestones.length === 0) return null;
 
+    // Calculate milestone counts by status
     const completed = billingMilestones.filter(m => m.status === 'paid').length;
-    const invoicedBilled = billingMilestones.filter(m => m.status === 'invoiced').length;
-    const overdue = billingMilestones.filter(m => m.status === 'delayed').length;
-    const upcoming = billingMilestones.filter(m => m.status === 'upcoming').length;
+    const invoicedBilled = billingMilestones.filter(m => m.status === 'invoiced' || m.status === 'billed').length;
+    const overdue = billingMilestones.filter(m => {
+      if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced') return false;
+      const targetDate = new Date(m.targetInvoiceDate);
+      return targetDate < new Date();
+    }).length;
+    const upcoming = billingMilestones.filter(m => {
+      if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced') return false;
+      const targetDate = new Date(m.targetInvoiceDate);
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      return targetDate >= new Date() && targetDate <= thirtyDaysFromNow;
+    }).length;
 
-    // Calculate total amounts
+    // Calculate amounts
     const totalReceived = billingMilestones
       .filter(m => m.status === 'paid')
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-      
+
+    const receivedLast30Days = billingMilestones
+      .filter(m => {
+        if (m.status !== 'paid' || !m.targetInvoiceDate) return false;
+        const targetDate = new Date(m.targetInvoiceDate);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return targetDate >= thirtyDaysAgo;
+      })
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
     const totalPending = billingMilestones
-      .filter(m => m.status === 'invoiced')
+      .filter(m => m.status === 'invoiced' || m.status === 'billed')
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-      
+
     const totalOverdue = billingMilestones
-      .filter(m => m.status === 'delayed')
+      .filter(m => {
+        if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced') return false;
+        const targetDate = new Date(m.targetInvoiceDate);
+        return targetDate < new Date();
+      })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-      
+
     const totalUpcoming = billingMilestones
-      .filter(m => m.status === 'upcoming')
+      .filter(m => {
+        if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced') return false;
+        const targetDate = new Date(m.targetInvoiceDate);
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+        return targetDate >= new Date() && targetDate <= thirtyDaysFromNow;
+      })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-    
-    const total = totalReceived + totalPending + totalOverdue + totalUpcoming;
+
+    const total = billingMilestones.reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+    // Calculate period-based revenue
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    const pastMonthRevenue = billingMilestones
+      .filter(m => {
+        if (m.status !== 'paid' || !m.targetInvoiceDate) return false;
+        const targetDate = new Date(m.targetInvoiceDate);
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        return targetDate >= lastMonth && targetDate <= endOfLastMonth;
+      })
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+    const quarterRevenue = billingMilestones
+      .filter(m => {
+        if (m.status !== 'paid' || !m.targetInvoiceDate) return false;
+        const targetDate = new Date(m.targetInvoiceDate);
+        return targetDate >= startOfQuarter;
+      })
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+    const ytdRevenue = billingMilestones
+      .filter(m => {
+        if (m.status !== 'paid' || !m.targetInvoiceDate) return false;
+        const targetDate = new Date(m.targetInvoiceDate);
+        return targetDate >= startOfYear;
+      })
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
     // Calculate YTD (year to date) change
     // For demo purposes, we'll calculate this as the percentage of received vs total
     const ytdProgress = Math.round((totalReceived / (total || 1)) * 100);
-    
+
     // Calculate target progress (for demo, set a target of 80% collection rate)
     const targetCollectionRate = 80;
     const currentCollectionRate = Math.round((totalReceived / (total || 1)) * 100);
@@ -377,38 +441,38 @@ const BillingMilestones = () => {
       new Date(today.getFullYear(), today.getMonth() + 10, 1),
       new Date(today.getFullYear(), today.getMonth() + 11, 1)
     ];
-    
+
     // Calculate forecast by milestone status
     const forecastData = nextTwelveMonths.map((month, monthIdx) => {
       const nextMonth = new Date(month);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
-      
+
       // Add debugging for months past May
       if (monthIdx > 4) {
         console.log(`Processing forecast for month ${monthIdx + 1} (${month.toLocaleString('default', { month: 'short' })})`);
         console.log(`  Month start: ${month.toISOString()}`);
         console.log(`  Month end: ${nextMonth.toISOString()}`);
       }
-      
+
       // Confirmed revenue (invoiced or overdue but not yet paid)
       const confirmedRevenue = billingMilestones
         .filter(m => {
           if (!m.targetInvoiceDate) return false;
-          
+
           try {
             const targetDate = new Date(m.targetInvoiceDate);
-            
+
             // Check if date is valid
             if (isNaN(targetDate.getTime())) return false;
-            
+
             const isInMonth = targetDate >= month && targetDate < nextMonth;
             const isConfirmedStatus = m.status === 'invoiced' || m.status === 'delayed';
-            
+
             // Debug for months past May
             if (monthIdx > 4 && isInMonth && isConfirmedStatus) {
               console.log(`  Found confirmed milestone in month ${monthIdx + 1}: ${m.name}, amount: ${m.amount}, date: ${m.targetInvoiceDate}`);
             }
-            
+
             return isInMonth && isConfirmedStatus;
           } catch (error) {
             console.error(`Error processing date for milestone ${m.name}: ${error}`);
@@ -423,26 +487,26 @@ const BillingMilestones = () => {
             return sum;
           }
         }, 0);
-      
+
       // Projected revenue (upcoming milestones)
       const projectedRevenue = billingMilestones
         .filter(m => {
           if (!m.targetInvoiceDate) return false;
-          
+
           try {
             const targetDate = new Date(m.targetInvoiceDate);
-            
+
             // Check if date is valid
             if (isNaN(targetDate.getTime())) return false;
-            
+
             const isInMonth = targetDate >= month && targetDate < nextMonth;
             const isUpcoming = m.status === 'upcoming';
-            
+
             // Debug for months past May
             if (monthIdx > 4 && isInMonth && isUpcoming) {
               console.log(`  Found upcoming milestone in month ${monthIdx + 1}: ${m.name}, amount: ${m.amount}, date: ${m.targetInvoiceDate}`);
             }
-            
+
             return isInMonth && isUpcoming;
           } catch (error) {
             console.error(`Error processing date for milestone ${m.name}: ${error}`);
@@ -457,18 +521,18 @@ const BillingMilestones = () => {
             return sum;
           }
         }, 0);
-      
+
       // At-risk revenue (calculated as 15% of upcoming milestones for demo purposes)
       const atRiskRevenue = projectedRevenue * 0.15;
-      
+
       // Total projected for this month (for the top summary card)
       const totalMonthRevenue = confirmedRevenue + projectedRevenue;
-      
+
       // Debug for months past May
       if (monthIdx > 4) {
         console.log(`  Month ${monthIdx + 1} (${month.toLocaleString('default', { month: 'short' })}) totals - Confirmed: ${confirmedRevenue}, Projected: ${projectedRevenue}, Total: ${totalMonthRevenue}`);
       }
-      
+
       return {
         confirmed: confirmedRevenue,
         projected: projectedRevenue,
@@ -476,47 +540,47 @@ const BillingMilestones = () => {
         total: totalMonthRevenue
       };
     });
-    
+
     const monthNames = nextTwelveMonths.map(date => date.toLocaleString('default', { month: 'short' }));
 
     // Generate fiscal week data for the selected month using our standardized function
     const generateFiscalWeekData = (monthIndex: number) => {
       const month = nextTwelveMonths[monthIndex];
       if (!month) return { labels: [], values: [] };
-      
+
       // Use the standardized fiscal week calculation
       const fiscalWeeks = getFiscalWeeksForMonth(month.getFullYear(), month.getMonth() + 1);
-      
+
       // Calculate revenue values for each week
       const weeklyValues = fiscalWeeks.map((week, weekIdx) => {
         // Filter milestones that fall within this week's date range
         const weekMilestones = billingMilestones.filter(m => {
           if (!m.targetInvoiceDate) return false;
-          
+
           // Ensure proper date parsing with improved error handling
           try {
             const milestoneDate = new Date(m.targetInvoiceDate);
-            
+
             // Check if the date is valid
             if (isNaN(milestoneDate.getTime())) {
               console.log(`Invalid milestone date: ${m.targetInvoiceDate} for milestone ${m.name}`);
               return false;
             }
-            
+
             // For debugging 
             if (monthIndex > 4) { // Only log for months after May
               if (milestoneDate >= week.startDate && milestoneDate <= week.endDate) {
                 console.log(`Month ${monthIndex + 1} (${month.toLocaleString('default', { month: 'short' })}), Week ${weekIdx + 1}: Found milestone ${m.name} with amount ${m.amount} on date ${m.targetInvoiceDate}`);
               }
             }
-            
+
             return milestoneDate >= week.startDate && milestoneDate <= week.endDate;
           } catch (error) {
             console.error(`Error processing milestone date: ${error}`);
             return false;
           }
         });
-        
+
         // Sum up the values for this week with improved error handling
         const weekTotal = weekMilestones.reduce((sum, m) => {
           try {
@@ -526,24 +590,24 @@ const BillingMilestones = () => {
             return sum;
           }
         }, 0);
-        
+
         // Log the result for debugging
         if (monthIndex > 4) { // Only log for months after May
           console.log(`Month ${monthIndex + 1} (${month.toLocaleString('default', { month: 'short' })}), Week ${weekIdx + 1}: Total = ${weekTotal}`);
         }
-        
+
         return weekTotal;
       });
-      
+
       return {
         labels: fiscalWeeks.map(w => w.label),
         values: weeklyValues
       };
     };
-    
+
     // Calculate fiscal week data for the selected month
     const fiscalWeekData = generateFiscalWeekData(selectedMonthIndex);
-    
+
     // Debug log to track weekly values for different months
     console.log(`Fiscal week data for month ${selectedMonthIndex + 1} (${monthNames[selectedMonthIndex]}):`);
     console.log(`  Labels: ${fiscalWeekData.labels.join(', ')}`);
@@ -557,7 +621,7 @@ const BillingMilestones = () => {
     // Calculate last 30 days revenue
     const last30Days = new Date();
     last30Days.setDate(last30Days.getDate() - 30);
-    
+
     const receivedLast30Days = billingMilestones
       .filter(m => {
         const paidDate = m.paidDate ? new Date(m.paidDate) : null;
@@ -578,7 +642,10 @@ const BillingMilestones = () => {
         pending: totalPending,
         overdue: totalOverdue,
         upcoming: totalUpcoming,
-        total
+        total,
+        pastMonthRevenue,
+        quarterRevenue,
+        ytdRevenue
       },
       forecast: {
         labels: monthNames,
@@ -609,7 +676,7 @@ const BillingMilestones = () => {
       cell: ({ row }) => {
         const project = projects?.find(p => p.id === row.original.projectId);
         if (!project) return <div>-</div>;
-        
+
         return (
           <div className="flex items-center">
             <div className="ml-1">
@@ -636,11 +703,11 @@ const BillingMilestones = () => {
       cell: ({ row }) => {
         // Each cell needs its own state for editing target date
         const cellId = `targetdate-${row.original.id}`;
-        
+
         const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
         const [dateValues, setDateValues] = useState<Record<string, string | undefined>>({});
         const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
-        
+
         // Initialize date value if not already set
         useEffect(() => {
           if (!dateValues[cellId] && row.original.targetInvoiceDate) {
@@ -650,49 +717,49 @@ const BillingMilestones = () => {
             }));
           }
         }, [cellId, row.original.targetInvoiceDate]);
-        
+
         const isEditing = editingStates[cellId] || false;
         const dateValue = dateValues[cellId];
         const isUpdating = updatingStates[cellId] || false;
-        
+
         const isDeliveryMilestone = row.original.isDeliveryMilestone || 
           (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"));
         const hasShipDateChanged = row.original.shipDateChanged;
-        
+
         // Handlers that use the cell ID for tracking state
         const setIsEditing = (value: boolean) => {
           setEditingStates(prev => ({...prev, [cellId]: value}));
         };
-        
+
         const setDateValue = (value: string | undefined) => {
           setDateValues(prev => ({...prev, [cellId]: value}));
         };
-        
+
         const setIsUpdating = (value: boolean) => {
           setUpdatingStates(prev => ({...prev, [cellId]: value}));
         };
-        
+
         // Function to handle saving the target date
         const handleSave = async () => {
           if (!dateValue) return;
-          
+
           setIsUpdating(true);
           try {
             const updateData: any = { 
               targetInvoiceDate: dateValue,
             };
-            
+
             // If this is a delivery milestone, also update the live date
             if (isDeliveryMilestone) {
               updateData.liveDate = dateValue;
             }
-            
+
             const response = await apiRequest(
               "PATCH",
               `/api/billing-milestones/${row.original.id}`,
               updateData
             );
-            
+
             if (response.ok) {
               queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
               toast({
@@ -716,7 +783,7 @@ const BillingMilestones = () => {
             setIsEditing(false);
           }
         };
-        
+
         // Display editor if in edit mode
         if (isEditing) {
           return (
@@ -750,7 +817,7 @@ const BillingMilestones = () => {
             </div>
           );
         }
-        
+
         return (
           <div 
             className={`text-sm cursor-pointer hover:underline flex items-center ${isDeliveryMilestone && hasShipDateChanged 
@@ -773,30 +840,31 @@ const BillingMilestones = () => {
       cell: ({ row }) => {
         // Check if this is a delivery milestone
         const isDeliveryMilestone = row.original.isDeliveryMilestone || 
-          (row.original.name && row.original.name.toLowerCase().includes('delivery'));
-        
+          (row.original.name && row<replit_final_file>
+.original.name.toLowerCase().includes('delivery'));
+
         // Get the project for this milestone to access delivery date
         const project = projects?.find(p => p.id === row.original.projectId);
         const projectDeliveryDate = project?.deliveryDate;
-        
+
         // For delivery milestones, show project delivery date; otherwise show liveDate
         const displayDate = isDeliveryMilestone && projectDeliveryDate ? 
           projectDeliveryDate : row.original.liveDate;
-        
+
         // Check if there's an actual difference between target date and live date
         const targetDate = row.original.targetInvoiceDate;
         const hasDateChange = isDeliveryMilestone && 
                              projectDeliveryDate && 
                              targetDate && 
                              new Date(projectDeliveryDate).toDateString() !== new Date(targetDate).toDateString();
-        
+
         // Each cell needs its own state
         const cellId = `livedate-${row.original.id}`;
-        
+
         const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
         const [dateValues, setDateValues] = useState<Record<string, string | undefined>>({});
         const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
-        
+
         // Initialize date value if not already set
         useEffect(() => {
           if (!dateValues[cellId] && displayDate) {
@@ -806,28 +874,28 @@ const BillingMilestones = () => {
             }));
           }
         }, [cellId, displayDate]);
-        
+
         const isEditing = editingStates[cellId] || false;
         const dateValue = dateValues[cellId];
         const isUpdating = updatingStates[cellId] || false;
-        
+
         // Handlers that use the cell ID for tracking state
         const setIsEditing = (value: boolean) => {
           setEditingStates(prev => ({...prev, [cellId]: value}));
         };
-        
+
         const setDateValue = (value: string | undefined) => {
           setDateValues(prev => ({...prev, [cellId]: value}));
         };
-        
+
         const setIsUpdating = (value: boolean) => {
           setUpdatingStates(prev => ({...prev, [cellId]: value}));
         };
-        
+
         // Function to handle saving the date
         const handleSave = async () => {
           if (!dateValue) return;
-          
+
           setIsUpdating(true);
           try {
             const response = await apiRequest(
@@ -837,7 +905,7 @@ const BillingMilestones = () => {
                 liveDate: dateValue,
               }
             );
-            
+
             if (response.ok) {
               queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
               toast({
@@ -859,7 +927,7 @@ const BillingMilestones = () => {
             setIsEditing(false);
           }
         };
-        
+
         // Display editor if in edit mode
         if (isEditing) {
           return (
@@ -893,7 +961,7 @@ const BillingMilestones = () => {
             </div>
           );
         }
-        
+
         // Check if there's a ship date change
         const hasShipDateChanged = row.original.shipDateChanged;
 
@@ -909,7 +977,7 @@ const BillingMilestones = () => {
             </div>
           );
         }
-        
+
         return (
           <div 
             className={`text-sm ${hasDateChange ? "bg-red-100 font-semibold text-red-600 border border-red-300" : ""} rounded px-2 py-1 cursor-pointer hover:underline flex items-center`}
@@ -946,11 +1014,11 @@ const BillingMilestones = () => {
         // Each cell needs its own state since there are multiple rows
         // Using a unique key based on the row ID ensures state isolation
         const cellId = `timeline-${row.original.id}`;
-        
+
         const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
         const [dateValues, setDateValues] = useState<Record<string, string | undefined>>({});
         const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
-        
+
         // Initialize date value if not already set
         useEffect(() => {
           if (!dateValues[cellId] && row.original.actualInvoiceDate) {
@@ -960,24 +1028,24 @@ const BillingMilestones = () => {
             }));
           }
         }, [cellId, row.original.actualInvoiceDate]);
-        
+
         const isEditing = editingStates[cellId] || false;
         const dateValue = dateValues[cellId];
         const isUpdating = updatingStates[cellId] || false;
-        
+
         // Handlers that use the cell ID for tracking state
         const setIsEditing = (value: boolean) => {
           setEditingStates(prev => ({...prev, [cellId]: value}));
         };
-        
+
         const setDateValue = (value: string | undefined) => {
           setDateValues(prev => ({...prev, [cellId]: value}));
         };
-        
+
         const setIsUpdating = (value: boolean) => {
           setUpdatingStates(prev => ({...prev, [cellId]: value}));
         };
-        
+
         // Get status info using Live Date as a reference when available
         const statusInfo = getBillingStatusInfo(
           row.original.status,
@@ -985,33 +1053,33 @@ const BillingMilestones = () => {
           row.original.actualInvoiceDate,
           row.original.liveDate
         );
-        
+
         // Color coding for text based on status
         const textColorClass = row.original.status === 'delayed' ? 'text-danger' : 
                             row.original.status === 'invoiced' ? 'text-warning' :
                             row.original.status === 'paid' ? 'text-success' : 'text-gray-400';
-        
+
         // Function to handle saving the date
         const handleSave = async () => {
           if (!dateValue) return;
-          
+
           setIsUpdating(true);
           try {
             // Check if this is a delivery milestone and if target date is being updated
             const updateData: any = { actualInvoiceDate: dateValue };
-            
+
             // If this is a delivery milestone, also update the live date
             if (row.original.isDeliveryMilestone || 
                 (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"))) {
               updateData.liveDate = dateValue;
             }
-            
+
             const response = await apiRequest(
               "PATCH",
               `/api/billing-milestones/${row.original.id}`,
               updateData
             );
-            
+
             if (response.ok) {
               queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
               toast({
@@ -1033,10 +1101,10 @@ const BillingMilestones = () => {
             setIsEditing(false);
           }
         };
-        
+
         // If the milestone is invoiced or delayed, make the date editable
         const isInvoicedOrDelayed = row.original.status === 'invoiced' || row.original.status === 'delayed';
-        
+
         if (isEditing && isInvoicedOrDelayed) {
           return (
             <div className="flex items-center space-x-2">
@@ -1069,7 +1137,7 @@ const BillingMilestones = () => {
             </div>
           );
         }
-        
+
         return (
           <div 
             className={`text-sm ${textColorClass} ${isInvoicedOrDelayed ? "cursor-pointer hover:underline" : ""}`}
@@ -1088,11 +1156,11 @@ const BillingMilestones = () => {
       cell: ({ row }) => {
         // Each cell needs its own state since there are multiple rows
         const cellId = `notes-${row.original.id}`;
-        
+
         const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
         const [noteValues, setNoteValues] = useState<Record<string, string | undefined>>({});
         const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
-        
+
         // Initialize note value if not already set
         useEffect(() => {
           if (!noteValues[cellId] && row.original.notes !== undefined) {
@@ -1102,24 +1170,24 @@ const BillingMilestones = () => {
             }));
           }
         }, [cellId, row.original.notes]);
-        
+
         const isEditing = editingStates[cellId] || false;
         const noteValue = noteValues[cellId];
         const isUpdating = updatingStates[cellId] || false;
-        
+
         // Handlers that use the cell ID for tracking state
         const setIsEditing = (value: boolean) => {
           setEditingStates(prev => ({...prev, [cellId]: value}));
         };
-        
+
         const setNoteValue = (value: string | undefined) => {
           setNoteValues(prev => ({...prev, [cellId]: value}));
         };
-        
+
         const setIsUpdating = (value: boolean) => {
           setUpdatingStates(prev => ({...prev, [cellId]: value}));
         };
-        
+
         // Function to handle saving the note
         const handleSave = async () => {
           setIsUpdating(true);
@@ -1131,7 +1199,7 @@ const BillingMilestones = () => {
                 notes: noteValue,
               }
             );
-            
+
             if (response.ok) {
               queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
               toast({
@@ -1153,7 +1221,7 @@ const BillingMilestones = () => {
             setIsEditing(false);
           }
         };
-        
+
         // Display editor if in edit mode
         if (isEditing) {
           return (
@@ -1189,7 +1257,7 @@ const BillingMilestones = () => {
             </div>
           );
         }
-        
+
         // Regular display mode
         return (
           <div 
@@ -1230,7 +1298,7 @@ const BillingMilestones = () => {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Milestone
               </DropdownMenuItem>
-              
+
               {/* Accept Ship Date option */}
               {(row.original.isDeliveryMilestone || 
                 (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"))) && 
@@ -1252,7 +1320,7 @@ const BillingMilestones = () => {
                   )}
                 </DropdownMenuItem>
               )}
-              
+
               {/* Mark as Invoiced */}
               {row.original.status === 'upcoming' && (
                 <DropdownMenuItem 
@@ -1262,7 +1330,7 @@ const BillingMilestones = () => {
                   Mark as Invoiced
                 </DropdownMenuItem>
               )}
-              
+
               {/* Mark as Paid */}
               {(row.original.status === 'invoiced' || row.original.status === 'delayed') && (
                 <DropdownMenuItem 
@@ -1272,7 +1340,7 @@ const BillingMilestones = () => {
                   Mark as Paid
                 </DropdownMenuItem>
               )}
-              
+
               <DropdownMenuItem 
                 onClick={() => handleDeleteMilestone(row.original.id)}
                 className="text-red-600 focus:text-red-600"
@@ -1319,7 +1387,7 @@ const BillingMilestones = () => {
           <h1 className="text-2xl font-sans font-bold">Billing Milestones</h1>
           <p className="text-gray-400 text-sm">Manage and track billing milestones and revenue forecasts</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <AIInsightsModal />
           <Button variant="outline" size="sm">
@@ -1332,7 +1400,7 @@ const BillingMilestones = () => {
           </Button>
         </div>
       </div>
-      
+
       {/* Top Row Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <BillingStatusCard 
@@ -1348,7 +1416,7 @@ const BillingMilestones = () => {
             label: `${billingStats?.progress.target || 0}% of target` 
           }}
         />
-        
+
         <BillingStatusCard 
           title="Milestone Status"
           value=""
@@ -1360,19 +1428,19 @@ const BillingMilestones = () => {
             { label: "Upcoming", value: billingStats?.milestones.upcoming || 0 }
           ]}
         />
-        
+
         <BillingStatusCard 
           title="Cash Flow"
           value=""
           type="cashflow"
           stats={[
-            { label: "Outstanding", value: formatCurrency((billingStats?.amounts.pending || 0) + (billingStats?.amounts.overdue || 0)) },
-            { label: "Invoiced", value: formatCurrency(billingStats?.amounts.pending || 0) },
+            { label: "Outstanding", value: formatCurrency(billingStats?.amounts.pending || 0) },
+            { label: "Invoiced", value: formatCurrency(billingStats?.amounts.total || 0) },
             { label: "Received (30d)", value: formatCurrency(billingStats?.amounts.receivedLast30Days || 0) }
           ]}
         />
       </div>
-      
+
       {/* Monthly Forecasts Row (Full Width) */}
       <div className="mb-6">
         <BillingStatusCard 
@@ -1403,7 +1471,7 @@ const BillingMilestones = () => {
           }}
         />
       </div>
-      
+
       {/* Billing Milestones Table */}
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-xl font-sans font-bold">Billing Milestones</h2>
@@ -1412,7 +1480,7 @@ const BillingMilestones = () => {
           Export Report
         </Button>
       </div>
-      
+
       {/* Tab interface for filtering open vs invoiced milestones */}
       <div className="mb-6">
         <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
@@ -1446,7 +1514,7 @@ const BillingMilestones = () => {
         filterOptions={statusOptions}
         searchPlaceholder="Search milestones..."
       />
-      
+
       {/* Milestone Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="sm:max-w-[800px]">
@@ -1461,7 +1529,7 @@ const BillingMilestones = () => {
               Billing Milestone Details
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedMilestone && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
               <div className="space-y-4">
@@ -1474,61 +1542,61 @@ const BillingMilestones = () => {
                     })()}
                   </p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Amount</h3>
                   <p className="text-sm mt-1">{formatCurrency(parseFloat(selectedMilestone.amount) || 0)}</p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Status</h3>
                   <div className="mt-1">
                     <ProgressBadge status={selectedMilestone.status} />
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Target Invoice Date</h3>
                   <p className="text-sm mt-1">{selectedMilestone.targetInvoiceDate ? formatDate(new Date(selectedMilestone.targetInvoiceDate)) : 'Not set'}</p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Actual Invoice Date</h3>
                   <p className="text-sm mt-1">{selectedMilestone.actualInvoiceDate ? formatDate(new Date(selectedMilestone.actualInvoiceDate)) : 'Not invoiced yet'}</p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Payment Date</h3>
                   <p className="text-sm mt-1">{selectedMilestone.paidDate ? formatDate(new Date(selectedMilestone.paidDate)) : 'Not paid yet'}</p>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Contract Reference</h3>
                   <p className="text-sm mt-1">{selectedMilestone.contractReference || 'N/A'}</p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Payment Terms</h3>
                   <p className="text-sm mt-1">{selectedMilestone.paymentTerms || 'N/A'}</p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Invoice Number</h3>
                   <p className="text-sm mt-1">{selectedMilestone.invoiceNumber || 'Not invoiced yet'}</p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Percentage of Total</h3>
                   <p className="text-sm mt-1">{selectedMilestone.percentageOfTotal ? `${selectedMilestone.percentageOfTotal}%` : 'N/A'}</p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Billing Contact</h3>
                   <p className="text-sm mt-1">{selectedMilestone.billingContact || 'N/A'}</p>
                 </div>
-                
+
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Notes</h3>
                   <p className="text-sm mt-1 whitespace-pre-wrap">{selectedMilestone.notes || 'No notes available'}</p>
@@ -1536,7 +1604,7 @@ const BillingMilestones = () => {
               </div>
             </div>
           )}
-          
+
           <DialogFooter className="flex justify-between items-center">
             <div>
               <Button 
@@ -1578,7 +1646,7 @@ const BillingMilestones = () => {
             </Button>
           </div>
         </div>
-        
+
         <div className="p-4">
           <div className="h-72 flex items-end gap-2">
             <div className="w-full flex items-end justify-between">
@@ -1588,16 +1656,16 @@ const BillingMilestones = () => {
                   ...(billingStats?.forecast.confirmedValues || [0]),
                   ...(billingStats?.forecast.projectedValues || [0])
                 );
-                
+
                 const confirmed = billingStats?.forecast.confirmedValues[idx] || 0;
                 const projected = billingStats?.forecast.projectedValues[idx] || 0;
                 const atRisk = billingStats?.forecast.atRiskValues[idx] || 0;
-                
+
                 // Calculate heights as percentages of max value
                 const confirmedHeight = maxValue > 0 ? (confirmed / maxValue) * 100 : 0;
                 const projectedHeight = maxValue > 0 ? (projected / maxValue) * 100 : 0;
                 const atRiskHeight = maxValue > 0 ? (atRisk / maxValue) * 100 : 0;
-                
+
                 return (
                   <div key={idx} className="flex flex-col items-center">
                     <div className="flex gap-1 h-56">
@@ -1610,7 +1678,7 @@ const BillingMilestones = () => {
                           }}
                         ></div>
                       </div>
-                      
+
                       {/* Projected Revenue */}
                       <div className="w-16 bg-warning bg-opacity-20 relative">
                         <div 
@@ -1620,7 +1688,7 @@ const BillingMilestones = () => {
                           }}
                         ></div>
                       </div>
-                      
+
                       {/* At Risk indicator - shown as part of the legend below */}
                     </div>
                     <div className="mt-2 text-sm text-gray-400">{month}</div>
@@ -1632,7 +1700,7 @@ const BillingMilestones = () => {
               })}
             </div>
           </div>
-          
+
           <div className="mt-6 flex justify-center gap-8">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm bg-success"></div>
@@ -1659,7 +1727,7 @@ const BillingMilestones = () => {
               Detailed information about this billing milestone.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedMilestone && (
             <div className="grid gap-4 py-2">
               <div className="grid grid-cols-2 gap-4">
@@ -1676,7 +1744,7 @@ const BillingMilestones = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm font-medium">Milestone Name</h3>
@@ -1689,12 +1757,12 @@ const BillingMilestones = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-sm font-medium">Description</h3>
                 <p className="text-sm mt-1">{selectedMilestone.description || '-'}</p>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm font-medium">Amount</h3>
@@ -1705,7 +1773,7 @@ const BillingMilestones = () => {
                   <p className="text-sm mt-1">{selectedMilestone.percentageOfTotal || '-'}</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <h3 className="text-sm font-medium">Target Date</h3>
@@ -1720,10 +1788,10 @@ const BillingMilestones = () => {
                   <p className="text-sm mt-1">{selectedMilestone.paymentReceivedDate ? formatDate(selectedMilestone.paymentReceivedDate) : '-'}</p>
                 </div>
               </div>
-              
+
               <div className="border-t pt-4 mt-2">
                 <h3 className="text-sm font-medium mb-2">Additional Information</h3>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="text-sm font-medium">Contract Reference</h3>
@@ -1734,7 +1802,7 @@ const BillingMilestones = () => {
                     <p className="text-sm mt-1">{selectedMilestone.invoiceNumber || '-'}</p>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4 mt-3">
                   <div>
                     <h3 className="text-sm font-medium">Payment Terms</h3>
@@ -1745,7 +1813,7 @@ const BillingMilestones = () => {
                     <p className="text-sm mt-1">{selectedMilestone.billingContact || '-'}</p>
                   </div>
                 </div>
-                
+
                 <div className="mt-3">
                   <h3 className="text-sm font-medium">Notes</h3>
                   <p className="text-sm mt-1">{selectedMilestone.notes || '-'}</p>
@@ -1753,7 +1821,7 @@ const BillingMilestones = () => {
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setShowDetailsDialog(false)}>
               Close
