@@ -809,7 +809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PATCH endpoint for handling partial updates (especially dates)
+  // PATCH endpoint for handling partial updates (especially dates) with material management auto-update
   app.patch("/api/projects/:id", requireEditor, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -823,6 +823,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get data from request
       const updateData = req.body;
+      
+      // Automatically update material management status when project is delivered
+      if ('status' in updateData && updateData.status === 'delivered') {
+        console.log(`Project ${id} status changed to 'delivered', automatically setting material management status to 'shipped'`);
+        updateData.materialManagementStatus = 'shipped';
+      }
       
       // Process date fields specifically
       const dateFields = [
