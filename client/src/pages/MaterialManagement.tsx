@@ -10,12 +10,6 @@ import { Package, Search, Clock, CheckCircle, Truck, AlertCircle } from 'lucide-
 import { useToast } from '@/hooks/use-toast';
 import type { Project, ManufacturingBay, ManufacturingSchedule } from '@shared/schema';
 
-interface BayScheduleData {
-  projects: Project[];
-  manufacturingBays: ManufacturingBay[];
-  manufacturingSchedules: ManufacturingSchedule[];
-}
-
 interface TeamWithProjects {
   team: string;
   projects: Project[];
@@ -27,20 +21,21 @@ const MaterialManagement = () => {
   const queryClient = useQueryClient();
 
   // Fetch data from separate endpoints
-  const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
+  const { data: projects, isLoading: isLoadingProjects, error: projectsError } = useQuery<Project[]>({
     queryKey: ['/api/projects']
   });
 
-  const { data: manufacturingBays, isLoading: isLoadingBays } = useQuery<ManufacturingBay[]>({
+  const { data: manufacturingBays, isLoading: isLoadingBays, error: baysError } = useQuery<ManufacturingBay[]>({
     queryKey: ['/api/manufacturing-bays']
   });
 
-  const { data: manufacturingSchedules, isLoading: isLoadingSchedules } = useQuery<ManufacturingSchedule[]>({
+  const { data: manufacturingSchedules, isLoading: isLoadingSchedules, error: schedulesError } = useQuery<ManufacturingSchedule[]>({
     queryKey: ['/api/manufacturing-schedules']
   });
 
-  // Combine loading states
+  // Combine loading states and errors
   const isLoading = isLoadingProjects || isLoadingBays || isLoadingSchedules;
+  const hasError = projectsError || baysError || schedulesError;
 
   // Combine data into expected format
   const data = useMemo(() => {
@@ -121,40 +116,40 @@ const MaterialManagement = () => {
     );
   }, [teamsWithProjects, searchTerm]);
 
-  const handleStatusUpdate = (projectId: number, newStatus: string) => {
-    updateMaterialStatus.mutate({ projectId, status: newStatus });
+  // Status color mapping
+  const getStatusColor = (status?: string | null) => {
+    switch (status) {
+      case 'IN QC':
+        return 'bg-orange-500 text-white';
+      case 'IN WORK':
+        return 'bg-blue-500 text-white';
+      case 'Inventory Job Cart':
+        return 'bg-purple-500 text-white';
+      case 'SHIPPED':
+        return 'bg-green-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
   };
 
-  // Status configuration
-  const statusConfig = {
-    in_qc: {
-      label: 'IN QC',
-      color: 'bg-yellow-500',
-      textColor: 'text-yellow-900',
-      icon: AlertCircle,
-      description: 'Quality Control in Progress'
-    },
-    in_work: {
-      label: 'IN WORK',
-      color: 'bg-blue-500',
-      textColor: 'text-blue-900',
-      icon: Clock,
-      description: 'Currently Being Worked On'
-    },
-    inventory_job_cart: {
-      label: 'Inventory Job Cart',
-      color: 'bg-green-500',
-      textColor: 'text-green-900',
-      icon: CheckCircle,
-      description: 'Ready for Inventory'
-    },
-    shipped: {
-      label: 'SHIPPED',
-      color: 'bg-purple-500',
-      textColor: 'text-purple-900',
-      icon: Truck,
-      description: 'Shipped to Customer'
+  // Status icon mapping
+  const getStatusIcon = (status?: string | null) => {
+    switch (status) {
+      case 'IN QC':
+        return <AlertCircle className="h-4 w-4" />;
+      case 'IN WORK':
+        return <Clock className="h-4 w-4" />;
+      case 'Inventory Job Cart':
+        return <Package className="h-4 w-4" />;
+      case 'SHIPPED':
+        return <Truck className="h-4 w-4" />;
+      default:
+        return <CheckCircle className="h-4 w-4" />;
     }
+  };
+
+  const handleStatusUpdate = (projectId: number, newStatus: string) => {
+    updateMaterialStatus.mutate({ projectId, status: newStatus });
   };
 
   if (isLoading) {
@@ -167,11 +162,12 @@ const MaterialManagement = () => {
     );
   }
 
-  if (error) {
+  if (hasError) {
     return (
       <div className="container mx-auto px-6 py-8">
         <div className="text-center text-red-500">
           <p>Error loading material management data</p>
+          <p className="text-sm mt-2">Please try refreshing the page</p>
         </div>
       </div>
     );
@@ -184,15 +180,23 @@ const MaterialManagement = () => {
         <h1 className="text-3xl font-bold text-white">Material Management</h1>
       </div>
 
-      {/* Search Bar */}
+      {/* Description */}
+      <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
+        <p className="text-gray-300">
+          Track and manage material status for all manufacturing teams and their projects. 
+          Update status to keep the team informed about material availability and progress.
+        </p>
+      </div>
+
+      {/* Search and Filters */}
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             placeholder="Search teams or projects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+            className="pl-10 bg-gray-800 border-gray-700 text-white"
           />
         </div>
       </div>
@@ -206,69 +210,79 @@ const MaterialManagement = () => {
                 <Package className="h-5 w-5 text-blue-500" />
                 {team.team}
               </CardTitle>
-              <p className="text-sm text-gray-400">
+              <p className="text-gray-400 text-sm">
                 {team.projects.length} project{team.projects.length !== 1 ? 's' : ''}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              {team.projects.map((project: Project) => {
-                const currentStatus = project.materialManagementStatus || 'in_qc';
-                const statusInfo = statusConfig[currentStatus as keyof typeof statusConfig];
-                const IconComponent = statusInfo?.icon || AlertCircle;
-
-                return (
-                  <div key={project.id} className="p-4 bg-gray-700 rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-medium text-white">{project.name}</h4>
-                        <p className="text-sm text-gray-400">#{project.projectNumber}</p>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className={`${statusInfo?.color} ${statusInfo?.textColor} flex items-center gap-1`}
-                      >
-                        <IconComponent className="h-3 w-3" />
-                        {statusInfo?.label}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Select
-                        value={currentStatus}
-                        onValueChange={(value) => handleStatusUpdate(project.id, value)}
-                      >
-                        <SelectTrigger className="w-full bg-gray-600 border-gray-500 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-600">
-                          {Object.entries(statusConfig).map(([key, config]) => (
-                            <SelectItem
-                              key={key}
-                              value={key}
-                              className="text-white hover:bg-gray-700 focus:bg-gray-700"
-                            >
-                              <div className="flex items-center gap-2">
-                                <config.icon className="h-4 w-4" />
-                                {config.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+              {team.projects.map((project) => (
+                <div key={project.id} className="p-4 bg-gray-900 rounded-lg border border-gray-600">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-medium text-white">{project.projectNumber}</h4>
+                      <p className="text-sm text-gray-300 mt-1 line-clamp-2">{project.name}</p>
                     </div>
                   </div>
-                );
-              })}
+                  
+                  {/* Current Status */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge className={`${getStatusColor(project.materialManagementStatus)} flex items-center gap-1`}>
+                      {getStatusIcon(project.materialManagementStatus)}
+                      {project.materialManagementStatus || 'Not Set'}
+                    </Badge>
+                  </div>
+
+                  {/* Status Update Dropdown */}
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={project.materialManagementStatus || ''}
+                      onValueChange={(value) => handleStatusUpdate(project.id, value)}
+                    >
+                      <SelectTrigger className="flex-1 bg-gray-800 border-gray-600 text-white">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-600">
+                        <SelectItem value="IN QC" className="text-white hover:bg-gray-700">
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-orange-500" />
+                            IN QC
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="IN WORK" className="text-white hover:bg-gray-700">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-blue-500" />
+                            IN WORK
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Inventory Job Cart" className="text-white hover:bg-gray-700">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-purple-500" />
+                            Inventory Job Cart
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="SHIPPED" className="text-white hover:bg-gray-700">
+                          <div className="flex items-center gap-2">
+                            <Truck className="h-4 w-4 text-green-500" />
+                            SHIPPED
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {filteredTeams.length === 0 && (
+      {/* No Results */}
+      {filteredTeams.length === 0 && !isLoading && (
         <div className="text-center py-12">
-          <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-400 text-lg">
-            {searchTerm ? 'No teams found matching your search.' : 'No teams with active projects found.'}
+          <Package className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+          <h3 className="text-xl font-medium text-gray-400 mb-2">No teams found</h3>
+          <p className="text-gray-500">
+            {searchTerm ? 'No teams match your search criteria.' : 'No manufacturing teams with projects found.'}
           </p>
         </div>
       )}
