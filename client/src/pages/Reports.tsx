@@ -2364,6 +2364,140 @@ const ReportsPage = () => {
                         </CardContent>
                       </Card>
                     </div>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>All Projects with Schedule Changes</CardTitle>
+                        <CardDescription>
+                          Complete list of projects that have any schedule changes from original planned dates
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {(() => {
+                            // Get all projects with any schedule changes
+                            const projectsWithChanges = filteredProjects.filter(p => {
+                              const hasProductionChange = p.productionStart && p.opProductionStart && 
+                                new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime();
+                              const hasPaintChange = p.paintStart && p.opPaintStart && 
+                                new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime();
+                              const hasItChange = p.itStart && p.opItStart && 
+                                new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime();
+                              const hasDeliveryChange = p.deliveryDate && p.opDeliveryDate && 
+                                new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime();
+                              return hasProductionChange || hasPaintChange || hasItChange || hasDeliveryChange;
+                            }).sort((a, b) => a.projectNumber.localeCompare(b.projectNumber));
+
+                            if (projectsWithChanges.length === 0) {
+                              return (
+                                <div className="text-center py-8 text-gray-500">
+                                  <div className="text-xl font-bold text-green-600">Excellent Schedule Control!</div>
+                                  <div className="text-sm">No projects have schedule changes from original planned dates</div>
+                                </div>
+                              );
+                            }
+
+                            return projectsWithChanges.map(project => {
+                              const changes = [];
+                              
+                              // Check Production changes
+                              if (project.productionStart && project.opProductionStart && 
+                                  new Date(project.productionStart).getTime() !== new Date(project.opProductionStart).getTime()) {
+                                const variance = Math.ceil((new Date(project.productionStart).getTime() - new Date(project.opProductionStart).getTime()) / (1000 * 60 * 60 * 24));
+                                changes.push({
+                                  phase: 'Production',
+                                  variance: variance,
+                                  color: variance > 0 ? 'text-red-600' : 'text-green-600'
+                                });
+                              }
+                              
+                              // Check PAINT changes
+                              if (project.paintStart && project.opPaintStart && 
+                                  new Date(project.paintStart).getTime() !== new Date(project.opPaintStart).getTime()) {
+                                const variance = Math.ceil((new Date(project.paintStart).getTime() - new Date(project.opPaintStart).getTime()) / (1000 * 60 * 60 * 24));
+                                changes.push({
+                                  phase: 'PAINT',
+                                  variance: variance,
+                                  color: variance > 0 ? 'text-red-600' : 'text-green-600'
+                                });
+                              }
+                              
+                              // Check IT changes
+                              if (project.itStart && project.opItStart && 
+                                  new Date(project.itStart).getTime() !== new Date(project.opItStart).getTime()) {
+                                const variance = Math.ceil((new Date(project.itStart).getTime() - new Date(project.opItStart).getTime()) / (1000 * 60 * 60 * 24));
+                                changes.push({
+                                  phase: 'IT',
+                                  variance: variance,
+                                  color: variance > 0 ? 'text-red-600' : 'text-green-600'
+                                });
+                              }
+                              
+                              // Check Delivery changes
+                              if (project.deliveryDate && project.opDeliveryDate && 
+                                  new Date(project.deliveryDate).getTime() !== new Date(project.opDeliveryDate).getTime()) {
+                                const variance = Math.ceil((new Date(project.deliveryDate).getTime() - new Date(project.opDeliveryDate).getTime()) / (1000 * 60 * 60 * 24));
+                                changes.push({
+                                  phase: 'Delivery',
+                                  variance: variance,
+                                  color: variance > 0 ? 'text-red-600' : 'text-green-600'
+                                });
+                              }
+
+                              return (
+                                <div key={project.id} className="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <span className="font-medium text-gray-900">{project.projectNumber}</span>
+                                      <Badge variant={project.status === 'delivered' ? 'default' : 'outline'}>
+                                        {project.status.toUpperCase()}
+                                      </Badge>
+                                    </div>
+                                    <div className="text-sm text-gray-600 truncate max-w-md" title={project.name}>
+                                      {project.name}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="flex flex-wrap gap-1 justify-end mb-1">
+                                      {changes.map((change, index) => (
+                                        <Badge key={index} variant="outline" className={`text-xs ${change.color}`}>
+                                          {change.phase}: {change.variance > 0 ? '+' : ''}{change.variance}d
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {changes.length} phase{changes.length !== 1 ? 's' : ''} changed
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                        {(() => {
+                          const totalWithChanges = filteredProjects.filter(p => {
+                            const hasProductionChange = p.productionStart && p.opProductionStart && 
+                              new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime();
+                            const hasPaintChange = p.paintStart && p.opPaintStart && 
+                              new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime();
+                            const hasItChange = p.itStart && p.opItStart && 
+                              new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime();
+                            const hasDeliveryChange = p.deliveryDate && p.opDeliveryDate && 
+                              new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime();
+                            return hasProductionChange || hasPaintChange || hasItChange || hasDeliveryChange;
+                          }).length;
+                          
+                          if (totalWithChanges > 10) {
+                            return (
+                              <div className="mt-4 pt-3 border-t border-gray-200 text-center text-sm text-gray-500">
+                                Showing all {totalWithChanges} projects with schedule changes
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   {/* Delivery vs Original Plan */}
