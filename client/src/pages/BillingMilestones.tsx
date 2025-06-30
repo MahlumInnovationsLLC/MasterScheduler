@@ -394,27 +394,27 @@ const BillingMilestones = () => {
 
     const pastMonthRevenue = billingMilestones
       .filter(m => {
-        if (m.status !== 'paid' || !m.targetInvoiceDate) return false;
-        const targetDate = new Date(m.targetInvoiceDate);
+        if (m.status !== 'invoiced' || !m.actualInvoiceDate) return false;
+        const actualDate = new Date(m.actualInvoiceDate);
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-        return targetDate >= lastMonth && targetDate <= endOfLastMonth;
+        return actualDate >= lastMonth && actualDate <= endOfLastMonth;
       })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
     const quarterRevenue = billingMilestones
       .filter(m => {
-        if (m.status !== 'paid' || !m.targetInvoiceDate) return false;
-        const targetDate = new Date(m.targetInvoiceDate);
-        return targetDate >= startOfQuarter;
+        if (m.status !== 'invoiced' || !m.actualInvoiceDate) return false;
+        const actualDate = new Date(m.actualInvoiceDate);
+        return actualDate >= startOfQuarter;
       })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
     const ytdRevenue = billingMilestones
       .filter(m => {
-        if (m.status !== 'paid' || !m.targetInvoiceDate) return false;
-        const targetDate = new Date(m.targetInvoiceDate);
-        return targetDate >= startOfYear;
+        if (m.status !== 'invoiced' || !m.actualInvoiceDate) return false;
+        const actualDate = new Date(m.actualInvoiceDate);
+        return actualDate >= startOfYear;
       })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
@@ -1447,8 +1447,7 @@ const BillingMilestones = () => {
           type="cashflow"
           stats={[
             { label: "Outstanding", value: formatCurrency(billingStats?.amounts.pending || 0) },
-            { label: "Invoiced", value: formatCurrency(billingStats?.amounts.total || 0) },
-            { label: "Received (30d)", value: formatCurrency(billingStats?.amounts.receivedLast30Days || 0) }
+            { label: "Invoiced", value: formatCurrency(billingStats?.amounts.total || 0) }
           ]}
         />
       </div>
