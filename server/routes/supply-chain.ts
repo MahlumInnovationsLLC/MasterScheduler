@@ -602,4 +602,61 @@ router.get('/benchmarks/pdf-report', async (req: Request, res: Response) => {
   }
 });
 
+// Update benchmark settings
+router.post('/benchmarks/update-settings', async (req: Request, res: Response) => {
+  try {
+    const { benchmarkId, weeksBeforePhase, updateOption, selectedProjectIds } = req.body;
+
+    // Validate input
+    if (!benchmarkId || !weeksBeforePhase || !updateOption) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Update the benchmark template
+    await db.update(supplyChainBenchmarks)
+      .set({ 
+        weeksBeforePhase: weeksBeforePhase,
+        updatedAt: new Date()
+      })
+      .where(eq(supplyChainBenchmarks.id, benchmarkId));
+
+    // Handle existing project updates based on the option
+    if (updateOption === 'all') {
+      // Update all existing project benchmarks with this benchmark ID
+      await db.update(projectSupplyChainBenchmarks)
+        .set({ 
+          weeksBeforePhase: weeksBeforePhase,
+          updatedAt: new Date()
+        })
+        .where(eq(projectSupplyChainBenchmarks.benchmarkId, benchmarkId));
+    } else if (updateOption === 'selected' && selectedProjectIds && selectedProjectIds.length > 0) {
+      // Update only selected projects
+      await db.update(projectSupplyChainBenchmarks)
+        .set({ 
+          weeksBeforePhase: weeksBeforePhase,
+          updatedAt: new Date()
+        })
+        .where(
+          and(
+            eq(projectSupplyChainBenchmarks.benchmarkId, benchmarkId),
+            inArray(projectSupplyChainBenchmarks.projectId, selectedProjectIds)
+          )
+        );
+    }
+    // For 'new' option, no existing projects are updated
+
+    res.json({
+      success: true,
+      message: "Benchmark settings updated successfully",
+      updateOption,
+      affectedProjects: updateOption === 'selected' ? selectedProjectIds?.length || 0 : 
+                       updateOption === 'all' ? 'all' : 'none'
+    });
+
+  } catch (error) {
+    console.error("Error updating benchmark settings:", error);
+    res.status(500).json({ error: "Failed to update benchmark settings" });
+  }
+});
+
 export default router;
