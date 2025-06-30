@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, addWeeks, subWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, isBefore, isAfter, isSameDay } from 'date-fns';
+import { format, parseISO, addWeeks, subWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, addMonths, isBefore, isAfter, isSameDay } from 'date-fns';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -132,7 +132,7 @@ const SupplyChain = () => {
   const [editingBenchmark, setEditingBenchmark] = useState<SupplyChainBenchmark | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [purchaseTimeframe, setPurchaseTimeframe] = useState<'week' | 'month' | 'quarter'>('week');
+  const [purchaseTimeframe, setPurchaseTimeframe] = useState<'week' | 'month' | 'quarter' | '6months' | '12months'>('week');
   const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
   const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null);
   const [pendingBenchmarkProjectId, setPendingBenchmarkProjectId] = useState<number | null>(null);
@@ -649,8 +649,11 @@ const SupplyChain = () => {
   }, [filteredProjectBenchmarks]);
 
   // Get upcoming benchmarks
-  const getUpcomingBenchmarks = (timeframe: 'week' | 'month' | 'quarter') => {
-    if (!projectBenchmarks || !activeProjects) return [];
+  const getUpcomingBenchmarks = (timeframe: 'week' | 'month' | 'quarter' | '6months' | '12months') => {
+    if (!projectBenchmarks || !activeProjects) {
+      console.log('📊 DEBUG: Missing data - projectBenchmarks:', !!projectBenchmarks, 'activeProjects:', !!activeProjects);
+      return [];
+    }
     
     const now = new Date();
     let endDate: Date;
@@ -665,12 +668,22 @@ const SupplyChain = () => {
       case 'quarter':
         endDate = endOfQuarter(now);
         break;
+      case '6months':
+        endDate = addMonths(now, 6);
+        break;
+      case '12months':
+        endDate = addMonths(now, 12);
+        break;
     }
+    
+    console.log('📊 DEBUG: Timeframe:', timeframe, 'Now:', now, 'EndDate:', endDate);
+    console.log('📊 DEBUG: Total project benchmarks:', projectBenchmarks.length);
+    console.log('📊 DEBUG: Active projects:', activeProjects.length);
     
     // Get benchmarks from active projects only
     const activeProjectIds = new Set(activeProjects.map(p => p.id));
     
-    return projectBenchmarks.filter(benchmark => {
+    const filteredBenchmarks = projectBenchmarks.filter(benchmark => {
       // Only include benchmarks from active projects
       if (!activeProjectIds.has(benchmark.projectId)) return false;
       
@@ -680,7 +693,9 @@ const SupplyChain = () => {
       // For benchmarks with target dates, use those
       if (benchmark.targetDate) {
         const targetDate = new Date(benchmark.targetDate);
-        return targetDate >= now && targetDate <= endDate;
+        const isInRange = targetDate >= now && targetDate <= endDate;
+        console.log('📊 DEBUG: Benchmark with target date:', benchmark.name, 'targetDate:', targetDate, 'inRange:', isInRange);
+        return isInRange;
       }
       
       // For benchmarks without target dates, calculate based on project phases
@@ -709,14 +724,23 @@ const SupplyChain = () => {
           break;
       }
       
-      if (!phaseDate) return false;
+      if (!phaseDate) {
+        console.log('📊 DEBUG: No phase date for benchmark:', benchmark.name, 'targetPhase:', benchmark.targetPhase);
+        return false;
+      }
       
       // Calculate benchmark due date (weeks before phase)
       const benchmarkDueDate = new Date(phaseDate);
       benchmarkDueDate.setDate(benchmarkDueDate.getDate() - (benchmark.weeksBeforePhase * 7));
       
-      return benchmarkDueDate >= now && benchmarkDueDate <= endDate;
+      const isInRange = benchmarkDueDate >= now && benchmarkDueDate <= endDate;
+      console.log('📊 DEBUG: Calculated benchmark:', benchmark.name, 'dueDate:', benchmarkDueDate, 'inRange:', isInRange);
+      
+      return isInRange;
     });
+    
+    console.log('📊 DEBUG: Filtered benchmarks count:', filteredBenchmarks.length);
+    return filteredBenchmarks;
   };
 
   // PDF Generation function
@@ -1050,6 +1074,22 @@ const SupplyChain = () => {
                     >
                       Quarter
                     </Button>
+                    <Button 
+                      variant={purchaseTimeframe === '6months' ? "default" : "ghost"} 
+                      size="sm"
+                      onClick={() => setPurchaseTimeframe('6months')}
+                      className="h-7 text-xs"
+                    >
+                      6 Months
+                    </Button>
+                    <Button 
+                      variant={purchaseTimeframe === '12months' ? "default" : "ghost"} 
+                      size="sm"
+                      onClick={() => setPurchaseTimeframe('12months')}
+                      className="h-7 text-xs"
+                    >
+                      12 Months
+                    </Button>
                   </div>
                 </div>
 
@@ -1061,6 +1101,8 @@ const SupplyChain = () => {
                     {purchaseTimeframe === 'week' && "Benchmarks due this week"}
                     {purchaseTimeframe === 'month' && "Benchmarks due this month"}
                     {purchaseTimeframe === 'quarter' && "Benchmarks due this quarter"}
+                    {purchaseTimeframe === '6months' && "Benchmarks due in next 6 months"}
+                    {purchaseTimeframe === '12months' && "Benchmarks due in next 12 months"}
                   </p>
                 </div>
 
