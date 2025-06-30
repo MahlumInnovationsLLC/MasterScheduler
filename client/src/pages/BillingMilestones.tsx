@@ -325,19 +325,21 @@ const BillingMilestones = () => {
     }
   };
 
+  // State for revenue period selector
+  const [revenuePeriod, setRevenuePeriod] = useState<'ytd' | 'quarter' | 'month'>('ytd');
+
   // Calculate billing stats
   const billingStats = React.useMemo(() => {
-    if (!billingMilestones || billingMilestones.length === 0) return null;
+    if (!allBillingMilestones || !Array.isArray(allBillingMilestones) || allBillingMilestones.length === 0) return null;
 
-    // Calculate milestone counts by status
-    const invoiced = billingMilestones.filter(m => m.status === 'invoiced').length;
-    const billed = billingMilestones.filter(m => m.status === 'billed').length;
-    const overdue = billingMilestones.filter(m => {
+    // Use allBillingMilestones for milestone counts instead of filtered data
+    const invoicedAndBilled = allBillingMilestones.filter((m: any) => m.status === 'invoiced' || m.status === 'billed').length;
+    const overdue = allBillingMilestones.filter((m: any) => {
       if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced' || m.status === 'billed') return false;
       const targetDate = new Date(m.targetInvoiceDate);
       return targetDate < new Date();
     }).length;
-    const upcoming = billingMilestones.filter(m => {
+    const upcoming = allBillingMilestones.filter((m: any) => {
       if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced' || m.status === 'billed') return false;
       const targetDate = new Date(m.targetInvoiceDate);
       const thirtyDaysFromNow = new Date();
@@ -345,44 +347,44 @@ const BillingMilestones = () => {
       return targetDate >= new Date() && targetDate <= thirtyDaysFromNow;
     }).length;
 
-    // Calculate amounts
-    const totalReceived = billingMilestones
-      .filter(m => m.status === 'paid')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+    // Calculate amounts using allBillingMilestones with proper typing
+    const totalReceived = allBillingMilestones
+      .filter((m: any) => m.status === 'paid')
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    const receivedLast30Days = billingMilestones
-      .filter(m => {
+    const receivedLast30Days = allBillingMilestones
+      .filter((m: any) => {
         if (m.status !== 'paid' || !m.targetInvoiceDate) return false;
         const targetDate = new Date(m.targetInvoiceDate);
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         return targetDate >= thirtyDaysAgo;
       })
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    const totalPending = billingMilestones
-      .filter(m => m.status === 'invoiced' || m.status === 'billed')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+    const totalPending = allBillingMilestones
+      .filter((m: any) => m.status === 'invoiced' || m.status === 'billed')
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    const totalOverdue = billingMilestones
-      .filter(m => {
+    const totalOverdue = allBillingMilestones
+      .filter((m: any) => {
         if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced') return false;
         const targetDate = new Date(m.targetInvoiceDate);
         return targetDate < new Date();
       })
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    const totalUpcoming = billingMilestones
-      .filter(m => {
+    const totalUpcoming = allBillingMilestones
+      .filter((m: any) => {
         if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced') return false;
         const targetDate = new Date(m.targetInvoiceDate);
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
         return targetDate >= new Date() && targetDate <= thirtyDaysFromNow;
       })
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    const total = billingMilestones.reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+    const total = allBillingMilestones.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
     // Calculate period-based revenue
     const now = new Date();
@@ -631,8 +633,7 @@ const BillingMilestones = () => {
 
     return {
       milestones: {
-        invoiced,
-        billed,
+        invoicedAndBilled,
         overdue,
         upcoming
       },
