@@ -969,13 +969,21 @@ select:focus {
 }
 
 /* Force location boxes in Projects module to have white text */
-:root:not(.dark) .data-table td:first-child,
-:root:not(.dark) .data-table td:first-child div,
+:root:not(.dark) .data-table td:first-child:has(.px-3),
+:root:not(.dark) .data-table td:first-child:has([style*="linear-gradient"]),
 :root:not(.dark) .data-table td:first-child .px-3,
-:root:not(.dark) table td:first-child,
-:root:not(.dark) table td:first-child div,
+:root:not(.dark) table td:first-child:has(.px-3),
+:root:not(.dark) table td:first-child:has([style*="linear-gradient"]),
 :root:not(.dark) table td:first-child .px-3 {
   color: #ffffff !important;
+}
+
+/* Fix project text in Benchmarks Module - ensure dark text in light mode for non-location content */
+:root:not(.dark) .data-table td:first-child:not(:has(.px-3)):not(:has([style*="linear-gradient"])),
+:root:not(.dark) .data-table td:first-child div:not(.px-3):not([style*="linear-gradient"]),
+:root:not(.dark) table td:first-child:not(:has(.px-3)):not(:has([style*="linear-gradient"])),
+:root:not(.dark) table td:first-child div:not(.px-3):not([style*="linear-gradient"]) {
+  color: #374151 !important;
 }
 
 .location-block:empty,
