@@ -64,6 +64,8 @@ interface BillingStatusCardProps {
   };
   onTargetUpdate?: (targetAmount: number) => void;
   currentTarget?: number;
+  onPeriodChange?: (period: 'ytd' | 'quarter' | 'month') => void;
+  selectedPeriod?: 'ytd' | 'quarter' | 'month';
 }
 
 // Goal Setting Dialog Component
@@ -326,11 +328,23 @@ export function BillingStatusCard({
   onGoalUpdate,
   periodData,
   onTargetUpdate,
-  currentTarget
+  currentTarget,
+  onPeriodChange,
+  selectedPeriod: externalSelectedPeriod
 }: BillingStatusCardProps) {
   const [showTargetDialog, setShowTargetDialog] = useState(false);
   const [targetAmount, setTargetAmount] = useState(currentTarget?.toString() || "");
-  const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'ytd'>('ytd');
+  const [internalSelectedPeriod, setInternalSelectedPeriod] = useState<'month' | 'quarter' | 'ytd'>('ytd');
+  
+  // Use external period state if provided, otherwise use internal state
+  const selectedPeriod = externalSelectedPeriod || internalSelectedPeriod;
+  const handlePeriodChange = (period: 'month' | 'quarter' | 'ytd') => {
+    if (onPeriodChange) {
+      onPeriodChange(period);
+    } else {
+      setInternalSelectedPeriod(period);
+    }
+  };
   // Create a ref for the goal dialog
   const goalDialogRef = useRef<GoalDialogRef>(null);
   const getIcon = () => {
@@ -845,7 +859,7 @@ export function BillingStatusCard({
                 variant={selectedPeriod === 'month' ? "default" : "outline"}
                 size="sm"
                 className="h-6 px-2 text-xs"
-                onClick={() => setSelectedPeriod('month')}
+                onClick={() => handlePeriodChange('month')}
               >
                 Month
               </Button>

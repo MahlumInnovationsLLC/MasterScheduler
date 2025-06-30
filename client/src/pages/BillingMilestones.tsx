@@ -668,7 +668,7 @@ const BillingMilestones = () => {
         isPositive: ytdProgress > 0
       }
     };
-  }, [billingMilestones, selectedMonthIndex, financialGoals]);
+  }, [allBillingMilestones, selectedMonthIndex, financialGoals, revenuePeriod]);
 
   const columns = [
     {
@@ -1405,16 +1405,29 @@ const BillingMilestones = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <BillingStatusCard 
           title="Total Revenue"
-          value={formatCurrency(billingStats?.amounts.total || 0)}
+          value={formatCurrency(
+            revenuePeriod === 'ytd' 
+              ? billingStats?.amounts.ytdRevenue || 0
+              : revenuePeriod === 'quarter'
+              ? billingStats?.amounts.quarterRevenue || 0  
+              : billingStats?.amounts.pastMonthRevenue || 0
+          )}
           type="revenue"
           change={{ 
-            value: `${billingStats?.progress.ytd || 0}% YTD`, 
+            value: `${revenuePeriod === 'ytd' ? 'YTD' : revenuePeriod === 'quarter' ? 'Quarter' : 'Last Month'}`, 
             isPositive: billingStats?.progress.isPositive || false 
           }}
           progress={{ 
             value: billingStats?.progress.target || 0, 
             label: `${billingStats?.progress.target || 0}% of target` 
           }}
+          periodData={{
+            pastMonth: billingStats?.amounts.pastMonthRevenue || 0,
+            quarter: billingStats?.amounts.quarterRevenue || 0,
+            ytd: billingStats?.amounts.ytdRevenue || 0
+          }}
+          onPeriodChange={(period: 'ytd' | 'quarter' | 'month') => setRevenuePeriod(period)}
+          selectedPeriod={revenuePeriod}
         />
 
         <BillingStatusCard 
@@ -1422,8 +1435,7 @@ const BillingMilestones = () => {
           value=""
           type="milestones"
           stats={[
-            { label: "Invoiced", value: billingStats?.milestones.invoiced || 0 },
-            { label: "Billed", value: billingStats?.milestones.billed || 0 },
+            { label: "Invoiced/Billed", value: billingStats?.milestones.invoicedAndBilled || 0 },
             { label: "Overdue", value: billingStats?.milestones.overdue || 0 },
             { label: "Upcoming", value: billingStats?.milestones.upcoming || 0 }
           ]}
