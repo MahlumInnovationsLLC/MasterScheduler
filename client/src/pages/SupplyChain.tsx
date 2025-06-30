@@ -1632,14 +1632,14 @@ const SupplyChain = () => {
                             return (
                               <TableRow key={project.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                                 <TableCell className="bg-white dark:bg-slate-800">
-                                  <div className="font-medium text-slate-900 dark:text-slate-100">{project.projectNumber}</div>
-                                  <div className="text-sm text-slate-600 dark:text-slate-400">{project.name}</div>
+                                  <div className="font-medium text-black dark:text-slate-100">{project.projectNumber}</div>
+                                  <div className="text-sm text-slate-700 dark:text-slate-400">{project.name}</div>
                                 </TableCell>
-                                <TableCell className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{totalBenchmarks}</TableCell>
+                                <TableCell className="text-black dark:text-slate-100 bg-white dark:bg-slate-800">{totalBenchmarks}</TableCell>
                                 <TableCell className="bg-white dark:bg-slate-800">
                                   <div className="flex items-center gap-2">
                                     <Progress value={progressPercentage} className="h-2 w-24" />
-                                    <span className="text-xs text-slate-900 dark:text-slate-100">{completedBenchmarks}/{totalBenchmarks}</span>
+                                    <span className="text-xs text-black dark:text-slate-100">{completedBenchmarks}/{totalBenchmarks}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell className="bg-white dark:bg-slate-800">
@@ -1647,9 +1647,9 @@ const SupplyChain = () => {
                                     <div className="max-w-[250px]">
                                       <div className="flex items-center gap-1">
                                         <Clock className="h-3 w-3 text-amber-500" />
-                                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{upcomingBenchmarks[0].name}</span>
+                                        <span className="text-sm font-medium text-black dark:text-slate-100">{upcomingBenchmarks[0].name}</span>
                                       </div>
-                                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                                      <div className="text-xs text-slate-700 dark:text-slate-400">
                                         {(() => {
                                           const dueInfo = getBenchmarkDueInfo(project, upcomingBenchmarks[0]);
                                           return (
@@ -1666,7 +1666,7 @@ const SupplyChain = () => {
                                       </div>
                                     </div>
                                   ) : (
-                                    <span className="text-sm text-slate-600 dark:text-slate-400">No upcoming tasks</span>
+                                    <span className="text-sm text-slate-700 dark:text-slate-400">No upcoming tasks</span>
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right bg-white dark:bg-slate-800">
