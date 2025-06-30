@@ -269,12 +269,6 @@ const MaterialManagement = () => {
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
-                        <SelectItem value="incoming" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-gray-500" />
-                            INCOMING
-                          </div>
-                        </SelectItem>
                         <SelectItem value="in_qc" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <AlertCircle className="h-4 w-4 text-blue-300" />
@@ -291,6 +285,12 @@ const MaterialManagement = () => {
                           <div className="flex items-center gap-2">
                             <Package className="h-4 w-4 text-orange-500" />
                             Inventory Job Cart
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="incoming" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-gray-500" />
+                            INCOMING
                           </div>
                         </SelectItem>
                         <SelectItem value="shipped" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
