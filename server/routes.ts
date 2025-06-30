@@ -6891,5 +6891,154 @@ Response format:
     }
   });
 
+  // Change Control Board (CCB) endpoints
+  app.get("/api/ccb/requests", simpleAuth, async (req, res) => {
+    try {
+      const { projectId, status } = req.query;
+      let requests;
+      
+      if (projectId) {
+        requests = await storage.getCcbRequestsByProjectId(Number(projectId));
+      } else if (status) {
+        requests = await storage.getCcbRequestsByStatus(status as string);
+      } else {
+        requests = await storage.getCcbRequests();
+      }
+      
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching CCB requests:", error);
+      res.status(500).json({ message: "Error fetching CCB requests" });
+    }
+  });
+
+  app.get("/api/ccb/requests/:id", ensureAuthenticated, async (req, res) => {
+    try {
+      const request = await storage.getCcbRequestById(Number(req.params.id));
+      if (!request) {
+        return res.status(404).json({ message: "CCB request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      console.error("Error fetching CCB request:", error);
+      res.status(500).json({ message: "Error fetching CCB request" });
+    }
+  });
+
+  app.post("/api/ccb/requests", ensureAuthenticated, async (req, res) => {
+    try {
+      const request = await storage.createCcbRequest({
+        ...req.body,
+        requestedBy: req.user.id,
+        requestedAt: new Date(),
+        status: 'submitted'
+      });
+      res.json(request);
+    } catch (error) {
+      console.error("Error creating CCB request:", error);
+      res.status(500).json({ message: "Error creating CCB request" });
+    }
+  });
+
+  app.put("/api/ccb/requests/:id", ensureAuthenticated, async (req, res) => {
+    try {
+      const request = await storage.updateCcbRequest(Number(req.params.id), req.body);
+      if (!request) {
+        return res.status(404).json({ message: "CCB request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      console.error("Error updating CCB request:", error);
+      res.status(500).json({ message: "Error updating CCB request" });
+    }
+  });
+
+  app.delete("/api/ccb/requests/:id", ensureAuthenticated, async (req, res) => {
+    try {
+      const success = await storage.deleteCcbRequest(Number(req.params.id));
+      if (!success) {
+        return res.status(404).json({ message: "CCB request not found" });
+      }
+      res.json({ message: "CCB request deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting CCB request:", error);
+      res.status(500).json({ message: "Error deleting CCB request" });
+    }
+  });
+
+  // CCB Comments endpoints
+  app.get("/api/ccb/requests/:id/comments", ensureAuthenticated, async (req, res) => {
+    try {
+      const comments = await storage.getCcbComments(Number(req.params.id));
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching CCB comments:", error);
+      res.status(500).json({ message: "Error fetching CCB comments" });
+    }
+  });
+
+  app.post("/api/ccb/requests/:id/comments", ensureAuthenticated, async (req, res) => {
+    try {
+      const comment = await storage.createCcbComment({
+        ...req.body,
+        ccbRequestId: Number(req.params.id),
+        userId: req.user.id,
+        createdAt: new Date()
+      });
+      res.json(comment);
+    } catch (error) {
+      console.error("Error creating CCB comment:", error);
+      res.status(500).json({ message: "Error creating CCB comment" });
+    }
+  });
+
+  // CCB Approval endpoints
+  app.post("/api/ccb/requests/:id/approve", ensureAuthenticated, async (req, res) => {
+    try {
+      const { department, comments } = req.body;
+      const request = await storage.approveCcbRequest(
+        Number(req.params.id), 
+        department, 
+        req.user.id, 
+        comments
+      );
+      if (!request) {
+        return res.status(404).json({ message: "CCB request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      console.error("Error approving CCB request:", error);
+      res.status(500).json({ message: "Error approving CCB request" });
+    }
+  });
+
+  app.post("/api/ccb/requests/:id/reject", ensureAuthenticated, async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const request = await storage.rejectCcbRequest(Number(req.params.id), req.user.id, reason);
+      if (!request) {
+        return res.status(404).json({ message: "CCB request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      console.error("Error rejecting CCB request:", error);
+      res.status(500).json({ message: "Error rejecting CCB request" });
+    }
+  });
+
+  app.post("/api/ccb/requests/:id/implement", ensureAuthenticated, async (req, res) => {
+    try {
+      const { notes } = req.body;
+      const request = await storage.implementCcbRequest(Number(req.params.id), req.user.id, notes);
+      if (!request) {
+        return res.status(404).json({ message: "CCB request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      console.error("Error implementing CCB request:", error);
+      res.status(500).json({ message: "Error implementing CCB request" });
+    }
+  });
+
   return httpServer;
 }

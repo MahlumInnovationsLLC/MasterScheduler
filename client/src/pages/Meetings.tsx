@@ -2157,6 +2157,17 @@ export default function Meetings() {
             </p>
           </div>
 
+          {/* Tier IV Nested Tabs */}
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="ccb">Change Control Board</TabsTrigger>
+              <TabsTrigger value="concerns">Escalated Concerns</TabsTrigger>
+            </TabsList>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6 mt-6">
+
           {/* Tier IV Statistics */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
