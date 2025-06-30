@@ -1776,12 +1776,30 @@ const ReportsPage = () => {
                               <div className="text-center p-4 bg-green-50 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">
                                   {(() => {
-                                    // Count individual phase handoffs that were on-time (actual <= OP date)
+                                    // Count individual phase handoffs that were on-time (actual <= OP date) across ALL phases
                                     let onTimeHandoffs = 0;
+                                    const phaseComparisons = [
+                                      { current: 'fabricationStart', original: 'opFabricationStart' },
+                                      { current: 'paintStart', original: 'opPaintStart' },
+                                      { current: 'productionStart', original: 'opProductionStart' },
+                                      { current: 'itStart', original: 'opItStart' },
+                                      { current: 'wrapDate', original: 'opWrapDate' },
+                                      { current: 'ntcTestingDate', original: 'opNtcTestingDate' },
+                                      { current: 'qcStartDate', original: 'opQcStartDate' },
+                                      { current: 'executiveReviewDate', original: 'opExecutiveReviewDate' },
+                                      { current: 'shipDate', original: 'opShipDate' },
+                                      { current: 'deliveryDate', original: 'opDeliveryDate' }
+                                    ];
+                                    
                                     filteredProjects.forEach(p => {
-                                      if (p.productionStart && p.opProductionStart && new Date(p.productionStart) <= new Date(p.opProductionStart)) onTimeHandoffs++;
-                                      if (p.paintStart && p.opPaintStart && new Date(p.paintStart) <= new Date(p.opPaintStart)) onTimeHandoffs++;
-                                      if (p.itStart && p.opItStart && new Date(p.itStart) <= new Date(p.opItStart)) onTimeHandoffs++;
+                                      phaseComparisons.forEach(phase => {
+                                        if (p[phase.current as keyof typeof p] && 
+                                            p[phase.original as keyof typeof p] && 
+                                            new Date(p[phase.current as keyof typeof p] as string) <= 
+                                            new Date(p[phase.original as keyof typeof p] as string)) {
+                                          onTimeHandoffs++;
+                                        }
+                                      });
                                     });
                                     return onTimeHandoffs;
                                   })()}
@@ -1791,12 +1809,30 @@ const ReportsPage = () => {
                               <div className="text-center p-4 bg-red-50 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">
                                   {(() => {
-                                    // Count individual phase handoffs that were delayed (actual > OP date)
+                                    // Count individual phase handoffs that were delayed (actual > OP date) across ALL phases
                                     let delayedHandoffs = 0;
+                                    const phaseComparisons = [
+                                      { current: 'fabricationStart', original: 'opFabricationStart' },
+                                      { current: 'paintStart', original: 'opPaintStart' },
+                                      { current: 'productionStart', original: 'opProductionStart' },
+                                      { current: 'itStart', original: 'opItStart' },
+                                      { current: 'wrapDate', original: 'opWrapDate' },
+                                      { current: 'ntcTestingDate', original: 'opNtcTestingDate' },
+                                      { current: 'qcStartDate', original: 'opQcStartDate' },
+                                      { current: 'executiveReviewDate', original: 'opExecutiveReviewDate' },
+                                      { current: 'shipDate', original: 'opShipDate' },
+                                      { current: 'deliveryDate', original: 'opDeliveryDate' }
+                                    ];
+                                    
                                     filteredProjects.forEach(p => {
-                                      if (p.productionStart && p.opProductionStart && new Date(p.productionStart) > new Date(p.opProductionStart)) delayedHandoffs++;
-                                      if (p.paintStart && p.opPaintStart && new Date(p.paintStart) > new Date(p.opPaintStart)) delayedHandoffs++;
-                                      if (p.itStart && p.opItStart && new Date(p.itStart) > new Date(p.opItStart)) delayedHandoffs++;
+                                      phaseComparisons.forEach(phase => {
+                                        if (p[phase.current as keyof typeof p] && 
+                                            p[phase.original as keyof typeof p] && 
+                                            new Date(p[phase.current as keyof typeof p] as string) > 
+                                            new Date(p[phase.original as keyof typeof p] as string)) {
+                                          delayedHandoffs++;
+                                        }
+                                      });
                                     });
                                     return delayedHandoffs;
                                   })()}
@@ -1806,22 +1842,32 @@ const ReportsPage = () => {
                               <div className="text-center p-4 bg-blue-50 rounded-lg">
                                 <div className="text-2xl font-bold text-blue-600">
                                   {(() => {
-                                    // Calculate overall on-time percentage based on individual handoffs
+                                    // Calculate overall on-time percentage based on ALL individual handoffs
                                     let onTimeHandoffs = 0;
                                     let totalHandoffs = 0;
+                                    const phaseComparisons = [
+                                      { current: 'fabricationStart', original: 'opFabricationStart' },
+                                      { current: 'paintStart', original: 'opPaintStart' },
+                                      { current: 'productionStart', original: 'opProductionStart' },
+                                      { current: 'itStart', original: 'opItStart' },
+                                      { current: 'wrapDate', original: 'opWrapDate' },
+                                      { current: 'ntcTestingDate', original: 'opNtcTestingDate' },
+                                      { current: 'qcStartDate', original: 'opQcStartDate' },
+                                      { current: 'executiveReviewDate', original: 'opExecutiveReviewDate' },
+                                      { current: 'shipDate', original: 'opShipDate' },
+                                      { current: 'deliveryDate', original: 'opDeliveryDate' }
+                                    ];
+                                    
                                     filteredProjects.forEach(p => {
-                                      if (p.productionStart && p.opProductionStart) {
-                                        totalHandoffs++;
-                                        if (new Date(p.productionStart) <= new Date(p.opProductionStart)) onTimeHandoffs++;
-                                      }
-                                      if (p.paintStart && p.opPaintStart) {
-                                        totalHandoffs++;
-                                        if (new Date(p.paintStart) <= new Date(p.opPaintStart)) onTimeHandoffs++;
-                                      }
-                                      if (p.itStart && p.opItStart) {
-                                        totalHandoffs++;
-                                        if (new Date(p.itStart) <= new Date(p.opItStart)) onTimeHandoffs++;
-                                      }
+                                      phaseComparisons.forEach(phase => {
+                                        if (p[phase.current as keyof typeof p] && p[phase.original as keyof typeof p]) {
+                                          totalHandoffs++;
+                                          if (new Date(p[phase.current as keyof typeof p] as string) <= 
+                                              new Date(p[phase.original as keyof typeof p] as string)) {
+                                            onTimeHandoffs++;
+                                          }
+                                        }
+                                      });
                                     });
                                     return totalHandoffs > 0 ? Math.round((onTimeHandoffs / totalHandoffs) * 100) : 100;
                                   })()}%
