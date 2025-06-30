@@ -249,6 +249,7 @@ function MainContent() {
             <ProtectedRoute path="/export-reports" component={ExportReports} />
             <ViewerRestrictedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
+            <ProtectedRoute path="/material-management" component={MaterialManagement} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/settings/system" component={SystemSettings} />
             <AdminRoute path="/system-settings" component={SystemSettings} />
