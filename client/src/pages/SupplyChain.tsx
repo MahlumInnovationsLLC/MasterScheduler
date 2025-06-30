@@ -549,6 +549,7 @@ const SupplyChain = () => {
     }
     
     // Calculate based on project phases and weeks before phase
+    const extendedProject = project as any;
     let phaseDate: Date | null = null;
     
     switch (benchmark.targetPhase) {
@@ -556,13 +557,13 @@ const SupplyChain = () => {
         phaseDate = project.fabricationStart ? new Date(project.fabricationStart) : null;
         break;
       case 'PAINT':
-        phaseDate = (project as any).paintStart ? new Date((project as any).paintStart) : null;
+        phaseDate = extendedProject.paintStart ? new Date(extendedProject.paintStart) : null;
         break;
       case 'PRODUCTION':
-        phaseDate = (project as any).productionStart ? new Date((project as any).productionStart) : null;
+        phaseDate = extendedProject.productionStart ? new Date(extendedProject.productionStart) : null;
         break;
       case 'IT':
-        phaseDate = (project as any).itStart ? new Date((project as any).itStart) : null;
+        phaseDate = extendedProject.itStart ? new Date(extendedProject.itStart) : null;
         break;
       case 'NTC':
         phaseDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
@@ -571,13 +572,13 @@ const SupplyChain = () => {
         phaseDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
         break;
       case 'EXECUTIVE_REVIEW':
-        phaseDate = (project as any).executiveReviewDate ? new Date((project as any).executiveReviewDate) : null;
+        phaseDate = extendedProject.executiveReviewDate ? new Date(extendedProject.executiveReviewDate) : null;
         break;
       case 'SHIP':
         phaseDate = project.shipDate ? new Date(project.shipDate) : null;
         break;
       case 'DELIVERY':
-        phaseDate = (project as any).deliveryDate ? new Date((project as any).deliveryDate) : null;
+        phaseDate = extendedProject.deliveryDate ? new Date(extendedProject.deliveryDate) : null;
         break;
       default:
         phaseDate = new Date(project.estimatedCompletionDate);
@@ -601,6 +602,7 @@ const SupplyChain = () => {
       dueDate = new Date(benchmark.targetDate);
     } else {
       // Calculate based on project phases and weeks before phase
+      const extendedProject = project as any;
       let phaseDate: Date | null = null;
       
       switch (benchmark.targetPhase) {
@@ -853,6 +855,7 @@ const SupplyChain = () => {
       if (!project) return false;
       
       // Calculate target date based on project phase dates and weeks before phase
+      const extendedProject = project as any;
       let phaseDate: Date | null = null;
       
       switch (benchmark.targetPhase) {
