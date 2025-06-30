@@ -870,13 +870,13 @@ const SupplyChain = () => {
           phaseDate = project.fabricationStart ? new Date(project.fabricationStart) : null;
           break;
         case 'PAINT':
-          phaseDate = project.paintStart ? new Date(project.paintStart) : null;
+          phaseDate = extendedProject.paintStart ? new Date(extendedProject.paintStart) : null;
           break;
         case 'PRODUCTION':
-          phaseDate = project.productionStart ? new Date(project.productionStart) : null;
+          phaseDate = extendedProject.productionStart ? new Date(extendedProject.productionStart) : null;
           break;
         case 'IT':
-          phaseDate = project.itStart ? new Date(project.itStart) : null;
+          phaseDate = extendedProject.itStart ? new Date(extendedProject.itStart) : null;
           break;
         case 'NTC':
           phaseDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
@@ -885,13 +885,13 @@ const SupplyChain = () => {
           phaseDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
           break;
         case 'EXECUTIVE_REVIEW':
-          phaseDate = project.executiveReviewDate ? new Date(project.executiveReviewDate) : null;
+          phaseDate = extendedProject.executiveReviewDate ? new Date(extendedProject.executiveReviewDate) : null;
           break;
         case 'SHIP':
           phaseDate = project.shipDate ? new Date(project.shipDate) : null;
           break;
         case 'DELIVERY':
-          phaseDate = project.deliveryDate ? new Date(project.deliveryDate) : null;
+          phaseDate = extendedProject.deliveryDate ? new Date(extendedProject.deliveryDate) : null;
           break;
         default:
           // For other phases, use estimated completion date as fallback
