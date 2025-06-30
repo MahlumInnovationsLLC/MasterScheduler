@@ -54,7 +54,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock, ListFilter } from 'lucide-react';
+import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock, ListFilter, Search } from 'lucide-react';
 
 interface SupplyChainBenchmark {
   id: number;
@@ -136,6 +136,9 @@ const SupplyChain = () => {
   const [pendingBenchmarkProjectId, setPendingBenchmarkProjectId] = useState<number | null>(null);
   const [templateBenchmarkDialogOpen, setTemplateBenchmarkDialogOpen] = useState(false);
   const [selectedBenchmarkTemplate, setSelectedBenchmarkTemplate] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending'>('all');
+  const [benchmarkFilter, setBenchmarkFilter] = useState<string>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -523,6 +526,62 @@ const SupplyChain = () => {
       });
   }, [projects, filteredProjectBenchmarks]);
 
+  // Filter projects based on search query and filters
+  const getFilteredProjects = () => {
+    let filtered = activeProjects;
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(project => 
+        project.projectNumber.toLowerCase().includes(query) ||
+        project.name.toLowerCase().includes(query)
+      );
+    }
+
+    // Project selection filter
+    if (selectedProjectId) {
+      filtered = filtered.filter(p => p.id === selectedProjectId);
+    }
+
+    // Status filter (based on benchmark completion)
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(project => {
+        const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
+        const totalBenchmarks = projectBenchmarks.length;
+        const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
+        
+        if (statusFilter === 'completed') {
+          return totalBenchmarks > 0 && completedBenchmarks === totalBenchmarks;
+        } else if (statusFilter === 'pending') {
+          return totalBenchmarks === 0 || completedBenchmarks < totalBenchmarks;
+        }
+        return true;
+      });
+    }
+
+    // Benchmark type filter
+    if (benchmarkFilter !== 'all') {
+      filtered = filtered.filter(project => {
+        const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
+        return projectBenchmarks.some(benchmark => benchmark.name.toLowerCase().includes(benchmarkFilter.toLowerCase()));
+      });
+    }
+
+    return filtered;
+  };
+
+  const filteredProjects = getFilteredProjects();
+
+  // Get unique benchmark names for filter
+  const availableBenchmarks = React.useMemo(() => {
+    const names = new Set<string>();
+    filteredProjectBenchmarks?.forEach(benchmark => {
+      names.add(benchmark.name);
+    });
+    return Array.from(names).sort();
+  }, [filteredProjectBenchmarks]);
+
   // Get upcoming purchase needs
   const getUpcomingPurchaseNeeds = (timeframe: 'week' | 'month' | 'quarter') => {
     if (!projectBenchmarks) return [];
@@ -723,26 +782,90 @@ const SupplyChain = () => {
 
         {/* Project Benchmarks Tab */}
         <TabsContent value="project-benchmarks" className="mt-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <h2 className="text-xl font-semibold">Project Benchmarks</h2>
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <h2 className="text-xl font-semibold">Project Benchmarks</h2>
+            </div>
 
-            <div className="flex flex-col md:flex-row gap-4">
-              <Select
-                value={selectedProjectId?.toString() || ""}
-                onValueChange={value => setSelectedProjectId(value !== " " ? parseInt(value) : null)}
-              >
-                <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="Filter by project" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value=" ">All Projects</SelectItem>
-                  {activeProjects.map((project) => (
-                    <SelectItem key={project.id} value={project.id.toString()}>
-                      {project.projectNumber} - {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Search and Filter Controls */}
+            <div className="flex flex-col lg:flex-row gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              {/* Search Bar */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search projects by number or name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Filter Controls */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Select
+                  value={selectedProjectId?.toString() || ""}
+                  onValueChange={value => setSelectedProjectId(value !== " " ? parseInt(value) : null)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Filter by project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value=" ">All Projects</SelectItem>
+                    {activeProjects.map((project) => (
+                      <SelectItem key={project.id} value={project.id.toString()}>
+                        {project.projectNumber} - {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value: 'all' | 'completed' | 'pending') => setStatusFilter(value)}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={benchmarkFilter}
+                  onValueChange={setBenchmarkFilter}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Benchmark type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Benchmarks</SelectItem>
+                    {availableBenchmarks.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Clear Filters Button */}
+                {(searchQuery || selectedProjectId || statusFilter !== 'all' || benchmarkFilter !== 'all') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedProjectId(null);
+                      setStatusFilter('all');
+                      setBenchmarkFilter('all');
+                    }}
+                    className="whitespace-nowrap"
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
