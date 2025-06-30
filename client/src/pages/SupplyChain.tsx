@@ -358,6 +358,39 @@ const SupplyChain = () => {
     }
   });
 
+  // Update benchmark settings mutation
+  const updateBenchmarkSettingsMutation = useMutation({
+    mutationFn: async (data: { benchmarkId: number; weeksBeforePhase: number; updateOption: string; selectedProjectIds?: number[] }) => {
+      const response = await fetch('/api/benchmarks/update-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to update benchmark settings');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/supply-chain-benchmarks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
+      setEditingBenchmark(null);
+      setSelectedProjectsForUpdate([]);
+      setShowProjectSelector(false);
+      setIsSavingBenchmarkSettings(false);
+      toast({
+        title: "Settings Updated",
+        description: "Benchmark settings have been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      setIsSavingBenchmarkSettings(false);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update benchmark settings.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handlePermanentDeleteProject = (projectId: number) => {
   };
 
@@ -1576,6 +1609,56 @@ const SupplyChain = () => {
             </Card>
           )}
         </TabsContent>
+
+        <TabsContent value="settings" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Benchmark Settings</CardTitle>
+              <CardDescription>
+                Manage benchmark templates and update timing for existing projects
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {benchmarks && benchmarks.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Benchmark Templates</h3>
+                  <div className="grid gap-4">
+                    {benchmarks.map((benchmark) => (
+                      <div key={benchmark.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-medium">{benchmark.name}</h4>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                              {benchmark.description}
+                            </p>
+                            <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
+                              <span>Department: {benchmark.department}</span>
+                              <span>Target Phase: {benchmark.targetPhase}</span>
+                              <span>Timing: {benchmark.weeksBeforePhase} weeks before</span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingBenchmark(benchmark)}
+                            className="flex items-center gap-2"
+                          >
+                            <Settings className="h-4 w-4" />
+                            Edit Settings
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-slate-600 dark:text-slate-400">No benchmark templates found.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Benchmark Form Dialog */}
@@ -2056,6 +2139,199 @@ const SupplyChain = () => {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Benchmark Settings Dialog */}
+      <Dialog open={!!editingBenchmark} onOpenChange={() => setEditingBenchmark(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Benchmark Settings</DialogTitle>
+            <DialogDescription>
+              Update timing for "{editingBenchmark?.name}" and choose how to apply changes
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingBenchmark && (
+            <div className="space-y-6">
+              {/* Current Settings */}
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Current Settings</h4>
+                <div className="text-sm space-y-1 text-slate-600 dark:text-slate-400">
+                  <p>Department: {editingBenchmark.department}</p>
+                  <p>Target Phase: {editingBenchmark.targetPhase}</p>
+                  <p>Current Timing: {editingBenchmark.weeksBeforePhase} weeks before phase</p>
+                </div>
+              </div>
+
+              {/* New Settings */}
+              <div className="space-y-4">
+                <h4 className="font-medium">New Settings</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="newWeeks">Weeks Before Phase</Label>
+                    <Input
+                      id="newWeeks"
+                      type="number"
+                      min="1"
+                      defaultValue={editingBenchmark.weeksBeforePhase}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Update Options */}
+              <div className="space-y-4">
+                <h4 className="font-medium">How should this change be applied?</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="update-new"
+                      name="updateOption"
+                      value="new"
+                      checked={updateOption === 'new'}
+                      onChange={(e) => setUpdateOption(e.target.value as 'all' | 'selected' | 'new')}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="update-new" className="flex-1">
+                      <div>
+                        <div className="font-medium">New Projects Only</div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400">
+                          Only apply to projects created after this change
+                        </div>
+                      </div>
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="update-all"
+                      name="updateOption"
+                      value="all"
+                      checked={updateOption === 'all'}
+                      onChange={(e) => setUpdateOption(e.target.value as 'all' | 'selected' | 'new')}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="update-all" className="flex-1">
+                      <div>
+                        <div className="font-medium">All Existing Projects</div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400">
+                          Update all projects that have this benchmark
+                        </div>
+                      </div>
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="update-selected"
+                      name="updateOption"
+                      value="selected"
+                      checked={updateOption === 'selected'}
+                      onChange={(e) => {
+                        setUpdateOption(e.target.value as 'all' | 'selected' | 'new');
+                        setShowProjectSelector(true);
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="update-selected" className="flex-1">
+                      <div>
+                        <div className="font-medium">Selected Projects</div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400">
+                          Choose specific projects to update
+                        </div>
+                      </div>
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project Selector */}
+              {updateOption === 'selected' && showProjectSelector && (
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-medium">Select Projects to Update</h4>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {activeProjects?.map((project) => {
+                      const hasThisBenchmark = projectBenchmarks?.some(
+                        pb => pb.projectId === project.id && pb.benchmarkId === editingBenchmark.id
+                      );
+                      
+                      if (!hasThisBenchmark) return null;
+                      
+                      return (
+                        <div key={project.id} className="flex items-center space-x-2 p-2 border rounded">
+                          <input
+                            type="checkbox"
+                            id={`project-${project.id}`}
+                            checked={selectedProjectsForUpdate.includes(project.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedProjectsForUpdate([...selectedProjectsForUpdate, project.id]);
+                              } else {
+                                setSelectedProjectsForUpdate(selectedProjectsForUpdate.filter(id => id !== project.id));
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor={`project-${project.id}`} className="flex-1">
+                            <div className="text-sm">
+                              <div className="font-medium">{project.projectNumber} - {project.name}</div>
+                              <div className="text-slate-600 dark:text-slate-400">Status: {project.status}</div>
+                            </div>
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingBenchmark(null);
+                    setSelectedProjectsForUpdate([]);
+                    setShowProjectSelector(false);
+                    setUpdateOption('new');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    const newWeeksInput = document.getElementById('newWeeks') as HTMLInputElement;
+                    const newWeeks = parseInt(newWeeksInput.value);
+                    
+                    if (newWeeks && newWeeks > 0) {
+                      setIsSavingBenchmarkSettings(true);
+                      await updateBenchmarkSettingsMutation.mutateAsync({
+                        benchmarkId: editingBenchmark.id,
+                        weeksBeforePhase: newWeeks,
+                        updateOption,
+                        selectedProjectIds: updateOption === 'selected' ? selectedProjectsForUpdate : undefined
+                      });
+                    }
+                  }}
+                  disabled={isSavingBenchmarkSettings || updateBenchmarkSettingsMutation.isPending}
+                >
+                  {isSavingBenchmarkSettings || updateBenchmarkSettingsMutation.isPending ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
