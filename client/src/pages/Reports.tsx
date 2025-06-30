@@ -1796,67 +1796,165 @@ const ReportsPage = () => {
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                               <div className="text-center p-4 bg-green-50 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">
-                                  {filteredProjects.filter(p => {
-                                    // Calculate on-time handoffs based on actual vs planned dates
-                                    const productionOnTime = p.productionStart && p.opProductionStart && 
-                                      new Date(p.productionStart) <= new Date(p.opProductionStart);
-                                    const paintOnTime = p.paintStart && p.opPaintStart && 
-                                      new Date(p.paintStart) <= new Date(p.opPaintStart);
-                                    return productionOnTime || paintOnTime;
-                                  }).length}
+                                  {(() => {
+                                    // Calculate on-time handoffs across all phases (including delivered projects)
+                                    const onTimeCount = filteredProjects.filter(p => {
+                                      const productionOnTime = p.productionStart && p.opProductionStart && 
+                                        new Date(p.productionStart) <= new Date(p.opProductionStart);
+                                      const paintOnTime = p.paintStart && p.opPaintStart && 
+                                        new Date(p.paintStart) <= new Date(p.opPaintStart);
+                                      const itOnTime = p.itStart && p.opItStart && 
+                                        new Date(p.itStart) <= new Date(p.opItStart);
+                                      return productionOnTime || paintOnTime || itOnTime;
+                                    }).length;
+                                    return onTimeCount;
+                                  })()}
                                 </div>
                                 <div className="text-sm text-green-700">On-Time Handoffs</div>
                               </div>
                               <div className="text-center p-4 bg-red-50 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">
-                                  {filteredProjects.filter(p => {
-                                    // Calculate delayed handoffs
-                                    const productionDelayed = p.productionStart && p.opProductionStart && 
-                                      new Date(p.productionStart) > new Date(p.opProductionStart);
-                                    const paintDelayed = p.paintStart && p.opPaintStart && 
-                                      new Date(p.paintStart) > new Date(p.opPaintStart);
-                                    return productionDelayed || paintDelayed;
-                                  }).length}
+                                  {(() => {
+                                    // Calculate delayed handoffs across all phases
+                                    const delayedCount = filteredProjects.filter(p => {
+                                      const productionDelayed = p.productionStart && p.opProductionStart && 
+                                        new Date(p.productionStart) > new Date(p.opProductionStart);
+                                      const paintDelayed = p.paintStart && p.opPaintStart && 
+                                        new Date(p.paintStart) > new Date(p.opPaintStart);
+                                      const itDelayed = p.itStart && p.opItStart && 
+                                        new Date(p.itStart) > new Date(p.opItStart);
+                                      return productionDelayed || paintDelayed || itDelayed;
+                                    }).length;
+                                    return delayedCount;
+                                  })()}
                                 </div>
                                 <div className="text-sm text-red-700">Delayed Handoffs</div>
+                              </div>
+                              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {(() => {
+                                    // Calculate overall on-time percentage
+                                    const totalWithDates = filteredProjects.filter(p => 
+                                      (p.productionStart && p.opProductionStart) ||
+                                      (p.paintStart && p.opPaintStart) ||
+                                      (p.itStart && p.opItStart)
+                                    ).length;
+                                    const onTimeCount = filteredProjects.filter(p => {
+                                      const productionOnTime = p.productionStart && p.opProductionStart && 
+                                        new Date(p.productionStart) <= new Date(p.opProductionStart);
+                                      const paintOnTime = p.paintStart && p.opPaintStart && 
+                                        new Date(p.paintStart) <= new Date(p.opPaintStart);
+                                      const itOnTime = p.itStart && p.opItStart && 
+                                        new Date(p.itStart) <= new Date(p.opItStart);
+                                      return productionOnTime || paintOnTime || itOnTime;
+                                    }).length;
+                                    return totalWithDates > 0 ? Math.round((onTimeCount / totalWithDates) * 100) : 0;
+                                  })()}%
+                                </div>
+                                <div className="text-sm text-blue-700">Overall On-Time Rate</div>
                               </div>
                             </div>
                             
                             <div className="pt-4">
-                              <h4 className="font-medium mb-2">Phase Performance Breakdown</h4>
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">PAINT Phase Handoffs</span>
-                                  <Badge variant={
-                                    filteredProjects.filter(p => p.paintStart && p.opPaintStart).length > 0 ? "default" : "secondary"
-                                  }>
-                                    {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
-                                      new Date(p.paintStart) <= new Date(p.opPaintStart)).length}/
-                                    {filteredProjects.filter(p => p.paintStart && p.opPaintStart).length} On-Time
-                                  </Badge>
+                              <h4 className="font-medium mb-3">Phase Performance Breakdown</h4>
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                  <div>
+                                    <span className="text-sm font-medium">PAINT Phase Handoffs</span>
+                                    <div className="text-xs text-gray-500">
+                                      Avg variance: {(() => {
+                                        const paintProjects = filteredProjects.filter(p => p.paintStart && p.opPaintStart);
+                                        if (paintProjects.length === 0) return '0 days';
+                                        const totalVariance = paintProjects.reduce((sum, p) => {
+                                          const variance = Math.abs(new Date(p.paintStart!).getTime() - new Date(p.opPaintStart!).getTime()) / (1000 * 60 * 60 * 24);
+                                          return sum + variance;
+                                        }, 0);
+                                        return `${Math.round(totalVariance / paintProjects.length)} days`;
+                                      })()}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge variant={
+                                      filteredProjects.filter(p => p.paintStart && p.opPaintStart).length > 0 ? "default" : "secondary"
+                                    }>
+                                      {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                        new Date(p.paintStart) <= new Date(p.opPaintStart)).length}/
+                                      {filteredProjects.filter(p => p.paintStart && p.opPaintStart).length} On-Time
+                                    </Badge>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {filteredProjects.filter(p => p.paintStart && p.opPaintStart).length > 0 ? 
+                                        Math.round((filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                          new Date(p.paintStart) <= new Date(p.opPaintStart)).length / 
+                                          filteredProjects.filter(p => p.paintStart && p.opPaintStart).length) * 100) : 0}% rate
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">Production Phase Handoffs</span>
-                                  <Badge variant={
-                                    filteredProjects.filter(p => p.productionStart && p.opProductionStart).length > 0 ? "default" : "secondary"
-                                  }>
-                                    {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
-                                      new Date(p.productionStart) <= new Date(p.opProductionStart)).length}/
-                                    {filteredProjects.filter(p => p.productionStart && p.opProductionStart).length} On-Time
-                                  </Badge>
+                                
+                                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                  <div>
+                                    <span className="text-sm font-medium">Production Phase Handoffs</span>
+                                    <div className="text-xs text-gray-500">
+                                      Avg variance: {(() => {
+                                        const prodProjects = filteredProjects.filter(p => p.productionStart && p.opProductionStart);
+                                        if (prodProjects.length === 0) return '0 days';
+                                        const totalVariance = prodProjects.reduce((sum, p) => {
+                                          const variance = Math.abs(new Date(p.productionStart!).getTime() - new Date(p.opProductionStart!).getTime()) / (1000 * 60 * 60 * 24);
+                                          return sum + variance;
+                                        }, 0);
+                                        return `${Math.round(totalVariance / prodProjects.length)} days`;
+                                      })()}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge variant={
+                                      filteredProjects.filter(p => p.productionStart && p.opProductionStart).length > 0 ? "default" : "secondary"
+                                    }>
+                                      {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                        new Date(p.productionStart) <= new Date(p.opProductionStart)).length}/
+                                      {filteredProjects.filter(p => p.productionStart && p.opProductionStart).length} On-Time
+                                    </Badge>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {filteredProjects.filter(p => p.productionStart && p.opProductionStart).length > 0 ? 
+                                        Math.round((filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                          new Date(p.productionStart) <= new Date(p.opProductionStart)).length / 
+                                          filteredProjects.filter(p => p.productionStart && p.opProductionStart).length) * 100) : 0}% rate
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">IT Phase Handoffs</span>
-                                  <Badge variant={
-                                    filteredProjects.filter(p => p.itStart && p.opItStart).length > 0 ? "default" : "secondary"
-                                  }>
-                                    {filteredProjects.filter(p => p.itStart && p.opItStart && 
-                                      new Date(p.itStart) <= new Date(p.opItStart)).length}/
-                                    {filteredProjects.filter(p => p.itStart && p.opItStart).length} On-Time
-                                  </Badge>
+                                
+                                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                  <div>
+                                    <span className="text-sm font-medium">IT Phase Handoffs</span>
+                                    <div className="text-xs text-gray-500">
+                                      Avg variance: {(() => {
+                                        const itProjects = filteredProjects.filter(p => p.itStart && p.opItStart);
+                                        if (itProjects.length === 0) return '0 days';
+                                        const totalVariance = itProjects.reduce((sum, p) => {
+                                          const variance = Math.abs(new Date(p.itStart!).getTime() - new Date(p.opItStart!).getTime()) / (1000 * 60 * 60 * 24);
+                                          return sum + variance;
+                                        }, 0);
+                                        return `${Math.round(totalVariance / itProjects.length)} days`;
+                                      })()}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge variant={
+                                      filteredProjects.filter(p => p.itStart && p.opItStart).length > 0 ? "default" : "secondary"
+                                    }>
+                                      {filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                        new Date(p.itStart) <= new Date(p.opItStart)).length}/
+                                      {filteredProjects.filter(p => p.itStart && p.opItStart).length} On-Time
+                                    </Badge>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {filteredProjects.filter(p => p.itStart && p.opItStart).length > 0 ? 
+                                        Math.round((filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                          new Date(p.itStart) <= new Date(p.opItStart)).length / 
+                                          filteredProjects.filter(p => p.itStart && p.opItStart).length) * 100) : 0}% rate
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1924,63 +2022,99 @@ const ReportsPage = () => {
 
                   {/* Schedule Change Control */}
                   <TabsContent value="schedule-changes" className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5" />
-                            Schedule Change Control Boards
+                            Schedule Change Control Overview
                           </CardTitle>
                           <CardDescription>
-                            Projects with formal schedule change approvals
+                            Real data analysis of projects requiring schedule changes
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-4">
-                            <div className="grid grid-cols-3 gap-4 text-center">
-                              <div className="p-4 bg-yellow-50 rounded-lg">
-                                <div className="text-xl font-bold text-yellow-600">
-                                  {filteredProjects.filter(p => {
-                                    // Projects with schedule changes (any actual date different from OP date)
-                                    const hasProductionChange = p.productionStart && p.opProductionStart && 
-                                      new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime();
-                                    const hasPaintChange = p.paintStart && p.opPaintStart && 
-                                      new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime();
-                                    const hasItChange = p.itStart && p.opItStart && 
-                                      new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime();
-                                    return hasProductionChange || hasPaintChange || hasItChange;
-                                  }).length}
+                            <div className="grid grid-cols-2 gap-4 text-center">
+                              <div className="p-4 bg-red-50 rounded-lg">
+                                <div className="text-2xl font-bold text-red-600">
+                                  {(() => {
+                                    // Projects with any schedule changes
+                                    const withChanges = filteredProjects.filter(p => {
+                                      const hasProductionChange = p.productionStart && p.opProductionStart && 
+                                        new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime();
+                                      const hasPaintChange = p.paintStart && p.opPaintStart && 
+                                        new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime();
+                                      const hasItChange = p.itStart && p.opItStart && 
+                                        new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime();
+                                      const hasDeliveryChange = p.deliveryDate && p.opDeliveryDate && 
+                                        new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime();
+                                      return hasProductionChange || hasPaintChange || hasItChange || hasDeliveryChange;
+                                    }).length;
+                                    return withChanges;
+                                  })()}
                                 </div>
-                                <div className="text-xs text-yellow-700 mt-1">Schedule Changes</div>
+                                <div className="text-sm text-red-700">Projects with Changes</div>
                               </div>
                               <div className="p-4 bg-green-50 rounded-lg">
-                                <div className="text-xl font-bold text-green-600">
-                                  {filteredProjects.filter(p => {
+                                <div className="text-2xl font-bold text-green-600">
+                                  {(() => {
                                     // Projects with no schedule changes
-                                    const noProductionChange = !p.productionStart || !p.opProductionStart || 
-                                      new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime();
-                                    const noPaintChange = !p.paintStart || !p.opPaintStart || 
-                                      new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime();
-                                    const noItChange = !p.itStart || !p.opItStart || 
-                                      new Date(p.itStart).getTime() === new Date(p.opItStart).getTime();
-                                    return noProductionChange && noPaintChange && noItChange;
-                                  }).length}
+                                    const withoutChanges = filteredProjects.filter(p => {
+                                      const hasData = (p.productionStart && p.opProductionStart) || 
+                                                    (p.paintStart && p.opPaintStart) || 
+                                                    (p.itStart && p.opItStart) || 
+                                                    (p.deliveryDate && p.opDeliveryDate);
+                                      if (!hasData) return false;
+                                      
+                                      const noProductionChange = !p.productionStart || !p.opProductionStart || 
+                                        new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime();
+                                      const noPaintChange = !p.paintStart || !p.opPaintStart || 
+                                        new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime();
+                                      const noItChange = !p.itStart || !p.opItStart || 
+                                        new Date(p.itStart).getTime() === new Date(p.opItStart).getTime();
+                                      const noDeliveryChange = !p.deliveryDate || !p.opDeliveryDate || 
+                                        new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime();
+                                      return noProductionChange && noPaintChange && noItChange && noDeliveryChange;
+                                    }).length;
+                                    return withoutChanges;
+                                  })()}
                                 </div>
-                                <div className="text-xs text-green-700 mt-1">No Changes</div>
+                                <div className="text-sm text-green-700">No Changes</div>
                               </div>
-                              <div className="p-4 bg-blue-50 rounded-lg">
-                                <div className="text-xl font-bold text-blue-600">
-                                  {Math.round((filteredProjects.filter(p => {
-                                    const noChanges = (!p.productionStart || !p.opProductionStart || 
-                                      new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()) &&
-                                      (!p.paintStart || !p.opPaintStart || 
-                                      new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()) &&
-                                      (!p.itStart || !p.opItStart || 
-                                      new Date(p.itStart).getTime() === new Date(p.opItStart).getTime());
-                                    return noChanges;
-                                  }).length / Math.max(filteredProjects.length, 1)) * 100)}%
+                            </div>
+                            
+                            <div className="pt-4">
+                              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {(() => {
+                                    const totalWithData = filteredProjects.filter(p => 
+                                      (p.productionStart && p.opProductionStart) || 
+                                      (p.paintStart && p.opPaintStart) || 
+                                      (p.itStart && p.opItStart) || 
+                                      (p.deliveryDate && p.opDeliveryDate)
+                                    ).length;
+                                    const withoutChanges = filteredProjects.filter(p => {
+                                      const hasData = (p.productionStart && p.opProductionStart) || 
+                                                    (p.paintStart && p.opPaintStart) || 
+                                                    (p.itStart && p.opItStart) || 
+                                                    (p.deliveryDate && p.opDeliveryDate);
+                                      if (!hasData) return false;
+                                      
+                                      const noProductionChange = !p.productionStart || !p.opProductionStart || 
+                                        new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime();
+                                      const noPaintChange = !p.paintStart || !p.opPaintStart || 
+                                        new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime();
+                                      const noItChange = !p.itStart || !p.opItStart || 
+                                        new Date(p.itStart).getTime() === new Date(p.opItStart).getTime();
+                                      const noDeliveryChange = !p.deliveryDate || !p.opDeliveryDate || 
+                                        new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime();
+                                      return noProductionChange && noPaintChange && noItChange && noDeliveryChange;
+                                    }).length;
+                                    return totalWithData > 0 ? Math.round((withoutChanges / totalWithData) * 100) : 0;
+                                  })()}%
                                 </div>
-                                <div className="text-xs text-blue-700 mt-1">Stability Rate</div>
+                                <div className="text-sm text-blue-700">Schedule Stability Rate</div>
                               </div>
                             </div>
                           </div>
@@ -1989,43 +2123,176 @@ const ReportsPage = () => {
 
                       <Card>
                         <CardHeader>
-                          <CardTitle>Change Impact Analysis</CardTitle>
+                          <CardTitle>Phase Change Impact Analysis</CardTitle>
                           <CardDescription>
-                            Most common phases requiring schedule adjustments
+                            Breakdown of schedule changes by manufacturing phase
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <span className="text-sm font-medium">Production Phase</span>
+                              <div>
+                                <span className="text-sm font-medium">Production Phase Changes</span>
+                                <div className="text-xs text-gray-500">
+                                  Avg impact: {(() => {
+                                    const changedProjects = filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime());
+                                    if (changedProjects.length === 0) return '0 days';
+                                    const totalImpact = changedProjects.reduce((sum, p) => {
+                                      return sum + Math.abs(new Date(p.productionStart!).getTime() - new Date(p.opProductionStart!).getTime()) / (1000 * 60 * 60 * 24);
+                                    }, 0);
+                                    return `${Math.round(totalImpact / changedProjects.length)} days`;
+                                  })()}
+                                </div>
+                              </div>
                               <div className="text-right">
-                                <div className="text-sm font-bold">
+                                <Badge variant={
+                                  filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                    new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime()).length > 5 ? "destructive" : "secondary"
+                                }>
                                   {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
                                     new Date(p.productionStart).getTime() !== new Date(p.opProductionStart).getTime()).length}
-                                </div>
-                                <div className="text-xs text-gray-500">changes</div>
+                                </Badge>
                               </div>
                             </div>
+                            
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <span className="text-sm font-medium">PAINT Phase</span>
+                              <div>
+                                <span className="text-sm font-medium">PAINT Phase Changes</span>
+                                <div className="text-xs text-gray-500">
+                                  Avg impact: {(() => {
+                                    const changedProjects = filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime());
+                                    if (changedProjects.length === 0) return '0 days';
+                                    const totalImpact = changedProjects.reduce((sum, p) => {
+                                      return sum + Math.abs(new Date(p.paintStart!).getTime() - new Date(p.opPaintStart!).getTime()) / (1000 * 60 * 60 * 24);
+                                    }, 0);
+                                    return `${Math.round(totalImpact / changedProjects.length)} days`;
+                                  })()}
+                                </div>
+                              </div>
                               <div className="text-right">
-                                <div className="text-sm font-bold">
+                                <Badge variant={
+                                  filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                    new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime()).length > 5 ? "destructive" : "secondary"
+                                }>
                                   {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
                                     new Date(p.paintStart).getTime() !== new Date(p.opPaintStart).getTime()).length}
-                                </div>
-                                <div className="text-xs text-gray-500">changes</div>
+                                </Badge>
                               </div>
                             </div>
+                            
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <span className="text-sm font-medium">IT Phase</span>
+                              <div>
+                                <span className="text-sm font-medium">IT Phase Changes</span>
+                                <div className="text-xs text-gray-500">
+                                  Avg impact: {(() => {
+                                    const changedProjects = filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                      new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime());
+                                    if (changedProjects.length === 0) return '0 days';
+                                    const totalImpact = changedProjects.reduce((sum, p) => {
+                                      return sum + Math.abs(new Date(p.itStart!).getTime() - new Date(p.opItStart!).getTime()) / (1000 * 60 * 60 * 24);
+                                    }, 0);
+                                    return `${Math.round(totalImpact / changedProjects.length)} days`;
+                                  })()}
+                                </div>
+                              </div>
                               <div className="text-right">
-                                <div className="text-sm font-bold">
+                                <Badge variant={
+                                  filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                    new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime()).length > 5 ? "destructive" : "secondary"
+                                }>
                                   {filteredProjects.filter(p => p.itStart && p.opItStart && 
                                     new Date(p.itStart).getTime() !== new Date(p.opItStart).getTime()).length}
-                                </div>
-                                <div className="text-xs text-gray-500">changes</div>
+                                </Badge>
                               </div>
                             </div>
+                            
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <div>
+                                <span className="text-sm font-medium">Delivery Date Changes</span>
+                                <div className="text-xs text-gray-500">
+                                  Avg impact: {(() => {
+                                    const changedProjects = filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate && 
+                                      new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime());
+                                    if (changedProjects.length === 0) return '0 days';
+                                    const totalImpact = changedProjects.reduce((sum, p) => {
+                                      return sum + Math.abs(new Date(p.deliveryDate!).getTime() - new Date(p.opDeliveryDate!).getTime()) / (1000 * 60 * 60 * 24);
+                                    }, 0);
+                                    return `${Math.round(totalImpact / changedProjects.length)} days`;
+                                  })()}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <Badge variant={
+                                  filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate && 
+                                    new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime()).length > 10 ? "destructive" : "secondary"
+                                }>
+                                  {filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate && 
+                                    new Date(p.deliveryDate).getTime() !== new Date(p.opDeliveryDate).getTime()).length}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Biggest Schedule Changes</CardTitle>
+                          <CardDescription>
+                            Projects with largest schedule variances requiring change control
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {(() => {
+                              const projectsWithVariances = filteredProjects
+                                .map(p => {
+                                  const variances = [];
+                                  if (p.productionStart && p.opProductionStart) {
+                                    variances.push(Math.abs(new Date(p.productionStart).getTime() - new Date(p.opProductionStart).getTime()) / (1000 * 60 * 60 * 24));
+                                  }
+                                  if (p.paintStart && p.opPaintStart) {
+                                    variances.push(Math.abs(new Date(p.paintStart).getTime() - new Date(p.opPaintStart).getTime()) / (1000 * 60 * 60 * 24));
+                                  }
+                                  if (p.itStart && p.opItStart) {
+                                    variances.push(Math.abs(new Date(p.itStart).getTime() - new Date(p.opItStart).getTime()) / (1000 * 60 * 60 * 24));
+                                  }
+                                  if (p.deliveryDate && p.opDeliveryDate) {
+                                    variances.push(Math.abs(new Date(p.deliveryDate).getTime() - new Date(p.opDeliveryDate).getTime()) / (1000 * 60 * 60 * 24));
+                                  }
+                                  
+                                  const maxVariance = variances.length > 0 ? Math.max(...variances) : 0;
+                                  return { ...p, maxVariance: Math.round(maxVariance) };
+                                })
+                                .filter(p => p.maxVariance > 0)
+                                .sort((a, b) => b.maxVariance - a.maxVariance)
+                                .slice(0, 5);
+
+                              if (projectsWithVariances.length === 0) {
+                                return (
+                                  <div className="text-center py-6 text-gray-500">
+                                    <div className="text-xl font-bold text-green-600">Perfect!</div>
+                                    <div className="text-sm">No significant schedule changes found</div>
+                                  </div>
+                                );
+                              }
+
+                              return projectsWithVariances.map(project => (
+                                <div key={project.id} className="flex justify-between items-center p-2 bg-yellow-50 rounded text-sm">
+                                  <div>
+                                    <div className="font-medium text-gray-900">{project.projectNumber}</div>
+                                    <div className="text-xs text-gray-500 truncate max-w-32" title={project.name}>
+                                      {project.name}
+                                    </div>
+                                  </div>
+                                  <Badge variant="outline" className="text-yellow-700">
+                                    {project.maxVariance} days
+                                  </Badge>
+                                </div>
+                              ));
+                            })()}
                           </div>
                         </CardContent>
                       </Card>
@@ -2034,7 +2301,7 @@ const ReportsPage = () => {
 
                   {/* Delivery vs Original Plan */}
                   <TabsContent value="delivery-variance" className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
@@ -2042,7 +2309,7 @@ const ReportsPage = () => {
                             Delivery Performance vs Original Plan
                           </CardTitle>
                           <CardDescription>
-                            Comparing actual delivery dates to original planned dates
+                            Real data from delivered projects comparing actual vs planned delivery dates
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -2050,14 +2317,14 @@ const ReportsPage = () => {
                             <div className="grid grid-cols-2 gap-4">
                               <div className="text-center p-4 bg-green-50 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">
-                                  {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate && 
+                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
                                     new Date(p.deliveryDate) <= new Date(p.opDeliveryDate)).length}
                                 </div>
                                 <div className="text-sm text-green-700">On-Time Deliveries</div>
                               </div>
                               <div className="text-center p-4 bg-red-50 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">
-                                  {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate && 
+                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
                                     new Date(p.deliveryDate) > new Date(p.opDeliveryDate)).length}
                                 </div>
                                 <div className="text-sm text-red-700">Late Deliveries</div>
@@ -2067,12 +2334,26 @@ const ReportsPage = () => {
                             <div className="pt-4">
                               <div className="text-center p-4 bg-blue-50 rounded-lg">
                                 <div className="text-2xl font-bold text-blue-600">
-                                  {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length > 0 ?
-                                    Math.round((filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate && 
-                                      new Date(p.deliveryDate) <= new Date(p.opDeliveryDate)).length / 
-                                      filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length) * 100) : 0}%
+                                  {(() => {
+                                    const deliveredWithData = filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate);
+                                    const onTimeDeliveries = deliveredWithData.filter(p => new Date(p.deliveryDate!) <= new Date(p.opDeliveryDate!));
+                                    return deliveredWithData.length > 0 ? Math.round((onTimeDeliveries.length / deliveredWithData.length) * 100) : 0;
+                                  })()}%
                                 </div>
                                 <div className="text-sm text-blue-700">On-Time Delivery Rate</div>
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t">
+                              <div className="text-xs text-gray-500 space-y-1">
+                                <div className="flex justify-between">
+                                  <span>Total Delivered:</span>
+                                  <span className="font-medium">{filteredProjects.filter(p => p.status === 'delivered').length}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>With Delivery Data:</span>
+                                  <span className="font-medium">{filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate).length}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -2081,40 +2362,197 @@ const ReportsPage = () => {
 
                       <Card>
                         <CardHeader>
-                          <CardTitle>Average Delivery Variance</CardTitle>
+                          <CardTitle>Delivery Variance Analysis</CardTitle>
                           <CardDescription>
-                            Days variance from original planned delivery dates
+                            Statistical analysis of delivery delays and early deliveries
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-4">
-                            <div className="text-center p-6 bg-gray-50 rounded-lg">
-                              <div className="text-3xl font-bold text-gray-700">
-                                {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length > 0 ?
-                                  Math.round(filteredProjects
-                                    .filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate)
-                                    .reduce((sum, p) => {
-                                      const variance = Math.abs(new Date(p.deliveryDate!).getTime() - new Date(p.opDeliveryDate!).getTime());
-                                      return sum + (variance / (1000 * 60 * 60 * 24)); // Convert to days
-                                    }, 0) / filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length) : 0}
+                            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                              <div className="text-2xl font-bold text-yellow-600">
+                                {(() => {
+                                  const deliveredWithData = filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate);
+                                  if (deliveredWithData.length === 0) return '0';
+                                  const totalVariance = deliveredWithData.reduce((sum, p) => {
+                                    const variance = Math.abs(new Date(p.deliveryDate!).getTime() - new Date(p.opDeliveryDate!).getTime()) / (1000 * 60 * 60 * 24);
+                                    return sum + variance;
+                                  }, 0);
+                                  return Math.round(totalVariance / deliveredWithData.length);
+                                })()}
                               </div>
-                              <div className="text-sm text-gray-600 mt-2">Days Average Variance</div>
+                              <div className="text-sm text-yellow-700">Avg Days Variance</div>
                             </div>
                             
                             <div className="space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span>Completed Projects</span>
-                                <span className="font-medium">
-                                  {filteredProjects.filter(p => p.status === 'completed').length}
-                                </span>
+                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                <span>Early Deliveries:</span>
+                                <Badge variant="outline" className="text-green-600">
+                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
+                                    new Date(p.deliveryDate) < new Date(p.opDeliveryDate)).length}
+                                </Badge>
                               </div>
-                              <div className="flex justify-between text-sm">
-                                <span>With Delivery Data</span>
-                                <span className="font-medium">
-                                  {filteredProjects.filter(p => p.status === 'completed' && p.deliveryDate && p.opDeliveryDate).length}
-                                </span>
+                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                <span>Exact On-Time:</span>
+                                <Badge variant="outline" className="text-blue-600">
+                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
+                                    new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime()).length}
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                <span>Late Deliveries:</span>
+                                <Badge variant="outline" className="text-red-600">
+                                  {filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate && 
+                                    new Date(p.deliveryDate) > new Date(p.opDeliveryDate)).length}
+                                </Badge>
                               </div>
                             </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Worst Delivery Variances</CardTitle>
+                          <CardDescription>
+                            Projects with the largest delivery delays
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {(() => {
+                              const deliveredWithVariance = filteredProjects
+                                .filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate)
+                                .map(p => ({
+                                  ...p,
+                                  varianceDays: Math.round((new Date(p.deliveryDate!).getTime() - new Date(p.opDeliveryDate!).getTime()) / (1000 * 60 * 60 * 24))
+                                }))
+                                .filter(p => p.varianceDays > 0)
+                                .sort((a, b) => b.varianceDays - a.varianceDays)
+                                .slice(0, 5);
+
+                              if (deliveredWithVariance.length === 0) {
+                                return (
+                                  <div className="text-center py-6 text-gray-500">
+                                    <div className="text-2xl font-bold text-green-600">Excellent!</div>
+                                    <div className="text-sm">No late deliveries found</div>
+                                  </div>
+                                );
+                              }
+
+                              return deliveredWithVariance.map(project => (
+                                <div key={project.id} className="flex justify-between items-center p-2 bg-red-50 rounded text-sm">
+                                  <div>
+                                    <div className="font-medium text-gray-900">{project.projectNumber}</div>
+                                    <div className="text-xs text-gray-500 truncate max-w-32" title={project.name}>
+                                      {project.name}
+                                    </div>
+                                  </div>
+                                  <Badge variant="destructive">
+                                    +{project.varianceDays} days
+                                  </Badge>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Additional Analysis */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Delivery Trend Over Time</CardTitle>
+                          <CardDescription>
+                            Monthly on-time delivery performance
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-64 flex items-center justify-center">
+                            {(() => {
+                              const monthlyData = {};
+                              filteredProjects
+                                .filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate)
+                                .forEach(p => {
+                                  const month = format(new Date(p.deliveryDate!), 'MMM yyyy');
+                                  if (!monthlyData[month]) {
+                                    monthlyData[month] = { total: 0, onTime: 0 };
+                                  }
+                                  monthlyData[month].total++;
+                                  if (new Date(p.deliveryDate!) <= new Date(p.opDeliveryDate!)) {
+                                    monthlyData[month].onTime++;
+                                  }
+                                });
+
+                              const chartData = Object.entries(monthlyData).map(([month, data]) => ({
+                                month,
+                                onTimeRate: Math.round((data.onTime / data.total) * 100),
+                                total: data.total
+                              })).slice(-6);
+
+                              if (chartData.length === 0) {
+                                return <div className="text-gray-500">No delivery data available for chart</div>;
+                              }
+
+                              return (
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <BarChart data={chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis domain={[0, 100]} />
+                                    <Tooltip formatter={(value, name) => [`${value}%`, 'On-Time Rate']} />
+                                    <Bar dataKey="onTimeRate" fill="#10b981" />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              );
+                            })()}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Delivery Performance by Project Size</CardTitle>
+                          <CardDescription>
+                            On-time delivery rates by project complexity/size
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {(() => {
+                              const deliveredProjects = filteredProjects.filter(p => p.status === 'delivered' && p.deliveryDate && p.opDeliveryDate);
+                              
+                              // Categorize by project name patterns (rough complexity indicator)
+                              const categories = {
+                                'IC Projects': deliveredProjects.filter(p => p.name.includes('_IC')),
+                                'CCTV/Surveillance': deliveredProjects.filter(p => p.name.includes('CCTV') || p.name.includes('surveillance')),
+                                'Upgrades/Mods': deliveredProjects.filter(p => p.name.includes('Upgrade') || p.name.includes('_Mod')),
+                                'Other Systems': deliveredProjects.filter(p => !p.name.includes('_IC') && !p.name.includes('CCTV') && !p.name.includes('surveillance') && !p.name.includes('Upgrade') && !p.name.includes('_Mod'))
+                              };
+
+                              return Object.entries(categories).map(([category, projects]) => {
+                                if (projects.length === 0) return null;
+                                
+                                const onTimeCount = projects.filter(p => new Date(p.deliveryDate!) <= new Date(p.opDeliveryDate!)).length;
+                                const onTimeRate = Math.round((onTimeCount / projects.length) * 100);
+                                
+                                return (
+                                  <div key={category} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                    <div>
+                                      <span className="text-sm font-medium">{category}</span>
+                                      <div className="text-xs text-gray-500">{projects.length} projects</div>
+                                    </div>
+                                    <div className="text-right">
+                                      <Badge variant={onTimeRate >= 80 ? "default" : onTimeRate >= 60 ? "secondary" : "destructive"}>
+                                        {onTimeRate}%
+                                      </Badge>
+                                      <div className="text-xs text-gray-500">{onTimeCount}/{projects.length}</div>
+                                    </div>
+                                  </div>
+                                );
+                              }).filter(Boolean);
+                            })()}
                           </div>
                         </CardContent>
                       </Card>
