@@ -2681,3 +2681,182 @@ export const insertUserPriorityAccessSchema = createInsertSchema(userPriorityAcc
 // User Priority Access Types
 export type UserPriorityAccess = typeof userPriorityAccess.$inferSelect;
 export type InsertUserPriorityAccess = z.infer<typeof insertUserPriorityAccessSchema>;
+
+// Change Control Board (CCB) Enums
+export const ccbStatusEnum = pgEnum("ccb_status", [
+  "pending_review",
+  "under_review",
+  "approved",
+  "rejected",
+  "implemented",
+  "cancelled"
+]);
+
+export const ccbPriorityEnum = pgEnum("ccb_priority", [
+  "low",
+  "medium", 
+  "high",
+  "critical"
+]);
+
+export const ccbTypeEnum = pgEnum("ccb_type", [
+  "schedule_change",
+  "scope_change",
+  "budget_change",
+  "resource_change",
+  "technical_change"
+]);
+
+export const ccbDepartmentEnum = pgEnum("ccb_department", [
+  "sales",
+  "engineering", 
+  "supply_chain",
+  "finance",
+  "fabrication",
+  "paint",
+  "production", 
+  "it",
+  "ntc",
+  "qc",
+  "fsw"
+]);
+
+// Change Control Board Requests
+export const ccbRequests = pgTable("ccb_requests", {
+  id: serial("id").primaryKey(),
+  ccbNumber: text("ccb_number").notNull().unique(), // Auto-generated CCB-YYYY-###
+  
+  // Basic Information
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  requesterId: varchar("requester_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  
+  // Change Details
+  changeType: ccbTypeEnum("change_type").notNull(),
+  priority: ccbPriorityEnum("priority").default("medium").notNull(),
+  status: ccbStatusEnum("status").default("pending_review").notNull(),
+  
+  // Schedule Change Specifics (for schedule_change type)
+  affectedPhases: text("affected_phases").array(), // ["fabrication_start", "production_start", etc.]
+  currentDates: jsonb("current_dates"), // {fabricationStart: "2025-01-15", productionStart: "2025-02-01"}
+  proposedDates: jsonb("proposed_dates"), // {fabricationStart: "2025-01-20", productionStart: "2025-02-05"}
+  justification: text("justification").notNull(),
+  
+  // Impact Assessment
+  businessImpact: text("business_impact"),
+  technicalImpact: text("technical_impact"),
+  costImpact: text("cost_impact"),
+  riskAssessment: text("risk_assessment"),
+  
+  // Departmental Reviews/Approvals
+  salesApproval: boolean("sales_approval"),
+  salesApprovedBy: varchar("sales_approved_by").references(() => users.id),
+  salesApprovedAt: timestamp("sales_approved_at"),
+  salesComments: text("sales_comments"),
+  
+  engineeringApproval: boolean("engineering_approval"),
+  engineeringApprovedBy: varchar("engineering_approved_by").references(() => users.id),
+  engineeringApprovedAt: timestamp("engineering_approved_at"),
+  engineeringComments: text("engineering_comments"),
+  
+  supplyChainApproval: boolean("supply_chain_approval"),
+  supplyChainApprovedBy: varchar("supply_chain_approved_by").references(() => users.id),
+  supplyChainApprovedAt: timestamp("supply_chain_approved_at"),
+  supplyChainComments: text("supply_chain_comments"),
+  
+  financeApproval: boolean("finance_approval"),
+  financeApprovedBy: varchar("finance_approved_by").references(() => users.id),
+  financeApprovedAt: timestamp("finance_approved_at"),
+  financeComments: text("finance_comments"),
+  
+  fabricationApproval: boolean("fabrication_approval"),
+  fabricationApprovedBy: varchar("fabrication_approved_by").references(() => users.id),
+  fabricationApprovedAt: timestamp("fabrication_approved_at"),
+  fabricationComments: text("fabrication_comments"),
+  
+  paintApproval: boolean("paint_approval"),
+  paintApprovedBy: varchar("paint_approved_by").references(() => users.id),
+  paintApprovedAt: timestamp("paint_approved_at"),
+  paintComments: text("paint_comments"),
+  
+  productionApproval: boolean("production_approval"),
+  productionApprovedBy: varchar("production_approved_by").references(() => users.id),
+  productionApprovedAt: timestamp("production_approved_at"),
+  productionComments: text("production_comments"),
+  
+  itApproval: boolean("it_approval"),
+  itApprovedBy: varchar("it_approved_by").references(() => users.id),
+  itApprovedAt: timestamp("it_approved_at"),
+  itComments: text("it_comments"),
+  
+  ntcApproval: boolean("ntc_approval"),
+  ntcApprovedBy: varchar("ntc_approved_by").references(() => users.id),
+  ntcApprovedAt: timestamp("ntc_approved_at"),
+  ntcComments: text("ntc_comments"),
+  
+  qcApproval: boolean("qc_approval"),
+  qcApprovedBy: varchar("qc_approved_by").references(() => users.id),
+  qcApprovedAt: timestamp("qc_approved_at"),
+  qcComments: text("qc_comments"),
+  
+  fswApproval: boolean("fsw_approval"),
+  fswApprovedBy: varchar("fsw_approved_by").references(() => users.id),
+  fswApprovedAt: timestamp("fsw_approved_at"),
+  fswComments: text("fsw_comments"),
+  
+  // Final Review and Implementation
+  finalApproval: boolean("final_approval"),
+  finalApprovedBy: varchar("final_approved_by").references(() => users.id),
+  finalApprovedAt: timestamp("final_approved_at"),
+  finalComments: text("final_comments"),
+  
+  rejectionReason: text("rejection_reason"),
+  rejectedBy: varchar("rejected_by").references(() => users.id),
+  rejectedAt: timestamp("rejected_at"),
+  
+  implementedAt: timestamp("implemented_at"),
+  implementedBy: varchar("implemented_by").references(() => users.id),
+  implementationNotes: text("implementation_notes"),
+  
+  // Meeting Assignment
+  tierIiiMeetingId: integer("tier_iii_meeting_id"), // References meeting where requested
+  tierIvMeetingId: integer("tier_iv_meeting_id"), // References meeting where reviewed
+  
+  // Attachments and Documentation
+  attachmentUrls: text("attachment_urls").array(),
+  supportingDocuments: text("supporting_documents").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CCB Comments/Discussion Thread
+export const ccbComments = pgTable("ccb_comments", {
+  id: serial("id").primaryKey(),
+  ccbRequestId: integer("ccb_request_id").references(() => ccbRequests.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  comment: text("comment").notNull(),
+  department: ccbDepartmentEnum("department"),
+  isInternal: boolean("is_internal").default(false), // Internal team discussion vs formal review
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Schema exports for CCB
+export const insertCcbRequestSchema = createInsertSchema(ccbRequests).omit({
+  id: true,
+  ccbNumber: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCcbCommentSchema = createInsertSchema(ccbComments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CcbRequest = typeof ccbRequests.$inferSelect;
+export type InsertCcbRequest = z.infer<typeof insertCcbRequestSchema>;
+export type CcbComment = typeof ccbComments.$inferSelect;
+export type InsertCcbComment = z.infer<typeof insertCcbCommentSchema>;

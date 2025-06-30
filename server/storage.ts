@@ -45,6 +45,8 @@ import {
   projectMetricsConnection,
   ptnConnection,
   projectPriorities,
+  ccbRequests,
+  ccbComments,
   type User,
   type InsertUser,
   type Project,
