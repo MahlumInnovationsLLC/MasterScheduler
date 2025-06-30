@@ -497,7 +497,12 @@ const SupplyChain = () => {
     if (!projects) return [];
     
     return projects
-      .filter(p => p.status !== 'DELIVERED' && p.status !== 'CANCELLED')
+      .filter(p => 
+        p.status !== 'DELIVERED' && 
+        p.status !== 'CANCELLED' && 
+        p.status !== 'delivered' &&
+        p.status !== 'archived'
+      )
       .sort((a, b) => {
         // Get benchmark completion status for both projects
         const aBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === a.id) || [];
@@ -607,9 +612,9 @@ const SupplyChain = () => {
     return Array.from(names).sort();
   }, [filteredProjectBenchmarks]);
 
-  // Get upcoming purchase needs
-  const getUpcomingPurchaseNeeds = (timeframe: 'week' | 'month' | 'quarter') => {
-    if (!projectBenchmarks) return [];
+  // Get upcoming benchmarks
+  const getUpcomingBenchmarks = (timeframe: 'week' | 'month' | 'quarter') => {
+    if (!projectBenchmarks || !activeProjects) return [];
     
     const now = new Date();
     let endDate: Date;
@@ -626,12 +631,55 @@ const SupplyChain = () => {
         break;
     }
     
+    // Get benchmarks from active projects only
+    const activeProjectIds = new Set(activeProjects.map(p => p.id));
+    
     return projectBenchmarks.filter(benchmark => {
-      if (benchmark.isCompleted) return false;
-      if (!benchmark.targetDate) return false;
+      // Only include benchmarks from active projects
+      if (!activeProjectIds.has(benchmark.projectId)) return false;
       
-      const targetDate = new Date(benchmark.targetDate);
-      return targetDate >= now && targetDate <= endDate;
+      // Skip completed benchmarks
+      if (benchmark.isCompleted) return false;
+      
+      // For benchmarks with target dates, use those
+      if (benchmark.targetDate) {
+        const targetDate = new Date(benchmark.targetDate);
+        return targetDate >= now && targetDate <= endDate;
+      }
+      
+      // For benchmarks without target dates, calculate based on project phases
+      const project = activeProjects.find(p => p.id === benchmark.projectId);
+      if (!project) return false;
+      
+      // Calculate target date based on project phase dates and weeks before phase
+      let phaseDate: Date | null = null;
+      
+      switch (benchmark.targetPhase) {
+        case 'FABRICATION':
+          phaseDate = project.fabricationStart ? new Date(project.fabricationStart) : null;
+          break;
+        case 'NTC':
+          phaseDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
+          break;
+        case 'QC':
+          phaseDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
+          break;
+        case 'SHIP':
+          phaseDate = project.shipDate ? new Date(project.shipDate) : null;
+          break;
+        default:
+          // For other phases, use estimated completion date as fallback
+          phaseDate = new Date(project.estimatedCompletionDate);
+          break;
+      }
+      
+      if (!phaseDate) return false;
+      
+      // Calculate benchmark due date (weeks before phase)
+      const benchmarkDueDate = new Date(phaseDate);
+      benchmarkDueDate.setDate(benchmarkDueDate.getDate() - (benchmark.weeksBeforePhase * 7));
+      
+      return benchmarkDueDate >= now && benchmarkDueDate <= endDate;
     });
   };
 
@@ -932,7 +980,7 @@ const SupplyChain = () => {
                 <div className="text-2xl font-bold">
                   {filteredProjects.length || 0}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Active projects requiring supply chain management</p>
+                <p className="text-xs text-muted-foreground mt-1">Active projects with department benchmarks</p>
               </CardContent>
             </Card>
 
@@ -940,7 +988,7 @@ const SupplyChain = () => {
             <Card className="md:col-span-2 border border-slate-200">
               <div className="p-4 pb-1">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium">Upcoming Purchases</h3>
+                  <h3 className="text-sm font-medium">Upcoming Benchmarks</h3>
                   <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                     <Button 
                       variant={purchaseTimeframe === 'week' ? "default" : "ghost"} 
@@ -971,7 +1019,7 @@ const SupplyChain = () => {
 
                 <div className="mt-4 mb-2">
                   <div className="text-3xl font-bold">
-                    {getUpcomingPurchaseNeeds(purchaseTimeframe).length}
+                    {getUpcomingBenchmarks(purchaseTimeframe).length}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {purchaseTimeframe === 'week' && "Purchasing benchmarks due this week"}
