@@ -86,7 +86,7 @@ const MaterialManagement = () => {
     );
 
     return Array.from(teamNames).map(teamName => {
-      // Find all projects for this team
+      // Find all projects for this team, excluding delivered projects
       const teamProjects = data.manufacturingSchedules
         .filter((schedule: ManufacturingSchedule) => 
           data.manufacturingBays.some((b: ManufacturingBay) => b.team === teamName && b.id === schedule.bayId)
@@ -94,7 +94,8 @@ const MaterialManagement = () => {
         .map((schedule: ManufacturingSchedule) => 
           data.projects.find((p: Project) => p.id === schedule.projectId)
         )
-        .filter((p: Project | undefined): p is Project => p !== undefined);
+        .filter((p: Project | undefined): p is Project => p !== undefined)
+        .filter((p: Project) => p.status !== 'delivered'); // Filter out delivered projects
 
       return {
         team: teamName,
@@ -116,16 +117,32 @@ const MaterialManagement = () => {
     );
   }, [teamsWithProjects, searchTerm]);
 
+  // Status display mapping - converts database values to display names
+  const getStatusDisplay = (status?: string | null) => {
+    switch (status) {
+      case 'in_qc':
+        return 'IN QC';
+      case 'in_work':
+        return 'IN WORK';
+      case 'inventory_job_cart':
+        return 'Inventory Job Cart';
+      case 'shipped':
+        return 'SHIPPED';
+      default:
+        return 'Not Set';
+    }
+  };
+
   // Status color mapping
   const getStatusColor = (status?: string | null) => {
     switch (status) {
-      case 'IN QC':
+      case 'in_qc':
         return 'bg-orange-500 text-white';
-      case 'IN WORK':
+      case 'in_work':
         return 'bg-blue-500 text-white';
-      case 'Inventory Job Cart':
+      case 'inventory_job_cart':
         return 'bg-purple-500 text-white';
-      case 'SHIPPED':
+      case 'shipped':
         return 'bg-green-500 text-white';
       default:
         return 'bg-gray-500 text-white';
@@ -135,13 +152,13 @@ const MaterialManagement = () => {
   // Status icon mapping
   const getStatusIcon = (status?: string | null) => {
     switch (status) {
-      case 'IN QC':
+      case 'in_qc':
         return <AlertCircle className="h-4 w-4" />;
-      case 'IN WORK':
+      case 'in_work':
         return <Clock className="h-4 w-4" />;
-      case 'Inventory Job Cart':
+      case 'inventory_job_cart':
         return <Package className="h-4 w-4" />;
-      case 'SHIPPED':
+      case 'shipped':
         return <Truck className="h-4 w-4" />;
       default:
         return <CheckCircle className="h-4 w-4" />;
@@ -228,7 +245,7 @@ const MaterialManagement = () => {
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className={`${getStatusColor(project.materialManagementStatus)} flex items-center gap-1`}>
                       {getStatusIcon(project.materialManagementStatus)}
-                      {project.materialManagementStatus || 'Not Set'}
+                      {getStatusDisplay(project.materialManagementStatus)}
                     </Badge>
                   </div>
 
@@ -242,25 +259,25 @@ const MaterialManagement = () => {
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
-                        <SelectItem value="IN QC" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <SelectItem value="in_qc" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <AlertCircle className="h-4 w-4 text-orange-500" />
                             IN QC
                           </div>
                         </SelectItem>
-                        <SelectItem value="IN WORK" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <SelectItem value="in_work" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-blue-500" />
                             IN WORK
                           </div>
                         </SelectItem>
-                        <SelectItem value="Inventory Job Cart" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <SelectItem value="inventory_job_cart" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <Package className="h-4 w-4 text-purple-500" />
                             Inventory Job Cart
                           </div>
                         </SelectItem>
-                        <SelectItem value="SHIPPED" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <SelectItem value="shipped" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                           <div className="flex items-center gap-2">
                             <Truck className="h-4 w-4 text-green-500" />
                             SHIPPED
