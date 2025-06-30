@@ -2034,18 +2034,35 @@ const ReportsPage = () => {
                         <div className="space-y-3">
                           {(() => {
                             // Find delivered projects with late handoffs that were never recovered
+                            // Now includes ALL manufacturing phases for comprehensive analysis
                             const deliveredWithLateHandoffs = filteredProjects.filter(p => {
                               if (p.status !== 'delivered') return false;
                               
-                              // Check for late handoffs that were never recovered
+                              // Check ALL phases for late handoffs that were never recovered
+                              const fabricationLateNotRecovered = p.fabricationStart && p.opFabricationStart && 
+                                new Date(p.fabricationStart) > new Date(p.opFabricationStart);
                               const paintLateNotRecovered = p.paintStart && p.opPaintStart && 
                                 new Date(p.paintStart) > new Date(p.opPaintStart);
                               const productionLateNotRecovered = p.productionStart && p.opProductionStart && 
                                 new Date(p.productionStart) > new Date(p.opProductionStart);
                               const itLateNotRecovered = p.itStart && p.opItStart && 
                                 new Date(p.itStart) > new Date(p.opItStart);
+                              const wrapLateNotRecovered = p.wrapDate && p.opWrapDate && 
+                                new Date(p.wrapDate) > new Date(p.opWrapDate);
+                              const ntcLateNotRecovered = p.ntcTestingDate && p.opNtcTestingDate && 
+                                new Date(p.ntcTestingDate) > new Date(p.opNtcTestingDate);
+                              const qcLateNotRecovered = p.qcStartDate && p.opQcStartDate && 
+                                new Date(p.qcStartDate) > new Date(p.opQcStartDate);
+                              const execLateNotRecovered = p.executiveReviewDate && p.opExecutiveReviewDate && 
+                                new Date(p.executiveReviewDate) > new Date(p.opExecutiveReviewDate);
+                              const shipLateNotRecovered = p.shipDate && p.opShipDate && 
+                                new Date(p.shipDate) > new Date(p.opShipDate);
+                              const deliveryLateNotRecovered = p.deliveryDate && p.opDeliveryDate && 
+                                new Date(p.deliveryDate) > new Date(p.opDeliveryDate);
                               
-                              return paintLateNotRecovered || productionLateNotRecovered || itLateNotRecovered;
+                              return fabricationLateNotRecovered || paintLateNotRecovered || productionLateNotRecovered || 
+                                     itLateNotRecovered || wrapLateNotRecovered || ntcLateNotRecovered || 
+                                     qcLateNotRecovered || execLateNotRecovered || shipLateNotRecovered || deliveryLateNotRecovered;
                             }).slice(0, 10);
 
                             if (deliveredWithLateHandoffs.length === 0) {
@@ -2059,18 +2076,52 @@ const ReportsPage = () => {
 
                             return deliveredWithLateHandoffs.map(project => {
                               const latePhases = [];
+                              
+                              // Check ALL manufacturing phases for delays
+                              if (project.fabricationStart && project.opFabricationStart && new Date(project.fabricationStart) > new Date(project.opFabricationStart)) {
+                                const daysLate = Math.ceil((new Date(project.fabricationStart).getTime() - new Date(project.opFabricationStart).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`FAB (+${daysLate}d)`);
+                              }
                               if (project.paintStart && project.opPaintStart && new Date(project.paintStart) > new Date(project.opPaintStart)) {
                                 const daysLate = Math.ceil((new Date(project.paintStart).getTime() - new Date(project.opPaintStart).getTime()) / (1000 * 60 * 60 * 24));
                                 latePhases.push(`PAINT (+${daysLate}d)`);
                               }
                               if (project.productionStart && project.opProductionStart && new Date(project.productionStart) > new Date(project.opProductionStart)) {
                                 const daysLate = Math.ceil((new Date(project.productionStart).getTime() - new Date(project.opProductionStart).getTime()) / (1000 * 60 * 60 * 24));
-                                latePhases.push(`Production (+${daysLate}d)`);
+                                latePhases.push(`PROD (+${daysLate}d)`);
                               }
                               if (project.itStart && project.opItStart && new Date(project.itStart) > new Date(project.opItStart)) {
                                 const daysLate = Math.ceil((new Date(project.itStart).getTime() - new Date(project.opItStart).getTime()) / (1000 * 60 * 60 * 24));
                                 latePhases.push(`IT (+${daysLate}d)`);
                               }
+                              if (project.wrapDate && project.opWrapDate && new Date(project.wrapDate) > new Date(project.opWrapDate)) {
+                                const daysLate = Math.ceil((new Date(project.wrapDate).getTime() - new Date(project.opWrapDate).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`WRAP (+${daysLate}d)`);
+                              }
+                              if (project.ntcTestingDate && project.opNtcTestingDate && new Date(project.ntcTestingDate) > new Date(project.opNtcTestingDate)) {
+                                const daysLate = Math.ceil((new Date(project.ntcTestingDate).getTime() - new Date(project.opNtcTestingDate).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`NTC (+${daysLate}d)`);
+                              }
+                              if (project.qcStartDate && project.opQcStartDate && new Date(project.qcStartDate) > new Date(project.opQcStartDate)) {
+                                const daysLate = Math.ceil((new Date(project.qcStartDate).getTime() - new Date(project.opQcStartDate).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`QC (+${daysLate}d)`);
+                              }
+                              if (project.executiveReviewDate && project.opExecutiveReviewDate && new Date(project.executiveReviewDate) > new Date(project.opExecutiveReviewDate)) {
+                                const daysLate = Math.ceil((new Date(project.executiveReviewDate).getTime() - new Date(project.opExecutiveReviewDate).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`EXEC (+${daysLate}d)`);
+                              }
+                              if (project.shipDate && project.opShipDate && new Date(project.shipDate) > new Date(project.opShipDate)) {
+                                const daysLate = Math.ceil((new Date(project.shipDate).getTime() - new Date(project.opShipDate).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`SHIP (+${daysLate}d)`);
+                              }
+                              if (project.deliveryDate && project.opDeliveryDate && new Date(project.deliveryDate) > new Date(project.opDeliveryDate)) {
+                                const daysLate = Math.ceil((new Date(project.deliveryDate).getTime() - new Date(project.opDeliveryDate).getTime()) / (1000 * 60 * 60 * 24));
+                                latePhases.push(`DELIVERY (+${daysLate}d)`);
+                              }
+                              
+                              // Show first 3 phases, indicate if there are more
+                              const displayPhases = latePhases.slice(0, 3);
+                              const moreCount = Math.max(0, latePhases.length - 3);
 
                               return (
                                 <div key={project.id} className="flex justify-between items-center p-3 bg-red-50 rounded">
@@ -2081,9 +2132,15 @@ const ReportsPage = () => {
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <Badge variant="outline" className="text-red-700">
-                                      {latePhases.join(', ')}
-                                    </Badge>
+                                    <div className="flex flex-col gap-1">
+                                      <Badge variant="outline" className="text-red-700 text-xs">
+                                        {displayPhases.join(', ')}
+                                        {moreCount > 0 && ` +${moreCount} more`}
+                                      </Badge>
+                                      <div className="text-xs text-gray-500">
+                                        {latePhases.length} phase{latePhases.length !== 1 ? 's' : ''} delayed
+                                      </div>
+                                    </div>
                                     <div className="text-xs text-red-500 mt-1">Delivered with delays</div>
                                   </div>
                                 </div>
