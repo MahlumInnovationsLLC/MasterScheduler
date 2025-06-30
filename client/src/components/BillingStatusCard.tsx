@@ -867,7 +867,7 @@ export function BillingStatusCard({
                 variant={selectedPeriod === 'quarter' ? "default" : "outline"}
                 size="sm"
                 className="h-6 px-2 text-xs"
-                onClick={() => setSelectedPeriod('quarter')}
+                onClick={() => handlePeriodChange('quarter')}
               >
                 Quarter
               </Button>
@@ -875,7 +875,7 @@ export function BillingStatusCard({
                 variant={selectedPeriod === 'ytd' ? "default" : "outline"}
                 size="sm"
                 className="h-6 px-2 text-xs"
-                onClick={() => setSelectedPeriod('ytd')}
+                onClick={() => handlePeriodChange('ytd')}
               >
                 YTD
               </Button>
