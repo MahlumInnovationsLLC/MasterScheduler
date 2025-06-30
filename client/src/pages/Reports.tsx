@@ -2561,80 +2561,255 @@ const ReportsPage = () => {
 
                   {/* Timeline Recovery Analysis */}
                   <TabsContent value="timeline-recovery" className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <RefreshCw className="h-5 w-5" />
-                          Timeline Recovery Analysis
-                        </CardTitle>
-                        <CardDescription>
-                          Analysis of projects that brought delayed milestones back to original planned dates
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                          <div className="space-y-4">
-                            <h4 className="font-medium">Recovery Success Rate</h4>
-                            <div className="text-center p-4 bg-green-50 rounded-lg">
-                              <div className="text-2xl font-bold text-green-600">
-                                {filteredProjects.length > 0 ?
-                                  Math.round((filteredProjects.filter(p => {
-                                    // Check if any phase was recovered to original date
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <RefreshCw className="h-5 w-5" />
+                            Timeline Recovery Success Rate
+                          </CardTitle>
+                          <CardDescription>
+                            Analysis of projects that successfully recovered delayed milestones back to original planned dates
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-6">
+                            <div className="text-center p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
+                              <div className="text-3xl font-bold text-green-600">
+                                {(() => {
+                                  const projectsWithData = filteredProjects.filter(p => 
+                                    (p.productionStart && p.opProductionStart) ||
+                                    (p.paintStart && p.opPaintStart) ||
+                                    (p.itStart && p.opItStart) ||
+                                    (p.deliveryDate && p.opDeliveryDate)
+                                  );
+                                  const recoveredProjects = projectsWithData.filter(p => {
+                                    // Check if any phase was perfectly recovered to original date
                                     const productionRecovered = p.productionStart && p.opProductionStart && 
                                       new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime();
                                     const paintRecovered = p.paintStart && p.opPaintStart && 
                                       new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime();
                                     const itRecovered = p.itStart && p.opItStart && 
                                       new Date(p.itStart).getTime() === new Date(p.opItStart).getTime();
-                                    return productionRecovered || paintRecovered || itRecovered;
-                                  }).length / filteredProjects.length) * 100) : 0}%
+                                    const deliveryRecovered = p.deliveryDate && p.opDeliveryDate && 
+                                      new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime();
+                                    return productionRecovered || paintRecovered || itRecovered || deliveryRecovered;
+                                  });
+                                  return projectsWithData.length > 0 ? Math.round((recoveredProjects.length / projectsWithData.length) * 100) : 0;
+                                })()}%
                               </div>
-                              <div className="text-sm text-green-700">Projects Recovered</div>
+                              <div className="text-sm text-green-700 mt-2">Overall Recovery Success Rate</div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Projects that brought delayed phases back to original planned dates
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="text-center p-4 bg-green-50 rounded-lg">
+                                <div className="text-xl font-bold text-green-600">
+                                  {filteredProjects.filter(p => {
+                                    const hasRecovery = 
+                                      (p.productionStart && p.opProductionStart && new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()) ||
+                                      (p.paintStart && p.opPaintStart && new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()) ||
+                                      (p.itStart && p.opItStart && new Date(p.itStart).getTime() === new Date(p.opItStart).getTime()) ||
+                                      (p.deliveryDate && p.opDeliveryDate && new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime());
+                                    return hasRecovery;
+                                  }).length}
+                                </div>
+                                <div className="text-sm text-green-700">Successful Recoveries</div>
+                              </div>
+                              <div className="text-center p-4 bg-red-50 rounded-lg">
+                                <div className="text-xl font-bold text-red-600">
+                                  {(() => {
+                                    const projectsWithData = filteredProjects.filter(p => 
+                                      (p.productionStart && p.opProductionStart) ||
+                                      (p.paintStart && p.opPaintStart) ||
+                                      (p.itStart && p.opItStart) ||
+                                      (p.deliveryDate && p.opDeliveryDate)
+                                    );
+                                    const withDelays = projectsWithData.filter(p => {
+                                      const productionDelayed = p.productionStart && p.opProductionStart && 
+                                        new Date(p.productionStart) > new Date(p.opProductionStart);
+                                      const paintDelayed = p.paintStart && p.opPaintStart && 
+                                        new Date(p.paintStart) > new Date(p.opPaintStart);
+                                      const itDelayed = p.itStart && p.opItStart && 
+                                        new Date(p.itStart) > new Date(p.opItStart);
+                                      const deliveryDelayed = p.deliveryDate && p.opDeliveryDate && 
+                                        new Date(p.deliveryDate) > new Date(p.opDeliveryDate);
+                                      return productionDelayed || paintDelayed || itDelayed || deliveryDelayed;
+                                    });
+                                    return withDelays.length;
+                                  })()}
+                                </div>
+                                <div className="text-sm text-red-700">Still Behind Schedule</div>
+                              </div>
                             </div>
                           </div>
-                          
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Recovery Performance by Phase</CardTitle>
+                          <CardDescription>
+                            Detailed breakdown of timeline recovery success by manufacturing phase
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
                           <div className="space-y-4">
-                            <h4 className="font-medium">Most Recoverable Phase</h4>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                                <span>Production</span>
-                                <Badge variant="outline">
-                                  {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
-                                    new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()).length}
-                                </Badge>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <div>
+                                <span className="text-sm font-medium">Production Phase Recovery</span>
+                                <div className="text-xs text-gray-500">
+                                  {(() => {
+                                    const total = filteredProjects.filter(p => p.productionStart && p.opProductionStart).length;
+                                    const recovered = filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                      new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()).length;
+                                    return total > 0 ? `${Math.round((recovered / total) * 100)}% success rate` : 'No data';
+                                  })()}
+                                </div>
                               </div>
-                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                                <span>PAINT</span>
-                                <Badge variant="outline">
-                                  {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
-                                    new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()).length}
-                                </Badge>
+                              <Badge variant="outline">
+                                {filteredProjects.filter(p => p.productionStart && p.opProductionStart && 
+                                  new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()).length}/
+                                {filteredProjects.filter(p => p.productionStart && p.opProductionStart).length}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <div>
+                                <span className="text-sm font-medium">PAINT Phase Recovery</span>
+                                <div className="text-xs text-gray-500">
+                                  {(() => {
+                                    const total = filteredProjects.filter(p => p.paintStart && p.opPaintStart).length;
+                                    const recovered = filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                      new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()).length;
+                                    return total > 0 ? `${Math.round((recovered / total) * 100)}% success rate` : 'No data';
+                                  })()}
+                                </div>
                               </div>
-                              <div className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                                <span>IT</span>
-                                <Badge variant="outline">
-                                  {filteredProjects.filter(p => p.itStart && p.opItStart && 
-                                    new Date(p.itStart).getTime() === new Date(p.opItStart).getTime()).length}
-                                </Badge>
+                              <Badge variant="outline">
+                                {filteredProjects.filter(p => p.paintStart && p.opPaintStart && 
+                                  new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()).length}/
+                                {filteredProjects.filter(p => p.paintStart && p.opPaintStart).length}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <div>
+                                <span className="text-sm font-medium">IT Phase Recovery</span>
+                                <div className="text-xs text-gray-500">
+                                  {(() => {
+                                    const total = filteredProjects.filter(p => p.itStart && p.opItStart).length;
+                                    const recovered = filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                      new Date(p.itStart).getTime() === new Date(p.opItStart).getTime()).length;
+                                    return total > 0 ? `${Math.round((recovered / total) * 100)}% success rate` : 'No data';
+                                  })()}
+                                </div>
                               </div>
+                              <Badge variant="outline">
+                                {filteredProjects.filter(p => p.itStart && p.opItStart && 
+                                  new Date(p.itStart).getTime() === new Date(p.opItStart).getTime()).length}/
+                                {filteredProjects.filter(p => p.itStart && p.opItStart).length}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <div>
+                                <span className="text-sm font-medium">Delivery Recovery</span>
+                                <div className="text-xs text-gray-500">
+                                  {(() => {
+                                    const total = filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate).length;
+                                    const recovered = filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate && 
+                                      new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime()).length;
+                                    return total > 0 ? `${Math.round((recovered / total) * 100)}% success rate` : 'No data';
+                                  })()}
+                                </div>
+                              </div>
+                              <Badge variant="outline">
+                                {filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate && 
+                                  new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime()).length}/
+                                {filteredProjects.filter(p => p.deliveryDate && p.opDeliveryDate).length}
+                              </Badge>
                             </div>
                           </div>
-                          
-                          <div className="space-y-4">
-                            <h4 className="font-medium">Recovery Time Analysis</h4>
-                            <div className="text-center p-4 bg-blue-50 rounded-lg">
-                              <div className="text-xl font-bold text-blue-600">
-                                {filteredProjects.filter(p => {
-                                  const hasRecovery = 
-                                    (p.productionStart && p.opProductionStart && new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime()) ||
-                                    (p.paintStart && p.opPaintStart && new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime()) ||
-                                    (p.itStart && p.opItStart && new Date(p.itStart).getTime() === new Date(p.opItStart).getTime());
-                                  return hasRecovery;
-                                }).length}
-                              </div>
-                              <div className="text-sm text-blue-700">Total Recoveries</div>
-                            </div>
-                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Best Recovery Examples</CardTitle>
+                        <CardDescription>
+                          Projects that successfully brought milestones back to original planned dates
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {(() => {
+                            const recoveredProjects = filteredProjects
+                              .filter(p => {
+                                const productionRecovered = p.productionStart && p.opProductionStart && 
+                                  new Date(p.productionStart).getTime() === new Date(p.opProductionStart).getTime();
+                                const paintRecovered = p.paintStart && p.opPaintStart && 
+                                  new Date(p.paintStart).getTime() === new Date(p.opPaintStart).getTime();
+                                const itRecovered = p.itStart && p.opItStart && 
+                                  new Date(p.itStart).getTime() === new Date(p.opItStart).getTime();
+                                const deliveryRecovered = p.deliveryDate && p.opDeliveryDate && 
+                                  new Date(p.deliveryDate).getTime() === new Date(p.opDeliveryDate).getTime();
+                                return productionRecovered || paintRecovered || itRecovered || deliveryRecovered;
+                              })
+                              .slice(0, 8);
+
+                            if (recoveredProjects.length === 0) {
+                              return (
+                                <div className="text-center py-6 text-gray-500">
+                                  <div className="text-xl font-bold text-blue-600">Analysis in Progress</div>
+                                  <div className="text-sm">No recovered projects found in current filter range</div>
+                                  <div className="text-xs mt-1">Try expanding the time range to see recovery examples</div>
+                                </div>
+                              );
+                            }
+
+                            return recoveredProjects.map(project => {
+                              const recoveredPhases = [];
+                              if (project.productionStart && project.opProductionStart && 
+                                  new Date(project.productionStart).getTime() === new Date(project.opProductionStart).getTime()) {
+                                recoveredPhases.push('Production');
+                              }
+                              if (project.paintStart && project.opPaintStart && 
+                                  new Date(project.paintStart).getTime() === new Date(project.opPaintStart).getTime()) {
+                                recoveredPhases.push('PAINT');
+                              }
+                              if (project.itStart && project.opItStart && 
+                                  new Date(project.itStart).getTime() === new Date(project.opItStart).getTime()) {
+                                recoveredPhases.push('IT');
+                              }
+                              if (project.deliveryDate && project.opDeliveryDate && 
+                                  new Date(project.deliveryDate).getTime() === new Date(project.opDeliveryDate).getTime()) {
+                                recoveredPhases.push('Delivery');
+                              }
+
+                              return (
+                                <div key={project.id} className="flex justify-between items-center p-3 bg-green-50 rounded">
+                                  <div>
+                                    <div className="font-medium text-gray-900">{project.projectNumber}</div>
+                                    <div className="text-xs text-gray-500 truncate max-w-48" title={project.name}>
+                                      {project.name}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge variant="outline" className="text-green-700">
+                                      {recoveredPhases.join(', ')} Recovered
+                                    </Badge>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {recoveredPhases.length} phase{recoveredPhases.length !== 1 ? 's' : ''}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
                         </div>
                       </CardContent>
                     </Card>
