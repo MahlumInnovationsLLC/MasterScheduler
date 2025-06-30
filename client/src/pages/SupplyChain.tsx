@@ -60,6 +60,7 @@ interface SupplyChainBenchmark {
   id: number;
   name: string;
   description: string | null;
+  department: string;
   weeksBeforePhase: number;
   targetPhase: string;
   isDefault: boolean;
@@ -105,6 +106,7 @@ interface Project {
 const benchmarkFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional().nullable(),
+  department: z.string().min(1, "Department is required"),
   weeksBeforePhase: z.coerce.number().min(1, "Must be at least 1 week"),
   targetPhase: z.string().min(1, "Target phase is required"),
   isDefault: z.boolean().default(false),
@@ -139,6 +141,7 @@ const SupplyChain = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending'>('all');
   const [benchmarkFilter, setBenchmarkFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -568,6 +571,19 @@ const SupplyChain = () => {
       });
     }
 
+    // Department filter - filter based on benchmark departments
+    if (departmentFilter !== 'all') {
+      filtered = filtered.filter(project => {
+        const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
+        return projectBenchmarks.some(benchmark => {
+          // For now, infer department from benchmark name patterns or use actual department field if available
+          const benchmarkData = benchmarks?.find(b => b.id === benchmark.benchmarkId);
+          const department = (benchmarkData as any)?.department || 'supply_chain';
+          return department === departmentFilter;
+        });
+      });
+    }
+
     return filtered;
   };
 
@@ -577,7 +593,9 @@ const SupplyChain = () => {
     selectedProjectId, 
     statusFilter, 
     benchmarkFilter, 
-    filteredProjectBenchmarks
+    departmentFilter,
+    filteredProjectBenchmarks,
+    benchmarks
   ]);
 
   // Get unique benchmark names for filter
