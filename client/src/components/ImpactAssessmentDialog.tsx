@@ -31,6 +31,14 @@ import {
 } from 'lucide-react';
 import { Project } from '@shared/schema';
 import { formatDate } from '@/lib/utils';
+
+// Safe version of formatDate that handles undefined values
+const safeFormatDate = (date: string | null | undefined): string => {
+  if (!date || date === 'N/A' || date === 'PENDING' || date === 'TBD') {
+    return date || 'N/A';
+  }
+  return formatDate(date);
+};
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import jsPDF from 'jspdf';
@@ -537,8 +545,8 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
 
         const tableData = dateVariances.map(variance => [
           variance.displayName,
-          variance.opDate ? formatDate(variance.opDate) : 'N/A',
-          variance.currentDate ? formatDate(variance.currentDate) : 'N/A',
+          safeFormatDate(variance.opDate),
+          safeFormatDate(variance.currentDate),
           `${variance.daysDifference > 0 ? '+' : ''}${variance.daysDifference} days`,
           variance.isDelayed ? 'Delayed' : 'Advanced'
         ]);
@@ -815,8 +823,8 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
                           <div>
                             <h4 className="font-medium">{variance.displayName}</h4>
                             <p className="text-sm text-muted-foreground">
-                              Original: {variance.opDate ? formatDate(variance.opDate) : 'N/A'} → 
-                              Current: {variance.currentDate ? formatDate(variance.currentDate) : 'N/A'}
+                              Original: {safeFormatDate(variance.opDate)} → 
+                              Current: {safeFormatDate(variance.currentDate)}
                             </p>
                           </div>
                           <div className="text-right">
@@ -957,7 +965,7 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
                                 <div>
                                   <span className="font-medium">{variance.displayName}</span>
                                   <span className="text-sm text-muted-foreground ml-2">
-                                    ({variance.opDate ? formatDate(variance.opDate) : 'N/A'} → {variance.currentDate ? formatDate(variance.currentDate) : 'N/A'})
+                                    ({safeFormatDate(variance.opDate)} → {safeFormatDate(variance.currentDate)})
                                   </span>
                                 </div>
                                 <Badge variant={variance.isDelayed ? "destructive" : "default"}>
