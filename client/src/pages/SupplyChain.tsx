@@ -571,7 +571,14 @@ const SupplyChain = () => {
     return filtered;
   };
 
-  const filteredProjects = getFilteredProjects();
+  const filteredProjects = React.useMemo(() => getFilteredProjects(), [
+    activeProjects, 
+    searchQuery, 
+    selectedProjectId, 
+    statusFilter, 
+    benchmarkFilter, 
+    filteredProjectBenchmarks
+  ]);
 
   // Get unique benchmark names for filter
   const availableBenchmarks = React.useMemo(() => {
@@ -877,7 +884,7 @@ const SupplyChain = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {activeProjects.length || 0}
+                  {filteredProjects.length || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Active projects requiring supply chain management</p>
               </CardContent>
@@ -988,9 +995,17 @@ const SupplyChain = () => {
             </Card>
           </div>
 
-          {/* Display all projects with their benchmarks */}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">Active Projects</h3>
+          {/* Results Summary and View Toggle */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-lg font-medium">Active Projects</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Showing {filteredProjects.length} of {activeProjects.length} projects
+                {(searchQuery || selectedProjectId || statusFilter !== 'all' || benchmarkFilter !== 'all') && 
+                  <span className="ml-1 text-blue-600 dark:text-blue-400">(filtered)</span>
+                }
+              </p>
+            </div>
             <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
               <Button 
                 variant={viewMode === 'grid' ? "default" : "ghost"} 
@@ -1016,9 +1031,7 @@ const SupplyChain = () => {
           {/* Grid View */}
           {viewMode === 'grid' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeProjects
-                .filter(p => selectedProjectId ? p.id === selectedProjectId : true)
-                .map((project) => {
+              {filteredProjects.map((project) => {
                   const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
                   const totalBenchmarks = projectBenchmarks.length;
                   const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
@@ -1132,20 +1145,16 @@ const SupplyChain = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Project</TableHead>
-                      <TableHead>Benchmarks</TableHead>
-                      <TableHead>Progress</TableHead>
-                      <TableHead>Upcoming Tasks</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-slate-900 dark:text-slate-100">Project</TableHead>
+                      <TableHead className="text-slate-900 dark:text-slate-100">Benchmarks</TableHead>
+                      <TableHead className="text-slate-900 dark:text-slate-100">Progress</TableHead>
+                      <TableHead className="text-slate-900 dark:text-slate-100">Upcoming Tasks</TableHead>
+                      <TableHead className="text-right text-slate-900 dark:text-slate-100">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activeProjects
-                      .filter(p => selectedProjectId ? p.id === selectedProjectId : true)
-                      .length > 0 ? (
-                        activeProjects
-                          .filter(p => selectedProjectId ? p.id === selectedProjectId : true)
-                          .map((project) => {
+                    {filteredProjects.length > 0 ? (
+                        filteredProjects.map((project) => {
                             const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
                             const totalBenchmarks = projectBenchmarks.length;
                             const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
@@ -1163,14 +1172,14 @@ const SupplyChain = () => {
                             return (
                               <TableRow key={project.id}>
                                 <TableCell>
-                                  <div className="font-medium">{project.projectNumber}</div>
-                                  <div className="text-sm text-gray-500">{project.name}</div>
+                                  <div className="font-medium text-slate-900 dark:text-slate-100">{project.projectNumber}</div>
+                                  <div className="text-sm text-slate-600 dark:text-slate-400">{project.name}</div>
                                 </TableCell>
-                                <TableCell>{totalBenchmarks}</TableCell>
+                                <TableCell className="text-slate-900 dark:text-slate-100">{totalBenchmarks}</TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <Progress value={progressPercentage} className="h-2 w-24" />
-                                    <span className="text-xs">{completedBenchmarks}/{totalBenchmarks}</span>
+                                    <span className="text-xs text-slate-900 dark:text-slate-100">{completedBenchmarks}/{totalBenchmarks}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell>
@@ -1178,16 +1187,16 @@ const SupplyChain = () => {
                                     <div className="max-w-[250px]">
                                       <div className="flex items-center gap-1">
                                         <Clock className="h-3 w-3 text-amber-500" />
-                                        <span className="text-sm font-medium">{upcomingBenchmarks[0].name}</span>
+                                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{upcomingBenchmarks[0].name}</span>
                                       </div>
-                                      <div className="text-xs text-gray-500">
+                                      <div className="text-xs text-slate-600 dark:text-slate-400">
                                         {upcomingBenchmarks[0].targetDate 
                                           ? format(parseISO(upcomingBenchmarks[0].targetDate), 'MMM d, yyyy')
                                           : calculateTargetDate(project, upcomingBenchmarks[0])}
                                       </div>
                                     </div>
                                   ) : (
-                                    <span className="text-sm text-gray-500">No upcoming tasks</span>
+                                    <span className="text-sm text-slate-600 dark:text-slate-400">No upcoming tasks</span>
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -1223,7 +1232,7 @@ const SupplyChain = () => {
                       ) : (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-8">
-                            <p className="text-lg text-gray-500">No projects match your filter criteria.</p>
+                            <p className="text-lg text-slate-600 dark:text-slate-400">No projects match your filter criteria.</p>
                           </TableCell>
                         </TableRow>
                       )}
@@ -1233,23 +1242,23 @@ const SupplyChain = () => {
             </Card>
           )}
 
-          {/* Show this when there are no filtered projects */}
+          {/* Show this when there are no active projects */}
           {activeProjects.length === 0 && (
             <Card>
               <CardContent className="py-10 text-center">
                 <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                <p className="text-lg text-gray-500">No active projects found.</p>
-                <p className="text-sm text-gray-400 mt-2">Create projects in the Projects tab first.</p>
+                <p className="text-lg text-slate-600 dark:text-slate-400">No active projects found.</p>
+                <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">Create projects in the Projects tab first.</p>
               </CardContent>
             </Card>
           )}
 
           {/* Show when there are projects but none match the filter */}
-          {activeProjects.length > 0 && 
-           activeProjects.filter(p => selectedProjectId ? p.id === selectedProjectId : true).length === 0 && (
+          {activeProjects.length > 0 && filteredProjects.length === 0 && (
             <Card>
               <CardContent className="py-10 text-center">
-                <p className="text-lg text-gray-500">No projects match your filter criteria.</p>
+                <p className="text-lg text-slate-600 dark:text-slate-400">No projects match your filter criteria.</p>
+                <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">Try adjusting your search or filter settings.</p>
               </CardContent>
             </Card>
           )}
