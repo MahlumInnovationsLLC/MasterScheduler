@@ -1635,13 +1635,13 @@ const SupplyChain = () => {
                                   <div className="text-sm text-slate-600 dark:text-slate-400">{project.name}</div>
                                 </TableCell>
                                 <TableCell className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{totalBenchmarks}</TableCell>
-                                <TableCell>
+                                <TableCell className="bg-white dark:bg-slate-800">
                                   <div className="flex items-center gap-2">
                                     <Progress value={progressPercentage} className="h-2 w-24" />
                                     <span className="text-xs text-slate-900 dark:text-slate-100">{completedBenchmarks}/{totalBenchmarks}</span>
                                   </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="bg-white dark:bg-slate-800">
                                   {upcomingBenchmarks.length > 0 ? (
                                     <div className="max-w-[250px]">
                                       <div className="flex items-center gap-1">
@@ -1668,7 +1668,7 @@ const SupplyChain = () => {
                                     <span className="text-sm text-slate-600 dark:text-slate-400">No upcoming tasks</span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right bg-white dark:bg-slate-800">
                                   <div className="flex items-center justify-end gap-2">
                                     {/* Complete All Tasks Button */}
                                     {projectBenchmarks.some(b => !b.isCompleted) && (
