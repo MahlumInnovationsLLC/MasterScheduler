@@ -588,6 +588,13 @@ const SupplyChain = () => {
     if (!phaseDate) return 'TBD';
     
     const targetDate = new Date(phaseDate);
+    console.log('🔍 DEBUG calculateTargetDate:', {
+      benchmarkName: benchmark.name,
+      targetPhase: benchmark.targetPhase,
+      weeksBeforePhase: benchmark.weeksBeforePhase,
+      phaseDate: phaseDate,
+      projectNumber: project.projectNumber
+    });
     targetDate.setDate(targetDate.getDate() - (benchmark.weeksBeforePhase * 7));
     
     return format(targetDate, 'MMM d, yyyy');
