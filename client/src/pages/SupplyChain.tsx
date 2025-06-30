@@ -142,6 +142,12 @@ const SupplyChain = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending'>('all');
   const [benchmarkFilter, setBenchmarkFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  
+  // List view filters
+  const [projectNumberFilter, setProjectNumberFilter] = useState<string>('');
+  const [benchmarkCountFilter, setBenchmarkCountFilter] = useState<string>('');
+  const [progressFilter, setProgressFilter] = useState<string>('');
+  const [upcomingTaskFilter, setUpcomingTaskFilter] = useState<string>('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -784,6 +790,48 @@ const SupplyChain = () => {
       });
     }
 
+    // List view specific filters (only apply in list view)
+    if (viewMode === 'list') {
+      // Project number filter
+      if (projectNumberFilter.trim()) {
+        const query = projectNumberFilter.toLowerCase();
+        filtered = filtered.filter(project =>
+          project.projectNumber.toLowerCase().includes(query)
+        );
+      }
+      
+      // Filter by benchmark count, progress, and upcoming tasks
+      if (benchmarkCountFilter.trim() || progressFilter.trim() || upcomingTaskFilter.trim()) {
+        filtered = filtered.filter(project => {
+          const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
+          const totalBenchmarks = projectBenchmarks.length;
+          const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
+          const progressPercentage = totalBenchmarks > 0 ? Math.round((completedBenchmarks / totalBenchmarks) * 100) : 0;
+          
+          // Benchmark count filter
+          if (benchmarkCountFilter.trim() && !totalBenchmarks.toString().includes(benchmarkCountFilter)) {
+            return false;
+          }
+          
+          // Progress filter
+          if (progressFilter.trim() && !progressPercentage.toString().includes(progressFilter)) {
+            return false;
+          }
+          
+          // Upcoming task filter
+          if (upcomingTaskFilter.trim()) {
+            const upcomingBenchmarks = projectBenchmarks.filter(b => !b.isCompleted);
+            const upcomingTaskName = upcomingBenchmarks.length > 0 ? upcomingBenchmarks[0].name : 'No upcoming tasks';
+            if (!upcomingTaskName.toLowerCase().includes(upcomingTaskFilter.toLowerCase())) {
+              return false;
+            }
+          }
+          
+          return true;
+        });
+      }
+    }
+
     return filtered;
   };
 
@@ -795,7 +843,12 @@ const SupplyChain = () => {
     benchmarkFilter, 
     departmentFilter,
     filteredProjectBenchmarks,
-    benchmarks
+    benchmarks,
+    viewMode,
+    projectNumberFilter,
+    benchmarkCountFilter,
+    progressFilter,
+    upcomingTaskFilter
   ]);
 
   // Get unique benchmark names for filter
@@ -1504,16 +1557,58 @@ const SupplyChain = () => {
 
           {/* List View */}
           {viewMode === 'list' && (
-            <Card>
+            <Card className="bg-white dark:bg-slate-800">
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-slate-900 dark:text-slate-100">Project</TableHead>
-                      <TableHead className="text-slate-900 dark:text-slate-100">Benchmarks</TableHead>
-                      <TableHead className="text-slate-900 dark:text-slate-100">Progress</TableHead>
-                      <TableHead className="text-slate-900 dark:text-slate-100">Upcoming Tasks</TableHead>
-                      <TableHead className="text-right text-slate-900 dark:text-slate-100">Actions</TableHead>
+                    <TableRow className="border-b border-slate-200 dark:border-slate-700">
+                      <TableHead className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
+                        <div className="space-y-2">
+                          <div className="font-semibold">Project</div>
+                          <Input
+                            placeholder="Filter projects..."
+                            value={projectNumberFilter}
+                            onChange={(e) => setProjectNumberFilter(e.target.value)}
+                            className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+                          />
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
+                        <div className="space-y-2">
+                          <div className="font-semibold">Benchmarks</div>
+                          <Input
+                            placeholder="Filter count..."
+                            value={benchmarkCountFilter}
+                            onChange={(e) => setBenchmarkCountFilter(e.target.value)}
+                            className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+                          />
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
+                        <div className="space-y-2">
+                          <div className="font-semibold">Progress</div>
+                          <Input
+                            placeholder="Filter progress..."
+                            value={progressFilter}
+                            onChange={(e) => setProgressFilter(e.target.value)}
+                            className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+                          />
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
+                        <div className="space-y-2">
+                          <div className="font-semibold">Upcoming Tasks</div>
+                          <Input
+                            placeholder="Filter tasks..."
+                            value={upcomingTaskFilter}
+                            onChange={(e) => setUpcomingTaskFilter(e.target.value)}
+                            className="h-8 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+                          />
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-right text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-700">
+                        <div className="font-semibold">Actions</div>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1534,12 +1629,12 @@ const SupplyChain = () => {
                               });
 
                             return (
-                              <TableRow key={project.id}>
-                                <TableCell>
+                              <TableRow key={project.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                <TableCell className="bg-white dark:bg-slate-800">
                                   <div className="font-medium text-slate-900 dark:text-slate-100">{project.projectNumber}</div>
                                   <div className="text-sm text-slate-600 dark:text-slate-400">{project.name}</div>
                                 </TableCell>
-                                <TableCell className="text-slate-900 dark:text-slate-100">{totalBenchmarks}</TableCell>
+                                <TableCell className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{totalBenchmarks}</TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <Progress value={progressPercentage} className="h-2 w-24" />
