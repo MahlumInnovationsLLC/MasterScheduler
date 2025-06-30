@@ -86,6 +86,13 @@ export const manufacturingStatusEnum = pgEnum("manufacturing_status", [
   "maintenance",
 ]);
 
+export const materialManagementStatusEnum = pgEnum("material_management_status", [
+  "in_qc",
+  "in_work",
+  "inventory_job_cart",
+  "shipped",
+]);
+
 export const userRoleEnum = pgEnum("user_role", [
   "admin",
   "editor",
@@ -433,6 +440,7 @@ export const projects = pgTable("projects", {
   status: projectStatusEnum("status").default("active").notNull(),
   riskLevel: projectRiskLevelEnum("risk_level").default("medium"),
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
+  materialManagementStatus: materialManagementStatusEnum("material_management_status").default("in_work"),
   notes: text("notes"),
   photosTaken: boolean("photos_taken").default(false), // New field for Photos Taken column
   isSalesEstimate: boolean("is_sales_estimate").default(false), // Sales Estimate Proposal flag
