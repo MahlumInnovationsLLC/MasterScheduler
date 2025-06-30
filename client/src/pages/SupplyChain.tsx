@@ -880,8 +880,30 @@ const SupplyChain = () => {
                   </SelectContent>
                 </Select>
 
+                <Select
+                  value={departmentFilter}
+                  onValueChange={setDepartmentFilter}
+                >
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    <SelectItem value="supply_chain">Supply Chain</SelectItem>
+                    <SelectItem value="engineering">Engineering</SelectItem>
+                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="quality_assurance">Quality Assurance</SelectItem>
+                    <SelectItem value="sales">Sales</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                    <SelectItem value="it">IT</SelectItem>
+                    <SelectItem value="human_resources">Human Resources</SelectItem>
+                    <SelectItem value="operations">Operations</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+
                 {/* Clear Filters Button */}
-                {(searchQuery || selectedProjectId || statusFilter !== 'all' || benchmarkFilter !== 'all') && (
+                {(searchQuery || selectedProjectId || statusFilter !== 'all' || benchmarkFilter !== 'all' || departmentFilter !== 'all') && (
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -889,6 +911,7 @@ const SupplyChain = () => {
                       setSelectedProjectId(null);
                       setStatusFilter('all');
                       setBenchmarkFilter('all');
+                      setDepartmentFilter('all');
                     }}
                     className="whitespace-nowrap"
                   >
@@ -1024,7 +1047,7 @@ const SupplyChain = () => {
               <h3 className="text-lg font-medium">Active Projects</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 Showing {filteredProjects.length} of {activeProjects.length} projects
-                {(searchQuery || selectedProjectId || statusFilter !== 'all' || benchmarkFilter !== 'all') && 
+                {(searchQuery || selectedProjectId || statusFilter !== 'all' || benchmarkFilter !== 'all' || departmentFilter !== 'all') && 
                   <span className="ml-1 text-blue-600 dark:text-blue-400">(filtered)</span>
                 }
               </p>
@@ -1331,6 +1354,39 @@ const SupplyChain = () => {
                         {...field}
                         value={field.value || ''}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={benchmarkForm.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[1000]">
+                          <SelectItem value="supply_chain">Supply Chain</SelectItem>
+                          <SelectItem value="engineering">Engineering</SelectItem>
+                          <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                          <SelectItem value="quality_assurance">Quality Assurance</SelectItem>
+                          <SelectItem value="sales">Sales</SelectItem>
+                          <SelectItem value="finance">Finance</SelectItem>
+                          <SelectItem value="it">IT</SelectItem>
+                          <SelectItem value="human_resources">Human Resources</SelectItem>
+                          <SelectItem value="operations">Operations</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
