@@ -145,6 +145,10 @@ import {
   type InsertProjectMetricsConnection,
   type PTNConnection,
   type InsertPTNConnection,
+  type CcbRequest,
+  type InsertCcbRequest,
+  type CcbComment,
+  type InsertCcbComment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
@@ -467,6 +471,26 @@ export interface IStorage {
 
   // User Tasks methods
   getUserTasks(userId: string): Promise<any[]>;
+
+  // Change Control Board (CCB) methods
+  getCcbRequests(): Promise<CcbRequest[]>;
+  getCcbRequestById(id: number): Promise<CcbRequest | undefined>;
+  getCcbRequestsByProjectId(projectId: number): Promise<CcbRequest[]>;
+  getCcbRequestsByStatus(status: string): Promise<CcbRequest[]>;
+  createCcbRequest(request: InsertCcbRequest): Promise<CcbRequest>;
+  updateCcbRequest(id: number, request: Partial<InsertCcbRequest>): Promise<CcbRequest | undefined>;
+  deleteCcbRequest(id: number): Promise<boolean>;
+
+  // CCB Comments methods
+  getCcbComments(ccbRequestId: number): Promise<CcbComment[]>;
+  createCcbComment(comment: InsertCcbComment): Promise<CcbComment>;
+  updateCcbComment(id: number, comment: Partial<InsertCcbComment>): Promise<CcbComment | undefined>;
+  deleteCcbComment(id: number): Promise<boolean>;
+
+  // CCB Approval methods
+  approveCcbRequest(id: number, department: string, userId: string, comments?: string): Promise<CcbRequest | undefined>;
+  rejectCcbRequest(id: number, userId: string, reason: string): Promise<CcbRequest | undefined>;
+  implementCcbRequest(id: number, userId: string, notes?: string): Promise<CcbRequest | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5423,6 +5447,217 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error fetching user tasks:", error);
       return [];
+    }
+  }
+
+  // Change Control Board (CCB) methods
+  async getCcbRequests(): Promise<CcbRequest[]> {
+    try {
+      const result = await db.select().from(ccbRequests).orderBy(desc(ccbRequests.createdAt));
+      return result;
+    } catch (error) {
+      console.error("Error fetching CCB requests:", error);
+      return [];
+    }
+  }
+
+  async getCcbRequestById(id: number): Promise<CcbRequest | undefined> {
+    try {
+      const result = await db.select().from(ccbRequests).where(eq(ccbRequests.id, id));
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching CCB request with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getCcbRequestsByProjectId(projectId: number): Promise<CcbRequest[]> {
+    try {
+      const result = await db.select().from(ccbRequests)
+        .where(eq(ccbRequests.projectId, projectId))
+        .orderBy(desc(ccbRequests.createdAt));
+      return result;
+    } catch (error) {
+      console.error(`Error fetching CCB requests for project ${projectId}:`, error);
+      return [];
+    }
+  }
+
+  async getCcbRequestsByStatus(status: string): Promise<CcbRequest[]> {
+    try {
+      const result = await db.select().from(ccbRequests)
+        .where(eq(ccbRequests.status, status as any))
+        .orderBy(desc(ccbRequests.createdAt));
+      return result;
+    } catch (error) {
+      console.error(`Error fetching CCB requests with status ${status}:`, error);
+      return [];
+    }
+  }
+
+  async createCcbRequest(request: InsertCcbRequest): Promise<CcbRequest> {
+    try {
+      // Generate CCB number
+      const year = new Date().getFullYear();
+      const existingCount = await db.select({ count: count() })
+        .from(ccbRequests)
+        .where(like(ccbRequests.ccbNumber, `CCB-${year}-%`));
+      
+      const ccbNumber = `CCB-${year}-${String(existingCount[0].count + 1).padStart(3, '0')}`;
+
+      const result = await db.insert(ccbRequests)
+        .values({ ...request, ccbNumber })
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error creating CCB request:", error);
+      throw error;
+    }
+  }
+
+  async updateCcbRequest(id: number, request: Partial<InsertCcbRequest>): Promise<CcbRequest | undefined> {
+    try {
+      const result = await db.update(ccbRequests)
+        .set({ ...request, updatedAt: new Date() })
+        .where(eq(ccbRequests.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error updating CCB request with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteCcbRequest(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(ccbRequests)
+        .where(eq(ccbRequests.id, id))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error deleting CCB request with ID ${id}:`, error);
+      return false;
+    }
+  }
+
+  // CCB Comments methods
+  async getCcbComments(ccbRequestId: number): Promise<CcbComment[]> {
+    try {
+      const result = await db.select().from(ccbComments)
+        .where(eq(ccbComments.ccbRequestId, ccbRequestId))
+        .orderBy(asc(ccbComments.createdAt));
+      return result;
+    } catch (error) {
+      console.error(`Error fetching CCB comments for request ${ccbRequestId}:`, error);
+      return [];
+    }
+  }
+
+  async createCcbComment(comment: InsertCcbComment): Promise<CcbComment> {
+    try {
+      const result = await db.insert(ccbComments)
+        .values(comment)
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error creating CCB comment:", error);
+      throw error;
+    }
+  }
+
+  async updateCcbComment(id: number, comment: Partial<InsertCcbComment>): Promise<CcbComment | undefined> {
+    try {
+      const result = await db.update(ccbComments)
+        .set(comment)
+        .where(eq(ccbComments.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error updating CCB comment with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteCcbComment(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(ccbComments)
+        .where(eq(ccbComments.id, id))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error deleting CCB comment with ID ${id}:`, error);
+      return false;
+    }
+  }
+
+  // CCB Approval methods
+  async approveCcbRequest(id: number, department: string, userId: string, comments?: string): Promise<CcbRequest | undefined> {
+    try {
+      const updateData: any = { updatedAt: new Date() };
+      
+      // Set approval fields based on department
+      updateData[`${department}Approval`] = true;
+      updateData[`${department}ApprovedBy`] = userId;
+      updateData[`${department}ApprovedAt`] = new Date();
+      if (comments) {
+        updateData[`${department}Comments`] = comments;
+      }
+
+      const result = await db.update(ccbRequests)
+        .set(updateData)
+        .where(eq(ccbRequests.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error approving CCB request with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async rejectCcbRequest(id: number, userId: string, reason: string): Promise<CcbRequest | undefined> {
+    try {
+      const result = await db.update(ccbRequests)
+        .set({
+          status: 'rejected',
+          rejectedBy: userId,
+          rejectedAt: new Date(),
+          rejectionReason: reason,
+          updatedAt: new Date()
+        })
+        .where(eq(ccbRequests.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error rejecting CCB request with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async implementCcbRequest(id: number, userId: string, notes?: string): Promise<CcbRequest | undefined> {
+    try {
+      const result = await db.update(ccbRequests)
+        .set({
+          status: 'implemented',
+          implementedBy: userId,
+          implementedAt: new Date(),
+          implementationNotes: notes,
+          updatedAt: new Date()
+        })
+        .where(eq(ccbRequests.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error implementing CCB request with ID ${id}:`, error);
+      return undefined;
     }
   }
 
