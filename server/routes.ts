@@ -3396,6 +3396,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Impact Assessment AI Insights endpoint
+  app.post("/api/ai/impact-assessment", async (req, res) => {
+    try {
+      const { project, dateVariances, departmentImpacts } = req.body;
+      
+      if (!project || !dateVariances || !departmentImpacts) {
+        return res.status(400).json({ message: "Project, date variances, and department impacts are required" });
+      }
+
+      // Generate AI insights for impact assessment
+      const data = {
+        project: {
+          id: project.id,
+          name: project.name,
+          projectNumber: project.projectNumber,
+          percentComplete: project.percentComplete,
+          status: project.status
+        },
+        dateVariances: dateVariances.map((variance: any) => ({
+          phase: variance.displayName,
+          originalDate: variance.opDate,
+          currentDate: variance.currentDate,
+          daysDifference: variance.daysDifference,
+          isDelayed: variance.isDelayed
+        })),
+        departmentImpacts: departmentImpacts.map((impact: any) => ({
+          department: impact.department,
+          impactLevel: impact.impactLevel,
+          description: impact.description,
+          estimatedCost: impact.estimatedCost
+        })),
+        totalVariances: dateVariances.length,
+        maxDelayDays: Math.max(...dateVariances.map((v: any) => Math.abs(v.daysDifference)), 0),
+        delayedPhases: dateVariances.filter((v: any) => v.isDelayed).length
+      };
+
+      // Use OpenAI if available, otherwise provide fallback insights
+      let aiInsights;
+      try {
+        const { generateImpactAssessmentInsights } = await import('./ai');
+        aiInsights = await generateImpactAssessmentInsights(data);
+      } catch (error) {
+        console.warn("OpenAI not available, providing fallback insights:", error);
+        
+        // Generate fallback insights based on the data
+        const criticalDelays = dateVariances.filter((v: any) => v.isDelayed && v.daysDifference > 14);
+        const majorDelays = dateVariances.filter((v: any) => v.isDelayed && v.daysDifference > 7);
+        const criticalDepartments = departmentImpacts.filter((d: any) => d.impactLevel === 'critical');
+        
+        aiInsights = {
+          insights: [
+            {
+              severity: criticalDelays.length > 0 ? 'danger' : majorDelays.length > 0 ? 'warning' : 'success',
+              text: criticalDelays.length > 0 
+                ? `Critical timeline risk: ${criticalDelays.length} phase(s) delayed by more than 2 weeks`
+                : majorDelays.length > 0 
+                ? `Moderate timeline risk: ${majorDelays.length} phase(s) delayed by more than 1 week`
+                : 'Timeline variances are within acceptable range',
+              detail: criticalDelays.length > 0 
+                ? 'Immediate executive intervention required to prevent project failure'
+                : majorDelays.length > 0 
+                ? 'Enhanced monitoring and resource reallocation recommended'
+                : 'Continue current project management approach'
+            },
+            {
+              severity: criticalDepartments.length > 0 ? 'danger' : departmentImpacts.length > 3 ? 'warning' : 'success',
+              text: `Cross-departmental impact assessment: ${departmentImpacts.length} department(s) affected`,
+              detail: criticalDepartments.length > 0 
+                ? `${criticalDepartments.length} department(s) facing critical impact requiring immediate attention`
+                : departmentImpacts.length > 3 
+                ? 'Multiple departments affected - coordination meeting recommended'
+                : 'Departmental impact is manageable with current resources'
+            },
+            {
+              severity: data.maxDelayDays > 30 ? 'danger' : data.maxDelayDays > 14 ? 'warning' : 'success',
+              text: `Maximum schedule variance: ${data.maxDelayDays} days`,
+              detail: data.maxDelayDays > 30 
+                ? 'Significant schedule recovery plan required with additional resources'
+                : data.maxDelayDays > 14 
+                ? 'Schedule compression techniques should be evaluated'
+                : 'Schedule variance is within normal project tolerance'
+            }
+          ],
+          confidence: 0.85,
+          summary: criticalDelays.length > 0 
+            ? 'Project requires immediate executive attention due to critical timeline delays and cascading departmental impacts.'
+            : majorDelays.length > 0 
+            ? 'Project needs enhanced monitoring and resource reallocation to prevent further delays.'
+            : 'Project impact is manageable with current mitigation strategies and enhanced communication protocols.'
+        };
+      }
+      
+      res.json(aiInsights);
+    } catch (error) {
+      console.error("Error generating impact assessment insights:", error);
+      res.status(500).json({ message: "Error generating impact assessment insights" });
+    }
+  });
+
   // User Management routes (admin only)
   app.get("/api/users", async (req, res) => {
     try {

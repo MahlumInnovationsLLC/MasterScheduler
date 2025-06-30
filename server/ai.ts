@@ -63,6 +63,77 @@ export interface AIInsight {
 }
 
 /**
+ * Generates impact assessment insights for schedule changes
+ */
+export async function generateImpactAssessmentInsights(
+  data: {
+    project: any;
+    dateVariances: any[];
+    departmentImpacts: any[];
+    totalVariances: number;
+    maxDelayDays: number;
+    delayedPhases: number;
+  }
+): Promise<{ insights: any[]; confidence: number; summary: string; }> {
+  try {
+    if (!isOpenAIAvailable()) {
+      throw new Error('OpenAI not configured');
+    }
+
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    const completion = await openai!.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert project management AI that specializes in impact assessment for manufacturing projects.
+          You will analyze schedule variances and departmental impacts to provide comprehensive insights for project stakeholders.
+          Your insights should be specific, actionable, and focused on minimizing project risk while maintaining delivery commitments.
+
+          Respond with your analysis in JSON format with the structure:
+          {
+            "insights": [
+              {
+                "severity": "danger" | "warning" | "success",
+                "text": "Brief insight statement",
+                "detail": "Detailed explanation and implications"
+              }
+            ],
+            "confidence": 0-1,
+            "summary": "Executive summary of the overall impact and recommended approach"
+          }
+          
+          The insights array should contain 3-5 specific insights, each with appropriate severity levels.
+          The confidence score should reflect your certainty in the assessment (0-1).
+          The summary should provide an executive-level overview with clear next steps.`
+        },
+        {
+          role: "user",
+          content: `Please analyze this project impact assessment data and provide detailed insights:\n${JSON.stringify(data, null, 2)}`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const analysisText = completion.choices[0].message.content;
+    if (!analysisText) {
+      throw new Error('Empty response from OpenAI');
+    }
+
+    const analysis = JSON.parse(analysisText);
+    
+    return {
+      insights: analysis.insights || [],
+      confidence: analysis.confidence || 0.8,
+      summary: analysis.summary || 'Impact assessment completed with AI analysis'
+    };
+  } catch (error) {
+    console.error('Error generating impact assessment insights:', error);
+    throw error;
+  }
+}
+
+/**
  * Analyzes a project's health using OpenAI
  */
 export async function analyzeProjectHealth(
