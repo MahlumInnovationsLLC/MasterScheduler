@@ -505,11 +505,92 @@ const SupplyChain = () => {
 
   // Calculate target date for a benchmark
   const calculateTargetDate = (project: Project, benchmark: ProjectSupplyChainBenchmark) => {
-    // This is a simplified calculation - you might want to implement more complex logic
-    const baseDate = project.startDate ? new Date(project.startDate) : new Date();
-    const targetDate = new Date(baseDate);
-    targetDate.setDate(targetDate.getDate() + (benchmark.weeksBeforePhase * 7));
+    if (benchmark.targetDate) {
+      return format(parseISO(benchmark.targetDate), 'MMM d, yyyy');
+    }
+    
+    // Calculate based on project phases and weeks before phase
+    let phaseDate: Date | null = null;
+    
+    switch (benchmark.targetPhase) {
+      case 'FABRICATION':
+        phaseDate = project.fabricationStart ? new Date(project.fabricationStart) : null;
+        break;
+      case 'NTC':
+        phaseDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
+        break;
+      case 'QC':
+        phaseDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
+        break;
+      case 'SHIP':
+        phaseDate = project.shipDate ? new Date(project.shipDate) : null;
+        break;
+      default:
+        phaseDate = new Date(project.estimatedCompletionDate);
+        break;
+    }
+    
+    if (!phaseDate) return 'TBD';
+    
+    const targetDate = new Date(phaseDate);
+    targetDate.setDate(targetDate.getDate() - (benchmark.weeksBeforePhase * 7));
+    
     return format(targetDate, 'MMM d, yyyy');
+  };
+
+  // Calculate benchmark due date and overdue status
+  const getBenchmarkDueInfo = (project: Project, benchmark: ProjectSupplyChainBenchmark) => {
+    const now = new Date();
+    let dueDate: Date | null = null;
+    
+    if (benchmark.targetDate) {
+      dueDate = new Date(benchmark.targetDate);
+    } else {
+      // Calculate based on project phases and weeks before phase
+      let phaseDate: Date | null = null;
+      
+      switch (benchmark.targetPhase) {
+        case 'FABRICATION':
+          phaseDate = project.fabricationStart ? new Date(project.fabricationStart) : null;
+          break;
+        case 'NTC':
+          phaseDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
+          break;
+        case 'QC':
+          phaseDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
+          break;
+        case 'SHIP':
+          phaseDate = project.shipDate ? new Date(project.shipDate) : null;
+          break;
+        default:
+          phaseDate = new Date(project.estimatedCompletionDate);
+          break;
+      }
+      
+      if (phaseDate) {
+        dueDate = new Date(phaseDate);
+        dueDate.setDate(dueDate.getDate() - (benchmark.weeksBeforePhase * 7));
+      }
+    }
+    
+    if (!dueDate) {
+      return {
+        dueDateText: 'TBD',
+        isOverdue: false,
+        daysLate: 0,
+        dueDate: null
+      };
+    }
+    
+    const isOverdue = !benchmark.isCompleted && now > dueDate;
+    const daysLate = isOverdue ? Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    
+    return {
+      dueDateText: format(dueDate, 'MMM d, yyyy'),
+      isOverdue,
+      daysLate,
+      dueDate
+    };
   };
 
   // Get benchmark status
@@ -1261,16 +1342,21 @@ const SupplyChain = () => {
                         {projectBenchmarks.length > 0 ? (
                           <ul className="space-y-2">
                             {projectBenchmarks.map((benchmark) => {
-                              const targetDateDisplay = benchmark.targetDate 
-                                ? format(parseISO(benchmark.targetDate), 'MMM d, yyyy')
-                                : calculateTargetDate(project, benchmark);
+                              const dueInfo = getBenchmarkDueInfo(project, benchmark);
                               const status = getBenchmarkStatus(benchmark);
 
                               return (
                                 <li key={benchmark.id} className="flex justify-between items-start mb-3">
                                   <div>
                                     <div className="font-medium text-sm">{benchmark.name}</div>
-                                    <div className="text-xs text-gray-500">{targetDateDisplay}</div>
+                                    <div className={`text-xs ${dueInfo.isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                                      Due: {dueInfo.dueDateText}
+                                      {dueInfo.isOverdue && (
+                                        <span className="ml-2 text-red-600 font-semibold">
+                                          ({dueInfo.daysLate} days late)
+                                        </span>
+                                      )}
+                                    </div>
                                     {benchmark.isCompleted && benchmark.completedDate && (
                                       <div className="text-xs text-green-600 mt-1 flex items-center">
                                         <Clock className="h-3 w-3 mr-1" />
@@ -1381,9 +1467,19 @@ const SupplyChain = () => {
                                         <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{upcomingBenchmarks[0].name}</span>
                                       </div>
                                       <div className="text-xs text-slate-600 dark:text-slate-400">
-                                        {upcomingBenchmarks[0].targetDate 
-                                          ? format(parseISO(upcomingBenchmarks[0].targetDate), 'MMM d, yyyy')
-                                          : calculateTargetDate(project, upcomingBenchmarks[0])}
+                                        {(() => {
+                                          const dueInfo = getBenchmarkDueInfo(project, upcomingBenchmarks[0]);
+                                          return (
+                                            <span className={dueInfo.isOverdue ? 'text-red-600 font-medium' : ''}>
+                                              Due: {dueInfo.dueDateText}
+                                              {dueInfo.isOverdue && (
+                                                <span className="ml-1 text-red-600 font-semibold">
+                                                  ({dueInfo.daysLate} days late)
+                                                </span>
+                                              )}
+                                            </span>
+                                          );
+                                        })()}
                                       </div>
                                     </div>
                                   ) : (
@@ -1712,17 +1808,22 @@ const SupplyChain = () => {
                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                     {projectBenchmarks?.filter(pb => pb.projectId === selectedProjectDetails.id).map((benchmark) => {
                       const status = getBenchmarkStatus(benchmark);
-                      const targetDateDisplay = benchmark.targetDate 
-                        ? format(parseISO(benchmark.targetDate), 'MMM d, yyyy')
-                        : calculateTargetDate(selectedProjectDetails, benchmark);
+                      const dueInfo = getBenchmarkDueInfo(selectedProjectDetails, benchmark);
 
                       return (
                         <div key={benchmark.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
                           <div className="w-3/4">
                             <div className="font-medium">{benchmark.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              {benchmark.weeksBeforePhase} weeks before {benchmark.targetPhase} - 
-                              <span className="ml-1">{targetDateDisplay}</span>
+                              {benchmark.weeksBeforePhase} weeks before {benchmark.targetPhase}
+                            </div>
+                            <div className={`text-sm ${dueInfo.isOverdue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                              Due: <span className="ml-1">{dueInfo.dueDateText}</span>
+                              {dueInfo.isOverdue && (
+                                <span className="ml-2 text-red-600 font-semibold">
+                                  ({dueInfo.daysLate} days late)
+                                </span>
+                              )}
                             </div>
                             {benchmark.isCompleted && benchmark.completedDate && (
                               <div className="text-xs text-green-600 mt-1 flex items-center">
