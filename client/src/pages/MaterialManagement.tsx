@@ -95,7 +95,11 @@ const MaterialManagement = () => {
           data.projects.find((p: Project) => p.id === schedule.projectId)
         )
         .filter((p: Project | undefined): p is Project => p !== undefined)
-        .filter((p: Project) => p.status !== 'delivered'); // Filter out delivered projects
+        .filter((p: Project) => 
+          p.status !== 'delivered' && // Filter out delivered projects
+          !p.name.toUpperCase().includes('SALES EST') && // Filter out sales estimate projects
+          !p.name.toUpperCase().includes('SALES ESTIMATE')
+        );
 
       return {
         team: teamName,
