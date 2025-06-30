@@ -765,38 +765,6 @@ const ReportsPage = () => {
     <div className="container mx-auto py-6 max-w-7xl px-4 sm:px-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh Data
-          </Button>
-
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Time Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="3months">Last 3 Months</SelectItem>
-              <SelectItem value="6months">Last 6 Months</SelectItem>
-              <SelectItem value="12months">Last 12 Months</SelectItem>
-              <SelectItem value="ytd">Year-to-Date</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" onClick={handleExport} disabled={isExporting}>
-            {isExporting ? (
-              <>
-                <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent text-primary rounded-full" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="mr-2 h-4 w-4" /> Export Report
-              </>
-            )}
-          </Button>
-        </div>
       </div>
 
       {isLoading && (
@@ -806,8 +774,8 @@ const ReportsPage = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
+      <div className="w-full">
+        <div>
           <Tabs defaultValue="financial" value={reportType} onValueChange={setReportType}>
             <TabsList className="grid grid-cols-6 mb-4">
               <TabsTrigger value="financial">Financial Reports</TabsTrigger>
@@ -3038,123 +3006,7 @@ const ReportsPage = () => {
           </Tabs>
         </div>
 
-        {/* Sidebar with filters and info */}
-        <div>
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Report Filters</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Report Type</Label>
-                <Select value={reportType} onValueChange={setReportType}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Report Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="financial">Financial Reports</SelectItem>
-                    <SelectItem value="project">Project Status</SelectItem>
-                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                    <SelectItem value="mech-shop">Mech Shop</SelectItem>
-                    <SelectItem value="future-predictions">Future Predictions</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Time Range</Label>
-                <Select value={timeRange} onValueChange={setTimeRange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Time Range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="3months">Last 3 Months</SelectItem>
-                    <SelectItem value="6months">Last 6 Months</SelectItem>
-                    <SelectItem value="12months">Last 12 Months</SelectItem>
-                    <SelectItem value="ytd">Year-to-Date</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Filter by Project</Label>
-                <Select value={projectFilter} onValueChange={setProjectFilter}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="All Projects" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Projects</SelectItem>
-                    {projects.map(project => (
-                      <SelectItem key={project.id} value={project.id.toString()}>
-                        {project.projectNumber} - {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Separator />
-
-              <div className="pt-2">
-                <Button variant="outline" className="w-full mb-2">
-                  <FileText className="mr-2 h-4 w-4" /> Generate PDF Report
-                </Button>
-                <Button variant="outline" className="w-full" onClick={handleExport} disabled={isExporting}>
-                  <Download className="mr-2 h-4 w-4" /> Export to CSV
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Live Data Status</CardTitle>
-              <CardDescription>
-                {dateRange.startDate} to {dateRange.endDate}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-gray-400 mb-4">
-                <div className="flex justify-between mb-2">
-                  <span>Total Projects:</span>
-                  <span className="font-medium text-white">{filteredProjects.length}</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span>Total Milestones:</span>
-                  <span className="font-medium text-white">{filteredMilestones.length}</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span>Active Schedules:</span>
-                  <span className="font-medium text-white">{filteredSchedules.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Last Updated:</span>
-                  <span className="font-medium text-white">{format(new Date(), 'HH:mm:ss')}</span>
-                </div>
-              </div>
-
-              <div className="border border-gray-700 p-3 rounded-lg bg-gray-800 bg-opacity-30">
-                <div className="flex items-center gap-2 mb-2">
-                  <CalendarIcon className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-medium">Data Refresh</span>
-                </div>
-                <div className="text-xs text-gray-400 mb-2">
-                  Reports automatically refresh every 30 seconds
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full" 
-                  onClick={handleRefresh}
-                  disabled={isLoading}
-                >
-                  <RefreshCw className={`mr-2 h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh Now
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        
       </div>
     </div>
   );
