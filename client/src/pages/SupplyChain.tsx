@@ -355,6 +355,42 @@ const SupplyChain = () => {
   const handlePermanentDeleteProject = (projectId: number) => {
   };
 
+  // Complete all benchmarks for a project
+  const completeAllBenchmarksMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      if (!projectBenchmarks) return;
+      
+      const projectBenchmarksToComplete = projectBenchmarks.filter(
+        pb => pb.projectId === projectId && !pb.isCompleted
+      );
+      
+      // Update all incomplete benchmarks for this project
+      const updates = projectBenchmarksToComplete.map(benchmark => 
+        apiRequest('PATCH', `/api/project-supply-chain-benchmarks/${benchmark.id}`, {
+          isCompleted: true,
+          completedDate: new Date().toISOString(),
+          completedBy: 'User' // You could get this from user context
+        })
+      );
+      
+      return Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
+      toast({
+        title: "All benchmarks completed",
+        description: "All benchmarks for this project have been marked as complete."
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error completing benchmarks",
+        description: "There was an error completing the benchmarks. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Form instances
   const benchmarkForm = useForm<z.infer<typeof benchmarkFormSchema>>({
     resolver: zodResolver(benchmarkFormSchema),
@@ -1022,18 +1058,18 @@ const SupplyChain = () => {
                     {getUpcomingBenchmarks(purchaseTimeframe).length}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {purchaseTimeframe === 'week' && "Purchasing benchmarks due this week"}
-                    {purchaseTimeframe === 'month' && "Purchasing benchmarks due this month"}
-                    {purchaseTimeframe === 'quarter' && "Purchasing benchmarks due this quarter"}
+                    {purchaseTimeframe === 'week' && "Benchmarks due this week"}
+                    {purchaseTimeframe === 'month' && "Benchmarks due this month"}
+                    {purchaseTimeframe === 'quarter' && "Benchmarks due this quarter"}
                   </p>
                 </div>
 
                 {/* Display upcoming purchase items */}
-                {getUpcomingPurchaseNeeds(purchaseTimeframe).length > 0 ? (
+                {getUpcomingBenchmarks(purchaseTimeframe).length > 0 ? (
                   <div className="border-t border-slate-200 mt-3 pt-3 pb-1">
                     <p className="text-xs font-medium mb-2">Upcoming Items:</p>
                     <ul className="text-xs text-muted-foreground space-y-1 max-h-[80px] overflow-y-auto">
-                      {getUpcomingPurchaseNeeds(purchaseTimeframe).slice(0, 3).map((benchmark) => {
+                      {getUpcomingBenchmarks(purchaseTimeframe).slice(0, 3).map((benchmark) => {
                         const project = projects?.find(p => p.id === benchmark.projectId);
                         return (
                           <li key={benchmark.id} className="flex items-center gap-1">
@@ -1044,9 +1080,9 @@ const SupplyChain = () => {
                           </li>
                         );
                       })}
-                      {getUpcomingPurchaseNeeds(purchaseTimeframe).length > 3 && (
+                      {getUpcomingBenchmarks(purchaseTimeframe).length > 3 && (
                         <li className="text-center text-blue-500">
-                          +{getUpcomingPurchaseNeeds(purchaseTimeframe).length - 3} more items
+                          +{getUpcomingBenchmarks(purchaseTimeframe).length - 3} more items
                         </li>
                       )}
                     </ul>
@@ -1054,7 +1090,7 @@ const SupplyChain = () => {
                 ) : (
                   <div className="border-t border-slate-200 mt-3 pt-3 pb-1">
                     <p className="text-xs text-center text-muted-foreground py-2">
-                      No upcoming purchases in this timeframe
+                      No upcoming benchmarks in this timeframe
                     </p>
                   </div>
                 )}
