@@ -29,7 +29,8 @@ import {
   Pencil as PencilIcon,
   PlusCircle,
   Archive,
-  Camera
+  Camera,
+  FileText
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -364,6 +365,41 @@ const ProjectStatus = () => {
   // CCB Request Dialog State
   const [ccbDialogOpen, setCcbDialogOpen] = useState(false);
   const [selectedProjectForCCB, setSelectedProjectForCCB] = useState<any>(null);
+
+  // Function to open CCB request dialog
+  const openCCBDialog = (project: any) => {
+    setSelectedProjectForCCB(project);
+    setCcbDialogOpen(true);
+  };
+
+  // Function to check if project has date variances (orange highlights)
+  const hasDateVariances = (project: any) => {
+    const phaseKeys = [
+      'fabricationStartDate', 'paintStartDate', 'productionStartDate', 'itStartDate',
+      'wrapDate', 'ntcTestingDate', 'qcStartDate', 'executiveReviewDate', 'shipDate', 'deliveryDate'
+    ];
+    
+    const opKeys = [
+      'opFabricationStartDate', 'opPaintStartDate', 'opProductionStartDate', 'opItStartDate',
+      'opWrapDate', 'opNtcTestingDate', 'opQcStartDate', 'opExecutiveReviewDate', 'opShipDate', 'opDeliveryDate'
+    ];
+    
+    for (let i = 0; i < phaseKeys.length; i++) {
+      const currentDate = project[phaseKeys[i]];
+      const opDate = project[opKeys[i]];
+      
+      if (currentDate && opDate) {
+        const current = new Date(currentDate);
+        const original = new Date(opDate);
+        
+        if (current.getTime() !== original.getTime()) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
   const [deliveryDate, setDeliveryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Archive dialog state
@@ -1852,6 +1888,15 @@ const ProjectStatus = () => {
                 <Plus className="h-4 w-4 mr-2" />
                 Add Task
               </DropdownMenuItem>
+              {hasDateVariances(row.original) && (
+                <DropdownMenuItem 
+                  onClick={() => openCCBDialog(row.original)}
+                  className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Submit Schedule CCB Request
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => openArchiveDialog(row.original.id)}>
                 <Archive className="h-4 w-4 mr-2" />
                 Archive Project
@@ -2436,6 +2481,18 @@ const ProjectStatus = () => {
         </Dialog>
       )}
       <ArchiveDialog />
+      
+      {/* CCB Request Dialog */}
+      {selectedProjectForCCB && (
+        <CCBRequestDialog
+          isOpen={ccbDialogOpen}
+          onClose={() => {
+            setCcbDialogOpen(false);
+            setSelectedProjectForCCB(null);
+          }}
+          project={selectedProjectForCCB}
+        />
+      )}
     </div>
   );
 };

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import CreateMeetingDialog from "@/components/meetings/CreateMeetingDialog";
+import CCBManagementSystem from "@/components/CCBManagementSystem";
 import { format } from "date-fns";
 
 interface Project {
@@ -2693,36 +2694,7 @@ export default function Meetings() {
 
             {/* CCB Tab */}
             <TabsContent value="ccb" className="space-y-6 mt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Change Control Board</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Schedule change requests requiring departmental approval
-                  </p>
-                </div>
-                
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-center py-8">
-                      <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">CCB System Under Development</h3>
-                      <p className="text-muted-foreground mb-4">
-                        The Change Control Board feature is being implemented to handle
-                        schedule change requests from Tier III with full departmental approval workflow.
-                      </p>
-                      <div className="bg-muted/50 rounded-lg p-4 text-sm">
-                        <p className="font-medium mb-2">Planned Features:</p>
-                        <ul className="list-disc list-inside space-y-1 text-left">
-                          <li>Schedule CCB request submission from Tier III</li>
-                          <li>Departmental buy-off workflow (Sales, Engineering, etc.)</li>
-                          <li>Automatic OP date updates upon approval</li>
-                          <li>Orange variance highlight removal</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <CCBManagementSystem />
             </TabsContent>
 
             {/* Concerns Tab */}
