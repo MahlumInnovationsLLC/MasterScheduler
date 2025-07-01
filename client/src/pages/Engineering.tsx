@@ -174,6 +174,25 @@ export default function Engineering() {
     select: (data: any[]) => data.filter(user => user.department === 'Engineering'),
   });
 
+  // Mutation for updating project assignments directly in Projects table
+  const updateProjectAssignmentMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: number } & Partial<{ 
+      meAssigned: string | null; 
+      eeAssigned: string | null; 
+      iteAssigned: string | null;
+      meDesignOrdersPercent: number | null;
+      eeDesignOrdersPercent: number | null;
+      itDesignOrdersPercent: number | null;
+      ntcPercentage: number | null;
+    }>) => {
+      return await apiRequest(`/api/projects/${id}`, 'PUT', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+    },
+  });
+
   // Mutation for updating project assignments
   const updateAssignmentMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<ProjectEngineeringAssignment> & { id: number }) => {
@@ -254,19 +273,55 @@ export default function Engineering() {
     }).join(', ');
   };
 
-  // Function to handle percentage update
-  const handlePercentageUpdate = async (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC', newPercentage: number) => {
-    const assignments = getProjectAssignments(projectId);
-    const disciplineAssignments = assignments.filter(a => a.discipline === discipline);
-    
-    if (disciplineAssignments.length > 0) {
-      // Update existing assignment
-      const assignment = disciplineAssignments[0];
-      await updateAssignmentMutation.mutateAsync({
-        id: assignment.id,
-        percentage: newPercentage
+  // Function to handle engineer assignment update
+  const handleEngineerAssignment = async (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC', engineerId: string) => {
+    const engineer = engineers.find(eng => eng.id.toString() === engineerId);
+    if (engineer) {
+      const assignmentData: any = {};
+      const engineerName = `${engineer.firstName} ${engineer.lastName}`;
+      
+      switch (discipline) {
+        case 'ME':
+          assignmentData.meAssigned = engineerName;
+          break;
+        case 'EE':
+          assignmentData.eeAssigned = engineerName;
+          break;
+        case 'ITE':
+          assignmentData.iteAssigned = engineerName;
+          break;
+      }
+      
+      await updateProjectAssignmentMutation.mutateAsync({
+        id: projectId,
+        ...assignmentData
       });
     }
+  };
+
+  // Function to handle percentage update
+  const handlePercentageUpdate = async (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC', newPercentage: number) => {
+    const percentageData: any = {};
+    
+    switch (discipline) {
+      case 'ME':
+        percentageData.meDesignOrdersPercent = newPercentage;
+        break;
+      case 'EE':
+        percentageData.eeDesignOrdersPercent = newPercentage;
+        break;
+      case 'ITE':
+        percentageData.itDesignOrdersPercent = newPercentage;
+        break;
+      case 'NTC':
+        percentageData.ntcPercentage = newPercentage;
+        break;
+    }
+    
+    await updateProjectAssignmentMutation.mutateAsync({
+      id: projectId,
+      ...percentageData
+    });
   };
 
   const formatPercentage = (value: number | null | undefined) => {
@@ -414,48 +469,24 @@ export default function Engineering() {
                             <td className="p-2 text-sm">{project.eeAssigned || 'Unassigned'}</td>
                             <td className="p-2 text-sm">{project.iteAssigned || 'Unassigned'}</td>
                             <td className="p-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={getDisciplinePercentage(project.id, 'ME')}
-                                onChange={(e) => handlePercentageUpdate(project.id, 'ME', parseInt(e.target.value) || 0)}
-                                className="w-16 h-8 text-center"
-                                disabled={updateAssignmentMutation.isPending}
-                              />
+                              <div className="text-center text-sm">
+                                {formatPercentage(project.meDesignOrdersPercent)}
+                              </div>
                             </td>
                             <td className="p-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={getDisciplinePercentage(project.id, 'EE')}
-                                onChange={(e) => handlePercentageUpdate(project.id, 'EE', parseInt(e.target.value) || 0)}
-                                className="w-16 h-8 text-center"
-                                disabled={updateAssignmentMutation.isPending}
-                              />
+                              <div className="text-center text-sm">
+                                {formatPercentage(project.eeDesignOrdersPercent)}
+                              </div>
                             </td>
                             <td className="p-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={getDisciplinePercentage(project.id, 'ITE')}
-                                onChange={(e) => handlePercentageUpdate(project.id, 'ITE', parseInt(e.target.value) || 0)}
-                                className="w-16 h-8 text-center"
-                                disabled={updateAssignmentMutation.isPending}
-                              />
+                              <div className="text-center text-sm">
+                                {formatPercentage(project.itDesignOrdersPercent)}
+                              </div>
                             </td>
                             <td className="p-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={getDisciplinePercentage(project.id, 'NTC')}
-                                onChange={(e) => handlePercentageUpdate(project.id, 'NTC', parseInt(e.target.value) || 0)}
-                                className="w-16 h-8 text-center"
-                                disabled={updateAssignmentMutation.isPending}
-                              />
+                              <div className="text-center text-sm">
+                                {formatPercentage(project.ntcPercentage)}
+                              </div>
                             </td>
                             <td className="p-2 text-sm">
                               {project.completedTasks || 0} / {project.engineeringTasks || 0}
@@ -737,7 +768,10 @@ export default function Engineering() {
                           <div>
                             <Label className="text-sm">Assigned Engineers</Label>
                             <p className="text-sm text-muted-foreground">
-                              {getAssignedEngineers(selectedProject.id, discipline as 'ME' | 'EE' | 'ITE' | 'NTC') || 'None assigned'}
+                              {(discipline === 'ME' && selectedProject.meAssigned) ||
+                               (discipline === 'EE' && selectedProject.eeAssigned) ||
+                               (discipline === 'ITE' && selectedProject.iteAssigned) ||
+                               'None assigned'}
                             </p>
                           </div>
                           
@@ -748,14 +782,19 @@ export default function Engineering() {
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={getDisciplinePercentage(selectedProject.id, discipline as 'ME' | 'EE' | 'ITE' | 'NTC')}
+                                value={
+                                  discipline === 'ME' ? (selectedProject.meDesignOrdersPercent || 0) :
+                                  discipline === 'EE' ? (selectedProject.eeDesignOrdersPercent || 0) :
+                                  discipline === 'ITE' ? (selectedProject.itDesignOrdersPercent || 0) :
+                                  discipline === 'NTC' ? (selectedProject.ntcPercentage || 0) : 0
+                                }
                                 onChange={(e) => handlePercentageUpdate(
                                   selectedProject.id, 
                                   discipline as 'ME' | 'EE' | 'ITE' | 'NTC', 
                                   parseInt(e.target.value) || 0
                                 )}
                                 className="w-20"
-                                disabled={updateAssignmentMutation.isPending}
+                                disabled={updateProjectAssignmentMutation.isPending}
                               />
                               <span className="text-sm">%</span>
                             </div>
@@ -763,7 +802,11 @@ export default function Engineering() {
                           
                           <div>
                             <Label className="text-sm">Assign Engineer</Label>
-                            <Select>
+                            <Select onValueChange={(value) => handleEngineerAssignment(
+                              selectedProject.id,
+                              discipline as 'ME' | 'EE' | 'ITE' | 'NTC',
+                              value
+                            )}>
                               <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select engineer" />
                               </SelectTrigger>
