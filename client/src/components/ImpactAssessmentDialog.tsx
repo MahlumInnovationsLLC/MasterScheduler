@@ -528,33 +528,7 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
       const margin = 20;
       let yPosition = margin;
 
-      // Color palette for professional PDF styling
-      const colors = {
-        primary: [34, 139, 34],     // Forest Green for headers
-        secondary: [70, 130, 180],   // Steel Blue for sub-headers
-        danger: [220, 53, 69],       // Red for critical/delayed items
-        warning: [255, 193, 7],      // Amber for warnings
-        success: [40, 167, 69],      // Green for success/advanced
-        info: [23, 162, 184],        // Teal for info
-        gray: [108, 117, 125],       // Gray for normal text
-        lightGray: [248, 249, 250],  // Light gray for backgrounds
-        white: [255, 255, 255]       // White
-      };
-
-      // Helper functions for styling
-      const setHeaderColor = () => pdf.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-      const setSubHeaderColor = () => pdf.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
-      const setNormalColor = () => pdf.setTextColor(0, 0, 0);
-      const setDangerColor = () => pdf.setTextColor(colors.danger[0], colors.danger[1], colors.danger[2]);
-      const setWarningColor = () => pdf.setTextColor(colors.warning[0], colors.warning[1], colors.warning[2]);
-      const setSuccessColor = () => pdf.setTextColor(colors.success[0], colors.success[1], colors.success[2]);
-      const setInfoColor = () => pdf.setTextColor(colors.info[0], colors.info[1], colors.info[2]);
-
-      const drawColoredBox = (x: number, y: number, width: number, height: number, color: number[]) => {
-        pdf.setFillColor(color[0], color[1], color[2]);
-        pdf.rect(x, y, width, height, 'F');
-      };
-
+      // Helper function to check if we need a new page
       const checkPageBreak = (requiredSpace: number = 20) => {
         if (yPosition + requiredSpace > pageHeight - margin) {
           pdf.addPage();
@@ -564,91 +538,21 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
         return false;
       };
 
-      // ==================== TITLE PAGE ====================
-      // Header banner
-      drawColoredBox(0, 0, pageWidth, 40, colors.primary);
-      
-      pdf.setFontSize(24);
+      // Title
+      pdf.setFontSize(20);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(255, 255, 255);
-      pdf.text('PROJECT IMPACT ASSESSMENT', pageWidth / 2, 25, { align: 'center' });
-      
-      yPosition = 60;
+      pdf.text('Project Impact Assessment Report', margin, yPosition);
+      yPosition += 15;
 
-      // Project Information Box
-      drawColoredBox(margin, yPosition, pageWidth - 2 * margin, 50, colors.lightGray);
-      pdf.setFontSize(16);
-      setHeaderColor();
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('PROJECT DETAILS', margin + 10, yPosition + 15);
-      
+      // Project Info
       pdf.setFontSize(12);
-      setNormalColor();
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`Project: ${project.name || 'N/A'}`, margin + 10, yPosition + 25);
-      pdf.text(`Project Number: ${project.projectNumber || 'N/A'}`, margin + 10, yPosition + 35);
-      pdf.text(`Assessment Date: ${new Date().toLocaleDateString()}`, margin + 10, yPosition + 45);
-      
-      yPosition += 70;
-
-      // Calculate key metrics
-      const totalDelayedPhases = dateVariances.filter(v => v.isDelayed).length;
-      const totalAdvancedPhases = dateVariances.length - totalDelayedPhases;
-      const maxDelay = dateVariances.length > 0 ? Math.max(...dateVariances.map(v => Math.abs(v.daysDifference))) : 0;
-      const criticalDepartments = departmentImpacts.filter(d => d.impactLevel === 'critical').length;
-      const highImpactDepartments = departmentImpacts.filter(d => d.impactLevel === 'high').length;
-
-      // Metrics boxes
-      const boxWidth = (pageWidth - 4 * margin) / 3;
-      const boxHeight = 25;
-      
-      // Schedule Variances Box
-      if (totalDelayedPhases > 0) {
-        drawColoredBox(margin, yPosition, boxWidth, boxHeight, colors.danger);
-        pdf.setTextColor(255, 255, 255);
-      } else {
-        drawColoredBox(margin, yPosition, boxWidth, boxHeight, colors.success);
-        pdf.setTextColor(255, 255, 255);
-      }
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(`${dateVariances.length} Schedule Variances`, margin + 5, yPosition + 8);
-      pdf.setFontSize(10);
-      pdf.text(`${totalDelayedPhases} Delayed | ${totalAdvancedPhases} Advanced`, margin + 5, yPosition + 18);
-
-      // Department Impact Box
-      const deptBoxX = margin + boxWidth + 10;
-      if (criticalDepartments > 0) {
-        drawColoredBox(deptBoxX, yPosition, boxWidth, boxHeight, colors.danger);
-      } else if (highImpactDepartments > 0) {
-        drawColoredBox(deptBoxX, yPosition, boxWidth, boxHeight, colors.warning);
-      } else {
-        drawColoredBox(deptBoxX, yPosition, boxWidth, boxHeight, colors.info);
-      }
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(`${departmentImpacts.length} Departments Affected`, deptBoxX + 5, yPosition + 8);
-      pdf.setFontSize(10);
-      pdf.text(`${criticalDepartments} Critical | ${highImpactDepartments} High Impact`, deptBoxX + 5, yPosition + 18);
-
-      // Max Delay Box
-      const delayBoxX = margin + 2 * boxWidth + 20;
-      if (maxDelay > 10) {
-        drawColoredBox(delayBoxX, yPosition, boxWidth, boxHeight, colors.danger);
-      } else if (maxDelay > 5) {
-        drawColoredBox(delayBoxX, yPosition, boxWidth, boxHeight, colors.warning);
-      } else {
-        drawColoredBox(delayBoxX, yPosition, boxWidth, boxHeight, colors.success);
-      }
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(`${maxDelay} Max Delay Days`, delayBoxX + 5, yPosition + 8);
-      pdf.setFontSize(10);
-      pdf.text('Critical Timeline Impact', delayBoxX + 5, yPosition + 18);
-
-      yPosition += 40;
+      pdf.text(`Project: ${project.name || 'N/A'}`, margin, yPosition);
+      yPosition += 8;
+      pdf.text(`Project Number: ${project.projectNumber || 'N/A'}`, margin, yPosition);
+      yPosition += 8;
+      pdf.text(`Assessment Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
+      yPosition += 15;
 
       // Executive Summary
       checkPageBreak(40);
@@ -660,7 +564,11 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
       
-      // Use previously calculated metrics
+      // Calculate critical metrics
+      const totalDelayedPhases = dateVariances.filter(v => v.isDelayed).length;
+      const maxDelay = dateVariances.length > 0 ? Math.max(...dateVariances.map(v => Math.abs(v.daysDifference))) : 0;
+      const criticalDepartments = departmentImpacts.filter(d => d.impactLevel === 'critical').length;
+      const highImpactDepartments = departmentImpacts.filter(d => d.impactLevel === 'high').length;
       
       const summaryText = `This impact assessment has identified ${dateVariances.length} schedule variance(s) that will affect ${departmentImpacts.length} department(s) across the organization. The total cumulative delay impact is ${maxDelay} days based on the most critical timeline variance.
 
@@ -884,138 +792,22 @@ Immediate Actions Required:
         });
       }
 
-      // ==================== SECTION 4: FUTURE PROJECTS ====================
-      if (futureProjectInsights && futureProjectInsights.insights.length > 0) {
-        checkPageBreak(40);
-        setHeaderColor();
-        pdf.setFontSize(18);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('4. FUTURE PROJECT ANALYSIS', margin, yPosition);
-        yPosition += 15;
-
-        setNormalColor();
-        pdf.setFontSize(11);
-        pdf.setFont('helvetica', 'normal');
-        
-        futureProjectInsights.insights.forEach((insight, index) => {
-          checkPageBreak(20);
-          
-          // Insight with severity indicator
-          let severityColor = colors.info;
-          if (insight.severity === 'danger') severityColor = colors.danger;
-          else if (insight.severity === 'warning') severityColor = colors.warning;
-          else if (insight.severity === 'success') severityColor = colors.success;
-          
-          // Severity indicator
-          drawColoredBox(margin, yPosition - 2, 3, 10, severityColor);
-          
-          pdf.setFontSize(12);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(`${index + 1}. ${insight.text}`, margin + 8, yPosition + 3);
-          yPosition += 12;
-          
-          if (insight.detail) {
-            pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'normal');
-            const detailText = pdf.splitTextToSize(insight.detail, pageWidth - 2 * margin - 10);
-            pdf.text(detailText, margin + 8, yPosition);
-            yPosition += detailText.length * 5 + 8;
-          }
-        });
-        
-        yPosition += 15;
-      }
-
-      // ==================== SECTION 5: AI INSIGHTS ====================
-      if (aiInsights && aiInsights.insights.length > 0) {
-        checkPageBreak(40);
-        setHeaderColor();
-        pdf.setFontSize(18);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('5. AI-POWERED INSIGHTS', margin, yPosition);
-        yPosition += 15;
-
-        // AI Summary
-        setSubHeaderColor();
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Executive Summary', margin, yPosition);
-        yPosition += 10;
-
-        setNormalColor();
-        pdf.setFontSize(11);
-        pdf.setFont('helvetica', 'normal');
-        const summaryText = pdf.splitTextToSize(aiInsights.summary, pageWidth - 2 * margin);
-        pdf.text(summaryText, margin, yPosition);
-        yPosition += summaryText.length * 5 + 15;
-
-        // Confidence indicator
-        const confidence = Math.round((aiInsights.confidence || 0.8) * 100);
-        setInfoColor();
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(`AI Confidence Level: ${confidence}%`, margin, yPosition);
-        yPosition += 15;
-
-        // AI Insights
-        setSubHeaderColor();
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Detailed Analysis', margin, yPosition);
-        yPosition += 10;
-
-        aiInsights.insights.forEach((insight, index) => {
-          checkPageBreak(25);
-          
-          // Insight severity indicator
-          let severityColor = colors.info;
-          if (insight.severity === 'danger') severityColor = colors.danger;
-          else if (insight.severity === 'warning') severityColor = colors.warning;
-          else if (insight.severity === 'success') severityColor = colors.success;
-          
-          drawColoredBox(margin, yPosition - 2, 4, 12, severityColor);
-          
-          setNormalColor();
-          pdf.setFontSize(11);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(`${index + 1}. ${insight.text}`, margin + 8, yPosition + 3);
-          yPosition += 12;
-          
-          if (insight.detail) {
-            pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'normal');
-            const detailText = pdf.splitTextToSize(insight.detail, pageWidth - 2 * margin - 10);
-            pdf.text(detailText, margin + 8, yPosition);
-            yPosition += detailText.length * 5 + 8;
-          }
-        });
-      }
-
-      // ==================== FOOTER ====================
-      const finalTotalPages = pdf.getNumberOfPages();
-      for (let i = 1; i <= finalTotalPages; i++) {
+      // Footer with timestamp
+      const totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
-        
-        // Footer line
-        pdf.setDrawColor(colors.gray[0], colors.gray[1], colors.gray[2]);
-        pdf.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25);
-        
-        // Footer text
-        setNormalColor();
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(`TIER IV PRO - Impact Assessment Report`, margin, pageHeight - 15);
-        pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, pageHeight - 10);
-        pdf.text(`Page ${i} of ${finalTotalPages}`, pageWidth - margin - 30, pageHeight - 10);
+        pdf.text(`Generated on ${new Date().toLocaleString()} - Page ${i} of ${totalPages}`, margin, pageHeight - 10);
       }
 
-      // Save the PDF with enhanced filename
-      const timestamp = new Date().toISOString().split('T')[0];
-      const finalFileName = `Impact-Assessment-${project.projectNumber}-${timestamp}.pdf`;
-      pdf.save(finalFileName);
+      // Save the PDF
+      const fileName = `Impact-Assessment-${project.projectNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
 
     } catch (error) {
       console.error('Error generating PDF:', error);
+      // Show user-friendly error message
       alert('Error generating PDF report. Please try again or contact support if the issue persists.');
     } finally {
       setIsGeneratingPDF(false);
