@@ -165,7 +165,10 @@ export default function Engineering() {
 
   // Check if user has access to Engineering module
   const hasEngineeringAccess = () => {
-    if (!user || !userRole) return false;
+    // Only check userRole, user object can be null during loading
+    if (!userRole) {
+      return false;
+    }
     
     // VIEWER role cannot access regardless of department
     if (userRole === 'viewer') {

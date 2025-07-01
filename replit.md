@@ -190,7 +190,8 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated client-side module visibility hook to properly use userRole from permissions context
   - Enhanced server-side middleware to block VIEWER access while allowing EDITOR/ADMIN across all departments
   - Fixed hook integration issues between PermissionsManager and useAuth contexts
-  - Engineering module now properly displays in sidebar for all authorized users regardless of department
+  - Resolved Engineering page access control to use userRole instead of user object dependency
+  - Engineering module now properly displays in sidebar and grants page access for all authorized users regardless of department
 
 ## User Preferences
 
