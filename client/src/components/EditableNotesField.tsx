@@ -23,6 +23,12 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
   const [isTruncated, setIsTruncated] = useState(false);
   
   const textRef = useRef<HTMLDivElement>(null);
+  
+  // Debug logging for project 804731 (ID 315)
+  if (projectId === 315) {
+    console.log(`EditableNotesField for project ${projectId}, received value:`, value);
+    console.log(`EditableNotesField for project ${projectId}, noteValue state:`, noteValue);
+  }
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
