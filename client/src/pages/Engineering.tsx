@@ -317,6 +317,50 @@ export default function Engineering() {
     },
   });
 
+  // Mutation for creating project engineering assignments
+  const createEngineerAssignmentMutation = useMutation({
+    mutationFn: async (data: Omit<ProjectEngineeringAssignment, 'id' | 'createdAt' | 'updatedAt'>) => {
+      return await apiRequest('/api/engineering/project-assignments', 'POST', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      toast({
+        title: "Success",
+        description: "Engineer assigned to project successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign engineer to project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for updating project assignment percentage
+  const updateAssignmentPercentageMutation = useMutation({
+    mutationFn: async ({ assignmentId, percentage }: { assignmentId: number; percentage: number }) => {
+      return await apiRequest(`/api/engineering/project-assignments/${assignmentId}`, 'PUT', { percentage });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      toast({
+        title: "Success",
+        description: "Assignment percentage updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update assignment percentage",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available': return 'bg-green-100 text-green-800';
@@ -432,6 +476,49 @@ export default function Engineering() {
       updateEngineerMutation.mutate({
         id: editingEngineer.id,
         ...formData,
+      });
+    }
+  };
+
+  // Function to handle project assignment
+  const handleProjectAssignment = async (engineerId: number, projectId: string) => {
+    const engineer = resources.find(r => r.id === engineerId);
+    if (!engineer) return;
+
+    // Check if engineer is already assigned to this project
+    const existingAssignment = projectAssignments.find(
+      a => a.resourceId === engineerId && a.projectId === parseInt(projectId)
+    );
+
+    if (existingAssignment) {
+      toast({
+        title: "Info",
+        description: "Engineer is already assigned to this project",
+        variant: "default",
+      });
+      return;
+    }
+
+    createEngineerAssignmentMutation.mutate({
+      projectId: parseInt(projectId),
+      resourceId: engineerId,
+      discipline: engineer.discipline as 'ME' | 'EE' | 'ITE' | 'NTC',
+      percentage: 50, // Default percentage
+      isLead: false,
+    });
+  };
+
+  // Function to get engineer assignments
+  const getEngineerAssignments = (engineerId: number) => {
+    return projectAssignments.filter(assignment => assignment.resourceId === engineerId);
+  };
+
+  // Function to update assignment percentage
+  const handlePercentageUpdate = (assignmentId: number, newPercentage: number) => {
+    if (newPercentage >= 0 && newPercentage <= 100) {
+      updateAssignmentPercentageMutation.mutate({
+        assignmentId,
+        percentage: newPercentage,
       });
     }
   };
@@ -901,6 +988,40 @@ export default function Engineering() {
                           <Progress value={resource.currentCapacityPercent} className="h-2" />
                         </div>
 
+                        {/* Project Assignments */}
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Project Assignments</div>
+                          {getEngineerAssignments(resource.id).length > 0 ? (
+                            <div className="space-y-2">
+                              {getEngineerAssignments(resource.id).map((assignment) => {
+                                const project = projects.find(p => p.id === assignment.projectId);
+                                return (
+                                  <div key={assignment.id} className="bg-gray-50 p-2 rounded text-xs">
+                                    <div className="font-medium">{project?.projectNumber}</div>
+                                    <div className="text-gray-600 truncate">{project?.name}</div>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <span className="text-gray-500">{assignment.discipline}</span>
+                                      <div className="flex items-center gap-1">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          value={assignment.percentage}
+                                          onChange={(e) => handlePercentageUpdate(assignment.id, parseInt(e.target.value) || 0)}
+                                          className="w-12 h-6 text-xs"
+                                        />
+                                        <span className="text-xs">%</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500">No project assignments</div>
+                          )}
+                        </div>
+
                         <div className="flex gap-2">
                           <Button 
                             variant="outline" 
@@ -973,18 +1094,55 @@ export default function Engineering() {
                                   </div>
                                 </td>
                                 <td className="p-4">
-                                  <div className="flex gap-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => handleEditEngineer(resource)}
-                                    >
-                                      <Edit className="h-4 w-4 mr-1" />
-                                      Edit
-                                    </Button>
-                                    <Button variant="outline" size="sm">
-                                      View Tasks
-                                    </Button>
+                                  <div className="space-y-2">
+                                    <div className="flex gap-2">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => handleEditEngineer(resource)}
+                                      >
+                                        <Edit className="h-4 w-4 mr-1" />
+                                        Edit
+                                      </Button>
+                                      <Button variant="outline" size="sm">
+                                        View Tasks
+                                      </Button>
+                                    </div>
+                                    
+                                    {/* Project Assignments Dropdown */}
+                                    {getEngineerAssignments(resource.id).length > 0 && (
+                                      <details className="group">
+                                        <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                          <span className="group-open:rotate-90 transition-transform">▶</span>
+                                          {getEngineerAssignments(resource.id).length} Project{getEngineerAssignments(resource.id).length !== 1 ? 's' : ''}
+                                        </summary>
+                                        <div className="mt-2 space-y-1 pl-4 border-l-2 border-gray-200">
+                                          {getEngineerAssignments(resource.id).map((assignment) => {
+                                            const project = projects.find(p => p.id === assignment.projectId);
+                                            return (
+                                              <div key={assignment.id} className="bg-gray-50 p-2 rounded text-xs">
+                                                <div className="font-medium">{project?.projectNumber}</div>
+                                                <div className="text-gray-600 truncate">{project?.name}</div>
+                                                <div className="flex items-center justify-between mt-1">
+                                                  <Badge variant="outline" className="text-xs">{assignment.discipline}</Badge>
+                                                  <div className="flex items-center gap-1">
+                                                    <Input
+                                                      type="number"
+                                                      min="0"
+                                                      max="100"
+                                                      value={assignment.percentage}
+                                                      onChange={(e) => handlePercentageUpdate(assignment.id, parseInt(e.target.value) || 0)}
+                                                      className="w-12 h-6 text-xs"
+                                                    />
+                                                    <span className="text-xs">%</span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </details>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -1404,40 +1562,20 @@ export default function Engineering() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
-                  <Input
-                    id="hourlyRate"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    defaultValue={editingEngineer.hourlyRate}
-                    onChange={(e) => setEditingEngineer({
-                      ...editingEngineer, 
-                      hourlyRate: parseFloat(e.target.value) || 0
-                    })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="skillLevel">Skill Level</Label>
-                  <Select 
-                    value={editingEngineer.skillLevel} 
-                    onValueChange={(value: 'junior' | 'intermediate' | 'senior' | 'principal') => 
-                      setEditingEngineer({...editingEngineer, skillLevel: value})
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="junior">Junior</SelectItem>
-                      <SelectItem value="intermediate">Intermediate</SelectItem>
-                      <SelectItem value="senior">Senior</SelectItem>
-                      <SelectItem value="principal">Principal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label htmlFor="projectAssignment">Assign to Project</Label>
+                <Select onValueChange={(value) => handleProjectAssignment(editingEngineer.id, value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a project to assign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id.toString()}>
+                        {project.projectNumber} - {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-center space-x-2">
