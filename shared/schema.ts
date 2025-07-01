@@ -1125,7 +1125,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   profileImageUrl: true,
   role: true,
   isApproved: true,
-  status: true, 
+  status: true,
+  department: true,
   lastLogin: true,
 });
 

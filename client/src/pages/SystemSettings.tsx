@@ -860,6 +860,11 @@ const SystemSettings = () => {
     e.preventDefault();
     if (!editingUser) return;
 
+    console.log("🔄 FRONTEND: Starting user update");
+    console.log("🔄 FRONTEND: editingUser:", editingUser);
+    console.log("🔄 FRONTEND: editUserForm:", editUserForm);
+    console.log("🔄 FRONTEND: URL:", `/api/users/${editingUser.id}`);
+
     // Direct fetch call with proper method formatting
     fetch(`/api/users/${editingUser.id}`, {
       method: 'PATCH',
@@ -870,12 +875,15 @@ const SystemSettings = () => {
       credentials: 'include',
     })
       .then(response => {
+        console.log("🔄 FRONTEND: Response status:", response.status);
+        console.log("🔄 FRONTEND: Response ok:", response.ok);
         if (!response.ok) {
-          throw new Error('Failed to update user');
+          throw new Error(`Failed to update user: ${response.status}`);
         }
         return response.json();
       })
-      .then(() => {
+      .then((data) => {
+        console.log("🔄 FRONTEND: Success response data:", data);
         // Update user list
         queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       })
@@ -888,6 +896,7 @@ const SystemSettings = () => {
         queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       })
       .catch(error => {
+        console.error("🔄 FRONTEND: Error updating user:", error);
         toast({
           title: "Error",
           description: "Failed to update user: " + error.message,
