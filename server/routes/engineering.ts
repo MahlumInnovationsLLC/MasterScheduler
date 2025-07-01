@@ -373,13 +373,13 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       unavailableEngineers: 0,
     };
 
-    // Calculate discipline distribution - we'll use ME, EE, ITE, NTC as placeholders
-    // since we don't have discipline data for real users
+    // Calculate discipline distribution based on actual engineering resources
+    const resources = await storage.getEngineeringResources();
     const disciplineStats = {
-      'ME': Math.ceil(engineeringUsers.length * 0.4),
-      'EE': Math.ceil(engineeringUsers.length * 0.3), 
-      'ITE': Math.floor(engineeringUsers.length * 0.2),
-      'NTC': Math.floor(engineeringUsers.length * 0.1)
+      'ME': resources.filter(r => r.discipline === 'ME').length,
+      'EE': resources.filter(r => r.discipline === 'EE').length,
+      'ITE': resources.filter(r => r.discipline === 'ITE').length,
+      'NTC': resources.filter(r => r.discipline === 'NTC').length
     };
 
     // Calculate task statistics
