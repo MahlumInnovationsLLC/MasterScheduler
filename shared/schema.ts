@@ -256,7 +256,7 @@ export const users = pgTable("users", {
   role: text("role").default("pending"),  // Using text for backward compatibility
   isApproved: boolean("is_approved").default(false),
   status: userStatusEnum("status").default("active"),
-  department: text("department"), // Department field for user management
+  department: userDepartmentEnum("department"), // Department field for user management
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
