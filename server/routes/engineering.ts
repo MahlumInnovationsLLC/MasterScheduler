@@ -21,11 +21,28 @@ const router = Router();
 // Engineering routes use the main authentication middleware
 // This will be applied when mounting the router in the main routes file
 
-// GET all engineering resources (from engineeringResources table)
+// GET all engineering resources (real Engineering users from users table)
 router.get('/engineering-resources', async (req: Request, res: Response) => {
   try {
-    // Get engineering resources from the dedicated table
-    const resources = await storage.getEngineeringResources();
+    // Get real Engineering users from the users table
+    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
+    
+    // Convert users to EngineeringResource format
+    const resources = engineeringUsers.map((user, index) => ({
+      id: index + 1,
+      firstName: user.firstName || 'Unknown',
+      lastName: user.lastName || 'User', 
+      discipline: 'ME' as const, // Default discipline - could be determined from project assignments
+      title: 'Engineering Specialist',
+      workloadStatus: 'available' as const,
+      currentCapacityPercent: 0,
+      hourlyRate: 100,
+      skillLevel: 'intermediate' as const,
+      isActive: user.status === 'active',
+      createdAt: user.createdAt || new Date(),
+      updatedAt: user.updatedAt || new Date()
+    }));
+
     res.json(resources);
   } catch (error) {
     console.error("Error fetching engineering resources:", error);
@@ -341,21 +358,23 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     // Get all projects and their engineering data
     const projects = await storage.getProjects();
     
-    // Get engineering resources from the dedicated table
-    const resources = await storage.getEngineeringResources();
+    // Get real Engineering users from the users table
+    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
+    
     const tasks = await storage.getEngineeringTasks();
     const benchmarks = await storage.getEngineeringBenchmarks();
 
-    // Calculate workload statistics based on actual engineering resources
+    // Calculate workload statistics based on real Engineering users
     const workloadStats = {
-      totalEngineers: resources.length,
-      availableEngineers: resources.filter(r => r.workloadStatus === 'available').length,
-      atCapacityEngineers: resources.filter(r => r.workloadStatus === 'at_capacity').length,
-      overloadedEngineers: resources.filter(r => r.workloadStatus === 'overloaded').length,
-      unavailableEngineers: resources.filter(r => r.workloadStatus === 'unavailable').length,
+      totalEngineers: engineeringUsers.length,
+      availableEngineers: engineeringUsers.length, // Default all to available since we don't have workload status
+      atCapacityEngineers: 0,
+      overloadedEngineers: 0,
+      unavailableEngineers: 0,
     };
 
     // Calculate discipline distribution based on actual engineering resources
+    const resources = await storage.getEngineeringResources();
     const disciplineStats = {
       'ME': resources.filter(r => r.discipline === 'ME').length,
       'EE': resources.filter(r => r.discipline === 'EE').length,
@@ -408,7 +427,7 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       taskStats,
       benchmarkStats,
       projects: projectsWithEngineering,
-      resources: resources, // Use actual engineering resources with disciplines
+      resources: engineeringUsers, // Use real Engineering users from database
       recentTasks: tasks.slice(0, 10), // Latest 10 tasks
       upcomingBenchmarks: benchmarks.filter(b => !b.isCompleted).slice(0, 10),
     });
