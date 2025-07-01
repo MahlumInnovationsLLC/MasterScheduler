@@ -895,7 +895,7 @@ const SystemSettings = () => {
 
     try {
       // Direct fetch call with proper method formatting
-      const response = await fetch(`/api/users/${editingUser.id}`, {
+      const response = await fetch('/api/users/' + editingUser.id, {
       method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1026,7 +1026,7 @@ const SystemSettings = () => {
 
   const permanentDeleteProjectMutation = useMutation({
     mutationFn: async (projectId: number) => {
-      const response = await fetch(`/api/projects/${projectId}/permanent-delete`, {
+      const response = await fetch('/api/projects/' + projectId + '/permanent-delete', {
         method: 'DELETE',
       });
 
@@ -1507,7 +1507,7 @@ const SystemSettings = () => {
                                 } else if (diffDays === 1) {
                                   return 'Yesterday';
                                 } else if (diffDays < 7) {
-                                  return `${diffDays} days ago`;
+                                  return diffDays + ' days ago';
                                 } else {
                                   return loginDate.toLocaleDateString('en-US', {
                                     year: 'numeric',
