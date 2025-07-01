@@ -50,6 +50,7 @@ import EditableDateFieldWithOP from '@/components/EditableDateFieldWithOP';
 import EditableNotesField from '../components/EditableNotesField';
 import EditableTextField from '@/components/EditableTextField';
 import { EditableStatusField } from '@/components/EditableStatusField';
+import CCBRequestDialog from '@/components/CCBRequestDialog';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -359,6 +360,10 @@ const ProjectStatus = () => {
   const [deliveryReason, setDeliveryReason] = useState('');
   const [delayResponsibility, setDelayResponsibility] = useState<string>('');
   const [isLateDelivery, setIsLateDelivery] = useState(false);
+  
+  // CCB Request Dialog State
+  const [ccbDialogOpen, setCcbDialogOpen] = useState(false);
+  const [selectedProjectForCCB, setSelectedProjectForCCB] = useState<any>(null);
   const [deliveryDate, setDeliveryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Archive dialog state
