@@ -3544,42 +3544,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Updating user:", userId, "with data:", req.body);
       
-      // First update basic user info
+      // First check if user exists
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Update user basic information
+      // Update user information including department in the users table
       await storage.updateUser(userId, {
         firstName,
         lastName,
         email,
-        role
+        role,
+        department // Update department directly in users table
       });
       
-      // Handle department update in user preferences
-      if (department) {
-        console.log("STORAGE: Updating preferences for user", userId, ":", { department });
-        try {
-          // Get current user preferences
-          const prefs = await storage.getUserPreferences(userId);
-          
-          if (prefs) {
-            // Update existing preferences with new department
-            await storage.updateUserPreferences(userId, { department });
-          } else {
-            // Create new preferences record with department
-            await storage.createUserPreferences({
-              userId,
-              department
-            });
-          }
-        } catch (prefError) {
-          console.error("Error updating user preferences:", prefError);
-          // Don't fail the whole request if just preferences update fails
-        }
-      }
+      console.log("Successfully updated user", userId, "with department:", department);
       
       res.json({ success: true });
     } catch (error) {
