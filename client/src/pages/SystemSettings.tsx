@@ -335,10 +335,15 @@ const SystemSettings = () => {
   const {
     data: users = [],
     isLoading: usersLoading,
-    error: usersError
+    error: usersError,
+    refetch: refetchUsers
   } = useQuery<any[]>({
     queryKey: ['/api/users'],
     queryFn: getQueryFn({}),
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    gcTime: 0, // Don't cache data for long
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Load module visibility for all users when users data changes
@@ -452,7 +457,10 @@ const SystemSettings = () => {
         description: "The user's role has been successfully updated.",
         variant: "default"
       });
+      // Force comprehensive cache refresh
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.removeQueries({ queryKey: ['/api/users'] });
+      queryClient.refetchQueries({ queryKey: ['/api/users'], type: 'active' });
     },
     onError: (error) => {
       toast({
@@ -482,7 +490,10 @@ const SystemSettings = () => {
         description: "The user has been successfully approved and can now access the system.",
         variant: "default"
       });
+      // Force comprehensive cache refresh
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.removeQueries({ queryKey: ['/api/users'] });
+      queryClient.refetchQueries({ queryKey: ['/api/users'], type: 'active' });
     },
     onError: (error) => {
       toast({
@@ -518,7 +529,10 @@ const SystemSettings = () => {
           : "The user request has been rejected.",
         variant: "default"
       });
+      // Force comprehensive cache refresh
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.removeQueries({ queryKey: ['/api/users'] });
+      queryClient.refetchQueries({ queryKey: ['/api/users'], type: 'active' });
     },
     onError: (error) => {
       toast({
@@ -569,7 +583,10 @@ const SystemSettings = () => {
         description: "User has been permanently deleted from the system.",
         variant: "default"
       });
+      // Force comprehensive cache refresh
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.removeQueries({ queryKey: ['/api/users'] });
+      queryClient.refetchQueries({ queryKey: ['/api/users'], type: 'active' });
     },
     onError: (error) => {
       toast({
@@ -885,21 +902,32 @@ const SystemSettings = () => {
       .then((data) => {
         console.log("🔄 FRONTEND: Success response data:", data);
         
-        // Force cache invalidation and refresh
+        // Force comprehensive cache invalidation and refresh
         queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-        queryClient.refetchQueries({ queryKey: ['/api/users'] });
+        queryClient.removeQueries({ queryKey: ['/api/users'] });
+        
+        // Refetch the data immediately
+        queryClient.refetchQueries({ 
+          queryKey: ['/api/users'],
+          type: 'active'
+        });
         
         toast({
           title: "User Updated",
           description: "User information has been successfully updated."
         });
-        setIsEditDialogOpen(false);
         
-        // Force another refresh after dialog closes
+        // Close dialog after a short delay to ensure data refresh
         setTimeout(() => {
+          setIsEditDialogOpen(false);
+          
+          // Final refresh to ensure UI is updated
           queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-          queryClient.refetchQueries({ queryKey: ['/api/users'] });
-        }, 100);
+          queryClient.refetchQueries({ 
+            queryKey: ['/api/users'],
+            type: 'active'
+          });
+        }, 200);
       })
       .catch(error => {
         console.error("🔄 FRONTEND: Error updating user:", error);
