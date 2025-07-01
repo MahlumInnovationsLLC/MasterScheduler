@@ -228,6 +228,7 @@ export function DataTable<TData, TValue>({
     progress: 144, // Increased by 20%
     status: 200, // Increased from 120 to 200 for horizontal badge layout
     actions: 120, // Added actions column width
+    notes: 120, // Force Notes column to 120px width
   };
 
   // Fixed row height for all rows
@@ -475,8 +476,10 @@ export function DataTable<TData, TValue>({
                             key={header.id}
                             className="px-4 font-semibold text-left whitespace-nowrap"
                             style={{ 
-                              minWidth: typeof header.column.columnDef.size === 'number' 
-                                ? `${Math.round(header.column.columnDef.size * 1.2)}px` // Increase by 20%
+                              minWidth: columnWidths[header.column.id as keyof typeof columnWidths] 
+                                ? `${columnWidths[header.column.id as keyof typeof columnWidths]}px`
+                                : typeof header.column.columnDef.size === 'number' 
+                                  ? `${Math.round(header.column.columnDef.size * 1.2)}px` // Increase by 20%
                                 : header.column.columnDef.size || '180px', // Default size increased by 20%
                               width: typeof header.column.columnDef.size === 'number'
                                 ? `${Math.round(header.column.columnDef.size * 1.2)}px` // Increase by 20%
@@ -543,14 +546,18 @@ export function DataTable<TData, TValue>({
                             return (
                               <td 
                                 key={cell.id}
-                                className="px-4 whitespace-nowrap align-middle"
+                                className={`px-4 align-middle ${cell.column.id === 'notes' ? '' : 'whitespace-nowrap'}`}
                                 style={{ 
-                                  minWidth: typeof cell.column.columnDef.size === 'number' 
-                                    ? `${Math.round(cell.column.columnDef.size * 1.2)}px` // Increase by 20%
-                                    : cell.column.columnDef.size || '180px', // Default size increased by 20%
-                                  width: typeof cell.column.columnDef.size === 'number'
-                                    ? `${Math.round(cell.column.columnDef.size * 1.2)}px` // Increase by 20%
-                                    : cell.column.columnDef.size || '180px', // Default size increased by 20%
+                                  minWidth: columnWidths[cell.column.id as keyof typeof columnWidths] 
+                                    ? `${columnWidths[cell.column.id as keyof typeof columnWidths]}px`
+                                    : typeof cell.column.columnDef.size === 'number' 
+                                      ? `${Math.round(cell.column.columnDef.size * 1.2)}px` // Increase by 20%
+                                      : cell.column.columnDef.size || '180px', // Default size increased by 20%
+                                  width: columnWidths[cell.column.id as keyof typeof columnWidths] 
+                                    ? `${columnWidths[cell.column.id as keyof typeof columnWidths]}px`
+                                    : typeof cell.column.columnDef.size === 'number'
+                                      ? `${Math.round(cell.column.columnDef.size * 1.2)}px` // Increase by 20%
+                                      : cell.column.columnDef.size || '180px', // Default size increased by 20%
                                   borderRight: '1px solid var(--border-muted)',
                                   height: ROW_HEIGHT
                                 }}
