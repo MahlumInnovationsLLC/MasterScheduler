@@ -171,12 +171,12 @@ export default function Engineering() {
     if (!userRole) {
       return false;
     }
-    
+
     // VIEWER role cannot access regardless of department
     if (userRole === 'viewer') {
       return false;
     }
-    
+
     // EDITOR and ADMIN roles can access regardless of department
     return userRole === 'editor' || userRole === 'admin';
   };
@@ -414,7 +414,7 @@ export default function Engineering() {
     if (engineer) {
       const assignmentData: any = {};
       const engineerName = `${engineer.firstName} ${engineer.lastName}`;
-      
+
       switch (discipline) {
         case 'ME':
           assignmentData.meAssigned = engineerName;
@@ -426,7 +426,7 @@ export default function Engineering() {
           assignmentData.iteAssigned = engineerName;
           break;
       }
-      
+
       await updateProjectAssignmentMutation.mutateAsync({
         id: projectId,
         ...assignmentData
@@ -437,7 +437,7 @@ export default function Engineering() {
   // Function to handle percentage update
   const handlePercentageUpdate = async (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC', newPercentage: number) => {
     const percentageData: any = {};
-    
+
     switch (discipline) {
       case 'ME':
         percentageData.meDesignOrdersPercent = newPercentage;
@@ -452,7 +452,7 @@ export default function Engineering() {
         percentageData.ntcPercentage = newPercentage;
         break;
     }
-    
+
     await updateProjectAssignmentMutation.mutateAsync({
       id: projectId,
       ...percentageData
@@ -514,7 +514,7 @@ export default function Engineering() {
   };
 
   // Function to update assignment percentage
-  const handlePercentageUpdate = (assignmentId: number, newPercentage: number) => {
+  const handleAssignmentPercentageUpdate = (assignmentId: number, newPercentage: number) => {
     if (newPercentage >= 0 && newPercentage <= 100) {
       updateAssignmentPercentageMutation.mutate({
         assignmentId,
@@ -639,7 +639,7 @@ export default function Engineering() {
                           className="pl-10 w-64"
                         />
                       </div>
-                      
+
                       {/* View Mode Toggle */}
                       <div className="flex border rounded-lg">
                         <Button
@@ -763,7 +763,7 @@ export default function Engineering() {
                               project.eeAssigned === `${engineer.firstName} ${engineer.lastName}` ||
                               project.iteAssigned === `${engineer.firstName} ${engineer.lastName}`
                             );
-                            
+
                             return (
                               <div key={engineer.id} className="border rounded-lg p-4">
                                 <div className="flex items-center justify-between mb-4">
@@ -779,7 +779,7 @@ export default function Engineering() {
                                     {engineerProjects.length} Project{engineerProjects.length !== 1 ? 's' : ''}
                                   </Badge>
                                 </div>
-                                
+
                                 {engineerProjects.length > 0 ? (
                                   <div className="overflow-x-auto">
                                     <table className="w-full">
@@ -798,7 +798,7 @@ export default function Engineering() {
                                           const engineerName = `${engineer.firstName} ${engineer.lastName}`;
                                           let role = '';
                                           let percentage = 0;
-                                          
+
                                           if (project.meAssigned === engineerName) {
                                             role = 'ME';
                                             percentage = project.meDesignOrdersPercent || 0;
@@ -809,7 +809,7 @@ export default function Engineering() {
                                             role = 'ITE';
                                             percentage = project.itDesignOrdersPercent || 0;
                                           }
-                                          
+
                                           return (
                                             <tr key={project.id} className="border-b hover:bg-gray-50">
                                               <td className="p-2">
@@ -820,8 +820,7 @@ export default function Engineering() {
                                               </td>
                                               <td className="p-2">
                                                 <Badge variant="outline" className={getStatusColor(project.status) + ' text-xs'}>
-                                                  {project.status}
-                                                </Badge>
+                                                  {project.status}                                                </Badge>
                                               </td>
                                               <td className="p-2">
                                                 <Badge variant="outline" className="text-xs">{role}</Badge>
@@ -899,7 +898,7 @@ export default function Engineering() {
                       className="pl-10 w-64"
                     />
                   </div>
-                  
+
                   {/* Discipline Filter */}
                   <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
                     <SelectTrigger className="w-40">
@@ -1007,7 +1006,7 @@ export default function Engineering() {
                                           min="0"
                                           max="100"
                                           value={assignment.percentage}
-                                          onChange={(e) => handlePercentageUpdate(assignment.id, parseInt(e.target.value) || 0)}
+                                          onChange={(e) => handleAssignmentPercentageUpdate(assignment.id, parseInt(e.target.value) || 0)}
                                           className="w-12 h-6 text-xs"
                                         />
                                         <span className="text-xs">%</span>
@@ -1108,7 +1107,7 @@ export default function Engineering() {
                                         View Tasks
                                       </Button>
                                     </div>
-                                    
+
                                     {/* Project Assignments Dropdown */}
                                     {getEngineerAssignments(resource.id).length > 0 && (
                                       <details className="group">
@@ -1131,7 +1130,7 @@ export default function Engineering() {
                                                       min="0"
                                                       max="100"
                                                       value={assignment.percentage}
-                                                      onChange={(e) => handlePercentageUpdate(assignment.id, parseInt(e.target.value) || 0)}
+                                                      onChange={(e) => handleAssignmentPercentageUpdate(assignment.id, parseInt(e.target.value) || 0)}
                                                       className="w-12 h-6 text-xs"
                                                     />
                                                     <span className="text-xs">%</span>
@@ -1291,7 +1290,7 @@ export default function Engineering() {
               Engineering Management - {selectedProject?.name}
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedProject && (
             <div className="space-y-6">
               {/* Project Info */}
@@ -1332,7 +1331,7 @@ export default function Engineering() {
                           <h4 className="font-medium">{discipline} Engineering</h4>
                           <Badge variant="outline">{discipline}</Badge>
                         </div>
-                        
+
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <Label className="text-sm">Assigned Engineers</Label>
@@ -1343,7 +1342,7 @@ export default function Engineering() {
                                'None assigned'}
                             </p>
                           </div>
-                          
+
                           <div>
                             <Label className="text-sm">Current Percentage</Label>
                             <div className="flex items-center gap-2">
@@ -1368,7 +1367,7 @@ export default function Engineering() {
                               <span className="text-sm">%</span>
                             </div>
                           </div>
-                          
+
                           <div>
                             <Label className="text-sm">Assign Engineer</Label>
                             <Select onValueChange={(value) => handleEngineerAssignment(
@@ -1474,7 +1473,7 @@ export default function Engineering() {
               Edit Engineer - {editingEngineer?.firstName} {editingEngineer?.lastName}
             </DialogTitle>
           </DialogHeader>
-          
+
           {editingEngineer && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
