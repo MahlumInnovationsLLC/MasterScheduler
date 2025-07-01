@@ -396,7 +396,7 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       taskStats,
       benchmarkStats,
       projects: projectsWithEngineering,
-      resources,
+      resources: engineeringUsers, // Use real Engineering users from database
       recentTasks: tasks.slice(0, 10), // Latest 10 tasks
       upcomingBenchmarks: benchmarks.filter(b => !b.isCompleted).slice(0, 10),
     });

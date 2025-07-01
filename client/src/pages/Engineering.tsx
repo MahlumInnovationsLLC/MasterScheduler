@@ -50,6 +50,7 @@ interface EngineeringTask {
   description: string | null;
   estimatedHours: number;
   actualHours: number | null;
+  percentComplete: number;
   status: 'not_started' | 'in_progress' | 'under_review' | 'completed' | 'on_hold';
   priority: 'low' | 'medium' | 'high' | 'critical';
   startDate: string | null;
