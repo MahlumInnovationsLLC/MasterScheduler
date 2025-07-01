@@ -650,7 +650,7 @@ export default function Engineering() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                  <div className="overflow-x-auto max-h-[800px] overflow-y-auto">
                     {projectViewMode === 'project' ? (
                       <table className="w-full">
                         <thead className="sticky top-0 bg-white">
