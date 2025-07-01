@@ -356,7 +356,6 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     };
 
     // Calculate discipline distribution based on actual engineering resources
-    const resources = await storage.getEngineeringResources();
     const disciplineStats = {
       'ME': resources.filter(r => r.discipline === 'ME').length,
       'EE': resources.filter(r => r.discipline === 'EE').length,
