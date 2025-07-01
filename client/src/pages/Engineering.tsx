@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Users, 
@@ -157,6 +158,55 @@ export default function Engineering() {
     queryKey: ['/api/engineering-benchmarks'],
   });
 
+  // Fetch project assignments
+  const { data: projectAssignments = [], isLoading: assignmentsLoading } = useQuery<ProjectEngineeringAssignment[]>({
+    queryKey: ['/api/engineering/project-assignments'],
+  });
+
+  // Fetch projects with engineering data
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+  });
+
+  // Fetch engineering users
+  const { data: engineers = [], isLoading: engineersLoading } = useQuery<any[]>({
+    queryKey: ['/api/users'],
+    select: (data: any[]) => data.filter(user => user.department === 'Engineering'),
+  });
+
+  // Mutation for updating project assignments
+  const updateAssignmentMutation = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<ProjectEngineeringAssignment> & { id: number }) => {
+      return await apiRequest(`/api/engineering/project-assignments/${id}`, 'PUT', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+    },
+  });
+
+  // Mutation for creating project assignments
+  const createAssignmentMutation = useMutation({
+    mutationFn: async (data: Omit<ProjectEngineeringAssignment, 'id' | 'createdAt' | 'updatedAt'>) => {
+      return await apiRequest('/api/engineering/project-assignments', 'POST', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+    },
+  });
+
+  // Mutation for deleting project assignments
+  const deleteAssignmentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/engineering/project-assignments/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+    },
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available': return 'bg-green-100 text-green-800';
@@ -179,6 +229,43 @@ export default function Engineering() {
       case 'high': return 'bg-orange-100 text-orange-800';
       case 'critical': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Helper function to get engineer assignments for a project
+  const getProjectAssignments = (projectId: number) => {
+    return projectAssignments.filter(assignment => assignment.projectId === projectId);
+  };
+
+  // Helper function to calculate percentage for a discipline on a project
+  const getDisciplinePercentage = (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC') => {
+    const assignments = getProjectAssignments(projectId);
+    const disciplineAssignments = assignments.filter(a => a.discipline === discipline);
+    return disciplineAssignments.reduce((sum, a) => sum + a.percentage, 0);
+  };
+
+  // Helper function to get assigned engineers for a project discipline
+  const getAssignedEngineers = (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC') => {
+    const assignments = getProjectAssignments(projectId);
+    const disciplineAssignments = assignments.filter(a => a.discipline === discipline);
+    return disciplineAssignments.map(assignment => {
+      const engineer = engineers.find(eng => eng.id === assignment.resourceId);
+      return engineer ? `${engineer.firstName} ${engineer.lastName}` : 'Unknown';
+    }).join(', ');
+  };
+
+  // Function to handle percentage update
+  const handlePercentageUpdate = async (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC', newPercentage: number) => {
+    const assignments = getProjectAssignments(projectId);
+    const disciplineAssignments = assignments.filter(a => a.discipline === discipline);
+    
+    if (disciplineAssignments.length > 0) {
+      // Update existing assignment
+      const assignment = disciplineAssignments[0];
+      await updateAssignmentMutation.mutateAsync({
+        id: assignment.id,
+        percentage: newPercentage
+      });
     }
   };
 
@@ -287,7 +374,7 @@ export default function Engineering() {
                 <CardHeader>
                   <CardTitle>Projects Overview</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Current projects with engineering assignments and completion percentages
+                    Current projects with engineering assignments and adjustable percentages
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -306,10 +393,11 @@ export default function Engineering() {
                           <th className="text-left p-2">NTC %</th>
                           <th className="text-left p-2">Tasks</th>
                           <th className="text-left p-2">Benchmarks</th>
+                          <th className="text-left p-2">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {overview?.projects.slice(0, 10).map((project) => (
+                        {projects.slice(0, 10).map((project) => (
                           <tr key={project.id} className="border-b hover:bg-gray-50">
                             <td className="p-2">
                               <div>
@@ -322,18 +410,71 @@ export default function Engineering() {
                                 {project.status}
                               </Badge>
                             </td>
-                            <td className="p-2 text-sm">{project.meAssigned || 'Unassigned'}</td>
-                            <td className="p-2 text-sm">{project.eeAssigned || 'Unassigned'}</td>
-                            <td className="p-2 text-sm">{project.iteAssigned || 'Unassigned'}</td>
-                            <td className="p-2 text-sm">{formatPercentage(project.meDesignOrdersPercent)}</td>
-                            <td className="p-2 text-sm">{formatPercentage(project.eeDesignOrdersPercent)}</td>
-                            <td className="p-2 text-sm">{formatPercentage(project.itDesignOrdersPercent)}</td>
-                            <td className="p-2 text-sm">{formatPercentage(project.ntcPercentage)}</td>
+                            <td className="p-2 text-sm">{getAssignedEngineers(project.id, 'ME') || 'Unassigned'}</td>
+                            <td className="p-2 text-sm">{getAssignedEngineers(project.id, 'EE') || 'Unassigned'}</td>
+                            <td className="p-2 text-sm">{getAssignedEngineers(project.id, 'ITE') || 'Unassigned'}</td>
+                            <td className="p-2">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={getDisciplinePercentage(project.id, 'ME')}
+                                onChange={(e) => handlePercentageUpdate(project.id, 'ME', parseInt(e.target.value) || 0)}
+                                className="w-16 h-8 text-center"
+                                disabled={updateAssignmentMutation.isPending}
+                              />
+                            </td>
+                            <td className="p-2">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={getDisciplinePercentage(project.id, 'EE')}
+                                onChange={(e) => handlePercentageUpdate(project.id, 'EE', parseInt(e.target.value) || 0)}
+                                className="w-16 h-8 text-center"
+                                disabled={updateAssignmentMutation.isPending}
+                              />
+                            </td>
+                            <td className="p-2">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={getDisciplinePercentage(project.id, 'ITE')}
+                                onChange={(e) => handlePercentageUpdate(project.id, 'ITE', parseInt(e.target.value) || 0)}
+                                className="w-16 h-8 text-center"
+                                disabled={updateAssignmentMutation.isPending}
+                              />
+                            </td>
+                            <td className="p-2">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={getDisciplinePercentage(project.id, 'NTC')}
+                                onChange={(e) => handlePercentageUpdate(project.id, 'NTC', parseInt(e.target.value) || 0)}
+                                className="w-16 h-8 text-center"
+                                disabled={updateAssignmentMutation.isPending}
+                              />
+                            </td>
                             <td className="p-2 text-sm">
                               {project.completedTasks || 0} / {project.engineeringTasks || 0}
                             </td>
                             <td className="p-2 text-sm">
                               {project.completedBenchmarks || 0} / {project.engineeringBenchmarks || 0}
+                            </td>
+                            <td className="p-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedProject(project);
+                                  setShowProjectDialog(true);
+                                }}
+                              >
+                                <Wrench className="h-4 w-4 mr-1" />
+                                Manage
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -541,6 +682,177 @@ export default function Engineering() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Project Engineering Dialog */}
+      <Dialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Engineering Management - {selectedProject?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedProject && (
+            <div className="space-y-6">
+              {/* Project Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Project Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Project Name</Label>
+                      <p className="text-sm">{selectedProject.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Project Number</Label>
+                      <p className="text-sm">{selectedProject.projectNumber}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Status</Label>
+                      <Badge className={getStatusColor(selectedProject.status)}>
+                        {selectedProject.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Engineering Assignments */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Engineering Assignments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {['ME', 'EE', 'ITE', 'NTC'].map((discipline) => (
+                      <div key={discipline} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium">{discipline} Engineering</h4>
+                          <Badge variant="outline">{discipline}</Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <Label className="text-sm">Assigned Engineers</Label>
+                            <p className="text-sm text-muted-foreground">
+                              {getAssignedEngineers(selectedProject.id, discipline as 'ME' | 'EE' | 'ITE' | 'NTC') || 'None assigned'}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-sm">Current Percentage</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={getDisciplinePercentage(selectedProject.id, discipline as 'ME' | 'EE' | 'ITE' | 'NTC')}
+                                onChange={(e) => handlePercentageUpdate(
+                                  selectedProject.id, 
+                                  discipline as 'ME' | 'EE' | 'ITE' | 'NTC', 
+                                  parseInt(e.target.value) || 0
+                                )}
+                                className="w-20"
+                                disabled={updateAssignmentMutation.isPending}
+                              />
+                              <span className="text-sm">%</span>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-sm">Assign Engineer</Label>
+                            <Select>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select engineer" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {engineers
+                                  .filter(eng => eng.discipline === discipline)
+                                  .map(engineer => (
+                                    <SelectItem key={engineer.id} value={engineer.id.toString()}>
+                                      {engineer.firstName} {engineer.lastName} - {engineer.title}
+                                    </SelectItem>
+                                  ))
+                                }
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Current Assignments Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Current Project Assignments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">Engineer</th>
+                          <th className="text-left p-2">Discipline</th>
+                          <th className="text-left p-2">Percentage</th>
+                          <th className="text-left p-2">Lead</th>
+                          <th className="text-left p-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getProjectAssignments(selectedProject.id).map((assignment) => {
+                          const engineer = engineers.find(eng => eng.id === assignment.resourceId);
+                          return (
+                            <tr key={assignment.id} className="border-b">
+                              <td className="p-2">
+                                {engineer ? `${engineer.firstName} ${engineer.lastName}` : 'Unknown'}
+                              </td>
+                              <td className="p-2">
+                                <Badge variant="outline">{assignment.discipline}</Badge>
+                              </td>
+                              <td className="p-2">{assignment.percentage}%</td>
+                              <td className="p-2">
+                                {assignment.isLead ? (
+                                  <Badge className="bg-blue-100 text-blue-800">Lead</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">Member</span>
+                                )}
+                              </td>
+                              <td className="p-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => deleteAssignmentMutation.mutate(assignment.id)}
+                                  disabled={deleteAssignmentMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProjectDialog(false)}>
+              Close
+            </Button>
+            <Button onClick={() => setShowProjectDialog(false)}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
