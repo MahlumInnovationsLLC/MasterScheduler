@@ -161,12 +161,10 @@ export const delayResponsibilityEnum = pgEnum("delay_responsibility", [
 ]);
 
 export const engineeringDisciplineEnum = pgEnum("engineering_discipline", [
-  "mechanical",
-  "electrical", 
-  "software",
-  "systems",
-  "project_management",
-  "other",
+  "ME",
+  "EE", 
+  "ITE",
+  "NTC",
 ]);
 
 export const engineeringWorkloadStatusEnum = pgEnum("engineering_workload_status", [
@@ -1422,16 +1420,16 @@ export type InsertProjectSupplyChainBenchmark = z.infer<typeof insertProjectSupp
 // Engineering Resource Management Tables
 export const engineeringResources = pgTable("engineering_resources", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  email: text("email").notNull(),
-  discipline: engineeringDisciplineEnum("discipline").notNull(),
-  skillLevel: integer("skill_level").default(1).notNull(), // 1-5 scale
-  hourlyCapacity: decimal("hourly_capacity", { precision: 5, scale: 2 }).default("40").notNull(), // hours per week
-  currentWorkload: decimal("current_workload", { precision: 5, scale: 2 }).default("0").notNull(),
-  workloadStatus: engineeringWorkloadStatusEnum("workload_status").default("available").notNull(),
+  discipline: text("discipline").notNull(), // 'ME', 'EE', 'ITE', 'NTC'
+  title: text("title").notNull(),
+  workloadStatus: text("workload_status").default("available").notNull(), // 'available', 'at_capacity', 'overloaded', 'unavailable'
+  currentCapacityPercent: integer("current_capacity_percent").default(0).notNull(),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }).default("0.00").notNull(),
+  skillLevel: text("skill_level").default("intermediate").notNull(), // 'junior', 'intermediate', 'senior', 'principal'
   isActive: boolean("is_active").default(true).notNull(),
+  userId: text("user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1464,20 +1462,44 @@ export const engineeringBenchmarks = pgTable("engineering_benchmarks", {
   projectId: integer("project_id")
     .references(() => projects.id)
     .notNull(),
+  discipline: text("discipline").notNull(), // 'ME', 'EE', 'ITE', 'NTC'
   benchmarkName: text("benchmark_name").notNull(),
-  discipline: engineeringDisciplineEnum("discipline").notNull(),
-  targetDate: date("target_date").notNull(),
-  actualDate: date("actual_date"),
+  description: text("description"),
+  targetDate: text("target_date").notNull(),
+  actualDate: text("actual_date"),
   isCompleted: boolean("is_completed").default(false).notNull(),
-  completedBy: text("completed_by"),
+  commitmentLevel: text("commitment_level").default("medium").notNull(), // 'low', 'medium', 'high', 'critical'
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Project Engineering Assignments Table
+export const projectEngineeringAssignments = pgTable("project_engineering_assignments", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  resourceId: integer("resource_id")
+    .references(() => engineeringResources.id)
+    .notNull(),
+  discipline: text("discipline").notNull(), // 'ME', 'EE', 'ITE', 'NTC'
+  percentage: integer("percentage").default(0).notNull(),
+  isLead: boolean("is_lead").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  unique("unique_project_resource_discipline").on(table.projectId, table.resourceId, table.discipline)
+]);
+
 // Engineering Resource Relations
-export const engineeringResourcesRelations = relations(engineeringResources, ({ many }) => ({
+export const engineeringResourcesRelations = relations(engineeringResources, ({ many, one }) => ({
   tasks: many(engineeringTasks),
+  assignments: many(projectEngineeringAssignments),
+  user: one(users, {
+    fields: [engineeringResources.userId],
+    references: [users.id],
+  }),
 }));
 
 export const engineeringTasksRelations = relations(engineeringTasks, ({ one }) => ({
@@ -1495,6 +1517,17 @@ export const engineeringBenchmarksRelations = relations(engineeringBenchmarks, (
   project: one(projects, {
     fields: [engineeringBenchmarks.projectId],
     references: [projects.id],
+  }),
+}));
+
+export const projectEngineeringAssignmentsRelations = relations(projectEngineeringAssignments, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectEngineeringAssignments.projectId],
+    references: [projects.id],
+  }),
+  resource: one(engineeringResources, {
+    fields: [projectEngineeringAssignments.resourceId],
+    references: [engineeringResources.id],
   }),
 }));
 
@@ -1517,12 +1550,20 @@ export const insertEngineeringBenchmarkSchema = createInsertSchema(engineeringBe
   updatedAt: true,
 });
 
+export const insertProjectEngineeringAssignmentSchema = createInsertSchema(projectEngineeringAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type EngineeringResource = typeof engineeringResources.$inferSelect;
 export type InsertEngineeringResource = z.infer<typeof insertEngineeringResourceSchema>;
 export type EngineeringTask = typeof engineeringTasks.$inferSelect;
 export type InsertEngineeringTask = z.infer<typeof insertEngineeringTaskSchema>;
 export type EngineeringBenchmark = typeof engineeringBenchmarks.$inferSelect;
 export type InsertEngineeringBenchmark = z.infer<typeof insertEngineeringBenchmarkSchema>;
+export type ProjectEngineeringAssignment = typeof projectEngineeringAssignments.$inferSelect;
+export type InsertProjectEngineeringAssignment = z.infer<typeof insertProjectEngineeringAssignmentSchema>;
 
 export type SelectUserPermission = typeof userPermissions.$inferSelect;
 export type InsertUserPermission = typeof userPermissions.$inferInsert;
