@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, Pencil as PencilIcon, PlusCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface EditableNotesFieldProps {
   projectId: number;
@@ -14,9 +20,20 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
   const [isEditing, setIsEditing] = useState(false);
   const [noteValue, setNoteValue] = useState<string>(value || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
   
+  const textRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Check if text is truncated
+  useEffect(() => {
+    if (textRef.current && noteValue) {
+      // Check if the scrollHeight is greater than clientHeight (indicates truncation)
+      const isOverflowing = textRef.current.scrollHeight > textRef.current.clientHeight;
+      setIsTruncated(isOverflowing);
+    }
+  }, [noteValue]);
 
   const handleSave = async () => {
     setIsUpdating(true);
@@ -87,24 +104,52 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
     );
   }
 
-  // Regular display mode
+  // Regular display mode  
   return (
-    <div 
-      className="text-sm cursor-pointer hover:underline flex items-center min-h-[32px] relative group"
-      onClick={() => setIsEditing(true)}
-    >
-      {noteValue ? (
-        <>
-          <div className="line-clamp-2">{noteValue}</div>
-          <PencilIcon className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 absolute right-0 top-0" />
-        </>
-      ) : (
-        <div className="text-gray-400 flex items-center">
-          <span>Add notes</span>
-          <PlusCircle className="h-3 w-3 ml-1" />
-        </div>
-      )}
-    </div>
+    <TooltipProvider>
+      <div 
+        className="text-sm cursor-pointer hover:underline min-h-[32px] relative group"
+        onClick={() => setIsEditing(true)}
+        style={{ maxWidth: '180px' }} // Approximately 3 Status column widths
+      >
+        {noteValue ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-start">
+                <div 
+                  ref={textRef}
+                  className="line-clamp-2 text-left break-words hyphens-auto pr-5 leading-relaxed"
+                  style={{
+                    wordWrap: 'break-word',
+                    overflowWrap: 'break-word',
+                    lineHeight: '1.4'
+                  }}
+                >
+                  {noteValue}
+                </div>
+                <PencilIcon className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 absolute right-0 top-0 flex-shrink-0" />
+              </div>
+            </TooltipTrigger>
+            {isTruncated && (
+              <TooltipContent 
+                className="max-w-sm p-3 text-sm bg-popover border shadow-lg"
+                side="top"
+                align="start"
+              >
+                <div className="whitespace-pre-wrap break-words">
+                  {noteValue}
+                </div>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        ) : (
+          <div className="text-gray-400 flex items-center">
+            <span>Add notes</span>
+            <PlusCircle className="h-3 w-3 ml-1" />
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
 

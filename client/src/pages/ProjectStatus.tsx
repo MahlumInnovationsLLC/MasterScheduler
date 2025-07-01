@@ -1866,7 +1866,7 @@ const ProjectStatus = () => {
       { size: 170 }),
     createColumn('notes', 'notes', 'Notes',
       (value, project) => <EditableNotesField projectId={project.id} value={value} />,
-      { size: 250 }),
+      { size: 190 }),
     createColumn('description', 'description', 'Description',
       (value, project) => (
         <div className="text-sm max-w-xs truncate" title={value as string}>
