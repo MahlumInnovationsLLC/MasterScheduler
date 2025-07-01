@@ -132,9 +132,9 @@ const Sidebar = () => {
               <li>
                 <SidebarLink href="/meetings" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/meetings') || locationStartsWith('/meetings/') ? 'active' : ''
-                } ${isCollapsed ? 'justify-center' : ''}`} title="Meetings">
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Tier">
                   <MessageSquare size={20} className={`${isActive('/meetings') || locationStartsWith('/meetings/') ? 'text-primary' : ''}`} />
-                  {!isCollapsed && <span>Meetings</span>}
+                  {!isCollapsed && <span>Tier</span>}
                 </SidebarLink>
               </li>
             )}

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import CreateMeetingDialog from "@/components/meetings/CreateMeetingDialog";
 import CCBManagementSystem from "@/components/CCBManagementSystem";
+import CCBRequestDialog from "@/components/CCBRequestDialog";
 import { format } from "date-fns";
 
 interface Project {
@@ -119,6 +120,8 @@ export default function Meetings() {
 
   // State for Tier III location filter
   const [tierIIILocationFilter, setTierIIILocationFilter] = useState<string>("all");
+  const [showCCBDialog, setShowCCBDialog] = useState(false);
+  const [selectedProjectForCCB, setSelectedProjectForCCB] = useState<Project | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -2010,6 +2013,17 @@ export default function Meetings() {
                     >
                       Add Task
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      onClick={() => {
+                        setSelectedProjectForCCB(project);
+                        setShowCCBDialog(true);
+                      }}
+                    >
+                      Submit Schedule CCB
+                    </Button>
                   </div>
                   <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-l-yellow-500 dark:border-l-yellow-400">
                     <div className="space-y-2">
@@ -3124,6 +3138,18 @@ export default function Meetings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CCB Request Dialog */}
+      {selectedProjectForCCB && (
+        <CCBRequestDialog
+          project={selectedProjectForCCB}
+          open={showCCBDialog}
+          onClose={() => {
+            setShowCCBDialog(false);
+            setSelectedProjectForCCB(null);
+          }}
+        />
+      )}
     </div>
   );
 }
