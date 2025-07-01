@@ -756,54 +756,195 @@ export default function Engineering() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {resources.map((resource) => (
-                <Card key={resource.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
-                        {resource.firstName} {resource.lastName}
-                      </CardTitle>
-                      <Badge className={getStatusColor(resource.workloadStatus)}>
-                        {resource.workloadStatus.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {resource.discipline} • {resource.title}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span>Current Capacity</span>
-                        <span>{resource.currentCapacityPercent}%</span>
-                      </div>
-                      <Progress value={resource.currentCapacityPercent} className="h-2" />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Skill Level:</span>
-                        <div className="font-medium capitalize">{resource.skillLevel}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Rate:</span>
-                        <div className="font-medium">${resource.hourlyRate}/hr</div>
-                      </div>
-                    </div>
+            <div className="space-y-4">
+              {/* Controls */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search engineers..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-64"
+                    />
+                  </div>
+                  
+                  {/* Discipline Filter */}
+                  <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Discipline" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Disciplines</SelectItem>
+                      <SelectItem value="ME">ME</SelectItem>
+                      <SelectItem value="EE">EE</SelectItem>
+                      <SelectItem value="ITE">ITE</SelectItem>
+                      <SelectItem value="NTC">NTC</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        View Tasks
-                      </Button>
+                  {/* Status Filter */}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="at_capacity">At Capacity</SelectItem>
+                      <SelectItem value="overloaded">Overloaded</SelectItem>
+                      <SelectItem value="unavailable">Unavailable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex border rounded-lg">
+                  <Button
+                    variant={projectViewMode === 'project' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setProjectViewMode('project')}
+                    className="rounded-r-none"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-1" />
+                    Grid View
+                  </Button>
+                  <Button
+                    variant={projectViewMode === 'engineer' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setProjectViewMode('engineer')}
+                    className="rounded-l-none"
+                  >
+                    <Users className="h-4 w-4 mr-1" />
+                    List View
+                  </Button>
+                </div>
+              </div>
+
+              {/* Grid View */}
+              {projectViewMode === 'project' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {resources
+                    .filter(resource => {
+                      const matchesSearch = searchTerm === '' || 
+                        `${resource.firstName} ${resource.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        resource.title.toLowerCase().includes(searchTerm.toLowerCase());
+                      const matchesDiscipline = disciplineFilter === 'all' || resource.discipline === disciplineFilter;
+                      const matchesStatus = statusFilter === 'all' || resource.workloadStatus === statusFilter;
+                      return matchesSearch && matchesDiscipline && matchesStatus;
+                    })
+                    .map((resource) => (
+                    <Card key={resource.id}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">
+                            {resource.firstName} {resource.lastName}
+                          </CardTitle>
+                          <Badge className={getStatusColor(resource.workloadStatus)}>
+                            {resource.workloadStatus.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {resource.discipline} • {resource.title}
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <div className="flex items-center justify-between text-sm mb-2">
+                            <span>Current Capacity</span>
+                            <span>{resource.currentCapacityPercent}%</span>
+                          </div>
+                          <Progress value={resource.currentCapacityPercent} className="h-2" />
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            View Tasks
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* List View */}
+              {projectViewMode === 'engineer' && (
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="border-b bg-gray-50">
+                          <tr>
+                            <th className="text-left p-4 font-medium">Engineer</th>
+                            <th className="text-left p-4 font-medium">Discipline</th>
+                            <th className="text-left p-4 font-medium">Title</th>
+                            <th className="text-left p-4 font-medium">Status</th>
+                            <th className="text-left p-4 font-medium">Capacity</th>
+                            <th className="text-left p-4 font-medium">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {resources
+                            .filter(resource => {
+                              const matchesSearch = searchTerm === '' || 
+                                `${resource.firstName} ${resource.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                resource.title.toLowerCase().includes(searchTerm.toLowerCase());
+                              const matchesDiscipline = disciplineFilter === 'all' || resource.discipline === disciplineFilter;
+                              const matchesStatus = statusFilter === 'all' || resource.workloadStatus === statusFilter;
+                              return matchesSearch && matchesDiscipline && matchesStatus;
+                            })
+                            .map((resource, index) => (
+                              <tr key={resource.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                <td className="p-4">
+                                  <div className="font-medium">
+                                    {resource.firstName} {resource.lastName}
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <Badge variant="outline">{resource.discipline}</Badge>
+                                </td>
+                                <td className="p-4 text-sm text-muted-foreground">
+                                  {resource.title}
+                                </td>
+                                <td className="p-4">
+                                  <Badge className={getStatusColor(resource.workloadStatus)}>
+                                    {resource.workloadStatus.replace('_', ' ')}
+                                  </Badge>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-24">
+                                      <Progress value={resource.currentCapacityPercent} className="h-2" />
+                                    </div>
+                                    <span className="text-sm">{resource.currentCapacityPercent}%</span>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex gap-2">
+                                    <Button variant="outline" size="sm">
+                                      <Edit className="h-4 w-4 mr-1" />
+                                      Edit
+                                    </Button>
+                                    <Button variant="outline" size="sm">
+                                      View Tasks
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )}
             </div>
           )}
         </TabsContent>
