@@ -873,7 +873,7 @@ const SystemSettings = () => {
   };
 
   // Handle user form submission
-  const handleEditUserSubmit = (e: React.FormEvent) => {
+  const handleEditUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
 
@@ -882,61 +882,50 @@ const SystemSettings = () => {
     console.log("🔄 FRONTEND: editUserForm:", editUserForm);
     console.log("🔄 FRONTEND: URL:", `/api/users/${editingUser.id}`);
 
-    // Direct fetch call with proper method formatting
-    fetch(`/api/users/${editingUser.id}`, {
+    try {
+      // Direct fetch call with proper method formatting
+      const response = await fetch(`/api/users/${editingUser.id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(editUserForm),
-      credentials: 'include',
-    })
-      .then(response => {
-        console.log("🔄 FRONTEND: Response status:", response.status);
-        console.log("🔄 FRONTEND: Response ok:", response.ok);
-        if (!response.ok) {
-          throw new Error(`Failed to update user: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        console.log("🔄 FRONTEND: Success response data:", data);
-        
-        // Force comprehensive cache invalidation and refresh
-        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-        queryClient.removeQueries({ queryKey: ['/api/users'] });
-        
-        // Refetch the data immediately
-        queryClient.refetchQueries({ 
-          queryKey: ['/api/users'],
-          type: 'active'
-        });
-        
-        toast({
-          title: "User Updated",
-          description: "User information has been successfully updated."
-        });
-        
-        // Close dialog after a short delay to ensure data refresh
-        setTimeout(() => {
-          setIsEditDialogOpen(false);
-          
-          // Final refresh to ensure UI is updated
-          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-          queryClient.refetchQueries({ 
-            queryKey: ['/api/users'],
-            type: 'active'
-          });
-        }, 200);
-      })
-      .catch(error => {
-        console.error("🔄 FRONTEND: Error updating user:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update user: " + error.message,
-          variant: "destructive"
-        });
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editUserForm),
+        credentials: 'include',
       });
+
+      console.log("🔄 FRONTEND: Response status:", response.status);
+      console.log("🔄 FRONTEND: Response ok:", response.ok);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update user: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("🔄 FRONTEND: Success response data:", data);
+      
+      // Force comprehensive cache invalidation and refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.removeQueries({ queryKey: ['/api/users'] });
+      
+      // Trigger immediate refetch
+      await refetchUsers();
+      
+      toast({
+        title: "User Updated",
+        description: "User information has been successfully updated."
+      });
+      
+      // Close dialog
+      setIsEditDialogOpen(false);
+      
+    } catch (error) {
+      console.error("🔄 FRONTEND: Error updating user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update user: " + (error as Error).message,
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle tab change
