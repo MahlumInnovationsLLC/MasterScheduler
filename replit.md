@@ -184,6 +184,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Maintained color-coded status indicators (IN QC, IN WORK, Inventory Job Cart, SHIPPED)
   - Updated cards, backgrounds, text colors, and form elements for light mode compatibility
   - All interactive elements now properly styled for both light and dark mode themes
+- July 01, 2025: Engineering Module Access Control Implementation
+  - Fixed Engineering Resource Planner access control to allow ANY user with EDITOR or ADMIN roles
+  - Removed department restriction that was preventing non-engineering users from accessing the module
+  - Updated client-side module visibility hook to properly use userRole from permissions context
+  - Enhanced server-side middleware to block VIEWER access while allowing EDITOR/ADMIN across all departments
+  - Fixed hook integration issues between PermissionsManager and useAuth contexts
+  - Engineering module now properly displays in sidebar for all authorized users regardless of department
 
 ## User Preferences
 

@@ -55,8 +55,7 @@ const Sidebar = () => {
   // Get priority access permissions for the current user
   const { canViewPriorities } = usePriorityAccess();
 
-  // Debug logging for Engineering module visibility
-  console.log(`🔧 Sidebar - userRole: "${userRole}", Engineering visible: ${isModuleVisible('engineering')}`);
+
 
   // Directly call toggleSidebar from context
   const handleToggle = () => {
