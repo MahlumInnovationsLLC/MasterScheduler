@@ -108,9 +108,8 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
   return (
     <TooltipProvider>
       <div 
-        className="text-sm cursor-pointer hover:underline min-h-[32px] relative group"
+        className="text-sm cursor-pointer hover:underline min-h-[32px] relative group max-w-[180px]"
         onClick={() => setIsEditing(true)}
-        style={{ maxWidth: '180px' }} // Approximately 3 Status column widths
       >
         {noteValue ? (
           <Tooltip>
@@ -118,8 +117,12 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
               <div className="flex items-start">
                 <div 
                   ref={textRef}
-                  className="line-clamp-2 text-left break-words hyphens-auto pr-5 leading-relaxed"
+                  className="text-left break-words pr-5 max-w-[160px]"
                   style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical' as 'vertical',
+                    overflow: 'hidden',
                     wordWrap: 'break-word',
                     overflowWrap: 'break-word',
                     lineHeight: '1.4'
