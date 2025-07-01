@@ -125,6 +125,7 @@ import {
 import { getAIInsights } from "./routes/aiInsights";
 import supplyChainRoutes from "./routes/supply-chain";
 import systemRoutes from "./routes/system";
+import engineeringRoutes from "./routes/engineering";
 import { createForensicsRecord, getForensicsContext, trackChanges } from "./forensics";
 
 // Configure multer for file uploads
@@ -5244,6 +5245,7 @@ Response format:
 
   // System Routes
   app.use('/api/system', systemRoutes);
+  app.use('/api', engineeringRoutes);
 
   // Elevated Concerns Routes
   app.get("/api/elevated-concerns", simpleAuth, async (req, res) => {

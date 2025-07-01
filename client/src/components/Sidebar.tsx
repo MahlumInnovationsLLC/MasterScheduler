@@ -21,7 +21,8 @@ import {
   Shield,
   Flag,
   CheckCircle,
-  Package
+  Package,
+  Wrench
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';

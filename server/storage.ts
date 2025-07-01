@@ -5671,6 +5671,203 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Engineering Resource Management methods
+  async getEngineeringResources(): Promise<EngineeringResource[]> {
+    return await safeQuery<EngineeringResource>(() =>
+      db.select().from(engineeringResources)
+        .where(eq(engineeringResources.isActive, true))
+        .orderBy(asc(engineeringResources.lastName), asc(engineeringResources.firstName))
+    );
+  }
+
+  async getEngineeringResourceById(id: number): Promise<EngineeringResource | undefined> {
+    return await safeSingleQuery<EngineeringResource>(() =>
+      db.select().from(engineeringResources).where(eq(engineeringResources.id, id))
+    );
+  }
+
+  async getEngineeringResourcesByDiscipline(discipline: string): Promise<EngineeringResource[]> {
+    return await safeQuery<EngineeringResource>(() =>
+      db.select().from(engineeringResources)
+        .where(and(
+          eq(engineeringResources.discipline, discipline as any),
+          eq(engineeringResources.isActive, true)
+        ))
+        .orderBy(asc(engineeringResources.lastName))
+    );
+  }
+
+  async createEngineeringResource(resource: InsertEngineeringResource): Promise<EngineeringResource> {
+    try {
+      const [newResource] = await db.insert(engineeringResources).values({
+        ...resource,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newResource;
+    } catch (error) {
+      console.error("Error creating engineering resource:", error);
+      throw error;
+    }
+  }
+
+  async updateEngineeringResource(id: number, resource: Partial<InsertEngineeringResource>): Promise<EngineeringResource | undefined> {
+    try {
+      const [updatedResource] = await db
+        .update(engineeringResources)
+        .set({
+          ...resource,
+          updatedAt: new Date()
+        })
+        .where(eq(engineeringResources.id, id))
+        .returning();
+      return updatedResource;
+    } catch (error) {
+      console.error("Error updating engineering resource:", error);
+      return undefined;
+    }
+  }
+
+  async deleteEngineeringResource(id: number): Promise<boolean> {
+    try {
+      const [updatedResource] = await db
+        .update(engineeringResources)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(engineeringResources.id, id))
+        .returning();
+      return !!updatedResource;
+    } catch (error) {
+      console.error("Error deleting engineering resource:", error);
+      return false;
+    }
+  }
+
+  // Engineering Task methods
+  async getEngineeringTasks(): Promise<EngineeringTask[]> {
+    return await safeQuery<EngineeringTask>(() =>
+      db.select().from(engineeringTasks)
+        .orderBy(desc(engineeringTasks.createdAt))
+    );
+  }
+
+  async getEngineeringTasksByProjectId(projectId: number): Promise<EngineeringTask[]> {
+    return await safeQuery<EngineeringTask>(() =>
+      db.select().from(engineeringTasks)
+        .where(eq(engineeringTasks.projectId, projectId))
+        .orderBy(asc(engineeringTasks.dueDate))
+    );
+  }
+
+  async getEngineeringTasksByResourceId(resourceId: number): Promise<EngineeringTask[]> {
+    return await safeQuery<EngineeringTask>(() =>
+      db.select().from(engineeringTasks)
+        .where(eq(engineeringTasks.resourceId, resourceId))
+        .orderBy(asc(engineeringTasks.dueDate))
+    );
+  }
+
+  async createEngineeringTask(task: InsertEngineeringTask): Promise<EngineeringTask> {
+    try {
+      const [newTask] = await db.insert(engineeringTasks).values({
+        ...task,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newTask;
+    } catch (error) {
+      console.error("Error creating engineering task:", error);
+      throw error;
+    }
+  }
+
+  async updateEngineeringTask(id: number, task: Partial<InsertEngineeringTask>): Promise<EngineeringTask | undefined> {
+    try {
+      const [updatedTask] = await db
+        .update(engineeringTasks)
+        .set({
+          ...task,
+          updatedAt: new Date()
+        })
+        .where(eq(engineeringTasks.id, id))
+        .returning();
+      return updatedTask;
+    } catch (error) {
+      console.error("Error updating engineering task:", error);
+      return undefined;
+    }
+  }
+
+  async deleteEngineeringTask(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(engineeringTasks)
+        .where(eq(engineeringTasks.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting engineering task:", error);
+      return false;
+    }
+  }
+
+  // Engineering Benchmark methods
+  async getEngineeringBenchmarks(): Promise<EngineeringBenchmark[]> {
+    return await safeQuery<EngineeringBenchmark>(() =>
+      db.select().from(engineeringBenchmarks)
+        .orderBy(asc(engineeringBenchmarks.targetDate))
+    );
+  }
+
+  async getEngineeringBenchmarksByProjectId(projectId: number): Promise<EngineeringBenchmark[]> {
+    return await safeQuery<EngineeringBenchmark>(() =>
+      db.select().from(engineeringBenchmarks)
+        .where(eq(engineeringBenchmarks.projectId, projectId))
+        .orderBy(asc(engineeringBenchmarks.targetDate))
+    );
+  }
+
+  async createEngineeringBenchmark(benchmark: InsertEngineeringBenchmark): Promise<EngineeringBenchmark> {
+    try {
+      const [newBenchmark] = await db.insert(engineeringBenchmarks).values({
+        ...benchmark,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newBenchmark;
+    } catch (error) {
+      console.error("Error creating engineering benchmark:", error);
+      throw error;
+    }
+  }
+
+  async updateEngineeringBenchmark(id: number, benchmark: Partial<InsertEngineeringBenchmark>): Promise<EngineeringBenchmark | undefined> {
+    try {
+      const [updatedBenchmark] = await db
+        .update(engineeringBenchmarks)
+        .set({
+          ...benchmark,
+          updatedAt: new Date()
+        })
+        .where(eq(engineeringBenchmarks.id, id))
+        .returning();
+      return updatedBenchmark;
+    } catch (error) {
+      console.error("Error updating engineering benchmark:", error);
+      return undefined;
+    }
+  }
+
+  async deleteEngineeringBenchmark(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(engineeringBenchmarks)
+        .where(eq(engineeringBenchmarks.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting engineering benchmark:", error);
+      return false;
+    }
+  }
+
 }
 
 export const storage = new DatabaseStorage();
