@@ -157,6 +157,8 @@ export default function Engineering() {
   const [selectedResource, setSelectedResource] = useState<EngineeringResource | null>(null);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<EngineeringTask | null>(null);
+  const [showEngineerEditDialog, setShowEngineerEditDialog] = useState(false);
+  const [editingEngineer, setEditingEngineer] = useState<EngineeringResource | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -291,6 +293,30 @@ export default function Engineering() {
     },
   });
 
+  // Mutation for updating engineering resources
+  const updateEngineerMutation = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<EngineeringResource> & { id: number }) => {
+      return await apiRequest(`/api/engineering-resources/${id}`, 'PUT', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      setShowEngineerEditDialog(false);
+      setEditingEngineer(null);
+      toast({
+        title: "Success",
+        description: "Engineer updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update engineer",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available': return 'bg-green-100 text-green-800';
@@ -392,6 +418,22 @@ export default function Engineering() {
   const formatPercentage = (value: number | null | undefined) => {
     if (value === null || value === undefined) return 'N/A';
     return `${Math.round(value)}%`;
+  };
+
+  // Function to handle engineer edit
+  const handleEditEngineer = (engineer: EngineeringResource) => {
+    setEditingEngineer(engineer);
+    setShowEngineerEditDialog(true);
+  };
+
+  // Function to handle engineer form submission
+  const handleEngineerSubmit = (formData: any) => {
+    if (editingEngineer) {
+      updateEngineerMutation.mutate({
+        id: editingEngineer.id,
+        ...formData,
+      });
+    }
   };
 
   return (
@@ -860,7 +902,11 @@ export default function Engineering() {
                         </div>
 
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditEngineer(resource)}
+                          >
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
                           </Button>
@@ -928,7 +974,11 @@ export default function Engineering() {
                                 </td>
                                 <td className="p-4">
                                   <div className="flex gap-2">
-                                    <Button variant="outline" size="sm">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleEditEngineer(resource)}
+                                    >
                                       <Edit className="h-4 w-4 mr-1" />
                                       Edit
                                     </Button>
@@ -1253,6 +1303,171 @@ export default function Engineering() {
             </Button>
             <Button onClick={() => setShowProjectDialog(false)}>
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Engineer Edit Dialog */}
+      <Dialog open={showEngineerEditDialog} onOpenChange={setShowEngineerEditDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Edit Engineer - {editingEngineer?.firstName} {editingEngineer?.lastName}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {editingEngineer && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    defaultValue={editingEngineer.firstName}
+                    onChange={(e) => setEditingEngineer({...editingEngineer, firstName: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    defaultValue={editingEngineer.lastName}
+                    onChange={(e) => setEditingEngineer({...editingEngineer, lastName: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="discipline">Discipline</Label>
+                  <Select 
+                    value={editingEngineer.discipline} 
+                    onValueChange={(value: 'ME' | 'EE' | 'ITE' | 'NTC') => 
+                      setEditingEngineer({...editingEngineer, discipline: value})
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ME">ME</SelectItem>
+                      <SelectItem value="EE">EE</SelectItem>
+                      <SelectItem value="ITE">ITE</SelectItem>
+                      <SelectItem value="NTC">NTC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    defaultValue={editingEngineer.title}
+                    onChange={(e) => setEditingEngineer({...editingEngineer, title: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="workloadStatus">Workload Status</Label>
+                  <Select 
+                    value={editingEngineer.workloadStatus} 
+                    onValueChange={(value: 'available' | 'at_capacity' | 'overloaded' | 'unavailable') => 
+                      setEditingEngineer({...editingEngineer, workloadStatus: value})
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="at_capacity">At Capacity</SelectItem>
+                      <SelectItem value="overloaded">Overloaded</SelectItem>
+                      <SelectItem value="unavailable">Unavailable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="currentCapacityPercent">Current Capacity (%)</Label>
+                  <Input
+                    id="currentCapacityPercent"
+                    type="number"
+                    min="0"
+                    max="200"
+                    defaultValue={editingEngineer.currentCapacityPercent}
+                    onChange={(e) => setEditingEngineer({
+                      ...editingEngineer, 
+                      currentCapacityPercent: parseInt(e.target.value) || 0
+                    })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+                  <Input
+                    id="hourlyRate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    defaultValue={editingEngineer.hourlyRate}
+                    onChange={(e) => setEditingEngineer({
+                      ...editingEngineer, 
+                      hourlyRate: parseFloat(e.target.value) || 0
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="skillLevel">Skill Level</Label>
+                  <Select 
+                    value={editingEngineer.skillLevel} 
+                    onValueChange={(value: 'junior' | 'intermediate' | 'senior' | 'principal') => 
+                      setEditingEngineer({...editingEngineer, skillLevel: value})
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="junior">Junior</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="senior">Senior</SelectItem>
+                      <SelectItem value="principal">Principal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={editingEngineer.isActive}
+                  onChange={(e) => setEditingEngineer({...editingEngineer, isActive: e.target.checked})}
+                  className="rounded"
+                />
+                <Label htmlFor="isActive">Active Engineer</Label>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowEngineerEditDialog(false);
+                setEditingEngineer(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleEngineerSubmit(editingEngineer)}
+              disabled={updateEngineerMutation.isPending}
+            >
+              {updateEngineerMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>

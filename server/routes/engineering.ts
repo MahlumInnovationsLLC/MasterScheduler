@@ -129,6 +129,34 @@ router.put('/engineering-resources/:id', async (req: Request, res: Response) => 
   }
 });
 
+// UPDATE an engineering resource
+router.put('/engineering-resources/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const validationResult = insertEngineeringResourceSchema.partial().safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid resource data", 
+        details: validationResult.error.format() 
+      });
+    }
+
+    const updatedResource = await storage.updateEngineeringResource(id, validationResult.data);
+    if (!updatedResource) {
+      return res.status(404).json({ error: "Engineering resource not found" });
+    }
+
+    res.json(updatedResource);
+  } catch (error) {
+    console.error("Error updating engineering resource:", error);
+    res.status(500).json({ error: "Failed to update engineering resource" });
+  }
+});
+
 // DELETE an engineering resource
 router.delete('/engineering-resources/:id', async (req: Request, res: Response) => {
   try {
