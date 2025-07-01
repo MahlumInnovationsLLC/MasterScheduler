@@ -18,7 +18,7 @@ async function syncProjectAssignments() {
 
     // Get all projects with assignment fields
     const projects = await sql`
-      SELECT id, name, "projectNumber", me_assigned, ee_assigned, ite_assigned
+      SELECT id, name, project_number, me_assigned, ee_assigned, ite_assigned
       FROM projects 
       WHERE me_assigned IS NOT NULL OR ee_assigned IS NOT NULL OR ite_assigned IS NOT NULL
     `;
@@ -38,9 +38,9 @@ async function syncProjectAssignments() {
         );
         if (matchedUser) {
           updates.me_assigned = `${matchedUser.first_name} ${matchedUser.last_name}`;
-          console.log(`✅ Project ${project.projectNumber}: ME "${project.me_assigned}" → "${updates.me_assigned}"`);
+          console.log(`✅ Project ${project.project_number}: ME "${project.me_assigned}" → "${updates.me_assigned}"`);
         } else {
-          console.log(`❌ Project ${project.projectNumber}: ME "${project.me_assigned}" - no match found`);
+          console.log(`❌ Project ${project.project_number}: ME "${project.me_assigned}" - no match found`);
         }
       }
 
@@ -51,9 +51,9 @@ async function syncProjectAssignments() {
         );
         if (matchedUser) {
           updates.ee_assigned = `${matchedUser.first_name} ${matchedUser.last_name}`;
-          console.log(`✅ Project ${project.projectNumber}: EE "${project.ee_assigned}" → "${updates.ee_assigned}"`);
+          console.log(`✅ Project ${project.project_number}: EE "${project.ee_assigned}" → "${updates.ee_assigned}"`);
         } else {
-          console.log(`❌ Project ${project.projectNumber}: EE "${project.ee_assigned}" - no match found`);
+          console.log(`❌ Project ${project.project_number}: EE "${project.ee_assigned}" - no match found`);
         }
       }
 
@@ -64,9 +64,9 @@ async function syncProjectAssignments() {
         );
         if (matchedUser) {
           updates.ite_assigned = `${matchedUser.first_name} ${matchedUser.last_name}`;
-          console.log(`✅ Project ${project.projectNumber}: ITE "${project.ite_assigned}" → "${updates.ite_assigned}"`);
+          console.log(`✅ Project ${project.project_number}: ITE "${project.ite_assigned}" → "${updates.ite_assigned}"`);
         } else {
-          console.log(`❌ Project ${project.projectNumber}: ITE "${project.ite_assigned}" - no match found`);
+          console.log(`❌ Project ${project.project_number}: ITE "${project.ite_assigned}" - no match found`);
         }
       }
 
@@ -89,16 +89,16 @@ async function syncProjectAssignments() {
 
     // Show summary of current assignments
     const updatedProjects = await sql`
-      SELECT "projectNumber", me_assigned, ee_assigned, ite_assigned
+      SELECT project_number, me_assigned, ee_assigned, ite_assigned
       FROM projects 
       WHERE me_assigned IS NOT NULL OR ee_assigned IS NOT NULL OR ite_assigned IS NOT NULL
-      ORDER BY "projectNumber"
+      ORDER BY project_number
       LIMIT 20
     `;
 
     console.log('\n📋 Sample updated assignments:');
     updatedProjects.forEach(p => {
-      console.log(`  ${p.projectNumber}: ME=${p.me_assigned || 'None'}, EE=${p.ee_assigned || 'None'}, ITE=${p.ite_assigned || 'None'}`);
+      console.log(`  ${p.project_number}: ME=${p.me_assigned || 'None'}, EE=${p.ee_assigned || 'None'}, ITE=${p.ite_assigned || 'None'}`);
     });
 
   } catch (error) {
