@@ -24,6 +24,7 @@ import {
   ListFilter,
   AlertTriangle,
   PieChart,
+  BarChart,
   Check,
   X,
   Pencil as PencilIcon,
@@ -52,6 +53,7 @@ import EditableNotesField from '../components/EditableNotesField';
 import EditableTextField from '@/components/EditableTextField';
 import { EditableStatusField } from '@/components/EditableStatusField';
 import CCBRequestDialog from '@/components/CCBRequestDialog';
+import ImpactAssessmentDialog from '@/components/ImpactAssessmentDialog';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -371,10 +373,20 @@ const ProjectStatus = () => {
   const [ccbDialogOpen, setCcbDialogOpen] = useState(false);
   const [selectedProjectForCCB, setSelectedProjectForCCB] = useState<any>(null);
 
+  // Impact Assessment Dialog State
+  const [impactAssessmentDialogOpen, setImpactAssessmentDialogOpen] = useState(false);
+  const [selectedProjectForImpact, setSelectedProjectForImpact] = useState<any>(null);
+
   // Function to open CCB request dialog
   const openCCBDialog = (project: any) => {
     setSelectedProjectForCCB(project);
     setCcbDialogOpen(true);
+  };
+
+  // Function to open Impact Assessment dialog
+  const openImpactAssessmentDialog = (project: any) => {
+    setSelectedProjectForImpact(project);
+    setImpactAssessmentDialogOpen(true);
   };
 
   // Function to check if project has date variances (orange highlights)
@@ -1894,13 +1906,22 @@ const ProjectStatus = () => {
                 Add Task
               </DropdownMenuItem>
               {hasDateVariances(row.original) && (
-                <DropdownMenuItem 
-                  onClick={() => openCCBDialog(row.original)}
-                  className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Submit Schedule CCB Request
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem 
+                    onClick={() => openCCBDialog(row.original)}
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Submit Schedule CCB Request
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => openImpactAssessmentDialog(row.original)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <BarChart className="h-4 w-4 mr-2" />
+                    Run Impact Assessment
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuItem onClick={() => openArchiveDialog(row.original.id)}>
                 <Archive className="h-4 w-4 mr-2" />
@@ -2511,6 +2532,18 @@ const ProjectStatus = () => {
             setSelectedProjectForCCB(null);
           }}
           project={selectedProjectForCCB}
+        />
+      )}
+
+      {/* Impact Assessment Dialog */}
+      {selectedProjectForImpact && (
+        <ImpactAssessmentDialog
+          open={impactAssessmentDialogOpen}
+          onClose={() => {
+            setImpactAssessmentDialogOpen(false);
+            setSelectedProjectForImpact(null);
+          }}
+          project={selectedProjectForImpact}
         />
       )}
     </div>
