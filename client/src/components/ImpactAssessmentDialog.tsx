@@ -1031,6 +1031,237 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
               </Card>
             </TabsContent>
 
+            <TabsContent value="future-projects" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Future Scheduled Projects Impact
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Analysis of how schedule changes may affect other projects in the same manufacturing teams
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingFutureInsights ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      <span>Analyzing team project impacts...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Team Impact Analysis */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold">Team Project Analysis</h4>
+                        <div className="grid gap-4">
+                          {(() => {
+                            // Find manufacturing schedules for current project
+                            const currentSchedules = manufacturingSchedules.filter((schedule: any) => 
+                              schedule.projectId === project.id
+                            );
+                            
+                            // Get team assignments for affected bays
+                            const affectedTeamIds = currentSchedules.map((schedule: any) => schedule.bayId);
+                            const affectedTeams = manufacturingBays.filter((bay: any) => 
+                              affectedTeamIds.includes(bay.id)
+                            );
+                            
+                            // Find other projects in same teams
+                            const teamProjectsMap = new Map();
+                            
+                            affectedTeams.forEach((team: any) => {
+                              const teamSchedules = manufacturingSchedules.filter((schedule: any) => 
+                                schedule.bayId === team.id && schedule.projectId !== project.id
+                              );
+                              
+                              const teamProjects = teamSchedules.map((schedule: any) => {
+                                const proj = allProjects.find(p => p.id === schedule.projectId);
+                                return proj ? { ...proj, schedule } : null;
+                              }).filter(Boolean);
+                              
+                              if (teamProjects.length > 0) {
+                                teamProjectsMap.set(team.name, {
+                                  team,
+                                  projects: teamProjects
+                                });
+                              }
+                            });
+
+                            if (teamProjectsMap.size === 0) {
+                              return (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                  <p>No other projects found in affected manufacturing teams.</p>
+                                </div>
+                              );
+                            }
+
+                            return Array.from(teamProjectsMap.entries()).map(([teamName, data]: [string, any]) => (
+                              <Card key={teamName} className="border-l-4 border-l-orange-400">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-lg flex items-center gap-2">
+                                    <Wrench className="h-4 w-4" />
+                                    {teamName} Team
+                                  </CardTitle>
+                                  <p className="text-sm text-muted-foreground">
+                                    {data.projects.length} project{data.projects.length !== 1 ? 's' : ''} potentially affected
+                                  </p>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-3">
+                                    {data.projects.map((proj: any) => (
+                                      <div key={proj.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                        <div className="flex justify-between items-start mb-2">
+                                          <div>
+                                            <h5 className="font-medium">{proj.name}</h5>
+                                            <p className="text-sm text-muted-foreground">#{proj.projectNumber}</p>
+                                          </div>
+                                          <Badge variant="outline">{proj.status}</Badge>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                          <div>
+                                            <span className="text-muted-foreground">Production Start:</span>
+                                            <p className="font-medium">{safeFormatDate(proj.productionStart)}</p>
+                                          </div>
+                                          <div>
+                                            <span className="text-muted-foreground">Ship Date:</span>
+                                            <p className="font-medium">{safeFormatDate(proj.shipDate)}</p>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                                          ⚠️ May be impacted by schedule changes to {project.projectNumber}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* AI Insights for Future Projects */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Bot className="h-5 w-5" />
+                          <h4 className="font-semibold">AI Insights - Team Impact Analysis</h4>
+                        </div>
+                        
+                        {futureProjectInsights ? (
+                          <div className="space-y-3">
+                            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                              <h5 className="font-semibold mb-2">Team Impact Summary</h5>
+                              <p className="text-sm">{futureProjectInsights.summary}</p>
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                Analysis Confidence: {Math.round((futureProjectInsights.confidence || 0) * 100)}%
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              {futureProjectInsights.insights.map((insight, index) => (
+                                <div key={index} className="p-3 border rounded-lg">
+                                  <div className="flex items-start gap-3">
+                                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                                      insight.severity === 'danger' ? 'bg-red-500' : 
+                                      insight.severity === 'warning' ? 'bg-yellow-500' : 'bg-green-500'
+                                    }`} />
+                                    <div className="flex-1">
+                                      <p className="font-medium">{insight.text}</p>
+                                      {insight.detail && (
+                                        <p className="text-sm text-muted-foreground mt-1">{insight.detail}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <Button 
+                            onClick={() => {
+                              setIsLoadingFutureInsights(true);
+                              
+                              // Find affected teams for context
+                              const currentSchedules = manufacturingSchedules.filter((schedule: any) => 
+                                schedule.projectId === project.id
+                              );
+                              const affectedTeamIds = currentSchedules.map((schedule: any) => schedule.bayId);
+                              const affectedTeams = manufacturingBays.filter((bay: any) => 
+                                affectedTeamIds.includes(bay.id)
+                              );
+
+                              // Generate AI insights for future project impacts
+                              apiRequest('POST', '/api/ai/impact-assessment', {
+                                project: {
+                                  id: project.id,
+                                  name: project.name,
+                                  projectNumber: project.projectNumber,
+                                  status: project.status
+                                },
+                                dateVariances,
+                                analysisType: 'future-projects',
+                                affectedTeams: affectedTeams.map((team: any) => team.name),
+                                teamProjects: affectedTeams.reduce((acc: any, team: any) => {
+                                  const teamSchedules = manufacturingSchedules.filter((schedule: any) => 
+                                    schedule.bayId === team.id && schedule.projectId !== project.id
+                                  );
+                                  
+                                  const teamProjects = teamSchedules.map((schedule: any) => {
+                                    const proj = allProjects.find(p => p.id === schedule.projectId);
+                                    return proj ? {
+                                      id: proj.id,
+                                      name: proj.name,
+                                      projectNumber: proj.projectNumber,
+                                      status: proj.status,
+                                      productionStart: proj.productionStart,
+                                      shipDate: proj.shipDate
+                                    } : null;
+                                  }).filter(Boolean);
+                                  
+                                  acc[team.name] = teamProjects;
+                                  return acc;
+                                }, {})
+                              }).then(response => {
+                                if (response.ok) {
+                                  return response.json();
+                                }
+                                throw new Error('Failed to generate insights');
+                              }).then(data => {
+                                setFutureProjectInsights(data);
+                              }).catch(error => {
+                                console.error('Error generating future project insights:', error);
+                                setFutureProjectInsights({
+                                  insights: [
+                                    {
+                                      severity: 'warning',
+                                      text: 'Unable to generate detailed team impact analysis',
+                                      detail: 'Please review affected teams manually to assess potential impacts'
+                                    }
+                                  ],
+                                  confidence: 0.5,
+                                  summary: 'Manual review recommended for comprehensive team impact assessment'
+                                });
+                              }).finally(() => {
+                                setIsLoadingFutureInsights(false);
+                              });
+                            }}
+                            className="w-full"
+                            disabled={isLoadingFutureInsights}
+                          >
+                            <Bot className="h-4 w-4 mr-2" />
+                            Generate Team Impact AI Analysis
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="ai-insights" className="space-y-4">
               <Card>
                 <CardHeader>
