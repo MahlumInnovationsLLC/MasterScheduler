@@ -228,7 +228,7 @@ export function DataTable<TData, TValue>({
     progress: 144, // Increased by 20%
     status: 200, // Increased from 120 to 200 for horizontal badge layout
     actions: 120, // Added actions column width
-    notes: 120, // Force Notes column to 120px width
+    notes: 360, // Expanded Notes column to 3x previous width (120px * 3)
   };
 
   // Fixed row height for all rows
@@ -436,7 +436,7 @@ export function DataTable<TData, TValue>({
                 }
               }}
             >
-              <style jsx>{`
+              <style>{`
                 div::-webkit-scrollbar {
                   display: none;
                 }
@@ -650,7 +650,7 @@ export function DataTable<TData, TValue>({
               }
             }}
           >
-            <style jsx>{`
+            <style>{`
               div::-webkit-scrollbar {
                 height: 12px;
               }
