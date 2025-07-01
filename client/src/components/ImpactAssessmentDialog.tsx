@@ -47,7 +47,7 @@ import 'jspdf-autotable';
 interface ImpactAssessmentDialogProps {
   project: Project | null;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
 }
 
 interface DateVariance {
@@ -83,13 +83,33 @@ interface AIInsightData {
 const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
   project,
   open,
-  onOpenChange,
+  onClose,
 }) => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [dateVariances, setDateVariances] = useState<DateVariance[]>([]);
   const [departmentImpacts, setDepartmentImpacts] = useState<DepartmentImpact[]>([]);
   const [aiInsights, setAIInsights] = useState<AIInsightData | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [futureProjectInsights, setFutureProjectInsights] = useState<AIInsightData | null>(null);
+  const [isLoadingFutureInsights, setIsLoadingFutureInsights] = useState(false);
+
+  // Fetch all projects to analyze team impacts
+  const { data: allProjects = [] } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+    enabled: open && !!project
+  });
+
+  // Fetch manufacturing schedules to understand team assignments
+  const { data: manufacturingSchedules = [] } = useQuery({
+    queryKey: ['/api/manufacturing-schedules'],
+    enabled: open && !!project
+  });
+
+  // Fetch manufacturing bays/teams
+  const { data: manufacturingBays = [] } = useQuery({
+    queryKey: ['/api/manufacturing-bays'],
+    enabled: open && !!project
+  });
 
   // Calculate date variances when project changes
   useEffect(() => {
@@ -701,7 +721,7 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
   if (!project) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -740,10 +760,11 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
         </div>
 
         <Tabs defaultValue="overview" className="h-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="departments">Department Impact</TabsTrigger>
             <TabsTrigger value="timeline">Timeline Analysis</TabsTrigger>
+            <TabsTrigger value="future-projects">Future Projects</TabsTrigger>
             <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
           </TabsList>
 
