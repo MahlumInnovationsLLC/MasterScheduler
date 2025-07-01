@@ -884,22 +884,138 @@ Immediate Actions Required:
         });
       }
 
-      // Footer with timestamp
-      const totalPages = pdf.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(8);
+      // ==================== SECTION 4: FUTURE PROJECTS ====================
+      if (futureProjectInsights && futureProjectInsights.insights.length > 0) {
+        checkPageBreak(40);
+        setHeaderColor();
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('4. FUTURE PROJECT ANALYSIS', margin, yPosition);
+        yPosition += 15;
+
+        setNormalColor();
+        pdf.setFontSize(11);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(`Generated on ${new Date().toLocaleString()} - Page ${i} of ${totalPages}`, margin, pageHeight - 10);
+        
+        futureProjectInsights.insights.forEach((insight, index) => {
+          checkPageBreak(20);
+          
+          // Insight with severity indicator
+          let severityColor = colors.info;
+          if (insight.severity === 'danger') severityColor = colors.danger;
+          else if (insight.severity === 'warning') severityColor = colors.warning;
+          else if (insight.severity === 'success') severityColor = colors.success;
+          
+          // Severity indicator
+          drawColoredBox(margin, yPosition - 2, 3, 10, severityColor);
+          
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${index + 1}. ${insight.text}`, margin + 8, yPosition + 3);
+          yPosition += 12;
+          
+          if (insight.detail) {
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            const detailText = pdf.splitTextToSize(insight.detail, pageWidth - 2 * margin - 10);
+            pdf.text(detailText, margin + 8, yPosition);
+            yPosition += detailText.length * 5 + 8;
+          }
+        });
+        
+        yPosition += 15;
       }
 
-      // Save the PDF
-      const fileName = `Impact-Assessment-${project.projectNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(fileName);
+      // ==================== SECTION 5: AI INSIGHTS ====================
+      if (aiInsights && aiInsights.insights.length > 0) {
+        checkPageBreak(40);
+        setHeaderColor();
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('5. AI-POWERED INSIGHTS', margin, yPosition);
+        yPosition += 15;
+
+        // AI Summary
+        setSubHeaderColor();
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Executive Summary', margin, yPosition);
+        yPosition += 10;
+
+        setNormalColor();
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        const summaryText = pdf.splitTextToSize(aiInsights.summary, pageWidth - 2 * margin);
+        pdf.text(summaryText, margin, yPosition);
+        yPosition += summaryText.length * 5 + 15;
+
+        // Confidence indicator
+        const confidence = Math.round((aiInsights.confidence || 0.8) * 100);
+        setInfoColor();
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`AI Confidence Level: ${confidence}%`, margin, yPosition);
+        yPosition += 15;
+
+        // AI Insights
+        setSubHeaderColor();
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Detailed Analysis', margin, yPosition);
+        yPosition += 10;
+
+        aiInsights.insights.forEach((insight, index) => {
+          checkPageBreak(25);
+          
+          // Insight severity indicator
+          let severityColor = colors.info;
+          if (insight.severity === 'danger') severityColor = colors.danger;
+          else if (insight.severity === 'warning') severityColor = colors.warning;
+          else if (insight.severity === 'success') severityColor = colors.success;
+          
+          drawColoredBox(margin, yPosition - 2, 4, 12, severityColor);
+          
+          setNormalColor();
+          pdf.setFontSize(11);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${index + 1}. ${insight.text}`, margin + 8, yPosition + 3);
+          yPosition += 12;
+          
+          if (insight.detail) {
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            const detailText = pdf.splitTextToSize(insight.detail, pageWidth - 2 * margin - 10);
+            pdf.text(detailText, margin + 8, yPosition);
+            yPosition += detailText.length * 5 + 8;
+          }
+        });
+      }
+
+      // ==================== FOOTER ====================
+      const finalTotalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= finalTotalPages; i++) {
+        pdf.setPage(i);
+        
+        // Footer line
+        pdf.setDrawColor(colors.gray[0], colors.gray[1], colors.gray[2]);
+        pdf.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25);
+        
+        // Footer text
+        setNormalColor();
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`TIER IV PRO - Impact Assessment Report`, margin, pageHeight - 15);
+        pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, pageHeight - 10);
+        pdf.text(`Page ${i} of ${finalTotalPages}`, pageWidth - margin - 30, pageHeight - 10);
+      }
+
+      // Save the PDF with enhanced filename
+      const timestamp = new Date().toISOString().split('T')[0];
+      const finalFileName = `Impact-Assessment-${project.projectNumber}-${timestamp}.pdf`;
+      pdf.save(finalFileName);
 
     } catch (error) {
       console.error('Error generating PDF:', error);
-      // Show user-friendly error message
       alert('Error generating PDF report. Please try again or contact support if the issue persists.');
     } finally {
       setIsGeneratingPDF(false);
