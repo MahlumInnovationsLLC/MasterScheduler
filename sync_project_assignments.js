@@ -31,11 +31,40 @@ async function syncProjectAssignments() {
     for (const project of projects) {
       const updates = {};
       
+      // Flexible user matching function
+      const findMatchingUser = (assignmentText) => {
+        if (!assignmentText) return null;
+        
+        const cleanName = assignmentText.toLowerCase().trim();
+        
+        // Try exact first name match first
+        let match = users.find(user => 
+          user.first_name.toLowerCase() === cleanName
+        );
+        
+        // If no exact match, try partial matches
+        if (!match) {
+          // Extract first name from "FirstName LastInitial" pattern
+          const firstWord = cleanName.split(' ')[0];
+          match = users.find(user => 
+            user.first_name.toLowerCase() === firstWord
+          );
+        }
+        
+        // Try matching by full name patterns
+        if (!match) {
+          match = users.find(user => 
+            cleanName.includes(user.first_name.toLowerCase()) || 
+            user.first_name.toLowerCase().includes(cleanName)
+          );
+        }
+        
+        return match;
+      };
+
       // Match ME assignments
       if (project.me_assigned) {
-        const matchedUser = users.find(user => 
-          user.first_name.toLowerCase() === project.me_assigned.toLowerCase().trim()
-        );
+        const matchedUser = findMatchingUser(project.me_assigned);
         if (matchedUser) {
           updates.me_assigned = `${matchedUser.first_name} ${matchedUser.last_name}`;
           console.log(`✅ Project ${project.project_number}: ME "${project.me_assigned}" → "${updates.me_assigned}"`);
@@ -46,9 +75,7 @@ async function syncProjectAssignments() {
 
       // Match EE assignments
       if (project.ee_assigned) {
-        const matchedUser = users.find(user => 
-          user.first_name.toLowerCase() === project.ee_assigned.toLowerCase().trim()
-        );
+        const matchedUser = findMatchingUser(project.ee_assigned);
         if (matchedUser) {
           updates.ee_assigned = `${matchedUser.first_name} ${matchedUser.last_name}`;
           console.log(`✅ Project ${project.project_number}: EE "${project.ee_assigned}" → "${updates.ee_assigned}"`);
@@ -59,9 +86,7 @@ async function syncProjectAssignments() {
 
       // Match ITE assignments
       if (project.ite_assigned) {
-        const matchedUser = users.find(user => 
-          user.first_name.toLowerCase() === project.ite_assigned.toLowerCase().trim()
-        );
+        const matchedUser = findMatchingUser(project.ite_assigned);
         if (matchedUser) {
           updates.ite_assigned = `${matchedUser.first_name} ${matchedUser.last_name}`;
           console.log(`✅ Project ${project.project_number}: ITE "${project.ite_assigned}" → "${updates.ite_assigned}"`);
@@ -72,14 +97,18 @@ async function syncProjectAssignments() {
 
       // Update project if we have matches
       if (Object.keys(updates).length > 0) {
-        const setParts = Object.keys(updates).map(key => `"${key}" = $${Object.keys(updates).indexOf(key) + 2}`);
-        const values = [project.id, ...Object.values(updates)];
+        console.log(`📊 Updating project ${project.project_number} with assignments:`, updates);
         
-        await sql`
-          UPDATE projects 
-          SET ${sql.unsafe(setParts.join(', '))}
-          WHERE id = $1
-        `.apply(null, values);
+        // Build dynamic update query
+        if (updates.me_assigned) {
+          await sql`UPDATE projects SET me_assigned = ${updates.me_assigned} WHERE id = ${project.id}`;
+        }
+        if (updates.ee_assigned) {
+          await sql`UPDATE projects SET ee_assigned = ${updates.ee_assigned} WHERE id = ${project.id}`;
+        }
+        if (updates.ite_assigned) {
+          await sql`UPDATE projects SET ite_assigned = ${updates.ite_assigned} WHERE id = ${project.id}`;
+        }
         
         updateCount++;
       }

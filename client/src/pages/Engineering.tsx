@@ -410,9 +410,9 @@ export default function Engineering() {
                                 {project.status}
                               </Badge>
                             </td>
-                            <td className="p-2 text-sm">{getAssignedEngineers(project.id, 'ME') || 'Unassigned'}</td>
-                            <td className="p-2 text-sm">{getAssignedEngineers(project.id, 'EE') || 'Unassigned'}</td>
-                            <td className="p-2 text-sm">{getAssignedEngineers(project.id, 'ITE') || 'Unassigned'}</td>
+                            <td className="p-2 text-sm">{project.meAssigned || 'Unassigned'}</td>
+                            <td className="p-2 text-sm">{project.eeAssigned || 'Unassigned'}</td>
+                            <td className="p-2 text-sm">{project.iteAssigned || 'Unassigned'}</td>
                             <td className="p-2">
                               <Input
                                 type="number"
