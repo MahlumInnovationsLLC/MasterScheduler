@@ -242,7 +242,7 @@ const ProjectDetails = () => {
         description: '',
         dueDate: new Date().toISOString().split('T')[0],
         milestoneId: null,
-        assignedToUserId: 'unassigned'
+        assignedToUserId: ''
       });
       setEditTaskId(null);
     }
@@ -681,7 +681,8 @@ const ProjectDetails = () => {
                   name: '',
                   description: '',
                   dueDate: new Date().toISOString().split('T')[0],
-                  milestoneId: milestones[0]?.id || 0
+                  milestoneId: milestones[0]?.id || null,
+                  assignedToUserId: ''
                 });
                 setTaskDialogOpen(true);
               }}
@@ -944,7 +945,8 @@ const ProjectDetails = () => {
                         name: '',
                         description: '',
                         dueDate: new Date().toISOString().split('T')[0],
-                        milestoneId: milestones[0]?.id || 0
+                        milestoneId: milestones[0]?.id || null,
+                        assignedToUserId: ''
                       });
                       setTaskDialogOpen(true);
                     }}
@@ -1032,7 +1034,7 @@ const ProjectDetails = () => {
                               description: task.description || '',
                               dueDate: new Date(task.dueDate).toISOString().split('T')[0],
                               milestoneId: task.milestoneId || null,
-                              assignedToUserId: task.assignedToUserId || 'unassigned'
+                              assignedToUserId: task.assignedToUserId || ''
                             });
                             setTaskDialogOpen(true);
                           }}
@@ -1767,7 +1769,7 @@ const ProjectDetails = () => {
 
                 const taskData = {
                   ...taskForm,
-                  assignedToUserId: taskForm.assignedToUserId === "unassigned" ? null : taskForm.assignedToUserId
+                  assignedToUserId: taskForm.assignedToUserId === "unassigned" || taskForm.assignedToUserId === "" ? null : parseInt(taskForm.assignedToUserId)
                 };
 
                 if (editTaskId) {
