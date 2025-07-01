@@ -18,6 +18,33 @@ import { db } from '../db';
 
 const router = Router();
 
+// Middleware to check if user has access to Engineering module
+const checkEngineeringAccess = (req: Request, res: Response, next: any) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  // Only engineering department users with EDITOR or ADMIN roles can access
+  if (req.user.department !== 'engineering') {
+    return res.status(403).json({ error: 'Access denied: Engineering department required' });
+  }
+
+  // VIEWER role cannot access even if they are in engineering department
+  if (req.user.role === 'viewer') {
+    return res.status(403).json({ error: 'Access denied: EDITOR or ADMIN role required' });
+  }
+
+  // Only EDITOR and ADMIN roles can access
+  if (req.user.role !== 'editor' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied: EDITOR or ADMIN role required' });
+  }
+
+  next();
+};
+
+// Apply middleware to all Engineering routes
+router.use(checkEngineeringAccess);
+
 // GET all engineering resources (real Engineering users from users table)
 router.get('/engineering-resources', async (req: Request, res: Response) => {
   try {
