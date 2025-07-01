@@ -448,7 +448,7 @@ const SystemSettings = () => {
   // Update user role mutation
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string, role: string }) => {
-      const response = await fetch(`/api/users/${userId}/role`, {
+      const response = await fetch('/api/users/' + userId + '/role', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -485,7 +485,7 @@ const SystemSettings = () => {
   // Approve user mutation
   const approveUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await fetch(`/api/users/${userId}/approve`, {
+      const response = await fetch('/api/users/' + userId + '/approve', {
         method: 'PATCH',
       });
 
@@ -1016,8 +1016,7 @@ const SystemSettings = () => {
     },
     onError: (error) => {
       toast({
-        title:```text
-"Error",
+        title: "Error",
         description: "Failed to restore project: " + (error as Error).message,
         variant: "destructive"
       });
@@ -2084,20 +2083,20 @@ const SystemSettings = () => {
                                         if (log.details.includes('bay')) {
                                           const match = log.details.match(/bay\s+([#\w\d-]+)/i);
                                           if (match) {
-                                            return `Bay ${match[1]}`;
+                                            return 'Bay ' + match[1];
                                           }
                                         }
                                         if (log.details.includes('milestone')) {
                                           const match = log.details.match(/milestone\s+([#\w\d-]+)/i);
                                           if (match) {
-                                            return `Milestone ${match[1]}`;
+                                            return 'Milestone ' + match[1];
                                           }
                                         }
                                       }
 
                                       // Try extracting from entityType/entityId
                                       if (log.entityType) {
-                                        return `${log.entityType}${log.entityId ? ` #${log.entityId}` : ''}`;
+                                        return log.entityType + (log.entityId ? ' #' + log.entityId : '');
                                       }
 
                                       // Extract from new_data or previous_data
@@ -2106,13 +2105,13 @@ const SystemSettings = () => {
                                         const prevData = log.previous_data ? JSON.parse(log.previous_data) : null;
 
                                         if (newData?.projectNumber) {
-                                          return `Project ${newData.projectNumber}`;
+                                          return 'Project ' + newData.projectNumber;
                                         }
                                         if (newData?.name && log.action === 'create') {
-                                          return `${log.action === 'create' ? 'New Item' : 'Item'}: ${newData.name}`;
+                                          return (log.action === 'create' ? 'New Item' : 'Item') + ': ' + newData.name;
                                         }
                                         if (prevData?.projectNumber) {
-                                          return `Project ${prevData.projectNumber}`;
+                                          return 'Project ' + prevData.projectNumber;
                                         }
                                       } catch (e) {
                                         // Ignore parsing errors
