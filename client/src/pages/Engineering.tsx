@@ -157,6 +157,7 @@ export default function Engineering() {
   const [searchTerm, setSearchTerm] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [projectViewMode, setProjectViewMode] = useState<'project' | 'engineer'>('project');
   const queryClient = useQueryClient();
 
   // Fetch engineering overview data
@@ -448,90 +449,245 @@ export default function Engineering() {
               {/* Projects with Engineering Data */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Projects Overview</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Current projects with engineering assignments and adjustable percentages
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Projects Overview</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        All projects with engineering assignments and adjustable percentages
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Search projects..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 w-64"
+                        />
+                      </div>
+                      
+                      {/* View Mode Toggle */}
+                      <div className="flex border rounded-lg">
+                        <Button
+                          variant={projectViewMode === 'project' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setProjectViewMode('project')}
+                          className="rounded-r-none"
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          Project View
+                        </Button>
+                        <Button
+                          variant={projectViewMode === 'engineer' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setProjectViewMode('engineer')}
+                          className="rounded-l-none"
+                        >
+                          <Users className="h-4 w-4 mr-1" />
+                          Engineer View
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2">Project</th>
-                          <th className="text-left p-2">Status</th>
-                          <th className="text-left p-2">ME Assigned</th>
-                          <th className="text-left p-2">EE Assigned</th>
-                          <th className="text-left p-2">ITE Assigned</th>
-                          <th className="text-left p-2">ME %</th>
-                          <th className="text-left p-2">EE %</th>
-                          <th className="text-left p-2">IT %</th>
-                          <th className="text-left p-2">NTC %</th>
-                          <th className="text-left p-2">Tasks</th>
-                          <th className="text-left p-2">Benchmarks</th>
-                          <th className="text-left p-2">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {projects.slice(0, 10).map((project) => (
-                          <tr key={project.id} className="border-b hover:bg-gray-50">
-                            <td className="p-2">
-                              <div>
-                                <div className="font-medium">{project.name}</div>
-                                <div className="text-sm text-muted-foreground">{project.projectNumber}</div>
-                              </div>
-                            </td>
-                            <td className="p-2">
-                              <Badge variant="outline" className={getStatusColor(project.status)}>
-                                {project.status}
-                              </Badge>
-                            </td>
-                            <td className="p-2 text-sm">{project.meAssigned || 'Unassigned'}</td>
-                            <td className="p-2 text-sm">{project.eeAssigned || 'Unassigned'}</td>
-                            <td className="p-2 text-sm">{project.iteAssigned || 'Unassigned'}</td>
-                            <td className="p-2">
-                              <div className="text-center text-sm">
-                                {formatPercentage(project.meDesignOrdersPercent)}
-                              </div>
-                            </td>
-                            <td className="p-2">
-                              <div className="text-center text-sm">
-                                {formatPercentage(project.eeDesignOrdersPercent)}
-                              </div>
-                            </td>
-                            <td className="p-2">
-                              <div className="text-center text-sm">
-                                {formatPercentage(project.itDesignOrdersPercent)}
-                              </div>
-                            </td>
-                            <td className="p-2">
-                              <div className="text-center text-sm">
-                                {formatPercentage(project.ntcPercentage)}
-                              </div>
-                            </td>
-                            <td className="p-2 text-sm">
-                              {project.completedTasks || 0} / {project.engineeringTasks || 0}
-                            </td>
-                            <td className="p-2 text-sm">
-                              {project.completedBenchmarks || 0} / {project.engineeringBenchmarks || 0}
-                            </td>
-                            <td className="p-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedProject(project);
-                                  setShowProjectDialog(true);
-                                }}
-                              >
-                                <Wrench className="h-4 w-4 mr-1" />
-                                Manage
-                              </Button>
-                            </td>
+                  <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                    {projectViewMode === 'project' ? (
+                      <table className="w-full">
+                        <thead className="sticky top-0 bg-white">
+                          <tr className="border-b">
+                            <th className="text-left p-2">Project</th>
+                            <th className="text-left p-2">Status</th>
+                            <th className="text-left p-2">ME Assigned</th>
+                            <th className="text-left p-2">EE Assigned</th>
+                            <th className="text-left p-2">ITE Assigned</th>
+                            <th className="text-left p-2">ME %</th>
+                            <th className="text-left p-2">EE %</th>
+                            <th className="text-left p-2">IT %</th>
+                            <th className="text-left p-2">NTC %</th>
+                            <th className="text-left p-2">Tasks</th>
+                            <th className="text-left p-2">Benchmarks</th>
+                            <th className="text-left p-2">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {projects
+                            .filter(project => 
+                              searchTerm === '' || 
+                              project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              project.projectNumber.toLowerCase().includes(searchTerm.toLowerCase())
+                            )
+                            .map((project) => (
+                            <tr key={project.id} className="border-b hover:bg-gray-50">
+                              <td className="p-2">
+                                <div>
+                                  <div className="font-medium">{project.name}</div>
+                                  <div className="text-sm text-muted-foreground">{project.projectNumber}</div>
+                                </div>
+                              </td>
+                              <td className="p-2">
+                                <Badge variant="outline" className={getStatusColor(project.status)}>
+                                  {project.status}
+                                </Badge>
+                              </td>
+                              <td className="p-2 text-sm">{project.meAssigned || 'Unassigned'}</td>
+                              <td className="p-2 text-sm">{project.eeAssigned || 'Unassigned'}</td>
+                              <td className="p-2 text-sm">{project.iteAssigned || 'Unassigned'}</td>
+                              <td className="p-2">
+                                <div className="text-center text-sm">
+                                  {formatPercentage(project.meDesignOrdersPercent)}
+                                </div>
+                              </td>
+                              <td className="p-2">
+                                <div className="text-center text-sm">
+                                  {formatPercentage(project.eeDesignOrdersPercent)}
+                                </div>
+                              </td>
+                              <td className="p-2">
+                                <div className="text-center text-sm">
+                                  {formatPercentage(project.itDesignOrdersPercent)}
+                                </div>
+                              </td>
+                              <td className="p-2">
+                                <div className="text-center text-sm">
+                                  {formatPercentage(project.ntcPercentage)}
+                                </div>
+                              </td>
+                              <td className="p-2 text-sm">
+                                {project.completedTasks || 0} / {project.engineeringTasks || 0}
+                              </td>
+                              <td className="p-2 text-sm">
+                                {project.completedBenchmarks || 0} / {project.engineeringBenchmarks || 0}
+                              </td>
+                              <td className="p-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedProject(project);
+                                    setShowProjectDialog(true);
+                                  }}
+                                >
+                                  <Wrench className="h-4 w-4 mr-1" />
+                                  Manage
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="space-y-6">
+                        {engineers
+                          .filter(engineer => 
+                            searchTerm === '' ||
+                            `${engineer.firstName} ${engineer.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
+                          )
+                          .map((engineer) => {
+                            const engineerProjects = projects.filter(project => 
+                              project.meAssigned === `${engineer.firstName} ${engineer.lastName}` ||
+                              project.eeAssigned === `${engineer.firstName} ${engineer.lastName}` ||
+                              project.iteAssigned === `${engineer.firstName} ${engineer.lastName}`
+                            );
+                            
+                            return (
+                              <div key={engineer.id} className="border rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div>
+                                    <h4 className="text-lg font-semibold">
+                                      {engineer.firstName} {engineer.lastName}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      {engineer.title || 'Engineer'} • {engineer.department}
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className="text-sm">
+                                    {engineerProjects.length} Project{engineerProjects.length !== 1 ? 's' : ''}
+                                  </Badge>
+                                </div>
+                                
+                                {engineerProjects.length > 0 ? (
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                      <thead>
+                                        <tr className="border-b text-sm">
+                                          <th className="text-left p-2">Project</th>
+                                          <th className="text-left p-2">Status</th>
+                                          <th className="text-left p-2">Role</th>
+                                          <th className="text-left p-2">Percentage</th>
+                                          <th className="text-left p-2">Tasks</th>
+                                          <th className="text-left p-2">Actions</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {engineerProjects.map((project) => {
+                                          const engineerName = `${engineer.firstName} ${engineer.lastName}`;
+                                          let role = '';
+                                          let percentage = 0;
+                                          
+                                          if (project.meAssigned === engineerName) {
+                                            role = 'ME';
+                                            percentage = project.meDesignOrdersPercent || 0;
+                                          } else if (project.eeAssigned === engineerName) {
+                                            role = 'EE';
+                                            percentage = project.eeDesignOrdersPercent || 0;
+                                          } else if (project.iteAssigned === engineerName) {
+                                            role = 'ITE';
+                                            percentage = project.itDesignOrdersPercent || 0;
+                                          }
+                                          
+                                          return (
+                                            <tr key={project.id} className="border-b hover:bg-gray-50">
+                                              <td className="p-2">
+                                                <div>
+                                                  <div className="font-medium text-sm">{project.name}</div>
+                                                  <div className="text-xs text-muted-foreground">{project.projectNumber}</div>
+                                                </div>
+                                              </td>
+                                              <td className="p-2">
+                                                <Badge variant="outline" className={getStatusColor(project.status) + ' text-xs'}>
+                                                  {project.status}
+                                                </Badge>
+                                              </td>
+                                              <td className="p-2">
+                                                <Badge variant="outline" className="text-xs">{role}</Badge>
+                                              </td>
+                                              <td className="p-2 text-sm text-center">
+                                                {formatPercentage(percentage)}
+                                              </td>
+                                              <td className="p-2 text-sm">
+                                                {project.completedTasks || 0} / {project.engineeringTasks || 0}
+                                              </td>
+                                              <td className="p-2">
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={() => {
+                                                    setSelectedProject(project);
+                                                    setShowProjectDialog(true);
+                                                  }}
+                                                >
+                                                  <Wrench className="h-4 w-4" />
+                                                </Button>
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ) : (
+                                  <div className="text-center text-muted-foreground py-4">
+                                    No projects assigned to this engineer
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
