@@ -228,6 +228,20 @@ export const userStatusEnum = pgEnum("user_status", [
   "archived",
 ]);
 
+// User Department enum for user department assignments
+export const userDepartmentEnum = pgEnum("user_department", [
+  "engineering",
+  "manufacturing",
+  "finance",
+  "project_management",
+  "quality_control",
+  "it",
+  "sales",
+  "executive",
+  "planning_analysis",
+  "other"
+]);
+
 // Define permission categories enum
 export const permissionCategoryEnum = pgEnum("permission_category", [
   "projects",
@@ -292,20 +306,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 }));
 
 // User Preferences Table
-// Department enum for user department assignments
-export const userDepartmentEnum = pgEnum("user_department", [
-  "engineering",
-  "manufacturing",
-  "finance",
-  "project_management",
-  "quality_control",
-  "it",
-  "sales",
-  "executive",
-  "planning_analysis",
-  "other"
-]);
-
 export const userPreferences = pgTable("user_preferences", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull().unique(),
