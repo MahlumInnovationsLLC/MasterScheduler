@@ -601,22 +601,7 @@ export default function Engineering() {
                 </Card>
               </div>
 
-              {/* Discipline Distribution */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Engineering Discipline Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(overview?.disciplineStats || {}).map(([discipline, count]) => (
-                      <div key={discipline} className="text-center">
-                        <div className="text-2xl font-bold">{count}</div>
-                        <div className="text-sm text-muted-foreground">{discipline}</div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              
 
               {/* Projects with Engineering Data */}
               <Card>
