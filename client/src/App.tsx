@@ -39,6 +39,7 @@ import MetricsManagement from "@/pages/MetricsManagement";
 import Priorities from "@/pages/Priorities";
 import Tasks from "@/pages/Tasks";
 import MaterialManagement from "@/pages/MaterialManagement";
+import Engineering from "@/pages/Engineering";
 import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -155,6 +156,7 @@ function MainContent() {
     if (location === '/import') return 'Import Data';
     if (location === '/supply-chain') return 'Supply Chain';
     if (location === '/material-management') return 'Material Management';
+    if (location === '/engineering') return 'Engineering Resource Planner';
     if (location === '/archived-projects') return 'Archived Projects';
     if (location === '/delivered-projects') return 'Delivered Projects';
     if (location === '/settings/user') return 'Settings';
@@ -202,6 +204,7 @@ function MainContent() {
             <ViewerRestrictedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/material-management" component={MaterialManagement} />
+            <ProtectedRoute path="/engineering" component={Engineering} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <ProtectedRoute path="/settings" component={Settings} />
@@ -250,6 +253,7 @@ function MainContent() {
             <ViewerRestrictedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/material-management" component={MaterialManagement} />
+            <ProtectedRoute path="/engineering" component={Engineering} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/settings/system" component={SystemSettings} />
             <AdminRoute path="/system-settings" component={SystemSettings} />

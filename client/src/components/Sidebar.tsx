@@ -241,6 +241,16 @@ const Sidebar = () => {
                 </SidebarLink>
               </li>
             )}
+            {isModuleVisible('engineering') && (
+              <li>
+                <SidebarLink href="/engineering" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/engineering') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Engineering Resource Planner">
+                  <Wrench size={20} className={`${isActive('/engineering') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Engineering</span>}
+                </SidebarLink>
+              </li>
+            )}
           </ul>
         </div>
 
