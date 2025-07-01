@@ -5239,7 +5239,7 @@ Response format:
 
   // System Routes
   app.use('/api/system', systemRoutes);
-  app.use('/api', engineeringRoutes);
+  app.use('/api', requireEditor, engineeringRoutes);
 
   // Elevated Concerns Routes
   app.get("/api/elevated-concerns", simpleAuth, async (req, res) => {
