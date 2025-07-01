@@ -328,7 +328,7 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     const projects = await storage.getProjects();
     
     // Get real Engineering users from the users table
-    const engineeringUsers = await db.select().from(storage.users).where(eq(storage.users.department, 'Engineering'));
+    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'Engineering'));
     
     const tasks = await storage.getEngineeringTasks();
     const benchmarks = await storage.getEngineeringBenchmarks();
