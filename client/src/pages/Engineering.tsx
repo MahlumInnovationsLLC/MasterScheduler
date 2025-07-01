@@ -8,7 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 import { 
   Users, 
   Wrench, 
@@ -21,7 +24,17 @@ import {
   Trash2,
   Target,
   TrendingUp,
-  Activity
+  Activity,
+  BarChart3,
+  PieChart,
+  ArrowUpRight,
+  ArrowDownRight,
+  Settings,
+  FileText,
+  Download,
+  Upload,
+  Search,
+  Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -137,6 +150,13 @@ export default function Engineering() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
+  const [showResourceDialog, setShowResourceDialog] = useState(false);
+  const [selectedResource, setSelectedResource] = useState<EngineeringResource | null>(null);
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<EngineeringTask | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [disciplineFilter, setDisciplineFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const queryClient = useQueryClient();
 
   // Fetch engineering overview data
@@ -172,7 +192,7 @@ export default function Engineering() {
   // Fetch engineering users
   const { data: engineers = [], isLoading: engineersLoading } = useQuery<any[]>({
     queryKey: ['/api/users'],
-    select: (data: any[]) => data.filter(user => user.department === 'Engineering'),
+    select: (data: any[]) => data.filter(user => user.department === 'engineering'),
   });
 
   // Mutation for updating project assignments directly in Projects table

@@ -22,7 +22,7 @@ const router = Router();
 router.get('/engineering-resources', async (req: Request, res: Response) => {
   try {
     // Get real Engineering users from the users table
-    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'Engineering'));
+    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
     
     // Convert users to EngineeringResource format
     const resources = engineeringUsers.map((user, index) => ({
@@ -328,7 +328,7 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     const projects = await storage.getProjects();
     
     // Get real Engineering users from the users table
-    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'Engineering'));
+    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
     
     const tasks = await storage.getEngineeringTasks();
     const benchmarks = await storage.getEngineeringBenchmarks();
