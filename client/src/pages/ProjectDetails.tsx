@@ -1769,7 +1769,7 @@ const ProjectDetails = () => {
 
                 const taskData = {
                   ...taskForm,
-                  assignedToUserId: taskForm.assignedToUserId === "unassigned" || taskForm.assignedToUserId === "" ? null : parseInt(taskForm.assignedToUserId)
+                  assignedToUserId: taskForm.assignedToUserId === "unassigned" || taskForm.assignedToUserId === "" ? null : taskForm.assignedToUserId
                 };
 
                 if (editTaskId) {
