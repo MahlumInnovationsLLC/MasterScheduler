@@ -1596,12 +1596,12 @@ const ProjectDetails = () => {
 
       {/* Archive Project Dialog */}
       <Dialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
-        <DialogContent className="bg-darkBg border-gray-800 text-white max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">
               Archive Project
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription>
               This will archive the project and remove it from the active projects list. 
               Archived projects can still be viewed but cannot be modified.
             </DialogDescription>
@@ -1611,17 +1611,17 @@ const ProjectDetails = () => {
             <div className="flex items-start">
               <Trash2 className="h-10 w-10 text-destructive mr-4 flex-shrink-0" />
               <div>
-                <p className="text-white font-medium">
+                <p className="font-medium">
                   Are you sure you want to archive <span className="font-bold">{project.projectNumber}: {project.name}</span>?
                 </p>
-                <p className="text-gray-400 text-sm mt-1">
+                <p className="text-muted-foreground text-sm mt-1">
                   This action will move the project to the archive, along with all associated tasks, 
                   billing milestones, and manufacturing schedules.
                 </p>
               </div>
             </div>
 
-            <div className="bg-gray-900 p-3 rounded-md">
+            <div className="bg-muted p-3 rounded-md">
               <Label htmlFor="archiveReason" className="text-sm font-medium mb-2 block">
                 Reason for archiving (optional)
               </Label>
@@ -1630,7 +1630,6 @@ const ProjectDetails = () => {
                 value={archiveReason}
                 onChange={(e) => setArchiveReason(e.target.value)}
                 placeholder="e.g., Project completed, Contract terminated, etc."
-                className="bg-darkInput border-gray-700 focus:border-primary text-white"
               />
             </div>
           </div>
@@ -1640,7 +1639,6 @@ const ProjectDetails = () => {
               type="button"
               variant="outline"
               onClick={() => setIsArchiveDialogOpen(false)}
-              className="border-gray-700 hover:bg-gray-800 hover:text-white"
             >
               Cancel
             </Button>
@@ -1650,7 +1648,6 @@ const ProjectDetails = () => {
               variant="destructive"
               onClick={() => archiveProjectMutation.mutate({ reason: archiveReason })}
               disabled={archiveProjectMutation.isPending}
-              className="bg-destructive hover:bg-destructive/90"
             >
               {archiveProjectMutation.isPending ? (
                 <>
@@ -1673,27 +1670,27 @@ const ProjectDetails = () => {
 
       {/* Task Dialog (Add/Edit) */}
       <Dialog open={isTaskDialogOpen} onOpenChange={setTaskDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-darkBg border-gray-800 text-white">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">{editTaskId ? 'Edit Task' : 'Add Task'}</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle>{editTaskId ? 'Edit Task' : 'Add Task'}</DialogTitle>
+            <DialogDescription>
               {editTaskId ? 'Update the task details below.' : 'Add a new task to this project.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
             <div className="space-y-2">
-              <Label htmlFor="taskMilestone" className="text-white">Milestone (optional)</Label>
+              <Label htmlFor="taskMilestone">Milestone (optional)</Label>
               <Select
                 value={taskForm.milestoneId?.toString() || "none"}
                 onValueChange={(value) => setTaskForm({...taskForm, milestoneId: value === "none" ? null : parseInt(value)})}
               >
-                <SelectTrigger className="bg-darkInput border-gray-800 w-full text-white">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a milestone (optional)" />
                 </SelectTrigger>
-                <SelectContent className="bg-darkInput border-gray-800">
-                  <SelectItem value="none" className="text-white">No milestone (standalone task)</SelectItem>
+                <SelectContent>
+                  <SelectItem value="none">No milestone (standalone task)</SelectItem>
                   {milestones.map((milestone) => (
-                    <SelectItem key={milestone.id} value={milestone.id.toString()} className="text-white">
+                    <SelectItem key={milestone.id} value={milestone.id.toString()}>
                       {milestone.name}
                     </SelectItem>
                   ))}
@@ -1702,40 +1699,39 @@ const ProjectDetails = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="taskName" className="text-white">Task Name</Label>
+              <Label htmlFor="taskName">Task Name</Label>
               <Input
                 id="taskName"
                 value={taskForm.name}
                 onChange={(e) => setTaskForm({...taskForm, name: e.target.value})}
-                className="bg-white border-gray-300 text-black placeholder:text-gray-500"
                 placeholder="Test Task"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="taskDescription" className="text-white">Description (optional)</Label>
+              <Label htmlFor="taskDescription">Description (optional)</Label>
               <Textarea
                 id="taskDescription"
                 value={taskForm.description}
                 onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
-                className="resize-none bg-white border-gray-300 h-24 text-black placeholder:text-gray-500"
+                className="resize-none h-24"
                 placeholder="Enter task description"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="taskAssignedTo" className="text-white">Assigned To</Label>
+              <Label htmlFor="taskAssignedTo">Assigned To</Label>
               <Select
                 value={taskForm.assignedToUserId || "unassigned"}
                 onValueChange={(value) => setTaskForm({...taskForm, assignedToUserId: value === "unassigned" ? "" : value})}
               >
-                <SelectTrigger className="bg-white border-gray-300 text-black">
+                <SelectTrigger>
                   <SelectValue placeholder="Select user (optional)" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-300">
-                  <SelectItem value="unassigned" className="text-black">Unassigned</SelectItem>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {users.map((user: any) => (
-                    <SelectItem key={user.id} value={user.id} className="text-black">
+                    <SelectItem key={user.id} value={user.id}>
                       {user.firstName} {user.lastName}
                     </SelectItem>
                   ))}
@@ -1744,13 +1740,12 @@ const ProjectDetails = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="taskDueDate" className="text-white">Due Date</Label>
+              <Label htmlFor="taskDueDate">Due Date</Label>
               <Input
                 id="taskDueDate"
                 type="date"
                 value={taskForm.dueDate}
                 onChange={(e) => setTaskForm({...taskForm, dueDate: e.target.value})}
-                className="bg-white border-gray-300 text-black"
               />
             </div>
           </div>
@@ -1803,21 +1798,21 @@ const ProjectDetails = () => {
 
       {/* Delete Task Confirmation Dialog */}
       <Dialog open={isDeleteTaskDialogOpen} onOpenChange={setDeleteTaskDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-darkBg border-gray-800 text-white">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Delete Task</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
               Are you sure you want to delete this task? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           {taskToDelete && (
             <div className="py-4">
-              <div className="bg-darkInput rounded-lg p-3 mb-4">
-                <p className="font-medium text-white">{taskToDelete.name}</p>
+              <div className="bg-muted rounded-lg p-3 mb-4">
+                <p className="font-medium">{taskToDelete.name}</p>
                 {taskToDelete.description && (
-                  <p className="text-sm text-gray-400 mt-1">{taskToDelete.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{taskToDelete.description}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   Due: {formatDate(taskToDelete.dueDate)}
                 </p>
               </div>
@@ -1850,12 +1845,12 @@ const ProjectDetails = () => {
 
       {/* Add/Edit Milestone Dialog */}
       <Dialog open={isMilestoneDialogOpen} onOpenChange={setIsMilestoneDialogOpen}>
-        <DialogContent className="bg-darkBg border-gray-800 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">
               {editMilestoneId ? 'Edit Milestone' : 'Add New Milestone'}
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription>
               {editMilestoneId 
                 ? 'Update the milestone details below.' 
                 : 'Create a new milestone to organize project tasks.'}
@@ -1869,7 +1864,6 @@ const ProjectDetails = () => {
                 id="milestoneName"
                 value={milestoneForm.name}
                 onChange={(e) => setMilestoneForm({...milestoneForm, name: e.target.value})}
-                className="bg-darkInput border-gray-800"
                 placeholder="Enter milestone name"
               />
             </div>
@@ -1880,10 +1874,10 @@ const ProjectDetails = () => {
                 value={milestoneForm.status}
                 onValueChange={(value) => setMilestoneForm({...milestoneForm, status: value})}
               >
-                <SelectTrigger className="bg-darkInput border-gray-800 w-full">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent className="bg-darkInput border-gray-800">
+                <SelectContent>
                   <SelectItem value="Upcoming">Upcoming</SelectItem>
                   <SelectItem value="In Progress">In Progress</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
@@ -1898,7 +1892,6 @@ const ProjectDetails = () => {
                 type="date"
                 value={milestoneForm.date}
                 onChange={(e) => setMilestoneForm({...milestoneForm, date: e.target.value})}
-                className="bg-darkInput border-gray-800"
               />
             </div>
           </div>
@@ -1944,27 +1937,27 @@ const ProjectDetails = () => {
 
       {/* Edit Notes Dialog */}
       <Dialog open={isEditNotesDialogOpen} onOpenChange={setIsEditNotesDialogOpen}>
-        <DialogContent className="bg-darkBg border-gray-800 text-white max-w-2xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">
               Edit Project Notes
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription>
               Update notes and important details for {project?.projectNumber}: {project?.name}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="projectNotes" className="text-white">Notes</Label>
+              <Label htmlFor="projectNotes">Notes</Label>
               <Textarea
                 id="projectNotes"
                 value={notesForm.notes}
                 onChange={(e) => setNotesForm({...notesForm, notes: e.target.value})}
-                className="bg-darkInput border-gray-800 text-white min-h-[200px] resize-none placeholder:text-gray-400"
+                className="min-h-[200px] resize-none"
                 placeholder="Enter project notes, important details, or updates..."
               />
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted-foreground">
                 Use this space to document important project information, updates, or notes for team members.
               </p>
             </div>
@@ -1975,7 +1968,6 @@ const ProjectDetails = () => {
               type="button"
               variant="outline"
               onClick={() => setIsEditNotesDialogOpen(false)}
-              className="border-gray-700 hover:bg-gray-800 hover:text-white"
             >
               Cancel
             </Button>
@@ -1984,7 +1976,6 @@ const ProjectDetails = () => {
               type="button"
               onClick={() => updateNotesMutation.mutate(notesForm.notes)}
               disabled={updateNotesMutation.isPending}
-              className="bg-primary hover:bg-primary/90"
             >
               {updateNotesMutation.isPending ? (
                 <>
