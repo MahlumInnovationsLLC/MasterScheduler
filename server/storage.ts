@@ -5868,6 +5868,73 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Project Engineering Assignment methods
+  async getProjectEngineeringAssignments(): Promise<ProjectEngineeringAssignment[]> {
+    return await safeQuery<ProjectEngineeringAssignment>(() =>
+      db.select().from(projectEngineeringAssignments)
+        .orderBy(asc(projectEngineeringAssignments.projectId))
+    );
+  }
+
+  async getProjectEngineeringAssignmentsByProjectId(projectId: number): Promise<ProjectEngineeringAssignment[]> {
+    return await safeQuery<ProjectEngineeringAssignment>(() =>
+      db.select().from(projectEngineeringAssignments)
+        .where(eq(projectEngineeringAssignments.projectId, projectId))
+        .orderBy(asc(projectEngineeringAssignments.discipline))
+    );
+  }
+
+  async getProjectEngineeringAssignmentsByResourceId(resourceId: number): Promise<ProjectEngineeringAssignment[]> {
+    return await safeQuery<ProjectEngineeringAssignment>(() =>
+      db.select().from(projectEngineeringAssignments)
+        .where(eq(projectEngineeringAssignments.resourceId, resourceId))
+        .orderBy(asc(projectEngineeringAssignments.projectId))
+    );
+  }
+
+  async createProjectEngineeringAssignment(assignment: InsertProjectEngineeringAssignment): Promise<ProjectEngineeringAssignment> {
+    try {
+      const [newAssignment] = await db.insert(projectEngineeringAssignments).values({
+        ...assignment,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newAssignment;
+    } catch (error) {
+      console.error("Error creating project engineering assignment:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectEngineeringAssignment(id: number, assignment: Partial<InsertProjectEngineeringAssignment>): Promise<ProjectEngineeringAssignment | undefined> {
+    try {
+      const [updatedAssignment] = await db
+        .update(projectEngineeringAssignments)
+        .set({
+          ...assignment,
+          updatedAt: new Date()
+        })
+        .where(eq(projectEngineeringAssignments.id, id))
+        .returning();
+      return updatedAssignment;
+    } catch (error) {
+      console.error("Error updating project engineering assignment:", error);
+      return undefined;
+    }
+  }
+
+  async deleteProjectEngineeringAssignment(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(projectEngineeringAssignments)
+        .where(eq(projectEngineeringAssignments.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting project engineering assignment:", error);
+      return false;
+    }
+  }
+
 }
 
 export const storage = new DatabaseStorage();

@@ -6,9 +6,11 @@ import {
   insertEngineeringResourceSchema, 
   insertEngineeringTaskSchema,
   insertEngineeringBenchmarkSchema,
+  insertProjectEngineeringAssignmentSchema,
   engineeringResources,
   engineeringTasks,
   engineeringBenchmarks,
+  projectEngineeringAssignments,
   projects
 } from '../../shared/schema';
 import { db } from '../db';
@@ -376,6 +378,118 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching engineering overview:", error);
     res.status(500).json({ error: "Failed to fetch engineering overview" });
+  }
+});
+
+// Project Engineering Assignment Routes
+
+// GET all project engineering assignments
+router.get('/project-assignments', async (req: Request, res: Response) => {
+  try {
+    const assignments = await storage.getProjectEngineeringAssignments();
+    res.json(assignments);
+  } catch (error) {
+    console.error("Error fetching project engineering assignments:", error);
+    res.status(500).json({ error: "Failed to fetch project engineering assignments" });
+  }
+});
+
+// GET project assignments by project ID
+router.get('/project-assignments/project/:projectId', async (req: Request, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.projectId);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project ID format" });
+    }
+
+    const assignments = await storage.getProjectEngineeringAssignmentsByProjectId(projectId);
+    res.json(assignments);
+  } catch (error) {
+    console.error("Error fetching project assignments by project ID:", error);
+    res.status(500).json({ error: "Failed to fetch project assignments" });
+  }
+});
+
+// GET project assignments by resource ID
+router.get('/project-assignments/resource/:resourceId', async (req: Request, res: Response) => {
+  try {
+    const resourceId = parseInt(req.params.resourceId);
+    if (isNaN(resourceId)) {
+      return res.status(400).json({ error: "Invalid resource ID format" });
+    }
+
+    const assignments = await storage.getProjectEngineeringAssignmentsByResourceId(resourceId);
+    res.json(assignments);
+  } catch (error) {
+    console.error("Error fetching project assignments by resource ID:", error);
+    res.status(500).json({ error: "Failed to fetch project assignments" });
+  }
+});
+
+// CREATE a new project engineering assignment
+router.post('/project-assignments', async (req: Request, res: Response) => {
+  try {
+    const validationResult = insertProjectEngineeringAssignmentSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid assignment data", 
+        details: validationResult.error.format() 
+      });
+    }
+
+    const newAssignment = await storage.createProjectEngineeringAssignment(validationResult.data);
+    res.status(201).json(newAssignment);
+  } catch (error) {
+    console.error("Error creating project engineering assignment:", error);
+    res.status(500).json({ error: "Failed to create project engineering assignment" });
+  }
+});
+
+// UPDATE a project engineering assignment
+router.put('/project-assignments/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const validationResult = insertProjectEngineeringAssignmentSchema.partial().safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid assignment data", 
+        details: validationResult.error.format() 
+      });
+    }
+
+    const updatedAssignment = await storage.updateProjectEngineeringAssignment(id, validationResult.data);
+    if (!updatedAssignment) {
+      return res.status(404).json({ error: "Project engineering assignment not found" });
+    }
+
+    res.json(updatedAssignment);
+  } catch (error) {
+    console.error("Error updating project engineering assignment:", error);
+    res.status(500).json({ error: "Failed to update project engineering assignment" });
+  }
+});
+
+// DELETE a project engineering assignment
+router.delete('/project-assignments/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const success = await storage.deleteProjectEngineeringAssignment(id);
+    if (!success) {
+      return res.status(404).json({ error: "Project engineering assignment not found" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting project engineering assignment:", error);
+    res.status(500).json({ error: "Failed to delete project engineering assignment" });
   }
 });
 

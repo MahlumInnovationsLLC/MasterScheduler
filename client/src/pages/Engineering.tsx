@@ -73,6 +73,17 @@ interface EngineeringBenchmark {
   updatedAt: Date;
 }
 
+interface ProjectEngineeringAssignment {
+  id: number;
+  projectId: number;
+  resourceId: number;
+  discipline: 'ME' | 'EE' | 'ITE' | 'NTC';
+  percentage: number;
+  isLead: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 interface Project {
   id: number;
   name: string;
@@ -122,6 +133,8 @@ interface EngineeringOverview {
 
 export default function Engineering() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [showProjectDialog, setShowProjectDialog] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch engineering overview data
