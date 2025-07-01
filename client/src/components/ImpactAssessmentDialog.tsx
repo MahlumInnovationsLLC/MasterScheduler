@@ -524,37 +524,70 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
     try {
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
       let yPosition = margin;
 
+      // Helper function to check if we need a new page
+      const checkPageBreak = (requiredSpace: number = 20) => {
+        if (yPosition + requiredSpace > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+          return true;
+        }
+        return false;
+      };
+
       // Title
       pdf.setFontSize(20);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Project Impact Assessment Report', margin, yPosition);
       yPosition += 15;
 
       // Project Info
       pdf.setFontSize(12);
-      pdf.setFont(undefined, 'normal');
-      pdf.text(`Project: ${project.name}`, margin, yPosition);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Project: ${project.name || 'N/A'}`, margin, yPosition);
       yPosition += 8;
-      pdf.text(`Project Number: ${project.projectNumber}`, margin, yPosition);
+      pdf.text(`Project Number: ${project.projectNumber || 'N/A'}`, margin, yPosition);
       yPosition += 8;
       pdf.text(`Assessment Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
       yPosition += 15;
 
       // Executive Summary
+      checkPageBreak(40);
       pdf.setFontSize(16);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Executive Summary', margin, yPosition);
       yPosition += 10;
 
       pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      const summaryText = `This impact assessment identifies ${dateVariances.length} schedule variance(s) affecting ${departmentImpacts.length} department(s). Immediate action is required to mitigate project risks and maintain delivery commitments.`;
+      pdf.setFont('helvetica', 'normal');
+      
+      // Calculate critical metrics
+      const totalDelayedPhases = dateVariances.filter(v => v.isDelayed).length;
+      const maxDelay = dateVariances.length > 0 ? Math.max(...dateVariances.map(v => Math.abs(v.daysDifference))) : 0;
+      const criticalDepartments = departmentImpacts.filter(d => d.impactLevel === 'critical').length;
+      const highImpactDepartments = departmentImpacts.filter(d => d.impactLevel === 'high').length;
+      
+      const summaryText = `This impact assessment has identified ${dateVariances.length} schedule variance(s) that will affect ${departmentImpacts.length} department(s) across the organization. The total cumulative delay impact is ${maxDelay} days based on the most critical timeline variance.
+
+Critical Metrics:
+• Total Delayed Phases: ${totalDelayedPhases}
+• Advanced Phases: ${dateVariances.length - totalDelayedPhases}
+• Critical Departments: ${criticalDepartments}
+• High Impact Departments: ${highImpactDepartments}
+
+Immediate Actions Required:
+• Customer notification and expectation management
+• Resource reallocation and schedule optimization
+• Vendor and supplier coordination
+• Financial impact assessment and mitigation
+• Cross-departmental communication protocol`;
+
       const splitSummary = pdf.splitTextToSize(summaryText, pageWidth - 2 * margin);
       pdf.text(splitSummary, margin, yPosition);
-      yPosition += splitSummary.length * 6 + 10;
+      yPosition += splitSummary.length * 5 + 15;
 
       // Date Variances Table
       if (dateVariances.length > 0) {
@@ -571,16 +604,50 @@ const ImpactAssessmentDialog: React.FC<ImpactAssessmentDialogProps> = ({
           variance.isDelayed ? 'Delayed' : 'Advanced'
         ]);
 
-        (pdf as any).autoTable({
-          head: [['Phase', 'Original Plan', 'Current Date', 'Variance', 'Status']],
-          body: tableData,
-          startY: yPosition,
-          margin: { top: margin, right: margin, bottom: margin, left: margin },
-          styles: { fontSize: 9 },
-          headStyles: { fillColor: [66, 66, 66] },
+        // Create table manually to avoid autoTable issues
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        
+        // Table headers
+        const colWidths = [40, 35, 35, 25, 25];
+        const headers = ['Phase', 'Original Plan', 'Current Date', 'Variance', 'Status'];
+        let xPos = margin;
+        
+        headers.forEach((header, i) => {
+          pdf.text(header, xPos, yPosition);
+          xPos += colWidths[i];
         });
+        yPosition += 8;
 
-        yPosition = (pdf as any).lastAutoTable.finalY + 15;
+        // Draw header line
+        pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+        yPosition += 5;
+
+        // Table data
+        pdf.setFont('helvetica', 'normal');
+        dateVariances.forEach(variance => {
+          if (yPosition > pageHeight - 40) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          xPos = margin;
+          
+          const rowData = [
+            variance.displayName || 'N/A',
+            safeFormatDate(variance.opDate),
+            safeFormatDate(variance.currentDate),
+            `${variance.daysDifference > 0 ? '+' : ''}${variance.daysDifference} days`,
+            variance.isDelayed ? 'Delayed' : 'Advanced'
+          ];
+
+          rowData.forEach((data, i) => {
+            const wrappedText = pdf.splitTextToSize(data, colWidths[i] - 2);
+            pdf.text(wrappedText, xPos, yPosition);
+            xPos += colWidths[i];
+          });
+          yPosition += 12;
+        });
+        yPosition += 15;
       }
 
       // Department Impacts
