@@ -659,36 +659,38 @@ Immediate Actions Required:
         }
 
         pdf.setFontSize(14);
-        pdf.setFont(undefined, 'bold');
+        pdf.setFont('helvetica', 'bold');
         pdf.text('Department Impact Analysis', margin, yPosition);
         yPosition += 15;
 
         departmentImpacts.forEach((impact, index) => {
-          if (yPosition > 250) {
-            pdf.addPage();
-            yPosition = margin;
-          }
+          checkPageBreak(60);
 
+          // Department header
           pdf.setFontSize(12);
-          pdf.setFont(undefined, 'bold');
-          pdf.text(`${impact.department} Department`, margin, yPosition);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${index + 1}. ${impact.department} Department`, margin, yPosition);
           yPosition += 8;
 
+          // Impact level badge
           pdf.setFontSize(10);
-          pdf.setFont(undefined, 'normal');
+          pdf.setFont('helvetica', 'normal');
           pdf.text(`Impact Level: ${impact.impactLevel.toUpperCase()}`, margin, yPosition);
           yPosition += 6;
 
+          // Description
           const descText = pdf.splitTextToSize(impact.description, pageWidth - 2 * margin);
           pdf.text(descText, margin, yPosition);
-          yPosition += descText.length * 6 + 5;
+          yPosition += descText.length * 5 + 5;
 
           // Specific Impacts
-          pdf.setFont(undefined, 'bold');
+          pdf.setFont('helvetica', 'bold');
           pdf.text('Specific Impacts:', margin, yPosition);
           yPosition += 6;
-          pdf.setFont(undefined, 'normal');
+          pdf.setFont('helvetica', 'normal');
+          
           impact.specificImpacts.forEach(item => {
+            checkPageBreak(10);
             const itemText = pdf.splitTextToSize(`• ${item}`, pageWidth - 2 * margin - 10);
             pdf.text(itemText, margin + 10, yPosition);
             yPosition += itemText.length * 5;
@@ -696,18 +698,23 @@ Immediate Actions Required:
           yPosition += 5;
 
           // Mitigation Actions
-          pdf.setFont(undefined, 'bold');
+          checkPageBreak(20);
+          pdf.setFont('helvetica', 'bold');
           pdf.text('Mitigation Actions:', margin, yPosition);
           yPosition += 6;
-          pdf.setFont(undefined, 'normal');
+          pdf.setFont('helvetica', 'normal');
+          
           impact.mitigationActions.forEach(action => {
+            checkPageBreak(10);
             const actionText = pdf.splitTextToSize(`• ${action}`, pageWidth - 2 * margin - 10);
             pdf.text(actionText, margin + 10, yPosition);
             yPosition += actionText.length * 5;
           });
 
+          // Additional impact details
           if (impact.estimatedCost) {
             yPosition += 3;
+            pdf.setFont('helvetica', 'bold');
             pdf.text(`Estimated Cost Impact: ${impact.estimatedCost}`, margin, yPosition);
             yPosition += 6;
           }
@@ -717,50 +724,91 @@ Immediate Actions Required:
             yPosition += 6;
           }
 
-          yPosition += 10;
+          yPosition += 15;
         });
       }
 
-      // AI Insights
-      if (aiInsights && aiInsights.insights.length > 0) {
-        if (yPosition > 200) {
-          pdf.addPage();
-          yPosition = margin;
-        }
-
+      // AI Insights Section
+      if (aiInsights && aiInsights.insights && aiInsights.insights.length > 0) {
+        checkPageBreak(40);
         pdf.setFontSize(14);
-        pdf.setFont(undefined, 'bold');
+        pdf.setFont('helvetica', 'bold');
         pdf.text('AI-Generated Insights', margin, yPosition);
         yPosition += 10;
 
-        pdf.setFontSize(10);
-        pdf.setFont(undefined, 'italic');
-        const summaryText = pdf.splitTextToSize(aiInsights.summary, pageWidth - 2 * margin);
-        pdf.text(summaryText, margin, yPosition);
-        yPosition += summaryText.length * 6 + 10;
+        if (aiInsights.summary) {
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'italic');
+          const summaryText = pdf.splitTextToSize(aiInsights.summary, pageWidth - 2 * margin);
+          pdf.text(summaryText, margin, yPosition);
+          yPosition += summaryText.length * 5 + 10;
+        }
 
-        aiInsights.insights.forEach(insight => {
-          pdf.setFont(undefined, 'bold');
-          pdf.text(`• ${insight.text}`, margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        aiInsights.insights.forEach((insight, index) => {
+          checkPageBreak(15);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${index + 1}. ${insight.text}`, margin, yPosition);
           yPosition += 6;
+          
           if (insight.detail) {
-            pdf.setFont(undefined, 'normal');
-            const detailText = pdf.splitTextToSize(`  ${insight.detail}`, pageWidth - 2 * margin - 20);
-            pdf.text(detailText, margin + 20, yPosition);
-            yPosition += detailText.length * 5 + 3;
+            pdf.setFont('helvetica', 'normal');
+            const detailText = pdf.splitTextToSize(insight.detail, pageWidth - 2 * margin - 10);
+            pdf.text(detailText, margin + 10, yPosition);
+            yPosition += detailText.length * 5 + 5;
           }
         });
 
-        yPosition += 10;
-        pdf.setFont(undefined, 'italic');
-        pdf.text(`AI Confidence Level: ${Math.round((aiInsights.confidence || 0) * 100)}%`, margin, yPosition);
+        if (aiInsights.confidence !== undefined) {
+          yPosition += 10;
+          pdf.setFont('helvetica', 'italic');
+          pdf.text(`AI Confidence Level: ${Math.round(aiInsights.confidence * 100)}%`, margin, yPosition);
+        }
+      }
+
+      // Future Projects Impact (if available)
+      if (futureProjectInsights && futureProjectInsights.insights && futureProjectInsights.insights.length > 0) {
+        checkPageBreak(40);
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Future Scheduled Projects Impact', margin, yPosition);
+        yPosition += 15;
+
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        
+        futureProjectInsights.insights.forEach((insight, index) => {
+          checkPageBreak(15);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${index + 1}. ${insight.text}`, margin, yPosition);
+          yPosition += 6;
+          
+          if (insight.detail) {
+            pdf.setFont('helvetica', 'normal');
+            const detailText = pdf.splitTextToSize(insight.detail, pageWidth - 2 * margin - 10);
+            pdf.text(detailText, margin + 10, yPosition);
+            yPosition += detailText.length * 5 + 5;
+          }
+        });
+      }
+
+      // Footer with timestamp
+      const totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Generated on ${new Date().toLocaleString()} - Page ${i} of ${totalPages}`, margin, pageHeight - 10);
       }
 
       // Save the PDF
-      pdf.save(`Impact-Assessment-${project.projectNumber}-${new Date().toISOString().split('T')[0]}.pdf`);
+      const fileName = `Impact-Assessment-${project.projectNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
 
     } catch (error) {
       console.error('Error generating PDF:', error);
+      // Show user-friendly error message
+      alert('Error generating PDF report. Please try again or contact support if the issue persists.');
     } finally {
       setIsGeneratingPDF(false);
     }
