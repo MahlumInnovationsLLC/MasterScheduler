@@ -167,17 +167,12 @@ export default function Engineering() {
   const hasEngineeringAccess = () => {
     if (!user) return false;
     
-    // Only engineering department users with EDITOR or ADMIN roles can access
-    if (user.department !== 'engineering') {
-      return false;
-    }
-    
-    // VIEWER role cannot access even if they are in engineering department
+    // VIEWER role cannot access regardless of department
     if (user.role === 'viewer') {
       return false;
     }
     
-    // Only EDITOR and ADMIN roles can access
+    // EDITOR and ADMIN roles can access regardless of department
     return user.role === 'editor' || user.role === 'admin';
   };
 
@@ -195,9 +190,9 @@ export default function Engineering() {
             <p className="text-sm text-red-700">
               <strong>Requirements:</strong>
               <br />
-              • Must be assigned to Engineering department
-              <br />
               • Must have EDITOR or ADMIN role
+              <br />
+              • VIEWER access is restricted
             </p>
           </div>
         </div>

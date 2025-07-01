@@ -24,17 +24,12 @@ const checkEngineeringAccess = (req: Request, res: Response, next: any) => {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
-  // Only engineering department users with EDITOR or ADMIN roles can access
-  if (req.user.department !== 'engineering') {
-    return res.status(403).json({ error: 'Access denied: Engineering department required' });
-  }
-
-  // VIEWER role cannot access even if they are in engineering department
+  // VIEWER role cannot access regardless of department
   if (req.user.role === 'viewer') {
     return res.status(403).json({ error: 'Access denied: EDITOR or ADMIN role required' });
   }
 
-  // Only EDITOR and ADMIN roles can access
+  // EDITOR and ADMIN roles can access regardless of department
   if (req.user.role !== 'editor' && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Access denied: EDITOR or ADMIN role required' });
   }
