@@ -518,7 +518,7 @@ const SystemSettings = () => {
   // Reject user mutation (also handles revoking access for approved users)
   const rejectUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await fetch(`/api/users/${userId}/reject`, {
+      const response = await fetch('/api/users/' + userId + '/reject', {
         method: 'PATCH',
       });
 
@@ -578,7 +578,7 @@ const SystemSettings = () => {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch('/api/users/' + userId, {
         method: 'DELETE',
       });
 
@@ -649,7 +649,7 @@ const SystemSettings = () => {
       // Show success toast notification
       toast({
         title: "Permission Auto-Saved",
-        description: `${role.charAt(0).toUpperCase() + role.slice(1)} role ${permission.replace('-', ' ')} permission ${value ? 'enabled' : 'disabled'} and saved instantly.`,
+        description: role.charAt(0).toUpperCase() + role.slice(1) + ' role ' + permission.replace('-', ' ') + ' permission ' + (value ? 'enabled' : 'disabled') + ' and saved instantly.',
         variant: "default"
       });
     } catch (error) {
@@ -753,7 +753,7 @@ const SystemSettings = () => {
 
       toast({
         title: "Password Reset Successful",
-        description: `Password has been reset for ${passwordResetUser.firstName} ${passwordResetUser.lastName}.`
+        description: 'Password has been reset for ' + passwordResetUser.firstName + ' ' + passwordResetUser.lastName + '.'
       });
 
       setIsPasswordResetDialogOpen(false);
@@ -799,7 +799,7 @@ const SystemSettings = () => {
              email.includes(query) ||
              role.includes(query) ||
              department.includes(query) ||
-             `${firstName} ${lastName}`.includes(query);
+             (firstName + ' ' + lastName).includes(query);
     });
 
     return [...filtered].sort((a, b) => {
