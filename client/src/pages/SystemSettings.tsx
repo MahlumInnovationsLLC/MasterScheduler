@@ -200,7 +200,7 @@ const SystemSettings = () => {
   // Load user module visibility settings
   const loadUserModuleVisibility = async (userId: string) => {
     try {
-      const response = await fetch(`/api/users/${userId}/module-visibility`);
+      const response = await fetch('/api/users/' + userId + '/module-visibility');
       if (response.ok) {
         const data = await response.json();
         const visibilityMap: Record<string, boolean> = {};
@@ -342,7 +342,7 @@ const SystemSettings = () => {
     try {
       const response = await fetch('/api/users');
       if (!response.ok) {
-        throw new Error(`Failed to fetch users: ${response.status}`);
+        throw new Error('Failed to fetch users: ' + response.status);
       }
       const data = await response.json();
       setUsers(data);
@@ -362,7 +362,7 @@ const SystemSettings = () => {
   useEffect(() => {
     console.log("🔍 USERS STATE CHANGED:", users);
     users.forEach(user => {
-      console.log(`🔍 USER ${user.id} (${user.email}): department = ${user.department}`);
+      console.log('🔍 USER ' + user.id + ' (' + user.email + '): department = ' + user.department);
     });
   }, [users]);
 
@@ -418,7 +418,7 @@ const SystemSettings = () => {
   // Delete email pattern mutation
   const deleteEmailPatternMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/allowed-emails/${id}`, {
+      const response = await fetch('/api/allowed-emails/' + id, {
         method: 'DELETE',
       });
 
@@ -891,7 +891,7 @@ const SystemSettings = () => {
     console.log("🔄 FRONTEND: Starting user update");
     console.log("🔄 FRONTEND: editingUser:", editingUser);
     console.log("🔄 FRONTEND: editUserForm:", editUserForm);
-    console.log("🔄 FRONTEND: URL:", `/api/users/${editingUser.id}`);
+    console.log("🔄 FRONTEND: URL:", '/api/users/' + editingUser.id);
 
     try {
       // Direct fetch call with proper method formatting
@@ -2050,7 +2050,7 @@ const SystemSettings = () => {
                                           const user = users.find((u: any) => u.id === log.userId);
                                           if (user) {
                                             return user.firstName && user.lastName 
-                                              ? `${user.firstName} ${user.lastName}`
+                                              ? user.firstName + ' ' + user.lastName
                                               : user.username || user.email;
                                           }
                                         }
@@ -2072,13 +2072,13 @@ const SystemSettings = () => {
                                         if (log.details.includes('project')) {
                                           const match = log.details.match(/project\s+([#\w\d-]+)|Project\s+([#\w\d-]+)/i);
                                           if (match) {
-                                            return `Project ${match[1] || match[2]}`;
+                                            return 'Project ' + (match[1] || match[2]);
                                           }
                                         }
                                         if (log.details.includes('user')) {
                                           const match = log.details.match(/user\s+([#\w\d-@.]+)/i);
                                           if (match) {
-                                            return `User ${match[1]}`;
+                                            return 'User ' + match[1];
                                           }
                                         }
                                         if (log.details.includes('bay')) {
