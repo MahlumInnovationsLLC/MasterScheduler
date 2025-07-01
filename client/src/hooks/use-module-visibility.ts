@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { usePermissions } from '@/components/PermissionsManager';
+import { useAuth } from '@/hooks/use-auth';
 
 export interface ModuleVisibility {
   [moduleId: string]: boolean;
 }
 
 export const useModuleVisibility = () => {
-  const { user } = usePermissions();
+  const { userRole } = usePermissions();
+  const { user } = useAuth();
 
   const { data: moduleVisibility = {}, isLoading } = useQuery<ModuleVisibility>({
     queryKey: ['module-visibility', user?.id],
@@ -40,26 +42,26 @@ export const useModuleVisibility = () => {
     // Special access control for Engineering module
     if (moduleId === 'engineering') {
       // VIEWER role cannot access regardless of department
-      if (user?.role === 'viewer') {
+      if (userRole === 'viewer') {
         return false;
       }
       // EDITOR and ADMIN roles can access regardless of department
-      return user?.role === 'editor' || user?.role === 'admin';
+      return userRole === 'editor' || userRole === 'admin';
     }
     
     // Fallback to role-based defaults if no saved data
-    if (!user?.role) return true; // Default to visible if no user
+    if (!userRole) return true; // Default to visible if no user
     
     // Admin can see everything by default
-    if (user.role === 'admin') return true;
+    if (userRole === 'admin') return true;
     
     // Editor defaults - can see everything except quality-assurance, system-settings and import
-    if (user.role === 'editor') {
+    if (userRole === 'editor') {
       return !['quality-assurance', 'system-settings', 'import'].includes(moduleId);
     }
     
     // Viewer defaults - can see everything except quality-assurance, sales-forecast, bay-scheduling, system-settings, and import
-    if (user.role === 'viewer') {
+    if (userRole === 'viewer') {
       return !['quality-assurance', 'sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(moduleId);
     }
     
