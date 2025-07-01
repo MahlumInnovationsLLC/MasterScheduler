@@ -293,6 +293,14 @@ export async function setupAuth(app: Express) {
         (req.session as any).user = user;
         (req.session as any).rememberMe = rememberMe;
         
+        // Update last login in the database
+        try {
+          await storage.updateUser(user.id, { lastLogin: new Date() });
+          console.log(`[LOGIN] Updated last login for user: ${user.email || user.username}`);
+        } catch (error) {
+          console.error('Failed to update last login:', error);
+        }
+        
         // Set cookie duration based on "Remember Me" preference
         if (rememberMe) {
           // Extended session: 30 days

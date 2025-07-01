@@ -910,13 +910,21 @@ const SystemSettings = () => {
       // Trigger immediate refetch
       await refetchUsers();
       
+      // Update the local state to immediately reflect changes
+      if (editingUser) {
+        // Find and update the user in the local data
+        const updatedUser = { ...editingUser, ...editUserForm };
+        console.log("🔄 FRONTEND: Locally updating user:", updatedUser);
+      }
+      
       toast({
         title: "User Updated",
         description: "User information has been successfully updated."
       });
       
-      // Close dialog
+      // Close dialog and clear editing state
       setIsEditDialogOpen(false);
+      setEditingUser(null);
       
     } catch (error) {
       console.error("🔄 FRONTEND: Error updating user:", error);
@@ -1451,10 +1459,15 @@ const SystemSettings = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                            {user.department ? 
-                              user.department.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 
-                              'Not assigned'
-                            }
+                            {(() => {
+                              // Get the most recent department value from editUserForm if this is the user being edited
+                              const currentDepartment = editingUser?.id === user.id ? editUserForm.department : user.department;
+                              
+                              if (currentDepartment) {
+                                return currentDepartment.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                              }
+                              return 'Not assigned';
+                            })()}
                           </TableCell>
                               <TableCell>
                                 {user.isApproved ? (
@@ -1465,13 +1478,35 @@ const SystemSettings = () => {
                               </TableCell>
                               <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                               <TableCell>
-                            {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : 'Never'}
+                            {(() => {
+                              if (!user.lastLogin) return 'Never';
+                              
+                              try {
+                                const loginDate = new Date(user.lastLogin);
+                                const now = new Date();
+                                const diffTime = now.getTime() - loginDate.getTime();
+                                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                
+                                if (diffDays === 0) {
+                                  return loginDate.toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  }) + ' (Today)';
+                                } else if (diffDays === 1) {
+                                  return 'Yesterday';
+                                } else if (diffDays < 7) {
+                                  return `${diffDays} days ago`;
+                                } else {
+                                  return loginDate.toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  });
+                                }
+                              } catch (error) {
+                                return 'Invalid date';
+                              }
+                            })()}
                           </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end space-x-2">
