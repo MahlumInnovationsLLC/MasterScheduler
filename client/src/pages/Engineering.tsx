@@ -149,7 +149,7 @@ interface EngineeringOverview {
 }
 
 export default function Engineering() {
-  const { user } = usePermissions();
+  const { user, userRole } = usePermissions();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
@@ -165,15 +165,15 @@ export default function Engineering() {
 
   // Check if user has access to Engineering module
   const hasEngineeringAccess = () => {
-    if (!user) return false;
+    if (!user || !userRole) return false;
     
     // VIEWER role cannot access regardless of department
-    if (user.role === 'viewer') {
+    if (userRole === 'viewer') {
       return false;
     }
     
     // EDITOR and ADMIN roles can access regardless of department
-    return user.role === 'editor' || user.role === 'admin';
+    return userRole === 'editor' || userRole === 'admin';
   };
 
   // If user doesn't have access, show access denied message
