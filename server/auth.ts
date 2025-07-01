@@ -281,7 +281,7 @@ export async function setupAuth(app: Express) {
       }
       
       // Try to login the user
-      req.login(user, (loginErr) => {
+      req.login(user, async (loginErr) => {
         if (loginErr) {
           console.error('Login session error:', loginErr);
           return res.status(500).json({ error: "Session creation failed" });
