@@ -1210,3 +1210,84 @@ button[role="switch"] input[type="checkbox"] {
 :root:not(.dark) table .text-gray-400 {
   color: #374151 !important;
 }
+
+/* Engineering Module Dark Mode Fixes */
+.dark .container table tbody tr {
+  background-color: transparent !important;
+}
+
+.dark .container table tbody tr:nth-child(even) {
+  background-color: rgba(55, 65, 81, 0.3) !important;
+}
+
+.dark .container table tbody tr:hover {
+  background-color: rgba(75, 85, 99, 0.4) !important;
+}
+
+.dark .container table th,
+.dark .container table td {
+  color: #e5e7eb !important;
+  border-color: #374151 !important;
+}
+
+.dark .container .font-medium {
+  color: #f3f4f6 !important;
+}
+
+.dark .container .text-muted-foreground {
+  color: #9ca3af !important;
+}
+
+.dark .container .text-sm {
+  color: #d1d5db !important;
+}
+
+/* Engineering cards dark mode */
+.dark .container .bg-gray-50 {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+.dark .container .bg-white {
+  background-color: #1f2937 !important;
+}
+
+/* Engineering module specific table styling */
+.dark table tbody tr td {
+  color: #e5e7eb !important;
+}
+
+.dark table tbody tr:nth-child(even) {
+  background-color: rgba(55, 65, 81, 0.3) !important;
+}
+
+.dark table tbody tr:hover {
+  background-color: rgba(75, 85, 99, 0.4) !important;
+}
+
+/* Fix engineer names and details in dark mode */
+.dark .container .font-medium,
+.dark .container div .font-medium {
+  color: #f9fafb !important;
+}
+
+.dark .container .text-muted-foreground,
+.dark .container div .text-muted-foreground {
+  color: #9ca3af !important;
+}
+
+/* Fix table headers in dark mode */
+.dark table thead th {
+  color: #f3f4f6 !important;
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+}
+
+/* Fix card content in dark mode */
+.dark .bg-gray-50 {
+  background-color: #374151 !important;
+}
+
+.dark .border-gray-200 {
+  border-color: #4b5563 !important;
+}
