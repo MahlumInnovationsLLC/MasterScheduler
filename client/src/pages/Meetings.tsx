@@ -2699,49 +2699,116 @@ export default function Meetings() {
 
             {/* Concerns Tab */}
             <TabsContent value="concerns" className="space-y-6 mt-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Escalated Concerns ({tierIVConcerns.length})</h3>
-                {tierIVConcerns.length > 0 ? (
-                  <div className="grid gap-4">
-                    {tierIVConcerns.map((concern: ElevatedConcern) => (
-                      <Card key={concern.id} className="border-l-4 border-l-orange-500">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="text-lg">{concern.title}</CardTitle>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Badge variant={concern.priority === "high" ? "destructive" : "secondary"}>
-                                  {concern.priority.toUpperCase()}
-                                </Badge>
-                                <Badge variant="outline">
-                                  {concern.status.replace("_", " ").toUpperCase()}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-muted-foreground mb-4">{concern.description}</p>
-                          {concern.dueDate && (
-                            <div className="text-sm">
-                              <span className="font-medium">Due:</span> {format(new Date(concern.dueDate), 'PPp')}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
+              <div className="space-y-6">
+                {/* Active Escalated Concerns */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-red-700">Tier IV Escalated Concerns</h3>
+                      <Badge variant="destructive" className="bg-red-100 text-red-800">
+                        {tierIVConcerns.length} Active
+                      </Badge>
+                    </div>
                   </div>
-                ) : (
-                  <Card>
-                    <CardContent className="p-8 text-center">
-                      <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No Escalated Concerns</h3>
-                      <p className="text-muted-foreground">
-                        All concerns are being handled at the appropriate tier level.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
+                  
+                  {tierIVConcerns.length === 0 ? (
+                    <Card className="border-green-200">
+                      <CardContent className="pt-6">
+                        <div className="text-center text-green-700">
+                          <CheckCircle className="h-8 w-8 mx-auto mb-2" />
+                          <p className="font-medium">All escalated concerns have been resolved!</p>
+                          <p className="text-sm">No active escalated concerns at this time.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-4">
+                      {tierIVConcerns.map((concern: ElevatedConcern) => {
+                        const project = (projects as Project[]).find((p: Project) => p.id === concern.projectId);
+                        return (
+                          <Card key={concern.id} className="border-red-200">
+                            <CardContent className="pt-6">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="destructive">ESCALATED</Badge>
+                                  <Badge variant={concern.type === "task" ? "default" : "secondary"}>
+                                    {concern.type}
+                                  </Badge>
+                                  <Badge variant="destructive">{concern.priority}</Badge>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCloseConcern(concern)}
+                                  className="text-green-600 border-green-600 hover:bg-green-50"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Close
+                                </Button>
+                              </div>
+                              <h4 className="font-medium">{concern.title}</h4>
+                              <p className="text-sm text-muted-foreground mb-2">{concern.description}</p>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                <p>Project: {project?.name} ({project?.projectNumber})</p>
+                                <p>Escalated: {concern.escalatedAt ? format(new Date(concern.escalatedAt), 'MMM d, yyyy h:mm a') : 'N/A'}</p>
+                                {concern.dueDate && (
+                                  <p>Due: {format(new Date(concern.dueDate), 'MMM d, yyyy h:mm a')}</p>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Recently Closed Concerns */}
+                {(() => {
+                  const closedConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => 
+                    c.isEscalatedToTierIV && c.status === 'completed'
+                  ).slice(0, 5); // Show last 5 closed concerns
+                  
+                  if (closedConcerns.length > 0) {
+                    return (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-green-700">Recently Closed Concerns</h3>
+                        <div className="grid gap-2">
+                          {closedConcerns.map((concern: ElevatedConcern) => {
+                            const project = (projects as Project[]).find((p: Project) => p.id === concern.projectId);
+                            return (
+                              <Card key={concern.id} className="border-green-200 bg-green-50">
+                                <CardContent className="py-4">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                        <span className="font-medium text-sm text-gray-900">{concern.title}</span>
+                                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-300">CLOSED</Badge>
+                                      </div>
+                                      <div className="text-xs text-gray-600 font-medium">
+                                        {project?.projectNumber}
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-700 ml-6">
+                                      <p className="mb-1">{concern.description}</p>
+                                      <div className="flex items-center gap-4 text-gray-600">
+                                        <span>Project: {project?.name}</span>
+                                        <span>Priority: {concern.priority}</span>
+                                        <span>Closed: {concern.updatedAt ? format(new Date(concern.updatedAt), 'MMM d, h:mm a') : 'Recently'}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </TabsContent>
           </Tabs>

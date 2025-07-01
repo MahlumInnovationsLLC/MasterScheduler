@@ -341,6 +341,11 @@ const ProjectStatus = () => {
     queryKey: ['/api/projects'],
   });
 
+  const { data: ccbRequests = [] } = useQuery({
+    queryKey: ['/api/ccb-requests'],
+    staleTime: 30000,
+  });
+
   const { data: manufacturingSchedules } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
   });
@@ -2255,8 +2260,8 @@ const ProjectStatus = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-        {/* Total Projects - Wider (5 columns) */}
-        <div className="md:col-span-5">
+        {/* Total Projects - Wider (4 columns) */}
+        <div className="md:col-span-4">
           <ProjectStatsCard 
             title="Total Projects"
             value={projectStats?.total || 0}
@@ -2271,9 +2276,24 @@ const ProjectStatus = () => {
           />
         </div>
 
-        {/* AI Insights (5 columns) */}
-        <div className="md:col-span-5 h-72 overflow-hidden">
+        {/* AI Insights (4 columns) */}
+        <div className="md:col-span-4 h-72 overflow-hidden">
           <AIInsightsWidget projects={projects || []} />
+        </div>
+
+        {/* CCB Requests (2 columns) */}
+        <div className="md:col-span-2">
+          <ProjectStatsCard 
+            title="CCB Requests"
+            value={ccbRequests.filter((req: any) => req.status === 'pending_review' || req.status === 'under_review').length}
+            icon={<FileText className="text-orange-500 h-5 w-5" />}
+            tags={[
+              { label: "Pending", value: ccbRequests.filter((req: any) => req.status === 'pending_review').length, status: "Delayed" },
+              { label: "Under Review", value: ccbRequests.filter((req: any) => req.status === 'under_review').length, status: "On Track" },
+              { label: "Approved", value: ccbRequests.filter((req: any) => req.status === 'approved').length, status: "Completed" }
+            ]}
+            className="h-72"
+          />
         </div>
 
         {/* Manufacturing - Narrower (2 columns) */}
