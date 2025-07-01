@@ -24,11 +24,7 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
   
   const textRef = useRef<HTMLDivElement>(null);
   
-  // Debug logging for project 804731 (ID 315)
-  if (projectId === 315) {
-    console.log(`EditableNotesField for project ${projectId}, received value:`, value);
-    console.log(`EditableNotesField for project ${projectId}, noteValue state:`, noteValue);
-  }
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -114,7 +110,7 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
   return (
     <TooltipProvider>
       <div 
-        className="text-sm cursor-pointer hover:underline min-h-[32px] relative group max-w-[180px]"
+        className="text-sm cursor-pointer hover:underline min-h-[32px] relative group max-w-[100px]"
         onClick={() => setIsEditing(true)}
       >
         {noteValue ? (
@@ -123,7 +119,7 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
               <div className="flex items-start">
                 <div 
                   ref={textRef}
-                  className="text-left break-words pr-5 max-w-[160px]"
+                  className="text-left break-words pr-2 max-w-[90px]"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
