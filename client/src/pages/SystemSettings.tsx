@@ -884,16 +884,22 @@ const SystemSettings = () => {
       })
       .then((data) => {
         console.log("🔄 FRONTEND: Success response data:", data);
-        // Update user list
+        
+        // Force cache invalidation and refresh
         queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      })
-      .then(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/users'] });
+        
         toast({
           title: "User Updated",
           description: "User information has been successfully updated."
         });
         setIsEditDialogOpen(false);
-        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+        
+        // Force another refresh after dialog closes
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+          queryClient.refetchQueries({ queryKey: ['/api/users'] });
+        }, 100);
       })
       .catch(error => {
         console.error("🔄 FRONTEND: Error updating user:", error);
