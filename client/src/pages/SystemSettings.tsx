@@ -332,27 +332,38 @@ const SystemSettings = () => {
   });
 
   // Get users for user management
-  const {
-    data: users = [],
-    isLoading: usersLoading,
-    error: usersError,
-    refetch: refetchUsers
-  } = useQuery<any[]>({
-    queryKey: ['/api/users'],
-    queryFn: getQueryFn({}),
-    staleTime: 0, // Always consider data stale to ensure fresh fetches
-    gcTime: 0, // Don't cache data for long
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState<any>(null);
 
-  // Load module visibility for all users when users data changes
-  useEffect(() => {
-    if (users && users.length > 0) {
-      users.forEach(user => {
-        loadUserModuleVisibility(user.id);
-      });
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const response = await fetch('/api/users');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch users: ${response.status}`);
+      }
+      const data = await response.json();
+      setUsers(data);
+      console.log("initial user data loading",data)
+    } catch (error) {
+      setUsersError(error);
+      console.error("Error fetching users:", error);
+    } finally {
+      setUsersLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    console.log("🔍 USERS STATE CHANGED:", users);
+    users.forEach(user => {
+      console.log(`🔍 USER ${user.id} (${user.email}): department = ${user.department}`);
+    });
   }, [users]);
 
   // Get email patterns
@@ -770,7 +781,7 @@ const SystemSettings = () => {
   // Get filtered users based on search query
   const getFilteredUsers = () => {
     if (!users || users.length === 0) return [];
-    
+
     if (!userSearchQuery.trim()) {
       return getSortedUsers();
     }
@@ -782,7 +793,7 @@ const SystemSettings = () => {
       const email = (user.email || user.username || '').toLowerCase();
       const role = (user.role || '').toLowerCase();
       const department = (user.department || '').toLowerCase();
-      
+
       return firstName.includes(query) ||
              lastName.includes(query) ||
              email.includes(query) ||
@@ -895,37 +906,37 @@ const SystemSettings = () => {
 
       console.log("🔄 FRONTEND: Response status:", response.status);
       console.log("🔄 FRONTEND: Response ok:", response.ok);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to update user: ${response.status}`);
       }
 
       const data = await response.json();
       console.log("🔄 FRONTEND: Success response data:", data);
-      
+
       // Force comprehensive cache invalidation and refresh
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.removeQueries({ queryKey: ['/api/users'] });
-      
+
       // Trigger immediate refetch
-      await refetchUsers();
-      
+      await fetchUsers();
+
       // Update the local state to immediately reflect changes
       if (editingUser) {
         // Find and update the user in the local data
         const updatedUser = { ...editingUser, ...editUserForm };
         console.log("🔄 FRONTEND: Locally updating user:", updatedUser);
       }
-      
+
       toast({
         title: "User Updated",
         description: "User information has been successfully updated."
       });
-      
+
       // Close dialog and clear editing state
       setIsEditDialogOpen(false);
       setEditingUser(null);
-      
+
     } catch (error) {
       console.error("🔄 FRONTEND: Error updating user:", error);
       toast({
@@ -1005,7 +1016,8 @@ const SystemSettings = () => {
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title:```text
+"Error",
         description: "Failed to restore project: " + (error as Error).message,
         variant: "destructive"
       });
@@ -1462,7 +1474,7 @@ const SystemSettings = () => {
                             {(() => {
                               // Get the most recent department value from editUserForm if this is the user being edited
                               const currentDepartment = editingUser?.id === user.id ? editUserForm.department : user.department;
-                              
+
                               if (currentDepartment) {
                                 return currentDepartment.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                               }
@@ -1480,13 +1492,13 @@ const SystemSettings = () => {
                               <TableCell>
                             {(() => {
                               if (!user.lastLogin) return 'Never';
-                              
+
                               try {
                                 const loginDate = new Date(user.lastLogin);
                                 const now = new Date();
                                 const diffTime = now.getTime() - loginDate.getTime();
                                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                                
+
                                 if (diffDays === 0) {
                                   return loginDate.toLocaleTimeString('en-US', {
                                     hour: '2-digit',
@@ -1778,8 +1790,7 @@ const SystemSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Priority Visibility Control</CardTitle>
-                <CardDescription>
-                  Control which priority lists each user can access. Assign users to specific production and supply chain priority lists for targeted communication.
+                <CardDescription>                  Control which priority lists each user can access. Assign users to specific production and supply chain priority lists for targeted communication.
                 </CardDescription>
               </CardHeader>
               <CardContent>
