@@ -11,16 +11,35 @@ import {
   engineeringTasks,
   engineeringBenchmarks,
   projectEngineeringAssignments,
-  projects
+  projects,
+  users
 } from '../../shared/schema';
 import { db } from '../db';
 
 const router = Router();
 
-// GET all engineering resources
+// GET all engineering resources (real Engineering users from users table)
 router.get('/engineering-resources', async (req: Request, res: Response) => {
   try {
-    const resources = await storage.getEngineeringResources();
+    // Get real Engineering users from the users table
+    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'Engineering'));
+    
+    // Convert users to EngineeringResource format
+    const resources = engineeringUsers.map((user, index) => ({
+      id: index + 1,
+      firstName: user.firstName || 'Unknown',
+      lastName: user.lastName || 'User', 
+      discipline: 'ME' as const, // Default discipline - could be determined from project assignments
+      title: 'Engineering Specialist',
+      workloadStatus: 'available' as const,
+      currentCapacityPercent: 0,
+      hourlyRate: 100,
+      skillLevel: 'intermediate' as const,
+      isActive: user.status === 'active',
+      createdAt: user.createdAt || new Date(),
+      updatedAt: user.updatedAt || new Date()
+    }));
+
     res.json(resources);
   } catch (error) {
     console.error("Error fetching engineering resources:", error);
