@@ -3542,28 +3542,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.params.id;
       const { firstName, lastName, email, role, department } = req.body;
       
-      console.log("Updating user:", userId, "with data:", req.body);
+      console.log("🔧 UPDATING USER:", userId);
+      console.log("🔧 REQUEST BODY:", req.body);
+      console.log("🔧 DEPARTMENT VALUE:", department);
       
       // First check if user exists
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log("❌ User not found:", userId);
         return res.status(404).json({ message: "User not found" });
       }
       
+      console.log("🔧 CURRENT USER DATA:", user);
+      
       // Update user information including department in the users table
-      await storage.updateUser(userId, {
+      const updateData = {
         firstName,
         lastName,
         email,
         role,
         department // Update department directly in users table
-      });
+      };
       
-      console.log("Successfully updated user", userId, "with department:", department);
+      console.log("🔧 UPDATE DATA BEING SENT:", updateData);
       
-      res.json({ success: true });
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      console.log("✅ UPDATED USER RESULT:", updatedUser);
+      
+      if (!updatedUser) {
+        console.log("❌ Failed to update user");
+        return res.status(500).json({ message: "Failed to update user" });
+      }
+      
+      res.json({ success: true, user: updatedUser });
     } catch (error) {
-      console.error("Error updating user:", error);
+      console.error("❌ Error updating user:", error);
       res.status(500).json({ message: "Error updating user" });
     }
   });
