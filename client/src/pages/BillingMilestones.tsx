@@ -394,10 +394,12 @@ const BillingMilestones = () => {
     const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
+    // Calculate period-based revenue using only 'invoiced' status (the only revenue status that exists)
+
     const pastMonthRevenue = billingMilestones
       .filter(m => {
-        // Include invoiced, billed, and paid milestones as revenue
-        const isRevenueStatus = ['invoiced', 'billed', 'paid'].includes(m.status);
+        // Include only invoiced milestones as revenue (the only revenue status that exists)
+        const isRevenueStatus = m.status === 'invoiced';
         if (!isRevenueStatus) return false;
         
         // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
@@ -407,14 +409,18 @@ const BillingMilestones = () => {
         const actualDate = new Date(dateToCheck);
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-        return actualDate >= lastMonth && actualDate <= endOfLastMonth;
+        const isInPastMonth = actualDate >= lastMonth && actualDate <= endOfLastMonth;
+        
+
+        
+        return isInPastMonth;
       })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
     const quarterRevenue = billingMilestones
       .filter(m => {
-        // Include invoiced, billed, and paid milestones as revenue
-        const isRevenueStatus = ['invoiced', 'billed', 'paid'].includes(m.status);
+        // Include only invoiced milestones as revenue (the only revenue status that exists)
+        const isRevenueStatus = m.status === 'invoiced';
         if (!isRevenueStatus) return false;
         
         // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
@@ -422,14 +428,18 @@ const BillingMilestones = () => {
         if (!dateToCheck) return false;
         
         const actualDate = new Date(dateToCheck);
-        return actualDate >= startOfQuarter;
+        const isInQuarter = actualDate >= startOfQuarter;
+        
+
+        
+        return isInQuarter;
       })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
     const ytdRevenue = billingMilestones
       .filter(m => {
-        // Include invoiced, billed, and paid milestones as revenue
-        const isRevenueStatus = ['invoiced', 'billed', 'paid'].includes(m.status);
+        // Include only invoiced milestones as revenue (the only revenue status that exists)
+        const isRevenueStatus = m.status === 'invoiced';
         if (!isRevenueStatus) return false;
         
         // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
@@ -437,9 +447,19 @@ const BillingMilestones = () => {
         if (!dateToCheck) return false;
         
         const actualDate = new Date(dateToCheck);
-        return actualDate >= startOfYear;
+        const isInYTD = actualDate >= startOfYear;
+        
+
+        
+        return isInYTD;
       })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      
+    console.log('Revenue totals calculated:');
+    console.log('  Past Month:', pastMonthRevenue);
+    console.log('  Quarter:', quarterRevenue);
+    console.log('  YTD:', ytdRevenue);
+    console.log('=== END TOTAL REVENUE DEBUGGING ===');
 
     // Calculate YTD (year to date) change
     // For demo purposes, we'll calculate this as the percentage of received vs total
