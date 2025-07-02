@@ -215,6 +215,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated all chart backgrounds, text colors, progress bars, and AI insights section for light mode
   - Removed Revenue Forecast widget from bottom of Billing Milestones page as requested
   - All billing milestone status display issues resolved with 222 historical billing records showing correct "Billed" status
+- July 02, 2025: Milestone Status Widget Enhancement with Future/TBD Categorization
+  - Added comprehensive fourth category "Future/TBD" to Milestone Status widget for complete milestone visibility
+  - Enhanced milestone calculation logic to properly categorize all 356 total milestones across four distinct categories
+  - Milestone Status widget now displays: Invoiced/Billed (222), Overdue (2), Upcoming (38), Future/TBD (94)
+  - Fixed categorization logic to properly distinguish between immediate attention milestones (next 30 days) vs future planning milestones
+  - Future/TBD category includes both milestones beyond 30 days (93) and milestones without dates assigned (1)
+  - Enhanced BillingStatusCard component with blue theming for the new Future/TBD category
+  - Milestone breakdown now provides clear action priorities: 134 total open milestones requiring attention, with 38 needing immediate focus
 
 ## User Preferences
 

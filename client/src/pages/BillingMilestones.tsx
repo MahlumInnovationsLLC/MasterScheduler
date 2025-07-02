@@ -339,23 +339,35 @@ const BillingMilestones = () => {
 
     // Use allBillingMilestones for milestone counts instead of filtered data
     const invoicedAndBilled = allBillingMilestones.filter((m: any) => m.status === 'invoiced' || m.status === 'billed').length;
+    
+    // Overdue: milestones with upcoming status that have dates in the past
     const overdue = allBillingMilestones.filter((m: any) => {
-      if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced' || m.status === 'billed') return false;
+      if (m.status !== 'upcoming' || !m.targetInvoiceDate) return false;
       const targetDate = new Date(m.targetInvoiceDate);
       return targetDate < new Date();
     }).length;
+    
+    // Upcoming (next 30 days): milestones with upcoming status that have dates within 30 days
     const upcoming = allBillingMilestones.filter((m: any) => {
-      if (!m.targetInvoiceDate || m.status === 'paid' || m.status === 'invoiced' || m.status === 'billed') return false;
+      if (m.status !== 'upcoming' || !m.targetInvoiceDate) return false;
       const targetDate = new Date(m.targetInvoiceDate);
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
       return targetDate >= new Date() && targetDate <= thirtyDaysFromNow;
     }).length;
     
-    // Add count for milestones without dates (TBD)
+    // Future: milestones with upcoming status that have dates beyond 30 days + milestones without dates
     const upcomingTBD = allBillingMilestones.filter((m: any) => {
-      // Only count milestones that don't have target invoice dates and are not completed
-      return !m.targetInvoiceDate && m.status !== 'paid' && m.status !== 'invoiced' && m.status !== 'billed';
+      if (m.status !== 'upcoming') return false;
+      
+      // Include milestones without dates
+      if (!m.targetInvoiceDate) return true;
+      
+      // Include milestones beyond 30 days
+      const targetDate = new Date(m.targetInvoiceDate);
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      return targetDate > thirtyDaysFromNow;
     }).length;
 
     // Calculate amounts using allBillingMilestones with proper typing
@@ -1493,7 +1505,7 @@ const BillingMilestones = () => {
             { label: "Invoiced/Billed", value: billingStats?.milestones.invoicedAndBilled || 0 },
             { label: "Overdue", value: billingStats?.milestones.overdue || 0 },
             { label: "Upcoming", value: billingStats?.milestones.upcoming || 0 },
-            { label: "Upcoming/TBD", value: billingStats?.milestones.upcomingTBD || 0 }
+            { label: "Future/TBD", value: billingStats?.milestones.upcomingTBD || 0 }
           ]}
         />
 
