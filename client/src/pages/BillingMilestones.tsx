@@ -44,6 +44,7 @@ import {
 import { formatDate, formatCurrency, getBillingStatusInfo, getFiscalWeeksForMonth } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import BillingMilestoneForm from '@/components/BillingMilestoneForm';
+import { EnhancedCashFlowWidget } from '@/components/EnhancedCashFlowWidget';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
@@ -1488,15 +1489,21 @@ const BillingMilestones = () => {
           ]}
         />
 
+        {/* Placeholder for consistency - replaced by enhanced widget below */}
         <BillingStatusCard 
-          title="Cash Flow"
-          value=""
+          title="Revenue Summary"
+          value={formatCurrency(billingStats?.amounts.total || 0)}
           type="cashflow"
           stats={[
             { label: "Outstanding", value: formatCurrency(billingStats?.amounts.pending || 0) },
-            { label: "Invoiced", value: formatCurrency(billingStats?.amounts.total || 0) }
+            { label: "Total Revenue", value: formatCurrency(billingStats?.amounts.total || 0) }
           ]}
         />
+      </div>
+
+      {/* Enhanced Cash Flow Analysis (Full Width) */}
+      <div className="mb-6">
+        <EnhancedCashFlowWidget billingMilestones={allBillingMilestones || []} />
       </div>
 
       {/* Monthly Forecasts Row (Full Width) */}

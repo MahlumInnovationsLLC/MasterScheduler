@@ -7036,5 +7036,101 @@ Response format:
     }
   });
 
+  // AI Cash Flow Insights API
+  app.post("/api/ai/cash-flow-insights", simpleAuth, async (req, res) => {
+    try {
+      const { cashFlowData, period, timeframe } = req.body;
+      
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(503).json({ 
+          message: "AI insights unavailable - OpenAI API key not configured",
+          insights: []
+        });
+      }
+
+      // Import OpenAI
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      // Prepare data summary for AI analysis
+      const dataSummary = {
+        period,
+        timeframe,
+        totalPeriods: cashFlowData.length,
+        summary: {
+          totalOutstanding: cashFlowData.reduce((sum: number, d: any) => sum + (d.outstanding || 0), 0),
+          totalInvoiced: cashFlowData.reduce((sum: number, d: any) => sum + (d.invoiced || 0), 0),
+          totalPaid: cashFlowData.reduce((sum: number, d: any) => sum + (d.paid || 0), 0),
+          totalProjected: cashFlowData.reduce((sum: number, d: any) => sum + (d.projected || 0), 0)
+        },
+        trends: cashFlowData.map((d: any, i: number) => ({
+          period: d.period,
+          outstanding: d.outstanding || 0,
+          invoiced: d.invoiced || 0,
+          paid: d.paid || 0,
+          projected: d.projected || 0
+        }))
+      };
+
+      const prompt = `Analyze this manufacturing company's cash flow data and provide actionable insights:
+
+DATA ANALYSIS:
+- Time Period: ${period} (${timeframe})
+- Total Periods: ${dataSummary.totalPeriods}
+- Summary:
+  ${timeframe === 'historical' ? `
+  - Total Paid: $${dataSummary.summary.totalPaid.toLocaleString()}
+  - Total Invoiced: $${dataSummary.summary.totalInvoiced.toLocaleString()}
+  - Total Outstanding: $${dataSummary.summary.totalOutstanding.toLocaleString()}
+  ` : `
+  - Total Projected: $${dataSummary.summary.totalProjected.toLocaleString()}
+  - Already Invoiced: $${dataSummary.summary.totalInvoiced.toLocaleString()}
+  `}
+
+PERIOD BREAKDOWN:
+${dataSummary.trends.map(t => 
+  timeframe === 'historical' 
+    ? `${t.period}: Paid $${t.paid.toLocaleString()}, Invoiced $${t.invoiced.toLocaleString()}, Outstanding $${t.outstanding.toLocaleString()}`
+    : `${t.period}: Projected $${t.projected.toLocaleString()}, Invoiced $${t.invoiced.toLocaleString()}`
+).join('\n')}
+
+Please provide 3-5 specific, actionable insights about this cash flow data. Focus on:
+- Trends and patterns
+- Risk assessment
+- Cash flow optimization opportunities
+- Timing and seasonal effects
+- Working capital management
+
+Return JSON with insights array containing objects with: type ('positive', 'negative', 'warning', 'neutral'), title, description, impact ('high', 'medium', 'low').`;
+
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a financial analyst specializing in manufacturing cash flow analysis. Provide practical, actionable insights based on billing milestone data. Return only valid JSON."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 1000
+      });
+
+      const aiResponse = JSON.parse(response.choices[0].message.content || '{"insights": []}');
+      
+      res.json(aiResponse);
+    } catch (error) {
+      console.error("Error generating AI insights:", error);
+      res.status(500).json({ 
+        message: "Error generating AI insights",
+        insights: []
+      });
+    }
+  });
+
   return httpServer;
 }
