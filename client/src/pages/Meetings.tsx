@@ -16,6 +16,8 @@ import CreateMeetingDialog from "@/components/meetings/CreateMeetingDialog";
 import CCBManagementSystem from "@/components/CCBManagementSystem";
 import CCBRequestDialog from "@/components/CCBRequestDialog";
 import { format } from "date-fns";
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { meetingsHelpContent } from "@/data/moduleHelpContent";
 
 interface Project {
   id: number;
@@ -827,6 +829,10 @@ export default function Meetings() {
             Meeting management, Tier III project readiness, and Tier IV critical issues
           </p>
         </div>
+        <ModuleHelpButton 
+          moduleId="meetings" 
+          helpContent={meetingsHelpContent}
+        />
       </div>
 
       {/* Main Tabs */}

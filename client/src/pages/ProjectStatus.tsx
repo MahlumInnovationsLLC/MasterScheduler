@@ -79,6 +79,8 @@ import { Project, delayResponsibilityEnum } from '@shared/schema';
 import { useProjectLabelStats } from '@/hooks/use-project-label-stats';
 import { DeliveryDialog } from '../components/DeliveryDialog';
 import { exportProjectsToExcel } from '@/lib/excel-export';
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { projectsHelpContent } from "@/data/moduleHelpContent";
 
 // Extend Project type to ensure rawData is included
 interface ProjectWithRawData extends Project {
@@ -2276,6 +2278,11 @@ const ProjectStatus = () => {
             <Plus className="mr-2 h-4 w-4" />
             New Project
           </Button>
+
+          <ModuleHelpButton 
+            moduleId="projects" 
+            helpContent={projectsHelpContent}
+          />
         </div>
       </div>
 

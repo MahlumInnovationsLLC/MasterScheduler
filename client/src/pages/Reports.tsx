@@ -49,6 +49,8 @@ import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Project, BillingMilestone, ManufacturingSchedule } from '@shared/schema';
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { reportsHelpContent } from "@/data/moduleHelpContent";
 
 const ReportsPage = () => {
   const { isAuthenticated } = useAuth();
@@ -765,6 +767,10 @@ const ReportsPage = () => {
     <div className="container mx-auto py-6 max-w-7xl px-4 sm:px-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Reports & Analytics</h1>
+        <ModuleHelpButton 
+          moduleId="reports" 
+          helpContent={reportsHelpContent}
+        />
       </div>
 
       {isLoading && (

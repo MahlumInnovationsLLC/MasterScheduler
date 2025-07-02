@@ -28,6 +28,8 @@ import {
 import { formatDate, checkScheduleConflict } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import { addDays, subDays, format, addMonths } from 'date-fns';
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { manufacturingHelpContent } from "@/data/moduleHelpContent";
 
 const ManufacturingBay = () => {
   const [startDate, setStartDate] = useState(subDays(new Date(), 3));
@@ -231,6 +233,10 @@ const ManufacturingBay = () => {
         </div>
         
         <div className="flex items-center gap-3">
+          <ModuleHelpButton 
+            moduleId="manufacturing" 
+            helpContent={manufacturingHelpContent}
+          />
           <AIInsightsModal />
           <Button variant="outline" size="sm">
             <Filter className="mr-2 h-4 w-4" />

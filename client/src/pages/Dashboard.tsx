@@ -45,6 +45,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { dashboardHelpContent } from "@/data/moduleHelpContent";
 
 const Dashboard = () => {
   // Authentication checks must be done first before any other hooks
@@ -998,6 +1000,10 @@ const Dashboard = () => {
           <h1 className="text-2xl font-sans font-bold">Dashboard</h1>
           <p className="text-gray-400 text-sm">Overview of project status, billing, and manufacturing</p>
         </div>
+        <ModuleHelpButton 
+          moduleId="dashboard" 
+          helpContent={dashboardHelpContent}
+        />
       </div>
 
       {/* Stats Cards Row */}

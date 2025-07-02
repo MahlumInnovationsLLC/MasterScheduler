@@ -112,6 +112,8 @@ import {
   ManufacturingSchedule, 
   Project 
 } from '@shared/schema';
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { baySchedulingHelpContent } from "@/data/moduleHelpContent";
 
 const BaySchedulingPage = () => {
   const { toast } = useToast();
@@ -1381,6 +1383,10 @@ const BaySchedulingPage = () => {
           </div>
           <div className="flex gap-2">
             {/* Team 7 and Team 8 buttons removed as requested */}
+            <ModuleHelpButton 
+              moduleId="bay-scheduling" 
+              helpContent={baySchedulingHelpContent}
+            />
           </div>
         </div>
       </div>
