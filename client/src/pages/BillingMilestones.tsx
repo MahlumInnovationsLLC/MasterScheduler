@@ -26,6 +26,7 @@ import { BillingStatusCard } from '@/components/BillingStatusCard';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import { ModuleHelpButton } from '@/components/ModuleHelpButton';
+import { billingHelpContent } from '@/data/moduleHelpContent';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1389,7 +1390,7 @@ const BillingMilestones = () => {
             <h1 className="text-2xl font-sans font-bold">Billing Milestones</h1>
             <p className="text-gray-400 text-sm">Manage and track billing milestones and revenue forecasts</p>
           </div>
-          <ModuleHelpButton moduleId="billing" />
+          <ModuleHelpButton moduleId="billing" helpContent={billingHelpContent} />
         </div>
 
         <div className="flex items-center gap-3">
