@@ -223,6 +223,7 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Future/TBD category includes both milestones beyond 30 days (93) and milestones without dates assigned (1)
   - Enhanced BillingStatusCard component with blue theming for the new Future/TBD category
   - Milestone breakdown now provides clear action priorities: 134 total open milestones requiring attention, with 38 needing immediate focus
+  - Removed Revenue Summary widget from top of Billing Milestones page for cleaner UI design
 
 ## User Preferences
 

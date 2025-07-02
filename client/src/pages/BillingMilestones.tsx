@@ -1509,16 +1509,7 @@ const BillingMilestones = () => {
           ]}
         />
 
-        {/* Placeholder for consistency - replaced by enhanced widget below */}
-        <BillingStatusCard 
-          title="Revenue Summary"
-          value={formatCurrency(billingStats?.amounts.total || 0)}
-          type="cashflow"
-          stats={[
-            { label: "Outstanding", value: formatCurrency(billingStats?.amounts.pending || 0) },
-            { label: "Total Revenue", value: formatCurrency(billingStats?.amounts.total || 0) }
-          ]}
-        />
+
       </div>
 
       {/* Enhanced Cash Flow Analysis (Full Width) */}
