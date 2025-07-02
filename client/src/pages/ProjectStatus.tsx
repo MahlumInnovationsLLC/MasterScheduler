@@ -2354,7 +2354,7 @@ const ProjectStatus = () => {
           data={filteredProjects as ProjectWithRawData[]}
           filterColumn="status"
           filterOptions={statusOptions}
-          searchPlaceholder="Search projects..."
+          searchPlaceholder="Search by project number, name, PM owner, location, status..."
           frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
           enableSorting={true} // Always enable sorting on all columns
           initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)

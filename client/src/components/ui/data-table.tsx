@@ -139,6 +139,53 @@ export function DataTable<TData, TValue>({
   // Remove 'timeline' column if it exists
   const filteredColumns = columnsWithSorting.filter(col => col.id !== 'timeline');
 
+  // Custom global filter function for enhanced text searching
+  const globalFilterFn = React.useCallback((row: any, columnId: string, value: string) => {
+    if (!value) return true;
+    
+    const searchValue = value.toLowerCase().trim();
+    
+    // Define searchable fields for text-based filtering
+    const searchableFields = [
+      'projectNumber',
+      'name', 
+      'description',
+      'pmOwner',
+      'status',
+      'customer',
+      'team',
+      'notes',
+      'location'
+    ];
+    
+    // Search across all defined searchable fields
+    for (const field of searchableFields) {
+      const fieldValue = row.getValue(field);
+      if (fieldValue && typeof fieldValue === 'string') {
+        if (fieldValue.toLowerCase().includes(searchValue)) {
+          return true;
+        }
+      }
+    }
+    
+    // Also search in original data for additional fields
+    const original = row.original;
+    if (original) {
+      // Check common text fields that might exist in the data
+      const additionalFields = ['customer', 'team', 'assignedTo', 'department'];
+      for (const field of additionalFields) {
+        const fieldValue = original[field];
+        if (fieldValue && typeof fieldValue === 'string') {
+          if (fieldValue.toLowerCase().includes(searchValue)) {
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
+  }, []);
+
   const table = useReactTable({
     data,
     columns: filteredColumns,
@@ -193,6 +240,7 @@ export function DataTable<TData, TValue>({
     },
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: globalFilterFn,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
