@@ -351,6 +351,12 @@ const BillingMilestones = () => {
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
       return targetDate >= new Date() && targetDate <= thirtyDaysFromNow;
     }).length;
+    
+    // Add count for milestones without dates (TBD)
+    const upcomingTBD = allBillingMilestones.filter((m: any) => {
+      // Only count milestones that don't have target invoice dates and are not completed
+      return !m.targetInvoiceDate && m.status !== 'paid' && m.status !== 'invoiced' && m.status !== 'billed';
+    }).length;
 
     // Calculate amounts using allBillingMilestones with proper typing
     const totalReceived = allBillingMilestones
@@ -680,7 +686,8 @@ const BillingMilestones = () => {
       milestones: {
         invoicedAndBilled,
         overdue,
-        upcoming
+        upcoming,
+        upcomingTBD
       },
       amounts: {
         received: totalReceived,
@@ -1485,7 +1492,8 @@ const BillingMilestones = () => {
           stats={[
             { label: "Invoiced/Billed", value: billingStats?.milestones.invoicedAndBilled || 0 },
             { label: "Overdue", value: billingStats?.milestones.overdue || 0 },
-            { label: "Upcoming", value: billingStats?.milestones.upcoming || 0 }
+            { label: "Upcoming", value: billingStats?.milestones.upcoming || 0 },
+            { label: "Upcoming/TBD", value: billingStats?.milestones.upcomingTBD || 0 }
           ]}
         />
 

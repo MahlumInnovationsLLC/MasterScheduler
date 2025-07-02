@@ -453,6 +453,7 @@ export function BillingStatusCard({
                   index === 0 ? 'bg-success bg-opacity-10' : 
                   index === 1 ? 'bg-warning bg-opacity-10' : 
                   index === 2 ? 'bg-danger bg-opacity-10' : 
+                  index === 3 ? 'bg-blue-600 bg-opacity-10' :
                   'bg-gray-700 bg-opacity-30'
                 )
               }`}
@@ -462,6 +463,7 @@ export function BillingStatusCard({
                 index === 0 ? 'text-green-400' : 
                 index === 1 ? 'text-amber-400' : 
                 index === 2 ? 'text-rose-400' : 
+                index === 3 ? 'text-blue-400' :
                 'text-gray-400'
               }`}>
                 {stat.label}
