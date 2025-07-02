@@ -123,14 +123,14 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                {helpContent.icon}
+                {actualHelpContent.icon}
               </div>
               <div>
                 <DialogTitle className="text-xl font-bold text-blue-900 dark:text-blue-100">
-                  {helpContent.title} - Help Guide
+                  {actualHelpContent.title} - Help Guide
                 </DialogTitle>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                  {helpContent.description}
+                  {actualHelpContent.description}
                 </p>
               </div>
             </div>
@@ -169,7 +169,7 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
                 </CardHeader>
                 <CardContent>
                   <ol className="space-y-2">
-                    {helpContent.quickStart.map((step, index) => (
+                    {actualHelpContent.quickStart.map((step, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <div className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
                           {index + 1}
