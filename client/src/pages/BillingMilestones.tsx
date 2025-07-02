@@ -42,6 +42,7 @@ import {
 import { formatDate, formatCurrency, getBillingStatusInfo, getFiscalWeeksForMonth } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import BillingMilestoneForm from '@/components/BillingMilestoneForm';
+import { ModuleHelpButton } from '@/components/ModuleHelpButton';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
@@ -1384,7 +1385,10 @@ const BillingMilestones = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-sans font-bold">Billing Milestones</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-sans font-bold">Billing Milestones</h1>
+            <ModuleHelpButton moduleId="billing" />
+          </div>
           <p className="text-gray-400 text-sm">Manage and track billing milestones and revenue forecasts</p>
         </div>
 

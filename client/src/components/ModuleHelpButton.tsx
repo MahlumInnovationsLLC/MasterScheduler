@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { moduleHelpRegistry } from '@/data/moduleHelpContent';
 import { 
   Collapsible,
   CollapsibleContent,
@@ -54,7 +55,7 @@ export interface ModuleHelpContent {
 
 interface ModuleHelpButtonProps {
   moduleId: string;
-  helpContent: ModuleHelpContent;
+  helpContent?: ModuleHelpContent;
   className?: string;
 }
 
@@ -66,6 +67,15 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  // Get help content from props or registry
+  const actualHelpContent = helpContent || (moduleHelpRegistry as any)[moduleId];
+
+  // Return null if no help content is available
+  if (!actualHelpContent) {
+    console.warn(`Help content not found for module: ${moduleId}`);
+    return null;
+  }
 
   const toggleSection = (sectionTitle: string) => {
     const newExpanded = new Set(expandedSections);
@@ -83,13 +93,13 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
            title.toLowerCase().includes(searchTerm.toLowerCase());
   };
 
-  const filteredSections = helpContent.sections.filter(section => 
+  const filteredSections = actualHelpContent.sections?.filter(section => 
     filterContent(section.content, section.title) ||
     section.subsections?.some(sub => 
       filterContent(sub.content, sub.title) ||
       sub.steps?.some(step => filterContent(step, ''))
     )
-  );
+  ) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -237,7 +247,7 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
               </div>
 
               {/* Tips Section */}
-              {helpContent.tips.length > 0 && (
+              {actualHelpContent.tips && actualHelpContent.tips.length > 0 && (
                 <>
                   <Separator />
                   <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
@@ -249,7 +259,7 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2">
-                        {helpContent.tips.map((tip, index) => (
+                        {actualHelpContent.tips?.map((tip, index) => (
                           <li key={index} className="flex items-start gap-2">
                             <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
                             <span className="text-amber-800 dark:text-amber-200">{tip}</span>
@@ -262,7 +272,7 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
               )}
 
               {/* Troubleshooting Section */}
-              {helpContent.troubleshooting.length > 0 && (
+              {actualHelpContent.troubleshooting && actualHelpContent.troubleshooting.length > 0 && (
                 <>
                   <Separator />
                   <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
@@ -277,7 +287,7 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {helpContent.troubleshooting.map((item, index) => (
+                        {actualHelpContent.troubleshooting?.map((item, index) => (
                           <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4">
                             <h4 className="font-medium text-red-900 dark:text-red-100 mb-1">
                               Problem: {item.issue}
