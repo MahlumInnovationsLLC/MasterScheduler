@@ -202,7 +202,7 @@ export default function Meetings() {
 
   // Mutation for updating FAB progress
   const updateFabProgress = useMutation({
-    mutationFn: async ({ projectId, fabProgress }: { projectId: number; fabProgress: number }) => {
+    mutationFn: async ({ projectId, fabProgress }: { projectId: number; fabProgress: number | null }) => {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: {
@@ -561,7 +561,7 @@ export default function Meetings() {
   };
 
   // Handler for updating FAB progress via drag
-  const handleFabProgressUpdate = (project: any, newProgress: number) => {
+  const handleFabProgressUpdate = (project: any, newProgress: number | null) => {
     updateFabProgress.mutate({
       projectId: project.id,
       fabProgress: newProgress
@@ -1906,7 +1906,7 @@ export default function Meetings() {
                                   size="sm"
                                   variant="ghost"
                                   className="text-xs h-6 px-2 text-blue-600 hover:text-blue-800"
-                                  onClick={() => handleFabProgressUpdate(project, null as any)}
+                                  onClick={() => updateFabProgress.mutate({ projectId: project.id, fabProgress: null })}
                                 >
                                   Reset to Auto ({calculateDefaultFabProgress(project)}%)
                                 </Button>

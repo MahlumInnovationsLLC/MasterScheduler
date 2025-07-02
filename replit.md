@@ -200,6 +200,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - FAB notes only appear when projects are actively in fabrication phase (between FAB start and assembly start dates)
   - Enhanced Meetings module with dedicated state management and API mutations for FAB notes
   - FAB notes are visually distinguished with blue theming and clearly labeled as FAB-specific content
+- July 02, 2025: Draggable FAB Progress Bar Implementation
+  - Added fab_progress field to projects database schema for storing user-adjusted progress values
+  - Implemented fully interactive draggable progress bar for FAB projects in Tier III Sub Tab
+  - Progress defaults to date-based calculation but allows manual adjustment via clicking or dragging
+  - Added visual indicators to distinguish custom progress from auto-calculated progress
+  - Included reset functionality to return to automatic date-based progress calculation
+  - Enhanced user experience with hover tooltips and visual feedback during interaction
+  - Progress bars show "(Custom)" indicator when user has manually adjusted the progress
 
 ## User Preferences
 
