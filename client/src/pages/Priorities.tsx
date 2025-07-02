@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { GripVertical, Plus, Calendar, DollarSign, TrendingUp, Archive, Search } from 'lucide-react';
+import { ModuleHelpButton } from '@/components/ModuleHelpButton';
+import { prioritiesHelpContent } from '@/data/moduleHelpContent';
 
 interface BillingMilestone {
   id: number;
@@ -411,11 +413,14 @@ export default function Priorities() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl font-bold">Project Priorities</CardTitle>
-              <p className="text-gray-600 mt-1">
-                Manage project priorities with drag-and-drop ordering. View billing milestones and project progress.
-              </p>
+            <div className="flex items-center gap-3">
+              <div>
+                <CardTitle className="text-2xl font-bold">Project Priorities</CardTitle>
+                <p className="text-gray-600 mt-1">
+                  Manage project priorities with drag-and-drop ordering. View billing milestones and project progress.
+                </p>
+              </div>
+              <ModuleHelpButton moduleId="priorities" helpContent={prioritiesHelpContent} />
             </div>
             <Button
               onClick={handleAddNewPriority}

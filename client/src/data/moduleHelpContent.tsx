@@ -1257,6 +1257,205 @@ export const exportDataHelpContent: ModuleHelpContent = {
   ]
 };
 
+// Calendar Help Content
+export const calendarHelpContent: ModuleHelpContent = {
+  title: "Calendar",
+  description: "Schedule and manage project timelines, meetings, and important dates",
+  icon: <Calendar className="h-5 w-5 text-purple-600" />,
+  quickStart: [
+    "View project schedules and key milestones in a calendar format",
+    "Schedule meetings and project reviews with team members",
+    "Track important deadlines and delivery dates",
+    "Coordinate manufacturing bay schedules with project timelines"
+  ],
+  sections: [
+    {
+      title: "Calendar View",
+      icon: <Calendar className="h-4 w-4" />,
+      content: "Visual timeline management for projects, meetings, and manufacturing schedules with drag-and-drop functionality.",
+      subsections: [
+        {
+          title: "View Options",
+          content: "Different calendar display modes:",
+          steps: [
+            "Month view: Complete overview of all events and deadlines",
+            "Week view: Detailed daily schedule with hourly breakdowns",
+            "Day view: Focus on specific dates with detailed scheduling",
+            "Agenda view: List format showing upcoming events chronologically"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Event Management",
+      icon: <Plus className="h-4 w-4" />,
+      content: "Create and manage meetings, project milestones, and manufacturing deadlines with automated notifications."
+    }
+  ],
+  workflows: [
+    {
+      title: "Weekly Schedule Review",
+      steps: [
+        "Open calendar in week view for the upcoming week",
+        "Review all scheduled meetings and project deadlines",
+        "Check for scheduling conflicts and resource availability",
+        "Add new meetings or adjust existing schedules as needed",
+        "Send calendar updates to relevant team members"
+      ]
+    }
+  ],
+  tips: [
+    "Use color coding to differentiate between project types and priorities",
+    "Set reminder notifications for critical deadlines and meetings",
+    "Sync calendar with manufacturing bay schedules for better coordination"
+  ],
+  troubleshooting: [
+    {
+      issue: "Calendar events not displaying correctly",
+      solution: "Refresh the page and verify your time zone settings in user preferences."
+    },
+    {
+      issue: "Unable to schedule meetings",
+      solution: "Check that you have appropriate permissions and all required attendees are available."
+    }
+  ]
+};
+
+// Priorities Help Content
+export const prioritiesHelpContent: ModuleHelpContent = {
+  title: "Priorities",
+  description: "Manage project priorities and urgent task assignments",
+  icon: <Target className="h-5 w-5 text-red-600" />,
+  quickStart: [
+    "Set and adjust project priority levels based on urgency and impact",
+    "Track high-priority tasks requiring immediate attention",
+    "Manage priority access permissions for different user roles",
+    "Monitor priority changes and their impact on schedules"
+  ],
+  sections: [
+    {
+      title: "Priority Management",
+      icon: <Target className="h-4 w-4" />,
+      content: "Systematic approach to prioritizing projects and tasks based on business impact, deadlines, and resource availability.",
+      subsections: [
+        {
+          title: "Priority Levels",
+          content: "Standard priority classification system:",
+          steps: [
+            "Critical: Immediate action required, significant business impact",
+            "High: Important projects with tight deadlines",
+            "Medium: Standard priority projects with normal timelines",
+            "Low: Non-urgent projects that can be deferred if needed"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Access Control",
+      icon: <Shield className="h-4 w-4" />,
+      content: "Manage who can view and modify priority-sensitive projects based on role permissions and departmental access."
+    }
+  ],
+  workflows: [
+    {
+      title: "Priority Assessment",
+      steps: [
+        "Review all active projects and their current status",
+        "Assess business impact and customer requirements",
+        "Evaluate resource availability and schedule constraints",
+        "Assign appropriate priority levels to each project",
+        "Communicate priority changes to affected teams"
+      ]
+    }
+  ],
+  tips: [
+    "Regularly review and update priorities based on changing business needs",
+    "Consider both deadline urgency and strategic business value when setting priorities",
+    "Use priority filters to focus on the most critical tasks first"
+  ],
+  troubleshooting: [
+    {
+      issue: "Cannot access priority management features",
+      solution: "Verify you have appropriate user permissions. Contact your administrator if access is needed."
+    },
+    {
+      issue: "Priority changes not reflected in project views",
+      solution: "Refresh the page or clear browser cache. Priority updates may take a few moments to sync."
+    }
+  ]
+};
+
+// Quality Assurance Help Content
+export const qualityAssuranceHelpContent: ModuleHelpContent = {
+  title: "Quality Assurance",
+  description: "Manage quality control processes, non-conformance reports, and corrective actions",
+  icon: <CheckSquare className="h-5 w-5 text-green-600" />,
+  quickStart: [
+    "Create and track non-conformance reports (NCRs) for quality issues",
+    "Manage corrective and preventive actions (CAPA) for process improvements",
+    "Monitor quality metrics and compliance standards across projects",
+    "Generate quality reports and audit documentation"
+  ],
+  sections: [
+    {
+      title: "Non-Conformance Reports",
+      icon: <AlertTriangle className="h-4 w-4" />,
+      content: "Document and track quality issues through the complete resolution process with automated workflows.",
+      subsections: [
+        {
+          title: "NCR Process",
+          content: "Standard workflow for quality issue resolution:",
+          steps: [
+            "Identify and document the non-conformance issue",
+            "Assign responsibility and set resolution timeline",
+            "Implement corrective actions and verify effectiveness",
+            "Close NCR with approval and documentation",
+            "Follow up with preventive measures if needed"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Quality Metrics",
+      icon: <BarChart3 className="h-4 w-4" />,
+      content: "Track quality performance indicators, defect rates, and compliance metrics across all manufacturing processes."
+    },
+    {
+      title: "Corrective Actions",
+      icon: <Wrench className="h-4 w-4" />,
+      content: "Implement and monitor corrective and preventive actions to address root causes and prevent recurrence of quality issues."
+    }
+  ],
+  workflows: [
+    {
+      title: "Quality Issue Resolution",
+      steps: [
+        "Create NCR documenting the specific quality issue",
+        "Assign to appropriate team member for investigation",
+        "Analyze root cause and develop corrective action plan",
+        "Implement corrections and verify effectiveness",
+        "Document resolution and update quality metrics",
+        "Implement preventive measures to avoid recurrence"
+      ]
+    }
+  ],
+  tips: [
+    "Document all quality issues thoroughly with photos and detailed descriptions",
+    "Assign realistic timelines for corrective action completion",
+    "Follow up on completed actions to ensure long-term effectiveness"
+  ],
+  troubleshooting: [
+    {
+      issue: "Cannot create new NCR",
+      solution: "Verify you have quality assurance permissions and all required fields are completed."
+    },
+    {
+      issue: "Quality metrics not updating",
+      solution: "Ensure all NCRs are properly closed and verified. Contact system administrator if data sync issues persist."
+    }
+  ]
+};
+
 // Export all help content
 export const moduleHelpRegistry = {
   dashboard: dashboardHelpContent,
@@ -1273,5 +1472,8 @@ export const moduleHelpRegistry = {
   'material-management': materialManagementHelpContent,
   engineering: engineeringHelpContent,
   import: importDataHelpContent,
-  'export-reports': exportDataHelpContent
+  'export-reports': exportDataHelpContent,
+  calendar: calendarHelpContent,
+  priorities: prioritiesHelpContent,
+  'quality-assurance': qualityAssuranceHelpContent
 };

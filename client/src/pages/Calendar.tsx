@@ -55,6 +55,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Project, ManufacturingBay, ManufacturingSchedule } from '@shared/schema';
 import { queryClient } from '@/lib/queryClient';
+import { ModuleHelpButton } from '@/components/ModuleHelpButton';
+import { calendarHelpContent } from '@/data/moduleHelpContent';
 
 // Form validation schema
 const scheduleFormSchema = z.object({
@@ -548,7 +550,10 @@ const CalendarPage = () => {
       )}
       
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Production Calendar</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Production Calendar</h1>
+          <ModuleHelpButton moduleId="calendar" helpContent={calendarHelpContent} />
+        </div>
         
         <div className="flex items-center gap-3">
           <Select value={viewMode} onValueChange={(value: 'month' | 'list') => setViewMode(value)}>

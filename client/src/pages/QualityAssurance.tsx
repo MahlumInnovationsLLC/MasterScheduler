@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { qualityAssuranceHelpContent } from "@/data/moduleHelpContent";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -653,11 +655,14 @@ export default function QualityAssurance() {
     <div className="p-6 max-w-full mx-auto space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Quality Assurance Center</h1>
-          <p className="text-gray-600 mt-1">
-            Manage non-conformances, corrective actions, audits, and training
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold">Quality Assurance Center</h1>
+            <p className="text-gray-600 mt-1">
+              Manage non-conformances, corrective actions, audits, and training
+            </p>
+          </div>
+          <ModuleHelpButton moduleId="quality-assurance" helpContent={qualityAssuranceHelpContent} />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">

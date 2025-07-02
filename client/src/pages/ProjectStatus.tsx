@@ -2284,11 +2284,6 @@ const ProjectStatus = () => {
             <Plus className="mr-2 h-4 w-4" />
             New Project
           </Button>
-
-          <ModuleHelpButton 
-            moduleId="projects" 
-            helpContent={projectsHelpContent}
-          />
         </div>
       </div>
 
