@@ -408,21 +408,33 @@ export default function Meetings() {
   // Complete task mutation
   const completeTaskMutation = useMutation({
     mutationFn: async (task: any) => {
+      console.log('Completing task:', task.id);
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          ...task,
           isCompleted: true,
           completedDate: new Date().toISOString().split('T')[0]
         })
       });
-      if (!response.ok) throw new Error('Failed to complete task');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to complete task:', errorText);
+        throw new Error('Failed to complete task');
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       toast({ title: "Task completed successfully" });
+    },
+    onError: (error) => {
+      console.error('Task completion error:', error);
+      toast({ 
+        title: "Error completing task", 
+        description: "There was a problem completing the task. Please try again.",
+        variant: "destructive"
+      });
     }
   });
 

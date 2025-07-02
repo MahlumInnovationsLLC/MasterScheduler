@@ -3280,24 +3280,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taskId = parseInt(req.params.id);
       const updateData = { ...req.body };
       
+      console.log(`🔧 Updating task ${taskId} with data:`, JSON.stringify(updateData, null, 2));
+      console.log(`🔧 Request user:`, req.user?.id);
+      
       // If task is being marked as completed, track WHO and WHEN
       if (updateData.isCompleted === true) {
         updateData.completedByUserId = req.user.id;
         updateData.completedDate = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+        console.log(`🔧 Task being marked as completed by user ${req.user.id} on ${updateData.completedDate}`);
       } else if (updateData.isCompleted === false) {
         // If task is being unmarked as completed, clear completion tracking
         updateData.completedByUserId = null;
         updateData.completedDate = null;
+        console.log(`🔧 Task being unmarked as completed`);
       }
       
       const updatedTask = await storage.updateTask(taskId, updateData);
       if (!updatedTask) {
+        console.log(`❌ Task ${taskId} not found in database`);
         return res.status(404).json({ message: "Task not found" });
       }
+      
+      console.log(`✅ Task ${taskId} updated successfully:`, updatedTask);
       res.json(updatedTask);
     } catch (error) {
-      console.error("Error updating task:", error);
-      res.status(500).json({ message: "Error updating task" });
+      console.error("❌ Error updating task:", error);
+      if (error instanceof Error) {
+        console.error("Error details:", error.message, error.stack);
+      }
+      res.status(500).json({ 
+        message: "Error updating task",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
