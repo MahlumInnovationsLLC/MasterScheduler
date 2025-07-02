@@ -717,8 +717,7 @@ export async function importBillingMilestones(req: Request, res: Response) {
         // Status and Description - prioritize client-mapped status over raw Excel status
         const clientMappedStatus = rawMilestoneData['status']; // This comes from client-side mapBillingStatus function
         const rawExcelStatus = rawMilestoneData['Status']; // This is the raw Excel status
-        const status = clientMappedStatus || rawExcelStatus?.toLowerCase() || 'upcoming';
-        console.log(`🚨 SERVER STATUS DEBUG: Client mapped: "${clientMappedStatus}" | Raw Excel: "${rawExcelStatus}" -> Final: "${status}"`);
+        const status = clientMappedStatus || (rawExcelStatus ? rawExcelStatus.toLowerCase() : 'upcoming');
         const description = rawMilestoneData['Description'] || rawMilestoneData['description'] || rawMilestoneData['Notes'] || '';
         
         // Extract additional fields with flexible column name matching
@@ -972,22 +971,15 @@ export async function importBillingMilestones(req: Request, res: Response) {
         let validStatus: 'upcoming' | 'invoiced' | 'paid' | 'delayed' | 'billed' = 'upcoming';
         const statusLower = milestoneData.status.toLowerCase().trim().replace('.', '');
         
-        console.log(`🚨 STATUS VALIDATION DEBUG: Input: "${milestoneData.status}" -> Cleaned: "${statusLower}"`);
-        
-        if (statusLower === 'billed') {
-          validStatus = 'billed'; // Use 'billed' status for historical billing data from template
-          console.log(`✅ STATUS MAPPED TO: billed`);
+        // Trust the client-side mapped status if it's valid
+        if (['billed', 'invoiced', 'paid', 'delayed', 'upcoming'].includes(statusLower)) {
+          validStatus = statusLower as 'upcoming' | 'invoiced' | 'paid' | 'delayed' | 'billed';
         } else if (statusLower.includes('invoice')) {
           validStatus = 'invoiced';
-          console.log(`✅ STATUS MAPPED TO: invoiced`);
         } else if (statusLower.includes('paid') || statusLower.includes('payment')) {
           validStatus = 'paid';
-          console.log(`✅ STATUS MAPPED TO: paid`);
         } else if (statusLower.includes('delay') || statusLower.includes('late')) {
           validStatus = 'delayed';
-          console.log(`✅ STATUS MAPPED TO: delayed`);
-        } else {
-          console.log(`⚠️ STATUS DEFAULTED TO: upcoming`);
         }
         
         // Make sure the data matches our schema type with proper field names
