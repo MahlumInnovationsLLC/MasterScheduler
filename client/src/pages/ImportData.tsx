@@ -402,6 +402,7 @@ const ImportDataPage = () => {
         const paymentReceivedDate = parseExcelDate(row['Payment Received Date']);
         
         console.log(`Processing milestone: "${milestoneName}" for project: "${projectNumber}" with status: "${row['Status']}"`);
+        console.log(`Raw status from Excel: "${row['Status']}" -> Mapped status: "${mapBillingStatus(row['Status'] || 'upcoming')}"`);
         console.log(`Dates - Target: ${targetDateValue}, Actual Invoice: ${actualInvoiceDate}, Payment Received: ${paymentReceivedDate}`);
         
         return {
