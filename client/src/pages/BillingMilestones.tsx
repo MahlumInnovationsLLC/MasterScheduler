@@ -409,11 +409,28 @@ const BillingMilestones = () => {
 
     const total = allBillingMilestones.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    // Calculate period-based revenue
+    // Calculate period-based revenue for PAST periods (historical data)
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    
+    // Define past period boundaries
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    // Calculate last quarter (Q2 2025: April-June for current July 2025)
+    const currentQuarter = Math.floor(now.getMonth() / 3);
+    const lastQuarter = currentQuarter === 0 ? 3 : currentQuarter - 1;
+    const lastQuarterYear = currentQuarter === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const startOfLastQuarter = new Date(lastQuarterYear, lastQuarter * 3, 1);
+    const endOfLastQuarter = new Date(lastQuarterYear, (lastQuarter + 1) * 3, 0);
+    
+    // Year to date (January through current date)
     const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    console.log('=== REVENUE PERIODS DEBUG ===');
+    console.log('Current date:', now);
+    console.log('Last month:', lastMonth, 'to', endOfLastMonth);
+    console.log('Last quarter:', startOfLastQuarter, 'to', endOfLastQuarter);
+    console.log('YTD start:', startOfYear, 'to', now);
 
     // Calculate period-based revenue using same logic as Cash Flow widget (invoiced + billed statuses)
 
@@ -428,9 +445,11 @@ const BillingMilestones = () => {
         if (!dateToCheck) return false;
         
         const actualDate = new Date(dateToCheck);
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
         const isInPastMonth = actualDate >= lastMonth && actualDate <= endOfLastMonth;
+        
+        if (isInPastMonth) {
+          console.log(`Last month milestone: ${m.name}, amount: ${m.amount}, date: ${dateToCheck}`);
+        }
         
         return isInPastMonth;
       })
@@ -442,27 +461,30 @@ const BillingMilestones = () => {
         const isRevenueStatus = m.status === 'invoiced' || m.status === 'billed';
         if (!isRevenueStatus) return false;
         
-        // For quarterly calculation, prioritize target date for business logic
-        // If milestone is billed/invoiced with target date in quarter, include it
+        // For last quarter calculation, check if dates fall in last quarter period
         const targetDate = m.targetInvoiceDate;
         const actualDate = m.actualInvoiceDate;
         
         if (!targetDate && !actualDate) return false;
         
-        // Check if either target date or actual date falls in current quarter
-        let isInQuarter = false;
+        // Check if either target date or actual date falls in last quarter
+        let isInLastQuarter = false;
         
         if (targetDate) {
           const targetDateObj = new Date(targetDate);
-          isInQuarter = isInQuarter || targetDateObj >= startOfQuarter;
+          isInLastQuarter = isInLastQuarter || (targetDateObj >= startOfLastQuarter && targetDateObj <= endOfLastQuarter);
         }
         
         if (actualDate) {
           const actualDateObj = new Date(actualDate);
-          isInQuarter = isInQuarter || actualDateObj >= startOfQuarter;
+          isInLastQuarter = isInLastQuarter || (actualDateObj >= startOfLastQuarter && actualDateObj <= endOfLastQuarter);
         }
         
-        return isInQuarter;
+        if (isInLastQuarter) {
+          console.log(`Last quarter milestone: ${m.name}, amount: ${m.amount}, target: ${targetDate}, actual: ${actualDate}`);
+        }
+        
+        return isInLastQuarter;
       })
       .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
@@ -477,16 +499,16 @@ const BillingMilestones = () => {
         if (!dateToCheck) return false;
         
         const actualDate = new Date(dateToCheck);
-        const isInYTD = actualDate >= startOfYear;
+        const isInYear = actualDate >= startOfYear && actualDate < now;
         
-        return isInYTD;
+        return isInYear;
       })
       .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
       
     console.log('Revenue totals calculated:');
-    console.log('  Past Month:', pastMonthRevenue);
-    console.log('  Quarter:', quarterRevenue);
-    console.log('  YTD:', ytdRevenue);
+    console.log('  Last Month (June 2025):', pastMonthRevenue);
+    console.log('  Last Quarter (Q2 2025: Apr-Jun):', quarterRevenue);
+    console.log('  YTD (Jan-Jun 2025):', ytdRevenue);
     console.log('=== END TOTAL REVENUE DEBUGGING ===');
 
     // Calculate YTD (year to date) change
