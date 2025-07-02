@@ -2056,9 +2056,15 @@ const ProjectStatus = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-sans font-bold">Project Status</h1>
-          <p className="text-gray-400 text-sm">Manage and track all your project timelines and progress</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-sans font-bold">Project Status</h1>
+            <p className="text-gray-400 text-sm">Manage and track all your project timelines and progress</p>
+          </div>
+          <ModuleHelpButton 
+            moduleId="projects" 
+            helpContent={projectsHelpContent}
+          />
         </div>
 
         <div className="flex items-center gap-3">

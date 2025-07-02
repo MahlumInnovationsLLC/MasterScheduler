@@ -823,16 +823,21 @@ export default function Meetings() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Meetings Dashboard</h1>
-          <p className="text-muted-foreground">
-            Meeting management, Tier III project readiness, and Tier IV critical issues
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Meetings Dashboard</h1>
+            <p className="text-muted-foreground">
+              Meeting management, Tier III project readiness, and Tier IV critical issues
+            </p>
+          </div>
+          <ModuleHelpButton 
+            moduleId="meetings" 
+            helpContent={meetingsHelpContent}
+          />
         </div>
-        <ModuleHelpButton 
-          moduleId="meetings" 
-          helpContent={meetingsHelpContent}
-        />
+        <div className="flex items-center gap-3">
+          {/* Future: Add meeting-specific actions here */}
+        </div>
       </div>
 
       {/* Main Tabs */}

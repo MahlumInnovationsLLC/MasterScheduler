@@ -996,14 +996,19 @@ const Dashboard = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-sans font-bold">Dashboard</h1>
-          <p className="text-gray-400 text-sm">Overview of project status, billing, and manufacturing</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-sans font-bold">Dashboard</h1>
+            <p className="text-gray-400 text-sm">Overview of project status, billing, and manufacturing</p>
+          </div>
+          <ModuleHelpButton 
+            moduleId="dashboard" 
+            helpContent={dashboardHelpContent}
+          />
         </div>
-        <ModuleHelpButton 
-          moduleId="dashboard" 
-          helpContent={dashboardHelpContent}
-        />
+        <div className="flex items-center gap-3">
+          {/* Future: Add dashboard-specific actions here */}
+        </div>
       </div>
 
       {/* Stats Cards Row */}

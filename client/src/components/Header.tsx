@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { User as UserType } from '@shared/schema';
 import { NotificationBell } from '@/components/ui/notification/NotificationBell';
 import { MyTasks } from '@/components/MyTasks';
+import { HeaderHelpButton } from './HeaderHelpButton';
 
 const Header = () => {
   const { user, isLoading } = useAuth();
@@ -56,7 +57,8 @@ const Header = () => {
         </div>
         
         <div className="flex items-center gap-4">
-          {/* Always show theme toggle regardless of auth status */}
+          {/* Always show help and theme toggle regardless of auth status */}
+          <HeaderHelpButton />
           <ThemeToggle />
 
           {isAuthenticated ? (

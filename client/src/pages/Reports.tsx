@@ -766,11 +766,16 @@ const ReportsPage = () => {
   return (
     <div className="container mx-auto py-6 max-w-7xl px-4 sm:px-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-        <ModuleHelpButton 
-          moduleId="reports" 
-          helpContent={reportsHelpContent}
-        />
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Reports & Analytics</h1>
+          <ModuleHelpButton 
+            moduleId="reports" 
+            helpContent={reportsHelpContent}
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Future: Add report-specific actions here */}
+        </div>
       </div>
 
       {isLoading && (

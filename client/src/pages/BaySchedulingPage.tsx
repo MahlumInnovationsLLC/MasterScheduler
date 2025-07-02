@@ -1375,18 +1375,20 @@ const BaySchedulingPage = () => {
       
       <div className="flex flex-col gap-1 mb-6">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Bay Scheduling</h1>
-            <p className="text-muted-foreground">
-              Schedule and manage projects across manufacturing bays
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {/* Team 7 and Team 8 buttons removed as requested */}
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Bay Scheduling</h1>
+              <p className="text-muted-foreground">
+                Schedule and manage projects across manufacturing bays
+              </p>
+            </div>
             <ModuleHelpButton 
               moduleId="bay-scheduling" 
               helpContent={baySchedulingHelpContent}
             />
+          </div>
+          <div className="flex gap-2">
+            {/* Team 7 and Team 8 buttons removed as requested */}
           </div>
         </div>
       </div>
