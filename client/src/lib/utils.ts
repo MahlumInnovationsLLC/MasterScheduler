@@ -226,6 +226,12 @@ export function getBillingStatusInfo(
         display: 'Paid', 
         timeline: actualDate ? `Paid on ${formatDate(actualDate)}` : 'Payment received' 
       };
+    case 'billed':
+      return { 
+        color: 'bg-blue-600', 
+        display: 'Billed', 
+        timeline: actualDate ? `Billed on ${formatDate(actualDate)}` : 'Historical billing record' 
+      };
     case 'invoiced':
       // For invoiced, determine if it's overdue based on reference date
       if (differenceInDays(referenceDate, now) > 0) {
