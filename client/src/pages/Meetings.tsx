@@ -2281,7 +2281,7 @@ export default function Meetings() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="h-6 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                                      className="h-6 px-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-300 dark:border-blue-600"
                                       onClick={() => handleEditTask(task)}
                                     >
                                       <Edit className="h-3 w-3 mr-1" />
@@ -2290,7 +2290,7 @@ export default function Meetings() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="h-6 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                                      className="h-6 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:hover:bg-green-800/50 dark:text-green-300 dark:border-green-600"
                                       onClick={() => handleCompleteTask(task)}
                                       disabled={completeTaskMutation.isPending}
                                     >
