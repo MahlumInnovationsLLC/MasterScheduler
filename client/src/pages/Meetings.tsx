@@ -27,6 +27,9 @@ interface Project {
   status: string;
   location?: string;
   notes?: string;
+  fabNotes?: string;
+  fabricationStart?: string;
+  assemblyStart?: string;
 }
 
 interface Task {
