@@ -785,67 +785,11 @@ export const myTasksHelpContent: ModuleHelpContent = {
   ]
 };
 
-// Billing Milestones Help Content
-export const billingHelpContent: ModuleHelpContent = {
-  title: "Billing Milestones",
-  description: "Manage billing schedules, track revenue, and monitor financial milestones across all projects",
-  icon: <DollarSign className="h-5 w-5 text-green-600" />,
-  quickStart: [
-    "View upcoming milestones in the main dashboard with status indicators",
-    "Create new billing milestones using the 'New Milestone' button",
-    "Track revenue forecasts through monthly and weekly views",
-    "Mark milestones as invoiced or paid to update financial status"
-  ],
-  sections: [
-    {
-      title: "Milestone Management",
-      icon: <DollarSign className="h-4 w-4" />,
-      content: "Create, edit, and track billing milestones with detailed information including amounts, target dates, and payment status. Use the 'New Milestone' button to create milestones, then update their status by marking as invoiced or paid."
-    },
-    {
-      title: "Revenue Forecasting",
-      icon: <TrendingUp className="h-4 w-4" />,
-      content: "Track projected revenue through interactive charts and financial goals management across monthly and weekly periods. Click on chart periods to set financial goals and monitor performance against targets."
-    },
-    {
-      title: "Financial Analytics",
-      icon: <BarChart3 className="h-4 w-4" />,
-      content: "Analyze billing performance with comprehensive metrics including received, pending, overdue, and upcoming amounts. Status cards provide quick overview of financial health and cash flow."
-    }
-  ],
-  troubleshooting: [
-    {
-      issue: "Milestone not appearing in the list",
-      solution: "Check if you're viewing the correct tab (Open vs Invoiced). Use the filter options to ensure all milestones are visible."
-    },
-    {
-      issue: "Cannot mark milestone as invoiced",
-      solution: "Verify the milestone status is 'upcoming' and you have proper permissions. Only upcoming milestones can be marked as invoiced."
-    },
-    {
-      issue: "Revenue forecast not updating",
-      solution: "Refresh the page to reload financial data. Revenue calculations are based on milestone target dates and may need time to sync."
-    },
-    {
-      issue: "Missing project in milestone creation",
-      solution: "Ensure the project exists and is active. Only active projects appear in the project dropdown when creating milestones."
-    }
-  ],
-  tips: [
-    "Use the tab system to separate open milestones from completed ones",
-    "Set realistic target dates to maintain accurate revenue forecasts",
-    "Regularly update milestone statuses to keep financial reports current",
-    "Add detailed descriptions to milestones for better tracking and reporting",
-    "Monitor overdue milestones weekly to maintain healthy cash flow"
-  ]
-};
-
 // Export all help content - truncated for brevity but would include all modules
 export const moduleHelpRegistry = {
   dashboard: dashboardHelpContent,
   projects: projectsHelpContent,
   'bay-scheduling': baySchedulingHelpContent,
-  billing: billingHelpContent,
   meetings: meetingsHelpContent,
   manufacturing: manufacturingHelpContent,
   reports: reportsHelpContent,
