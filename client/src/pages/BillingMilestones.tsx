@@ -396,8 +396,15 @@ const BillingMilestones = () => {
 
     const pastMonthRevenue = billingMilestones
       .filter(m => {
-        if (m.status !== 'invoiced' || !m.actualInvoiceDate) return false;
-        const actualDate = new Date(m.actualInvoiceDate);
+        // Include invoiced, billed, and paid milestones as revenue
+        const isRevenueStatus = ['invoiced', 'billed', 'paid'].includes(m.status);
+        if (!isRevenueStatus) return false;
+        
+        // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
+        const dateToCheck = m.actualInvoiceDate || m.targetInvoiceDate;
+        if (!dateToCheck) return false;
+        
+        const actualDate = new Date(dateToCheck);
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
         return actualDate >= lastMonth && actualDate <= endOfLastMonth;
@@ -406,16 +413,30 @@ const BillingMilestones = () => {
 
     const quarterRevenue = billingMilestones
       .filter(m => {
-        if (m.status !== 'invoiced' || !m.actualInvoiceDate) return false;
-        const actualDate = new Date(m.actualInvoiceDate);
+        // Include invoiced, billed, and paid milestones as revenue
+        const isRevenueStatus = ['invoiced', 'billed', 'paid'].includes(m.status);
+        if (!isRevenueStatus) return false;
+        
+        // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
+        const dateToCheck = m.actualInvoiceDate || m.targetInvoiceDate;
+        if (!dateToCheck) return false;
+        
+        const actualDate = new Date(dateToCheck);
         return actualDate >= startOfQuarter;
       })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
     const ytdRevenue = billingMilestones
       .filter(m => {
-        if (m.status !== 'invoiced' || !m.actualInvoiceDate) return false;
-        const actualDate = new Date(m.actualInvoiceDate);
+        // Include invoiced, billed, and paid milestones as revenue
+        const isRevenueStatus = ['invoiced', 'billed', 'paid'].includes(m.status);
+        if (!isRevenueStatus) return false;
+        
+        // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
+        const dateToCheck = m.actualInvoiceDate || m.targetInvoiceDate;
+        if (!dateToCheck) return false;
+        
+        const actualDate = new Date(dateToCheck);
         return actualDate >= startOfYear;
       })
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
@@ -458,7 +479,7 @@ const BillingMilestones = () => {
         console.log(`  Month end: ${nextMonth.toISOString()}`);
       }
 
-      // Confirmed revenue (invoiced or overdue but not yet paid)
+      // Confirmed revenue (invoiced, billed, paid, or delayed milestones)
       const confirmedRevenue = billingMilestones
         .filter(m => {
           if (!m.targetInvoiceDate) return false;
@@ -470,11 +491,12 @@ const BillingMilestones = () => {
             if (isNaN(targetDate.getTime())) return false;
 
             const isInMonth = targetDate >= month && targetDate < nextMonth;
-            const isConfirmedStatus = m.status === 'invoiced' || m.status === 'delayed';
+            // Include more statuses as confirmed revenue
+            const isConfirmedStatus = ['invoiced', 'billed', 'paid', 'delayed'].includes(m.status);
 
             // Debug for months past May
             if (monthIdx > 4 && isInMonth && isConfirmedStatus) {
-              console.log(`  Found confirmed milestone in month ${monthIdx + 1}: ${m.name}, amount: ${m.amount}, date: ${m.targetInvoiceDate}`);
+              console.log(`  Found confirmed milestone in month ${monthIdx + 1}: ${m.name}, amount: ${m.amount}, date: ${m.targetInvoiceDate}, status: ${m.status}`);
             }
 
             return isInMonth && isConfirmedStatus;
@@ -571,10 +593,14 @@ const BillingMilestones = () => {
               return false;
             }
 
+            // Include revenue-generating statuses for weekly breakdown
+            const isRevenueStatus = ['invoiced', 'billed', 'paid', 'upcoming', 'delayed'].includes(m.status);
+            if (!isRevenueStatus) return false;
+
             // For debugging 
             if (monthIndex > 4) { // Only log for months after May
               if (milestoneDate >= week.startDate && milestoneDate <= week.endDate) {
-                console.log(`Month ${monthIndex + 1} (${month.toLocaleString('default', { month: 'short' })}), Week ${weekIdx + 1}: Found milestone ${m.name} with amount ${m.amount} on date ${m.targetInvoiceDate}`);
+                console.log(`Month ${monthIndex + 1} (${month.toLocaleString('default', { month: 'short' })}), Week ${weekIdx + 1}: Found milestone ${m.name} with amount ${m.amount} on date ${m.targetInvoiceDate}, status: ${m.status}`);
               }
             }
 

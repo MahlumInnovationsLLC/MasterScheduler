@@ -611,7 +611,7 @@ export function BillingStatusCard({
                         const targetDate = new Date(today.getFullYear(), today.getMonth() + idx, 1);
                         onMonthSelect(
                           targetDate.getFullYear(),
-                          targetDate.getMonth()
+                          targetDate.getMonth() + 1  // Fix: Add 1 to get correct month (1-12 instead of 0-11)
                         );
                         
                         // If onWeekSelect is provided, also select the first week of this month
