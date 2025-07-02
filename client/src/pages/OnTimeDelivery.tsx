@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -1130,7 +1131,10 @@ const OnTimeDeliveryPage: React.FC = () => {
     return (
       <div className="container p-6 mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">On Time Delivery Analytics</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">On Time Delivery Analytics</h1>
+            <ModuleHelpButton moduleId="on-time-delivery" />
+          </div>
         </div>
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertTriangle className="h-16 w-16 text-muted-foreground mb-4" />
@@ -1147,7 +1151,10 @@ const OnTimeDeliveryPage: React.FC = () => {
   return (
     <div className="container p-6 mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">On Time Delivery Analytics</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold">On Time Delivery Analytics</h1>
+          <ModuleHelpButton moduleId="on-time-delivery" />
+        </div>
         <div className="flex gap-4">
           <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
             <SelectTrigger className="w-40">

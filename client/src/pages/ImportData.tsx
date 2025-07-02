@@ -11,6 +11,8 @@ import { UploadCloud, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import BaySchedulingImport from "@/components/BaySchedulingImport";
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { importDataHelpContent } from "@/data/moduleHelpContent";
 
 // Helper function to convert Excel data with column headers
 const convertRowsWithHeaders = (
@@ -935,7 +937,10 @@ const ImportDataPage = () => {
   return (
     <div className="container mx-auto py-6 max-w-7xl px-4 sm:px-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Import Project Data</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Import Project Data</h1>
+          <ModuleHelpButton moduleId="import" helpContent={importDataHelpContent} />
+        </div>
       </div>
       
       <Card>

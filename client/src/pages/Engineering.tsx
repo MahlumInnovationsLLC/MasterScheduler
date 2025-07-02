@@ -38,6 +38,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
+import { ModuleHelpButton } from '@/components/ModuleHelpButton';
+import { engineeringHelpContent } from '@/data/moduleHelpContent';
 import { usePermissions } from '@/components/PermissionsManager';
 import { ShieldX } from 'lucide-react';
 
@@ -526,11 +528,14 @@ export default function Engineering() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Engineering Resource Planner</h1>
-          <p className="text-muted-foreground">
-            Manage engineering resources, track project assignments, and monitor benchmarks
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold">Engineering Resource Planner</h1>
+            <p className="text-muted-foreground">
+              Manage engineering resources, track project assignments, and monitor benchmarks
+            </p>
+          </div>
+          <ModuleHelpButton moduleId="engineering" helpContent={engineeringHelpContent} />
         </div>
       </div>
 

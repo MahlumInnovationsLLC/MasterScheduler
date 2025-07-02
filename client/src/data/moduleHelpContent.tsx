@@ -785,7 +785,479 @@ export const myTasksHelpContent: ModuleHelpContent = {
   ]
 };
 
-// Export all help content - truncated for brevity but would include all modules
+// Billing Milestones Help Content
+export const billingHelpContent: ModuleHelpContent = {
+  title: "Billing Milestones",
+  description: "Manage project billing milestones and track financial progress",
+  icon: <DollarSign className="h-5 w-5 text-green-600" />,
+  quickStart: [
+    "View all billing milestones across projects with status and amounts",
+    "Track invoice generation and payment status for each milestone",
+    "Filter milestones by status, date range, or project to focus on specific items",
+    "Generate financial reports and export billing data"
+  ],
+  sections: [
+    {
+      title: "Milestone Overview",
+      icon: <DollarSign className="h-4 w-4" />,
+      content: "Track all billing milestones with comprehensive financial status monitoring and payment tracking.",
+      subsections: [
+        {
+          title: "Milestone Status",
+          content: "Understanding different milestone states:",
+          steps: [
+            "Pending: Milestones not yet due or invoiced",
+            "Ready: Milestones ready for invoice generation",
+            "Invoiced: Invoices sent to customers",
+            "Paid: Completed milestones with payments received"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Financial Reporting",
+      icon: <BarChart3 className="h-4 w-4" />,
+      content: "Generate comprehensive financial reports and track revenue metrics across all projects."
+    }
+  ],
+  workflows: [
+    {
+      title: "Process Monthly Billing",
+      steps: [
+        "Review all milestones due for the current month",
+        "Verify milestone completion and deliverables",
+        "Generate invoices for ready milestones",
+        "Track payment status and follow up on overdue items",
+        "Export billing reports for accounting"
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Milestones not showing expected amounts",
+      solution: "Verify project billing configuration and milestone percentages. Check if project total amounts are correctly set."
+    },
+    {
+      issue: "Invoice generation failing",
+      solution: "Ensure all required project and customer information is complete. Check for missing billing addresses or terms."
+    }
+  ]
+};
+
+// On Time Delivery Help Content
+export const onTimeDeliveryHelpContent: ModuleHelpContent = {
+  title: "On Time Delivery",
+  description: "Monitor project delivery performance and schedule adherence",
+  icon: <Clock className="h-5 w-5 text-blue-600" />,
+  quickStart: [
+    "Track delivery performance across all active and completed projects",
+    "Identify projects at risk of schedule delays",
+    "Monitor phase handoff performance and timeline adherence",
+    "Generate delivery performance reports and analytics"
+  ],
+  sections: [
+    {
+      title: "Delivery Tracking",
+      icon: <Clock className="h-4 w-4" />,
+      content: "Monitor project delivery timelines and identify schedule risks with real-time tracking and alerts.",
+      subsections: [
+        {
+          title: "Schedule Status",
+          content: "Project delivery status indicators:",
+          steps: [
+            "On Time: Projects meeting scheduled delivery dates",
+            "At Risk: Projects showing potential for delays",
+            "Delayed: Projects past their scheduled delivery",
+            "Completed: Successfully delivered projects"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Performance Analytics",
+      icon: <TrendingUp className="h-4 w-4" />,
+      content: "Analyze delivery trends, identify bottlenecks, and track improvement over time."
+    }
+  ],
+  workflows: [
+    {
+      title: "Weekly Delivery Review",
+      steps: [
+        "Review all projects with upcoming delivery dates",
+        "Identify projects showing schedule risks",
+        "Coordinate with manufacturing teams on critical projects",
+        "Update delivery forecasts and customer communications",
+        "Generate weekly delivery status reports"
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Delivery dates not updating",
+      solution: "Ensure project schedules are properly maintained. Check manufacturing schedule updates and milestone completion."
+    },
+    {
+      issue: "Performance metrics showing incorrect data",
+      solution: "Verify project delivery dates are accurate and manufacturing schedules are up to date."
+    }
+  ]
+};
+
+// Delivered Projects Help Content
+export const deliveredProjectsHelpContent: ModuleHelpContent = {
+  title: "Delivered Projects",
+  description: "Review completed projects and analyze delivery performance",
+  icon: <CheckSquare className="h-5 w-5 text-green-600" />,
+  quickStart: [
+    "Browse all successfully delivered projects with completion details",
+    "Analyze delivery performance against original schedules",
+    "Review project outcomes and customer satisfaction metrics",
+    "Export delivery data for performance analysis"
+  ],
+  sections: [
+    {
+      title: "Project Archive",
+      icon: <Archive className="h-4 w-4" />,
+      content: "Complete record of delivered projects with detailed completion information and performance metrics.",
+      subsections: [
+        {
+          title: "Delivery Metrics",
+          content: "Key performance indicators for completed projects:",
+          steps: [
+            "Actual vs. Planned delivery dates",
+            "Manufacturing phase completion times",
+            "Quality metrics and customer satisfaction",
+            "Cost performance and profitability analysis"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Performance Analysis",
+      icon: <PieChart className="h-4 w-4" />,
+      content: "Analyze delivery trends and identify improvement opportunities through historical data review."
+    }
+  ],
+  workflows: [
+    {
+      title: "Monthly Delivery Review",
+      steps: [
+        "Filter projects delivered in the target month",
+        "Review delivery performance against schedules",
+        "Identify successful practices and areas for improvement",
+        "Generate monthly delivery performance reports",
+        "Share insights with manufacturing and project teams"
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Missing projects in delivered list",
+      solution: "Verify project status is properly set to 'Delivered' and delivery dates are recorded."
+    },
+    {
+      issue: "Performance metrics appear incorrect",
+      solution: "Check project timeline data and ensure all manufacturing phases have accurate completion dates."
+    }
+  ]
+};
+
+// Benchmarks Help Content
+export const benchmarksHelpContent: ModuleHelpContent = {
+  title: "Benchmarks",
+  description: "Track supply chain performance and vendor benchmarks",
+  icon: <Target className="h-5 w-5 text-purple-600" />,
+  quickStart: [
+    "Monitor vendor performance and supply chain metrics",
+    "Track delivery times, quality ratings, and cost performance",
+    "Compare suppliers and identify top performers",
+    "Generate supplier scorecards and performance reports"
+  ],
+  sections: [
+    {
+      title: "Vendor Performance",
+      icon: <Truck className="h-4 w-4" />,
+      content: "Comprehensive tracking of supplier performance across quality, delivery, and cost metrics.",
+      subsections: [
+        {
+          title: "Performance Metrics",
+          content: "Key supplier evaluation criteria:",
+          steps: [
+            "On-time delivery rates and reliability",
+            "Quality scores and defect rates",
+            "Cost competitiveness and pricing trends",
+            "Responsiveness and communication quality"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Supply Chain Analytics",
+      icon: <BarChart3 className="h-4 w-4" />,
+      content: "Analyze supply chain trends and identify optimization opportunities for cost and performance."
+    }
+  ],
+  workflows: [
+    {
+      title: "Quarterly Supplier Review",
+      steps: [
+        "Collect performance data for all active suppliers",
+        "Calculate benchmark scores and rankings",
+        "Identify top performers and underperformers",
+        "Generate supplier scorecards and feedback",
+        "Plan supplier development or replacement actions"
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Benchmark data not updating",
+      solution: "Ensure supplier performance data is being regularly recorded. Check data collection processes and automation."
+    },
+    {
+      issue: "Incomplete supplier comparisons",
+      solution: "Verify all suppliers have complete performance data. Update missing information for accurate benchmarking."
+    }
+  ]
+};
+
+// Material Management Help Content
+export const materialManagementHelpContent: ModuleHelpContent = {
+  title: "Material Management",
+  description: "Track inventory, materials, and supply chain operations",
+  icon: <Package className="h-5 w-5 text-orange-600" />,
+  quickStart: [
+    "Monitor inventory levels and material availability",
+    "Track material movements and job assignments",
+    "Manage material status through production phases",
+    "Generate inventory reports and material forecasts"
+  ],
+  sections: [
+    {
+      title: "Inventory Tracking",
+      icon: <Package className="h-4 w-4" />,
+      content: "Real-time visibility into material inventory with status tracking and availability monitoring.",
+      subsections: [
+        {
+          title: "Material Status",
+          content: "Different stages of material processing:",
+          steps: [
+            "IN QC: Materials undergoing quality inspection",
+            "IN WORK: Materials actively being processed",
+            "Inventory Job Cart: Materials prepared for projects",
+            "SHIPPED: Materials delivered to customers"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Supply Planning",
+      icon: <TrendingUp className="h-4 w-4" />,
+      content: "Forecast material needs and plan procurement based on production schedules and inventory levels."
+    }
+  ],
+  workflows: [
+    {
+      title: "Weekly Inventory Review",
+      steps: [
+        "Check inventory levels against minimum stock requirements",
+        "Review material movements and project assignments",
+        "Identify materials needed for upcoming projects",
+        "Generate purchase orders for low-stock items",
+        "Update material forecasts and planning data"
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Material status not updating",
+      solution: "Verify material movements are being properly recorded. Check system integrations and data entry processes."
+    },
+    {
+      issue: "Inventory counts don't match physical stock",
+      solution: "Perform cycle counts and reconcile discrepancies. Update system records to match physical inventory."
+    }
+  ]
+};
+
+// Engineering Help Content
+export const engineeringHelpContent: ModuleHelpContent = {
+  title: "Engineering Resource Planner",
+  description: "Manage engineering resources and project assignments",
+  icon: <Wrench className="h-5 w-5 text-blue-600" />,
+  quickStart: [
+    "View engineering team capacity and project assignments",
+    "Track engineering phase progress across projects",
+    "Manage resource allocation and workload balancing",
+    "Monitor engineering deliverables and timelines"
+  ],
+  sections: [
+    {
+      title: "Resource Planning",
+      icon: <Users className="h-4 w-4" />,
+      content: "Optimize engineering team assignments and track capacity utilization across all active projects.",
+      subsections: [
+        {
+          title: "Team Capacity",
+          content: "Engineering resource management:",
+          steps: [
+            "Monitor individual engineer workloads",
+            "Track project phase assignments",
+            "Identify resource conflicts and bottlenecks",
+            "Plan future resource needs"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Project Tracking",
+      icon: <ClipboardList className="h-4 w-4" />,
+      content: "Monitor engineering deliverables and ensure timely completion of design and development phases."
+    }
+  ],
+  workflows: [
+    {
+      title: "Resource Allocation Review",
+      steps: [
+        "Review current engineering assignments",
+        "Identify upcoming project requirements",
+        "Assess team capacity and availability",
+        "Reallocate resources to balance workloads",
+        "Update project timelines based on resource availability"
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Resource conflicts showing for same engineer",
+      solution: "Review project timelines and adjust assignments. Consider splitting tasks or adjusting schedules to resolve conflicts."
+    },
+    {
+      issue: "Team capacity calculations appear incorrect",
+      solution: "Verify engineer availability and project assignment data. Check for overlapping assignments or missing time allocations."
+    }
+  ]
+};
+
+// Import Data Help Content
+export const importDataHelpContent: ModuleHelpContent = {
+  title: "Import Data",
+  description: "Import project data and information from external sources",
+  icon: <Upload className="h-5 w-5 text-green-600" />,
+  quickStart: [
+    "Import project data from CSV and Excel files",
+    "Bulk upload manufacturing schedules and assignments",
+    "Import billing milestones and financial data",
+    "Validate imported data before system integration"
+  ],
+  sections: [
+    {
+      title: "Data Import",
+      icon: <Upload className="h-4 w-4" />,
+      content: "Bulk import capabilities for projects, schedules, and financial data with validation and error handling.",
+      subsections: [
+        {
+          title: "Import Types",
+          content: "Supported data import formats:",
+          steps: [
+            "Project data: Basic project information and details",
+            "Manufacturing schedules: Bay assignments and timelines",
+            "Billing milestones: Financial milestones and amounts",
+            "Team assignments: Resource allocation and responsibilities"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Data Validation",
+      icon: <Shield className="h-4 w-4" />,
+      content: "Comprehensive validation ensures data integrity and identifies errors before import completion."
+    }
+  ],
+  workflows: [
+    {
+      title: "Project Data Import",
+      steps: [
+        "Prepare data file using provided templates",
+        "Select appropriate import type and file",
+        "Review validation results and fix any errors",
+        "Confirm import and monitor processing status",
+        "Verify imported data accuracy in the system"
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Import failing with validation errors",
+      solution: "Review error messages and fix data formatting issues. Ensure all required fields are properly filled."
+    },
+    {
+      issue: "Imported data not appearing in system",
+      solution: "Check import status and logs. Verify data was successfully processed and refresh the relevant modules."
+    }
+  ]
+};
+
+// Export Data Help Content
+export const exportDataHelpContent: ModuleHelpContent = {
+  title: "Export Data",
+  description: "Export reports and data in various formats",
+  icon: <Download className="h-5 w-5 text-purple-600" />,
+  quickStart: [
+    "Export project data and reports in CSV, PDF, and Excel formats",
+    "Generate custom reports with filtered data",
+    "Schedule automated report generation and delivery",
+    "Share reports with stakeholders and team members"
+  ],
+  sections: [
+    {
+      title: "Report Generation",
+      icon: <FileText className="h-4 w-4" />,
+      content: "Comprehensive reporting capabilities with multiple export formats and customization options.",
+      subsections: [
+        {
+          title: "Export Formats",
+          content: "Available export options:",
+          steps: [
+            "CSV: Spreadsheet-compatible data for analysis",
+            "PDF: Professional reports for sharing",
+            "Excel: Advanced formatting and calculations",
+            "Word: Detailed documentation and reports"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Custom Reports",
+      icon: <Settings className="h-4 w-4" />,
+      content: "Create customized reports with specific data filters, date ranges, and formatting preferences."
+    }
+  ],
+  workflows: [
+    {
+      title: "Monthly Report Generation",
+      steps: [
+        "Select report type and data scope",
+        "Set date range and filter criteria",
+        "Choose export format and customization options",
+        "Generate report and review output",
+        "Distribute reports to relevant stakeholders"
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Export process taking too long",
+      solution: "Reduce data scope or date range. Consider breaking large exports into smaller batches."
+    },
+    {
+      issue: "Exported data missing information",
+      solution: "Check filter settings and ensure all required data is included in the export criteria."
+    }
+  ]
+};
+
+// Export all help content
 export const moduleHelpRegistry = {
   dashboard: dashboardHelpContent,
   projects: projectsHelpContent,
@@ -794,5 +1266,12 @@ export const moduleHelpRegistry = {
   manufacturing: manufacturingHelpContent,
   reports: reportsHelpContent,
   'my-tasks': myTasksHelpContent,
-  // Add other modules as needed
+  billing: billingHelpContent,
+  'on-time-delivery': onTimeDeliveryHelpContent,
+  'delivered-projects': deliveredProjectsHelpContent,
+  benchmarks: benchmarksHelpContent,
+  'material-management': materialManagementHelpContent,
+  engineering: engineeringHelpContent,
+  import: importDataHelpContent,
+  'export-reports': exportDataHelpContent
 };

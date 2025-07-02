@@ -27,6 +27,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/use-auth';
 import { Project, BillingMilestone, ManufacturingSchedule } from '@shared/schema';
+import { ModuleHelpButton } from '@/components/ModuleHelpButton';
+import { exportDataHelpContent } from '@/data/moduleHelpContent';
 
 // Define template types
 interface ReportTemplate {
@@ -667,9 +669,12 @@ const ExportReportsPage = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Export Reports</h1>
-            <p className="text-muted-foreground">Create and export custom reports with live data</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-2xl font-bold">Export Reports</h1>
+              <p className="text-muted-foreground">Create and export custom reports with live data</p>
+            </div>
+            <ModuleHelpButton moduleId="export" helpContent={exportDataHelpContent} />
           </div>
         </div>
 

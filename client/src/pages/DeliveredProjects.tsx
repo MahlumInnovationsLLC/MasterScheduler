@@ -16,6 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FocusPreservingInput, FocusPreservingTextarea, FocusPreservingNativeTextarea } from "@/components/FocusPreservingInput";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { deliveredProjectsHelpContent } from "@/data/moduleHelpContent";
 
 type DeliveredProject = {
   id: number;
@@ -756,6 +758,7 @@ const DeliveredProjects = () => {
             </Button>
           </Link>
           <h1 className="text-2xl font-bold tracking-tight">Delivered Projects</h1>
+          <ModuleHelpButton moduleId="delivered-projects" helpContent={deliveredProjectsHelpContent} />
         </div>
         <Button variant="outline" size="sm">
           <Download className="h-4 w-4 mr-2" />

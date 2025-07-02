@@ -9,6 +9,8 @@ import { apiRequest } from '@/lib/queryClient';
 import { Package, Search, Clock, CheckCircle, Truck, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Project, ManufacturingBay, ManufacturingSchedule } from '@shared/schema';
+import { ModuleHelpButton } from '@/components/ModuleHelpButton';
+import { materialManagementHelpContent } from '@/data/moduleHelpContent';
 
 interface TeamWithProjects {
   team: string;
@@ -205,6 +207,7 @@ const MaterialManagement = () => {
       <div className="flex items-center gap-3 mb-8">
         <Package className="h-8 w-8 text-blue-500" />
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Material Management</h1>
+        <ModuleHelpButton moduleId="material-management" helpContent={materialManagementHelpContent} />
       </div>
 
       {/* Description */}

@@ -6,6 +6,8 @@ import { format, parseISO, addWeeks, subWeeks, startOfWeek, endOfWeek, startOfMo
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ModuleHelpButton } from '@/components/ModuleHelpButton';
+import { benchmarksHelpContent } from '@/data/moduleHelpContent';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -1028,7 +1030,10 @@ const SupplyChain = () => {
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Multi-Department Benchmarks</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-2xl font-bold">Multi-Department Benchmarks</h1>
+          <ModuleHelpButton moduleId="benchmarks" helpContent={benchmarksHelpContent} />
+        </div>
         <p className="text-slate-600 dark:text-slate-400">
           Track and manage benchmarks across all departments including Supply Chain, Engineering, and more
         </p>
