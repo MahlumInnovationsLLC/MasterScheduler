@@ -29,6 +29,8 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { Link } from 'wouter';
 import { queryClient } from '@/lib/queryClient';
+import { ModuleHelpButton } from '@/components/ModuleHelpButton';
+import { myTasksHelpContent } from '@/data/moduleHelpContent';
 
 interface TaskItem {
   id: number;
@@ -264,11 +266,19 @@ const Tasks = () => {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">My Tasks</h1>
-        <p className="text-muted-foreground">
-          Manage all your assigned tasks across projects, meetings, and concerns
-        </p>
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">My Tasks</h1>
+            <p className="text-muted-foreground">
+              Manage all your assigned tasks across projects, meetings, and concerns
+            </p>
+          </div>
+          <ModuleHelpButton 
+            moduleId="my-tasks" 
+            helpContent={myTasksHelpContent}
+          />
+        </div>
       </div>
 
       {/* Filters and Search */}

@@ -653,6 +653,138 @@ export const reportsHelpContent: ModuleHelpContent = {
   ]
 };
 
+// My Tasks Help Content
+export const myTasksHelpContent: ModuleHelpContent = {
+  title: "My Tasks",
+  description: "Manage all your assigned tasks across projects, meetings, and concerns",
+  icon: <CheckSquare className="h-5 w-5 text-green-600" />,
+  quickStart: [
+    "View all your assigned tasks in one centralized location",
+    "Filter tasks by status, priority, or type to focus your work",
+    "Use the search bar to quickly find specific tasks",
+    "Click task cards to navigate directly to related projects or meetings"
+  ],
+  sections: [
+    {
+      title: "Task Dashboard",
+      icon: <CheckSquare className="h-4 w-4" />,
+      content: "Overview of all your assigned tasks with status tracking and organization.",
+      subsections: [
+        {
+          title: "Task Status Overview",
+          content: "Quick view of your task distribution:",
+          steps: [
+            "Total tasks shows your complete workload",
+            "Active tasks need immediate attention",
+            "Pending tasks are waiting to be started",
+            "In Progress shows your current work",
+            "Completed tasks track your accomplishments",
+            "Overdue tasks require urgent attention"
+          ]
+        },
+        {
+          title: "Task Types",
+          content: "Different categories of tasks you may be assigned:",
+          steps: [
+            "Project Tasks: Specific work items within manufacturing projects",
+            "Meeting Tasks: Action items and follow-ups from meetings",
+            "Elevated Concerns: High-priority issues requiring attention"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Filtering & Search",
+      icon: <Filter className="h-4 w-4" />,
+      content: "Powerful tools to organize and find your tasks efficiently.",
+      subsections: [
+        {
+          title: "Status Filters",
+          content: "Filter tasks by their current status:",
+          steps: [
+            "All Status: View every task regardless of completion",
+            "Active: See only pending and in-progress tasks",
+            "Completed: Review your finished work",
+            "Overdue: Focus on tasks past their due date"
+          ]
+        },
+        {
+          title: "Priority Filters",
+          content: "Organize tasks by importance level:",
+          steps: [
+            "Urgent: Critical tasks requiring immediate attention",
+            "High: Important tasks with significant impact",
+            "Medium: Standard priority tasks",
+            "Low: Tasks that can be completed when time allows"
+          ]
+        },
+        {
+          title: "Type Filters",
+          content: "Focus on specific types of work:",
+          steps: [
+            "Project Tasks: Manufacturing and project-related work",
+            "Meeting Tasks: Follow-ups and action items from meetings",
+            "Elevated Concerns: Critical issues and concerns"
+          ]
+        }
+      ]
+    },
+    {
+      title: "Task Management",
+      icon: <Calendar className="h-4 w-4" />,
+      content: "Tools for organizing and prioritizing your work effectively.",
+      subsections: [
+        {
+          title: "Sorting Options",
+          content: "Organize tasks to match your workflow:",
+          steps: [
+            "Sort by Priority: See most important tasks first",
+            "Sort by Due Date: Focus on upcoming deadlines",
+            "Sort by Created Date: View tasks in chronological order",
+            "Use ascending or descending order as needed"
+          ]
+        },
+        {
+          title: "Task Information",
+          content: "Each task card provides essential details:",
+          steps: [
+            "Task title and description for clarity",
+            "Due date with overdue indicators",
+            "Priority level with color coding",
+            "Project or meeting context",
+            "Assignment information showing who assigned the task"
+          ]
+        }
+      ]
+    }
+  ],
+  troubleshooting: [
+    {
+      issue: "Tasks not appearing in the list",
+      solution: "Check your filter settings and search query. Use 'Clear Filters' to reset all filters if needed."
+    },
+    {
+      issue: "Recently assigned tasks not showing",
+      solution: "Refresh the page to load the latest task assignments. Tasks may take a moment to sync across the system."
+    },
+    {
+      issue: "Cannot access task details or related projects",
+      solution: "Verify you have proper permissions for the associated project or meeting. Contact your administrator if access issues persist."
+    },
+    {
+      issue: "Task counts don't match what you see in the list",
+      solution: "Task counts include all tasks while the list may be filtered. Check your filter settings or clear filters to see all tasks."
+    }
+  ],
+  tips: [
+    "Use the priority filter to focus on urgent and high-priority tasks first",
+    "Check the overdue section regularly to stay on top of missed deadlines",
+    "The task counter in the header shows your active task count at all times",
+    "Project numbers and meeting references help you quickly identify task context",
+    "Clear filters regularly to ensure you're seeing all your assigned tasks"
+  ]
+};
+
 // Export all help content - truncated for brevity but would include all modules
 export const moduleHelpRegistry = {
   dashboard: dashboardHelpContent,
@@ -661,5 +793,6 @@ export const moduleHelpRegistry = {
   meetings: meetingsHelpContent,
   manufacturing: manufacturingHelpContent,
   reports: reportsHelpContent,
+  'my-tasks': myTasksHelpContent,
   // Add other modules as needed
 };

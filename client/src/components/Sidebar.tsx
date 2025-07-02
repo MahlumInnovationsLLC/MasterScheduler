@@ -3,6 +3,7 @@ import { useLocation, Link } from 'wouter';
 import {
   LayoutDashboard,
   ListChecks,
+  CheckSquare,
   Calendar,
   BarChart3,
   DollarSign,
@@ -111,6 +112,14 @@ const Sidebar = () => {
                 </SidebarLink>
               </li>
             )}
+            <li>
+              <SidebarLink href="/tasks" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/tasks') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="My Tasks">
+                <CheckSquare size={20} className={`${isActive('/tasks') ? 'text-primary' : ''}`} />
+                {!isCollapsed && <span>My Tasks</span>}
+              </SidebarLink>
+            </li>
             {isModuleVisible('projects') && (
               <li>
                 <SidebarLink href="/projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${

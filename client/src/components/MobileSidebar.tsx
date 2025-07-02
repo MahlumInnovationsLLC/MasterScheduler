@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, Link } from 'wouter';
-import { X, Home, FolderOpen, Calendar, BarChart3, Settings, Package, Truck, Calculator, FileText, Archive, CheckCircle, Clock, DollarSign, Building2, TrendingUp, Package2, Shield } from 'lucide-react';
+import { X, Home, FolderOpen, CheckSquare, Calendar, BarChart3, Settings, Package, Truck, Calculator, FileText, Archive, CheckCircle, Clock, DollarSign, Building2, TrendingUp, Package2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -23,6 +23,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
   const navigationItems = [
     { id: "dashboard", icon: Home, label: 'Dashboard', path: '/' },
+    { id: "my-tasks", icon: CheckSquare, label: 'My Tasks', path: '/tasks' },
     { id: "projects", icon: FolderOpen, label: 'Projects', path: '/projects' },
     { id: "bay-scheduling", icon: Building2, label: 'Bay Scheduling', path: '/bay-scheduling' },
     { id: "billing", icon: DollarSign, label: 'Billing', path: '/billing' },
@@ -47,6 +48,8 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const filteredNavItems = navigationItems.filter(item => {
     // For mobile sidebar, we'll use the module visibility check
     // since hasAccess might not be available in this context
+    // My Tasks should always be visible as it's a core functionality
+    if (item.id === "my-tasks") return true;
     return isModuleVisible(item.id);
   });
 
