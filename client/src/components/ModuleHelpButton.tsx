@@ -237,7 +237,7 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
               </div>
 
               {/* Tips Section */}
-              {helpContent.tips.length > 0 && (
+              {helpContent.tips && helpContent.tips.length > 0 && (
                 <>
                   <Separator />
                   <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
@@ -249,7 +249,7 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2">
-                        {helpContent.tips.map((tip, index) => (
+                        {helpContent.tips?.map((tip, index) => (
                           <li key={index} className="flex items-start gap-2">
                             <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
                             <span className="text-amber-800 dark:text-amber-200">{tip}</span>
