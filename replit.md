@@ -192,6 +192,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Fixed hook integration issues between PermissionsManager and useAuth contexts
   - Resolved Engineering page access control to use userRole instead of user object dependency
   - Engineering module now properly displays in sidebar and grants page access for all authorized users regardless of department
+- July 02, 2025: FAB Notes Implementation in Tier III Module
+  - Added dedicated FAB notes field (fab_notes) to projects database schema separate from general project notes
+  - Implemented FAB notes functionality exclusively in Tier III Sub Tab for projects currently in FAB phase
+  - Created FAB notes editing dialog with clear distinction from general project notes
+  - Added FAB notes button and preview display for each FAB project card showing fabrication phase progress
+  - FAB notes only appear when projects are actively in fabrication phase (between FAB start and assembly start dates)
+  - Enhanced Meetings module with dedicated state management and API mutations for FAB notes
+  - FAB notes are visually distinguished with blue theming and clearly labeled as FAB-specific content
 
 ## User Preferences
 

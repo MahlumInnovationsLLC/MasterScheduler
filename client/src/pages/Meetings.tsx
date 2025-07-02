@@ -125,6 +125,11 @@ export default function Meetings() {
   const [tierIIILocationFilter, setTierIIILocationFilter] = useState<string>("all");
   const [showCCBDialog, setShowCCBDialog] = useState(false);
   const [selectedProjectForCCB, setSelectedProjectForCCB] = useState<Project | null>(null);
+  
+  // State for FAB notes editing
+  const [showFabNotesDialog, setShowFabNotesDialog] = useState(false);
+  const [selectedProjectForFabNotes, setSelectedProjectForFabNotes] = useState<Project | null>(null);
+  const [fabNotesContent, setFabNotesContent] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -155,6 +160,40 @@ export default function Meetings() {
       toast({
         title: "Error",
         description: "Failed to update project notes.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for updating FAB notes specifically
+  const updateFabNotes = useMutation({
+    mutationFn: async ({ projectId, fabNotes }: { projectId: number; fabNotes: string }) => {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fabNotes }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update FAB notes');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "FAB Notes Updated",
+        description: "FAB notes have been saved successfully.",
+      });
+      setShowFabNotesDialog(false);
+      setSelectedProjectForFabNotes(null);
+      setFabNotesContent("");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update FAB notes.",
         variant: "destructive",
       });
     },
@@ -444,6 +483,28 @@ export default function Meetings() {
     if (hasLabel(project.id, 'MINOR ISSUE')) return 'medium';
     if (project.status === 'delayed' || project.status === 'critical') return 'medium';
     return 'low';
+  };
+
+  // Handler functions for FAB notes
+  const handleOpenFabNotes = (project: Project) => {
+    setSelectedProjectForFabNotes(project);
+    setFabNotesContent(project.fabNotes || "");
+    setShowFabNotesDialog(true);
+  };
+
+  const handleSaveFabNotes = () => {
+    if (selectedProjectForFabNotes) {
+      updateFabNotes.mutate({
+        projectId: selectedProjectForFabNotes.id,
+        fabNotes: fabNotesContent
+      });
+    }
+  };
+
+  const handleCloseFabNotesDialog = () => {
+    setShowFabNotesDialog(false);
+    setSelectedProjectForFabNotes(null);
+    setFabNotesContent("");
   };
 
   // Filter projects for Tier III (top 30 ready to ship, earliest first) with location filter
@@ -1730,6 +1791,29 @@ export default function Meetings() {
                                 }}
                               ></div>
                             </div>
+                          </div>
+                          
+                          {/* FAB Notes Section */}
+                          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-blue-600" />
+                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">FAB Notes</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenFabNotes(project)}
+                                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                              >
+                                {project.fabNotes ? "Edit" : "Add"}
+                              </Button>
+                            </div>
+                            {project.fabNotes && (
+                              <div className="mt-2 text-xs text-muted-foreground bg-blue-50 dark:bg-blue-900/20 p-2 rounded-md">
+                                {project.fabNotes.length > 100 ? `${project.fabNotes.substring(0, 100)}...` : project.fabNotes}
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -3153,6 +3237,49 @@ export default function Meetings() {
           }}
         />
       )}
+
+      {/* FAB Notes Dialog */}
+      <Dialog open={showFabNotesDialog} onOpenChange={setShowFabNotesDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              FAB Notes - {selectedProjectForFabNotes?.projectNumber}
+            </DialogTitle>
+            <DialogDescription>
+              Add or edit FAB-specific notes for {selectedProjectForFabNotes?.name}. These notes are separate from general project notes and only appear in the FAB section.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="fab-notes">FAB Notes</Label>
+              <Textarea
+                id="fab-notes"
+                placeholder="Enter FAB-specific notes, observations, or important information..."
+                value={fabNotesContent}
+                onChange={(e) => setFabNotesContent(e.target.value)}
+                rows={8}
+                className="resize-none"
+              />
+              <div className="text-xs text-muted-foreground">
+                These notes will only be visible in the Tier III FAB section and are separate from general project notes.
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseFabNotesDialog}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveFabNotes}
+              disabled={updateFabNotes.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {updateFabNotes.isPending ? "Saving..." : "Save FAB Notes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
