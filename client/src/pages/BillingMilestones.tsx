@@ -1044,15 +1044,73 @@ const BillingMilestones = () => {
 
         return (
           <div 
-            className={`text-sm ${hasDateChange ? "bg-red-100 font-semibold text-red-600 border border-red-300" : ""} rounded px-2 py-1 cursor-pointer hover:underline flex items-center`}
-            onClick={() => setIsEditing(true)}
+            className={`text-sm ${hasDateChange ? "bg-red-100 font-semibold text-red-600 border border-red-300" : ""} rounded px-2 py-1 flex items-center justify-between`}
           >
-            <span>{formatDate(displayDate)}</span>
-            <Calendar className="inline-block ml-1 h-3 w-3" />
+            <div 
+              className="cursor-pointer hover:underline flex items-center"
+              onClick={() => setIsEditing(true)}
+            >
+              <span>{formatDate(displayDate)}</span>
+              <Calendar className="inline-block ml-1 h-3 w-3" />
+              {hasDateChange && (
+                <div className="text-xs text-red-600 ml-2">
+                  Needs acceptance
+                </div>
+              )}
+            </div>
             {hasDateChange && (
-              <div className="text-xs text-red-600 ml-2">
-                Needs acceptance
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs ml-2 bg-green-50 hover:bg-green-100 border-green-300 text-green-700"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const acceptingKey = `accepting-${row.original.id}`;
+                  setUpdatingStates(prev => ({...prev, [acceptingKey]: true}));
+                  
+                  try {
+                    // Update the target date to match the live date
+                    const response = await apiRequest(
+                      "PATCH",
+                      `/api/billing-milestones/${row.original.id}`,
+                      { 
+                        targetInvoiceDate: displayDate,
+                        shipDateChanged: false // Clear the ship date changed flag
+                      }
+                    );
+
+                    if (response.ok) {
+                      queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+                      toast({
+                        title: "Date Change Accepted",
+                        description: "The target date has been updated to match the live date",
+                        variant: "default"
+                      });
+                    } else {
+                      throw new Error("Failed to accept date change");
+                    }
+                  } catch (error) {
+                    toast({
+                      title: "Update Failed",
+                      description: `Error accepting date change: ${(error as Error).message}`,
+                      variant: "destructive"
+                    });
+                  } finally {
+                    setUpdatingStates(prev => ({...prev, [acceptingKey]: false}));
+                  }
+                }}
+                disabled={updatingStates[`accepting-${row.original.id}`]}
+              >
+                {updatingStates[`accepting-${row.original.id}`] ? (
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-green-600"></div>
+                ) : (
+                  <>
+                    <Check className="h-3 w-3 mr-1" />
+                    Accept
+                  </>
+                )}
+              </Button>
             )}
           </div>
         );
