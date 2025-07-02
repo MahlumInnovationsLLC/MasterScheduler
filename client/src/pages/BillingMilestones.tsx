@@ -97,9 +97,11 @@ const BillingMilestones = () => {
 
     return allBillingMilestones.filter(milestone => {
       if (activeTab === 'open') {
-        return milestone.status !== 'invoiced' && milestone.status !== 'paid';
+        // Open tab should only show upcoming and delayed milestones
+        return milestone.status === 'upcoming' || milestone.status === 'delayed';
       } else {
-        return milestone.status === 'invoiced' || milestone.status === 'paid';
+        // Invoiced tab should show invoiced, paid, and billed milestones (all completed)
+        return milestone.status === 'invoiced' || milestone.status === 'paid' || milestone.status === 'billed';
       }
     });
   }, [allBillingMilestones, activeTab]);
@@ -1548,7 +1550,7 @@ const BillingMilestones = () => {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            Open Milestones ({allBillingMilestones?.filter(m => m.status !== 'invoiced' && m.status !== 'paid').length || 0})
+            Open Milestones ({allBillingMilestones?.filter(m => m.status === 'upcoming' || m.status === 'delayed').length || 0})
           </button>
           <button
             onClick={() => setActiveTab('invoiced')}
@@ -1558,7 +1560,7 @@ const BillingMilestones = () => {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            Invoiced ({allBillingMilestones?.filter(m => m.status === 'invoiced' || m.status === 'paid').length || 0})
+            Invoiced ({allBillingMilestones?.filter(m => m.status === 'invoiced' || m.status === 'paid' || m.status === 'billed').length || 0})
           </button>
         </div>
       </div>
