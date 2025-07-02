@@ -436,36 +436,35 @@ const BillingMilestones = () => {
       })
       .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    console.log('=== QUARTER REVENUE DEBUG ===');
-    console.log('Current date:', now);
-    console.log('Start of quarter:', startOfQuarter);
-    console.log('Current quarter number:', Math.floor(now.getMonth() / 3) + 1);
-    
-    const quarterlyMilestones = allBillingMilestones.filter((m: any) => {
-      // Include invoiced and billed milestones as revenue (same as Cash Flow widget)
-      const isRevenueStatus = m.status === 'invoiced' || m.status === 'billed';
-      if (!isRevenueStatus) return false;
-      
-      // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
-      const dateToCheck = m.actualInvoiceDate || m.targetInvoiceDate;
-      if (!dateToCheck) return false;
-      
-      const actualDate = new Date(dateToCheck);
-      const isInQuarter = actualDate >= startOfQuarter;
-      
-      if (isInQuarter) {
-        console.log(`Found quarterly milestone: ${m.name}, status: ${m.status}, amount: ${m.amount}, date: ${dateToCheck}`);
-      }
-      
-      return isInQuarter;
-    });
-    
-    console.log(`Total quarterly milestones found: ${quarterlyMilestones.length}`);
-    
-    const quarterRevenue = quarterlyMilestones.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
-    
-    console.log('Calculated quarter revenue:', quarterRevenue);
-    console.log('=== END QUARTER REVENUE DEBUG ===');
+    const quarterRevenue = allBillingMilestones
+      .filter((m: any) => {
+        // Include invoiced and billed milestones as revenue (same as Cash Flow widget)
+        const isRevenueStatus = m.status === 'invoiced' || m.status === 'billed';
+        if (!isRevenueStatus) return false;
+        
+        // For quarterly calculation, prioritize target date for business logic
+        // If milestone is billed/invoiced with target date in quarter, include it
+        const targetDate = m.targetInvoiceDate;
+        const actualDate = m.actualInvoiceDate;
+        
+        if (!targetDate && !actualDate) return false;
+        
+        // Check if either target date or actual date falls in current quarter
+        let isInQuarter = false;
+        
+        if (targetDate) {
+          const targetDateObj = new Date(targetDate);
+          isInQuarter = isInQuarter || targetDateObj >= startOfQuarter;
+        }
+        
+        if (actualDate) {
+          const actualDateObj = new Date(actualDate);
+          isInQuarter = isInQuarter || actualDateObj >= startOfQuarter;
+        }
+        
+        return isInQuarter;
+      })
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
     const ytdRevenue = allBillingMilestones
       .filter((m: any) => {
