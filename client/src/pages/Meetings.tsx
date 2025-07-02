@@ -30,6 +30,7 @@ interface Project {
   fabNotes?: string;
   fabricationStart?: string;
   assemblyStart?: string;
+  fabProgress?: number; // User-adjusted FAB progress percentage (0-100)
 }
 
 interface Task {
@@ -194,6 +195,37 @@ export default function Meetings() {
       toast({
         title: "Error",
         description: "Failed to update FAB notes.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for updating FAB progress
+  const updateFabProgress = useMutation({
+    mutationFn: async ({ projectId, fabProgress }: { projectId: number; fabProgress: number }) => {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fabProgress }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update FAB progress');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "FAB Progress Updated",
+        description: "FAB progress has been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update FAB progress.",
         variant: "destructive",
       });
     },
@@ -505,6 +537,35 @@ export default function Meetings() {
     setShowFabNotesDialog(false);
     setSelectedProjectForFabNotes(null);
     setFabNotesContent("");
+  };
+
+  // Helper function to calculate the default FAB progress based on dates
+  const calculateDefaultFabProgress = (project: any) => {
+    if (!project.fabricationStart || !project.assemblyStart) return 0;
+    
+    const today = new Date();
+    const fabStart = new Date(project.fabricationStart + 'T00:00:00');
+    const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
+    const totalDays = Math.max(1, (assemblyStart.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
+    const daysPassed = Math.max(0, (today.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
+    const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100));
+    return Math.round(progress);
+  };
+
+  // Helper function to get the actual progress to display (user-adjusted or calculated)
+  const getDisplayProgress = (project: any) => {
+    // If user has set a custom progress, use that; otherwise use calculated default
+    return project.fabProgress !== null && project.fabProgress !== undefined 
+      ? Number(project.fabProgress) 
+      : calculateDefaultFabProgress(project);
+  };
+
+  // Handler for updating FAB progress via drag
+  const handleFabProgressUpdate = (project: any, newProgress: number) => {
+    updateFabProgress.mutate({
+      projectId: project.id,
+      fabProgress: newProgress
+    });
   };
 
   // Filter projects for Tier III (top 30 ready to ship, earliest first) with location filter
@@ -1761,36 +1822,96 @@ export default function Meetings() {
                             </div>
                           </div>
                           
-                          {/* Progress toward Assembly */}
+                          {/* Progress toward Assembly - Draggable */}
                           <div className="space-y-2">
                             <div className="flex justify-between text-xs">
                               <span className="text-muted-foreground">FAB Progress</span>
-                              <span className="text-muted-foreground">
-                                {(() => {
-                                  const fabStart = new Date(project.fabricationStart + 'T00:00:00');
-                                  const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
-                                  const totalDays = Math.max(1, (assemblyStart.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
-                                  const daysPassed = Math.max(0, (today.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
-                                  const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100));
-                                  return `${Math.round(progress)}%`;
-                                })()}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground">
+                                  {getDisplayProgress(project)}%
+                                </span>
+                                {project.fabProgress !== null && project.fabProgress !== undefined && (
+                                  <span className="text-xs text-blue-600 font-medium">(Custom)</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                            <div 
+                              className="relative w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700 cursor-pointer group"
+                              onClick={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const clickX = e.clientX - rect.left;
+                                const width = rect.width;
+                                const newProgress = Math.round((clickX / width) * 100);
+                                const clampedProgress = Math.min(100, Math.max(0, newProgress));
+                                handleFabProgressUpdate(project, clampedProgress);
+                              }}
+                            >
                               <div 
-                                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                className="bg-blue-600 h-3 rounded-full transition-all duration-300 relative" 
                                 style={{ 
-                                  width: `${(() => {
-                                    const fabStart = new Date(project.fabricationStart + 'T00:00:00');
-                                    const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
-                                    const totalDays = Math.max(1, (assemblyStart.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
-                                    const daysPassed = Math.max(0, (today.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24));
-                                    const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100));
-                                    return Math.round(progress);
-                                  })()}%`
+                                  width: `${getDisplayProgress(project)}%`
                                 }}
-                              ></div>
+                              >
+                                {/* Draggable handle */}
+                                <div 
+                                  className="absolute right-0 top-1/2 transform -translate-y-1/2 w-5 h-5 bg-blue-700 border-2 border-white rounded-full shadow-lg cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    
+                                    const progressBar = e.currentTarget.parentElement?.parentElement;
+                                    if (!progressBar) return;
+                                    
+                                    const handleMouseMove = (moveEvent: MouseEvent) => {
+                                      const rect = progressBar.getBoundingClientRect();
+                                      const mouseX = moveEvent.clientX - rect.left;
+                                      const width = rect.width;
+                                      const newProgress = Math.round((mouseX / width) * 100);
+                                      const clampedProgress = Math.min(100, Math.max(0, newProgress));
+                                      
+                                      // Update the visual immediately
+                                      const progressFill = progressBar.querySelector('.bg-blue-600') as HTMLElement;
+                                      if (progressFill) {
+                                        progressFill.style.width = `${clampedProgress}%`;
+                                      }
+                                    };
+                                    
+                                    const handleMouseUp = (upEvent: MouseEvent) => {
+                                      const rect = progressBar.getBoundingClientRect();
+                                      const mouseX = upEvent.clientX - rect.left;
+                                      const width = rect.width;
+                                      const newProgress = Math.round((mouseX / width) * 100);
+                                      const clampedProgress = Math.min(100, Math.max(0, newProgress));
+                                      
+                                      handleFabProgressUpdate(project, clampedProgress);
+                                      
+                                      document.removeEventListener('mousemove', handleMouseMove);
+                                      document.removeEventListener('mouseup', handleMouseUp);
+                                    };
+                                    
+                                    document.addEventListener('mousemove', handleMouseMove);
+                                    document.addEventListener('mouseup', handleMouseUp);
+                                  }}
+                                />
+                              </div>
+                              {/* Click instruction tooltip */}
+                              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                Click or drag to adjust progress
+                              </div>
                             </div>
+                            {/* Reset button for custom progress */}
+                            {project.fabProgress !== null && project.fabProgress !== undefined && (
+                              <div className="flex justify-center">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs h-6 px-2 text-blue-600 hover:text-blue-800"
+                                  onClick={() => handleFabProgressUpdate(project, null as any)}
+                                >
+                                  Reset to Auto ({calculateDefaultFabProgress(project)}%)
+                                </Button>
+                              </div>
+                            )}
                           </div>
                           
                           {/* FAB Notes Section */}

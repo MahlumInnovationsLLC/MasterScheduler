@@ -468,6 +468,7 @@ export const projects = pgTable("projects", {
   materialManagementStatus: materialManagementStatusEnum("material_management_status").default("in_work"),
   notes: text("notes"),
   fabNotes: text("fab_notes"), // FAB-specific notes separate from general project notes
+  fabProgress: decimal("fab_progress", { precision: 5, scale: 2 }), // User-adjusted FAB progress percentage (0-100)
   photosTaken: boolean("photos_taken").default(false), // New field for Photos Taken column
   isSalesEstimate: boolean("is_sales_estimate").default(false), // Sales Estimate Proposal flag
 
@@ -544,6 +545,7 @@ export const archivedProjects = pgTable("archived_projects", {
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
   fabNotes: text("fab_notes"), // FAB-specific notes separate from general project notes
+  fabProgress: decimal("fab_progress", { precision: 5, scale: 2 }), // User-adjusted FAB progress percentage (0-100)
 
   // Store all raw data from Excel import
   rawData: jsonb("raw_data"),
