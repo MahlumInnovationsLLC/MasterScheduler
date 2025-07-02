@@ -73,6 +73,7 @@ export const billingStatusEnum = pgEnum("billing_status", [
   "invoiced",
   "paid",
   "delayed",
+  "billed",
 ]);
 
 export const costSectionEnum = pgEnum("cost_section", [

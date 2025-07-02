@@ -344,59 +344,84 @@ const ImportDataPage = () => {
       const milestones = data.map(row => {
         console.log("Processing billing milestone row:", JSON.stringify(row));
         
-        // Get the project number - enhanced to handle more variations
-        const projectNumber = row['Project Number'] || row['Proj #'] || row['Project #'] || 
-                            row['Project'] || row['P/N'] || row['PN'] || row['Project ID'] || '';
+        // Get the project number from new template format
+        const projectNumber = row['Project Number'] || '';
         
         // Log available fields in this row to help debug
         console.log("Available fields in this milestone row:", Object.keys(row).join(", "));
         
-        // Extract amount - convert from string format like "$69,600" to number
-        let amountValue = row['Amount'] || row['Value'] || row['Milestone Amount'] || 
-                         row['Billing Amount'] || row['Invoice Amount'] || '0';
-                         
+        // Extract amount - handle as number since Excel gives numeric values
+        let amountValue = row['Amount'] || '0';
         if (typeof amountValue === 'string') {
           // Remove currency symbols, commas, etc. and parse
           amountValue = amountValue.replace(/[$,]/g, '').trim();
-          console.log(`Converted amount from "${row['Amount'] || row['Value']}" to "${amountValue}"`);
+          console.log(`Converted amount from "${row['Amount']}" to "${amountValue}"`);
         }
         
-        // Get the milestone name - enhanced to handle more variations
-        const milestoneName = row['Milestone'] || row['Milestone Name'] || row['name'] || 
-                            row['Billing Item'] || row['Billing Milestone'] || 
-                            row['Description'] || '';
+        // Get milestone name from new template format
+        const milestoneName = row['Milestone'] || '';
         if (!milestoneName) {
           console.warn("Missing milestone name for project", projectNumber);
         }
         
-        // Get target date - enhanced to handle more variations
-        const targetDateValue = row['Target Invoice Date'] || row['Target Date'] || 
-                              row['Due Date'] || row['Invoice Date'] || 
-                              row['targetDate'] || row['Invoice Due Date'] || '';
-        if (!targetDateValue) {
-          console.warn("Missing target date for milestone", milestoneName, "project", projectNumber);
-        }
+        // Parse Excel date numbers to proper date format
+        const parseExcelDate = (dateValue: any): string | null => {
+          if (!dateValue) return null;
+          
+          try {
+            // Handle Excel date numbers (like 45516 in the template)
+            if (typeof dateValue === 'number') {
+              // Excel date number conversion
+              const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
+              return excelDate.toISOString().split('T')[0];
+            }
+            
+            // Handle string dates
+            if (typeof dateValue === 'string') {
+              const parsedDate = new Date(dateValue);
+              if (!isNaN(parsedDate.getTime())) {
+                return parsedDate.toISOString().split('T')[0];
+              }
+            }
+            
+            // Handle Date objects
+            if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+              return dateValue.toISOString().split('T')[0];
+            }
+            
+            return null;
+          } catch (error) {
+            console.warn(`Failed to parse Excel date: ${dateValue}`, error);
+            return null;
+          }
+        };
+        
+        // Get dates from new template format
+        const targetDateValue = parseExcelDate(row['Target Invoice Date']);
+        const actualInvoiceDate = parseExcelDate(row['Actual Invoice Date']);
+        const paymentReceivedDate = parseExcelDate(row['Payment Received Date']);
+        
+        console.log(`Processing milestone: "${milestoneName}" for project: "${projectNumber}" with status: "${row['Status']}"`);
+        console.log(`Dates - Target: ${targetDateValue}, Actual Invoice: ${actualInvoiceDate}, Payment Received: ${paymentReceivedDate}`);
         
         return {
           name: milestoneName,
           projectId: null, // Will be looked up by project number in API
           amount: String(amountValue),
-          // Make sure field names match what server expects
+          // Use parsed dates from new template format
           targetDate: targetDateValue, 
-          invoiceDate: row['Actual Invoice Date'] || row['Invoice Date'] || 
-                     row['Invoiced Date'] || row['Billed Date'] || null,
-          paymentReceivedDate: row['Payment Received Date'] || row['Payment Date'] || 
-                             row['Received Date'] || row['Paid Date'] || row['Payment'] || null,
-          description: row['Description'] || row['Details'] || row['Comments'] || '',
-          // Add additional info that might be in the spreadsheet
-          status: mapBillingStatus(row['Status'] || row['Milestone Status'] || row['State'] || 'upcoming'),
-          // Additional billing milestone fields
-          contractReference: row['Contract Reference'] || row['Contract'] || '',
-          paymentTerms: row['Payment Terms'] || row['Terms'] || '',
-          invoiceNumber: row['Invoice Number'] || row['Invoice #'] || '',
-          percentageOfTotal: row['Percentage of Total'] || row['Percentage'] || '',
-          billingContact: row['Billing Contact'] || row['Contact'] || '',
-          notes: row['Notes'] || row['Comments'] || '',
+          invoiceDate: actualInvoiceDate,
+          paymentReceivedDate: paymentReceivedDate,
+          description: row['Description'] || '',
+          // Map status from new template (handles "Billed" and "Billed." → "billed")
+          status: mapBillingStatus(row['Status'] || 'upcoming'),
+          // Template-specific billing milestone fields
+          contractReference: row['Contract Reference'] || '',
+          paymentTerms: row['Payment Terms'] || '',
+          invoiceNumber: row['Invoice Number'] || '',
+          percentageOfTotal: row['Percentage of Total'] || '',
+          billingContact: row['Billing Contact'] || '',
+          notes: row['Notes'] || '', // Include Notes column as Billing Milestone Note
           // Temporary field to look up project - keep the original project number exactly as is
           _projectNumber: projectNumber
         };
@@ -710,12 +735,14 @@ const ImportDataPage = () => {
   const mapBillingStatus = (status: string): string => {
     if (!status) return 'upcoming';
     
-    status = status.toLowerCase();
+    // Clean the status - remove dots and normalize case
+    const cleanStatus = status.toLowerCase().trim().replace('.', '');
     
-    if (status.includes('paid')) return 'paid';
-    if (status.includes('invoice')) return 'invoiced';
-    if (status.includes('delay')) return 'delayed';
-    if (status.includes('upcoming')) return 'upcoming';
+    if (cleanStatus.includes('paid')) return 'paid';
+    if (cleanStatus.includes('invoice')) return 'invoiced';
+    if (cleanStatus === 'billed') return 'billed'; // Map "Billed" and "Billed." to "billed" status
+    if (cleanStatus.includes('delay')) return 'delayed';
+    if (cleanStatus.includes('upcoming')) return 'upcoming';
     
     return 'upcoming';
   };

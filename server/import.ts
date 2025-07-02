@@ -965,11 +965,13 @@ export async function importBillingMilestones(req: Request, res: Response) {
           continue;
         }
         
-        // Convert status to a valid enum value
-        let validStatus: 'upcoming' | 'invoiced' | 'paid' | 'delayed' = 'upcoming';
-        const statusLower = milestoneData.status.toLowerCase();
+        // Convert status to a valid enum value - handle new template format
+        let validStatus: 'upcoming' | 'invoiced' | 'paid' | 'delayed' | 'billed' = 'upcoming';
+        const statusLower = milestoneData.status.toLowerCase().trim().replace('.', '');
         
-        if (statusLower.includes('invoice') || statusLower.includes('billed')) {
+        if (statusLower === 'billed') {
+          validStatus = 'billed'; // Use 'billed' status for historical billing data from template
+        } else if (statusLower.includes('invoice')) {
           validStatus = 'invoiced';
         } else if (statusLower.includes('paid') || statusLower.includes('payment')) {
           validStatus = 'paid';
