@@ -394,12 +394,12 @@ const BillingMilestones = () => {
     const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-    // Calculate period-based revenue using only 'invoiced' status (the only revenue status that exists)
+    // Calculate period-based revenue using same logic as Cash Flow widget (invoiced + billed statuses)
 
-    const pastMonthRevenue = billingMilestones
-      .filter(m => {
-        // Include only invoiced milestones as revenue (the only revenue status that exists)
-        const isRevenueStatus = m.status === 'invoiced';
+    const pastMonthRevenue = allBillingMilestones
+      .filter((m: any) => {
+        // Include invoiced and billed milestones as revenue (same as Cash Flow widget)
+        const isRevenueStatus = m.status === 'invoiced' || m.status === 'billed';
         if (!isRevenueStatus) return false;
         
         // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
@@ -411,16 +411,14 @@ const BillingMilestones = () => {
         const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
         const isInPastMonth = actualDate >= lastMonth && actualDate <= endOfLastMonth;
         
-
-        
         return isInPastMonth;
       })
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    const quarterRevenue = billingMilestones
-      .filter(m => {
-        // Include only invoiced milestones as revenue (the only revenue status that exists)
-        const isRevenueStatus = m.status === 'invoiced';
+    const quarterRevenue = allBillingMilestones
+      .filter((m: any) => {
+        // Include invoiced and billed milestones as revenue (same as Cash Flow widget)
+        const isRevenueStatus = m.status === 'invoiced' || m.status === 'billed';
         if (!isRevenueStatus) return false;
         
         // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
@@ -430,16 +428,14 @@ const BillingMilestones = () => {
         const actualDate = new Date(dateToCheck);
         const isInQuarter = actualDate >= startOfQuarter;
         
-
-        
         return isInQuarter;
       })
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
 
-    const ytdRevenue = billingMilestones
-      .filter(m => {
-        // Include only invoiced milestones as revenue (the only revenue status that exists)
-        const isRevenueStatus = m.status === 'invoiced';
+    const ytdRevenue = allBillingMilestones
+      .filter((m: any) => {
+        // Include invoiced and billed milestones as revenue (same as Cash Flow widget)
+        const isRevenueStatus = m.status === 'invoiced' || m.status === 'billed';
         if (!isRevenueStatus) return false;
         
         // Use actualInvoiceDate if available, otherwise use targetInvoiceDate
@@ -449,11 +445,9 @@ const BillingMilestones = () => {
         const actualDate = new Date(dateToCheck);
         const isInYTD = actualDate >= startOfYear;
         
-
-        
         return isInYTD;
       })
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      .reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
       
     console.log('Revenue totals calculated:');
     console.log('  Past Month:', pastMonthRevenue);
