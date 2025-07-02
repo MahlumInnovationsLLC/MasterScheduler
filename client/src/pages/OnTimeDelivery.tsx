@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModuleHelpButton } from "@/components/ModuleHelpButton";
+import { onTimeDeliveryHelpContent } from "@/data/moduleHelpContent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -1133,7 +1134,7 @@ const OnTimeDeliveryPage: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold">On Time Delivery Analytics</h1>
-            <ModuleHelpButton moduleId="on-time-delivery" />
+            <ModuleHelpButton moduleId="on-time-delivery" helpContent={onTimeDeliveryHelpContent} />
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -1153,7 +1154,7 @@ const OnTimeDeliveryPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold">On Time Delivery Analytics</h1>
-          <ModuleHelpButton moduleId="on-time-delivery" />
+          <ModuleHelpButton moduleId="on-time-delivery" helpContent={onTimeDeliveryHelpContent} />
         </div>
         <div className="flex gap-4">
           <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
