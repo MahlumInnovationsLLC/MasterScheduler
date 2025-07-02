@@ -145,35 +145,40 @@ export function DataTable<TData, TValue>({
     
     const searchValue = value.toLowerCase().trim();
     
-    // Define searchable fields for text-based filtering
-    const searchableFields = [
-      'projectNumber',
-      'name', 
-      'description',
-      'pmOwner',
-      'status',
-      'customer',
-      'team',
-      'notes',
-      'location'
-    ];
+    // Only search in actual table columns that exist
+    const actualTableColumns = ['projectNumber', 'pmOwner', 'location'];
     
-    // Search across all defined searchable fields
-    for (const field of searchableFields) {
-      const fieldValue = row.getValue(field);
-      if (fieldValue && typeof fieldValue === 'string') {
-        if (fieldValue.toLowerCase().includes(searchValue)) {
-          return true;
+    // Search across actual table columns
+    for (const field of actualTableColumns) {
+      try {
+        const fieldValue = row.getValue(field);
+        if (fieldValue && typeof fieldValue === 'string') {
+          if (fieldValue.toLowerCase().includes(searchValue)) {
+            return true;
+          }
         }
+      } catch (error) {
+        // Column doesn't exist, skip it
+        continue;
       }
     }
     
-    // Also search in original data for additional fields
+    // Search in original row data for all other fields
     const original = row.original;
     if (original) {
-      // Check common text fields that might exist in the data
-      const additionalFields = ['customer', 'team', 'assignedTo', 'department'];
-      for (const field of additionalFields) {
+      // Define all searchable fields from the original data
+      const searchableFields = [
+        'name',           // Project name
+        'description',    // Project description  
+        'customer',       // Customer name
+        'team',          // Team assignment
+        'notes',         // Project notes
+        'status',        // Project status
+        'assignedTo',    // Assigned person
+        'department'     // Department
+      ];
+      
+      for (const field of searchableFields) {
         const fieldValue = original[field];
         if (fieldValue && typeof fieldValue === 'string') {
           if (fieldValue.toLowerCase().includes(searchValue)) {
