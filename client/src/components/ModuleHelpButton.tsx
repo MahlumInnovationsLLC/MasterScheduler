@@ -71,9 +71,12 @@ export const ModuleHelpButton: React.FC<ModuleHelpButtonProps> = ({
   // Get help content from props or registry
   const actualHelpContent = helpContent || (moduleHelpRegistry as any)[moduleId];
 
+  // Debug logging
+  console.log('ModuleHelpButton:', { moduleId, hasHelpContentProp: !!helpContent, hasRegistryContent: !!(moduleHelpRegistry as any)[moduleId], actualHelpContent: !!actualHelpContent });
+
   // Return null if no help content is available
   if (!actualHelpContent) {
-    console.warn(`Help content not found for module: ${moduleId}`);
+    console.warn(`Help content not found for module: ${moduleId}. Available modules:`, Object.keys(moduleHelpRegistry));
     return null;
   }
 
