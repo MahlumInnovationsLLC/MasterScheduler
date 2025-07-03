@@ -163,6 +163,7 @@ export default function Engineering() {
   const [selectedTask, setSelectedTask] = useState<EngineeringTask | null>(null);
   const [showEngineerEditDialog, setShowEngineerEditDialog] = useState(false);
   const [editingEngineer, setEditingEngineer] = useState<EngineeringResource | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -510,16 +511,26 @@ export default function Engineering() {
   // Function to handle engineer edit
   const handleEditEngineer = (engineer: EngineeringResource) => {
     setEditingEngineer(engineer);
+    setSelectedProjectId(null); // Reset project selection when opening dialog
     setShowEngineerEditDialog(true);
   };
 
   // Function to handle engineer form submission
   const handleEngineerSubmit = (formData: any) => {
     if (editingEngineer) {
+      // First update the engineer
       updateEngineerMutation.mutate({
         id: editingEngineer.id,
         ...formData,
       });
+
+      // Then handle project assignment if a project was selected
+      if (selectedProjectId) {
+        console.log('🔍 DEBUG: SAVE CLICKED - Creating assignment for project:', selectedProjectId);
+        handleProjectAssignment(editingEngineer.id, selectedProjectId);
+        // Reset the selected project after assignment
+        setSelectedProjectId(null);
+      }
     }
   };
 
@@ -1634,7 +1645,7 @@ export default function Engineering() {
 
               <div>
                 <Label htmlFor="projectAssignment">Assign to Project</Label>
-                <Select onValueChange={(value) => handleProjectAssignment(editingEngineer.id, value)}>
+                <Select onValueChange={(value) => setSelectedProjectId(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a project to assign" />
                   </SelectTrigger>
