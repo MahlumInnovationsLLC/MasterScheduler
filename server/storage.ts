@@ -5680,7 +5680,7 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getEngineeringResourceById(id: number): Promise<EngineeringResource | undefined> {
+  async getEngineeringResourceById(id: string): Promise<EngineeringResource | undefined> {
     return await safeSingleQuery<EngineeringResource>(() =>
       db.select().from(engineeringResources).where(eq(engineeringResources.id, id))
     );
@@ -5711,7 +5711,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateEngineeringResource(id: number, resource: Partial<InsertEngineeringResource>): Promise<EngineeringResource | undefined> {
+  async updateEngineeringResource(id: string, resource: Partial<InsertEngineeringResource>): Promise<EngineeringResource | undefined> {
     try {
       const [updatedResource] = await db
         .update(engineeringResources)
