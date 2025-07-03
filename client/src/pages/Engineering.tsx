@@ -540,14 +540,18 @@ export default function Engineering() {
     }
 
     console.log('🔍 DEBUG: Creating assignment with user ID:', engineerId);
-
-    createEngineerAssignmentMutation.mutate({
+    
+    const assignmentData = {
       projectId: parseInt(projectId),
       resourceId: engineerId, // Use the actual user ID
       discipline: engineer.discipline as 'ME' | 'EE' | 'ITE' | 'NTC',
       percentage: 50, // Default percentage
       isLead: false,
-    });
+    };
+    
+    console.log('🔍 DEBUG: Assignment data to be sent:', assignmentData);
+
+    createEngineerAssignmentMutation.mutate(assignmentData);
   };
 
   // Function to get engineer assignments
