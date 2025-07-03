@@ -531,15 +531,20 @@ router.get('/project-assignments/resource/:resourceId', async (req: Request, res
 // CREATE a new project engineering assignment
 router.post('/project-assignments', async (req: Request, res: Response) => {
   try {
+    console.log('🔍 SERVER DEBUG: Creating project assignment with data:', req.body);
+    
     const validationResult = insertProjectEngineeringAssignmentSchema.safeParse(req.body);
     if (!validationResult.success) {
+      console.log('🔍 SERVER DEBUG: Validation failed:', validationResult.error.format());
       return res.status(400).json({ 
         error: "Invalid assignment data", 
         details: validationResult.error.format() 
       });
     }
 
+    console.log('🔍 SERVER DEBUG: Validated data:', validationResult.data);
     const newAssignment = await storage.createProjectEngineeringAssignment(validationResult.data);
+    console.log('🔍 SERVER DEBUG: Created assignment:', newAssignment);
     res.status(201).json(newAssignment);
   } catch (error) {
     console.error("Error creating project engineering assignment:", error);
