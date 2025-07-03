@@ -699,6 +699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: sessionUser.lastName,
           username: sessionUser.username,
           role: sessionUser.role,
+          department: sessionUser.department,
           isApproved: sessionUser.isApproved
         });
       }
@@ -718,6 +719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lastName: user.lastName,
             username: user.username,
             role: user.role,
+            department: user.department,
             isApproved: user.isApproved
           });
         }

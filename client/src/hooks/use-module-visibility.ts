@@ -38,16 +38,12 @@ export const useModuleVisibility = () => {
     if (moduleId === 'engineering') {
       // EDITOR and ADMIN roles can access regardless of department
       if (userRole === 'editor' || userRole === 'admin') {
-        console.log(`Engineering access granted for ${userRole}`);
         return true;
       }
       // VIEWER role can access ONLY if they are in the engineering department
       if (userRole === 'viewer') {
-        const hasAccess = user?.department === 'engineering';
-        console.log(`Engineering access for viewer: department=${user?.department}, hasAccess=${hasAccess}`);
-        return hasAccess;
+        return user?.department === 'engineering';
       }
-      console.log(`Engineering access denied for role: ${userRole}`);
       return false;
     }
     
