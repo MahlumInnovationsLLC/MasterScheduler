@@ -590,7 +590,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Engineering module access middleware - allows EDITOR/ADMIN or VIEWER in engineering department
   const requireEngineeringAccess = async (req: any, res: any, next: any) => {
     console.log(`🔍 Auth middleware: Checking authentication for ${req.method} ${req.originalUrl}`);
-    await requireAuth(req, res, () => {
+    
+    // First check authentication
+    try {
+      // Check session for authenticated user
+      const sessionUser = (req.session as any)?.user;
+      const userId = (req.session as any)?.userId;
+      
+      if (!sessionUser && !userId) {
+        console.log("❌ No session found");
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // If we have complete session data, use it
+      if (sessionUser && sessionUser.isApproved) {
+        req.user = sessionUser;
+        console.log(`✅ Authenticated user: ${sessionUser.email} with role ${sessionUser.role}`);
+      } else if (userId) {
+        // If we only have userId, fetch fresh user data
+        const user = await storage.getUser(userId);
+        if (user && user.isApproved) {
+          req.user = user;
+          // Update session with fresh data
+          (req.session as any).user = user;
+          console.log(`✅ Authenticated user: ${user.email} with role ${user.role}`);
+        }
+      }
+      
+      if (!req.user) {
+        console.log("❌ User not found or not approved");
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Now check engineering access
       const userRole = req.user?.role;
       const userDepartment = req.user?.department;
       
@@ -608,9 +640,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return next();
       }
       
+      // Access denied
       console.log(`❌ Engineering access denied for role: ${userRole}, department: ${userDepartment}`);
-      return res.status(403).json({ message: "Engineering module access requires EDITOR/ADMIN role or VIEWER role in engineering department" });
-    });
+      res.status(403).json({ message: "Engineering module access requires EDITOR/ADMIN role or VIEWER role in engineering department" });
+    } catch (error) {
+      console.error("Engineering auth middleware error:", error);
+      res.status(401).json({ message: "Authentication error" });
+    }
   };
 
 
