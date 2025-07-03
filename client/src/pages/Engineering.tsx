@@ -515,8 +515,16 @@ export default function Engineering() {
 
   // Function to handle project assignment
   const handleProjectAssignment = async (engineerId: number, projectId: string) => {
+    console.log('🔍 DEBUG: Starting assignment creation for engineer:', engineerId, 'project:', projectId);
+    
     const engineer = resources.find(r => r.id === engineerId);
-    if (!engineer) return;
+    if (!engineer) {
+      console.error('🔍 DEBUG: Engineer not found in resources for ID:', engineerId);
+      return;
+    }
+
+    console.log('🔍 DEBUG: Found engineer in resources:', engineer);
+    console.log('🔍 DEBUG: Available engineers list:', engineers.map(u => ({ id: u.id, firstName: u.firstName, lastName: u.lastName })));
 
     // Find the actual user record to get the real user ID
     const actualUser = engineers.find(u => 
@@ -525,6 +533,8 @@ export default function Engineering() {
     
     if (!actualUser) {
       console.error('🔍 DEBUG: Could not find actual user for engineer:', engineer);
+      console.error('🔍 DEBUG: Looking for firstName:', engineer.firstName, 'lastName:', engineer.lastName);
+      console.error('🔍 DEBUG: Available engineers:', engineers.map(u => `${u.firstName} ${u.lastName}`));
       return;
     }
 
