@@ -5278,7 +5278,7 @@ Response format:
 
   // System Routes
   app.use('/api/system', systemRoutes);
-  app.use('/api', requireEngineeringAccess, engineeringRoutes);
+  app.use('/api/engineering', requireEngineeringAccess, engineeringRoutes);
 
   // Elevated Concerns Routes
   app.get("/api/elevated-concerns", simpleAuth, async (req, res) => {
