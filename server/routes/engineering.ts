@@ -499,6 +499,8 @@ router.get('/project-assignments/resource/:resourceId', async (req: Request, res
 router.post('/project-assignments', async (req: Request, res: Response) => {
   try {
     console.log('🔍 SERVER DEBUG: Creating project assignment with data:', req.body);
+    console.log('🔍 SERVER DEBUG: Request body keys:', Object.keys(req.body));
+    console.log('🔍 SERVER DEBUG: Request body types:', Object.entries(req.body).map(([k, v]) => [k, typeof v]));
     
     const validationResult = insertProjectEngineeringAssignmentSchema.safeParse(req.body);
     if (!validationResult.success) {
@@ -510,6 +512,22 @@ router.post('/project-assignments', async (req: Request, res: Response) => {
     }
 
     console.log('🔍 SERVER DEBUG: Validated data:', validationResult.data);
+    console.log('🔍 SERVER DEBUG: Validated data keys:', Object.keys(validationResult.data));
+    console.log('🔍 SERVER DEBUG: Validated data types:', Object.entries(validationResult.data).map(([k, v]) => [k, typeof v]));
+    
+    // Check for existing assignment before creating
+    console.log('🔍 SERVER DEBUG: Checking for existing assignments...');
+    const existingAssignments = await storage.getProjectEngineeringAssignmentsByResourceId(validationResult.data.resourceId);
+    console.log('🔍 SERVER DEBUG: Existing assignments for resource:', existingAssignments);
+    
+    const conflictingAssignment = existingAssignments.find(a => 
+      a.projectId === validationResult.data.projectId && 
+      a.discipline === validationResult.data.discipline
+    );
+    if (conflictingAssignment) {
+      console.log('🔍 SERVER DEBUG: Conflicting assignment found:', conflictingAssignment);
+      return res.status(409).json({ error: "Assignment already exists for this project and discipline" });
+    }
     
     // Additional logging for the storage call
     console.log('🔍 SERVER DEBUG: Calling storage.createProjectEngineeringAssignment...');
@@ -526,7 +544,15 @@ router.post('/project-assignments', async (req: Request, res: Response) => {
     res.status(201).json(newAssignment);
   } catch (error) {
     console.error("🔍 SERVER DEBUG: Error creating project engineering assignment:", error);
+    console.error("🔍 SERVER DEBUG: Error message:", error instanceof Error ? error.message : 'Unknown error');
     console.error("🔍 SERVER DEBUG: Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+    
+    // Check if it's a unique constraint error
+    if (error instanceof Error && error.message.includes('unique')) {
+      console.error("🔍 SERVER DEBUG: Unique constraint violation detected");
+      return res.status(409).json({ error: "Assignment already exists for this project and discipline" });
+    }
+    
     res.status(500).json({ error: "Failed to create project engineering assignment" });
   }
 });
