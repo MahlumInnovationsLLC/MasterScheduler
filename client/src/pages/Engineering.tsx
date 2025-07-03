@@ -282,7 +282,7 @@ export default function Engineering() {
       itDesignOrdersPercent: number | null;
       ntcPercentage: number | null;
     }>) => {
-      return await apiRequest(`/api/projects/${id}`, 'PUT', data);
+      return await apiRequest('PUT', `/api/projects/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
@@ -293,7 +293,7 @@ export default function Engineering() {
   // Mutation for updating project assignments
   const updateAssignmentMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<ProjectEngineeringAssignment> & { id: number }) => {
-      return await apiRequest(`/api/engineering/project-assignments/${id}`, 'PUT', data);
+      return await apiRequest('PUT', `/api/engineering/project-assignments/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
@@ -304,7 +304,7 @@ export default function Engineering() {
   // Mutation for creating project assignments
   const createAssignmentMutation = useMutation({
     mutationFn: async (data: Omit<ProjectEngineeringAssignment, 'id' | 'createdAt' | 'updatedAt'>) => {
-      return await apiRequest('/api/engineering/project-assignments', 'POST', data);
+      return await apiRequest('POST', '/api/engineering/project-assignments', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
@@ -315,7 +315,7 @@ export default function Engineering() {
   // Mutation for deleting project assignments
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/engineering/project-assignments/${id}`, 'DELETE');
+      return await apiRequest('DELETE', `/api/engineering/project-assignments/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
@@ -326,7 +326,7 @@ export default function Engineering() {
   // Mutation for updating engineering resources
   const updateEngineerMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<EngineeringResource> & { id: number }) => {
-      return await apiRequest(`/api/engineering-resources/${id}`, 'PUT', data);
+      return await apiRequest('PUT', `/api/engineering-resources/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/engineering-resources'] });
@@ -350,7 +350,7 @@ export default function Engineering() {
   // Mutation for creating project engineering assignments
   const createEngineerAssignmentMutation = useMutation({
     mutationFn: async (data: Omit<ProjectEngineeringAssignment, 'id' | 'createdAt' | 'updatedAt'>) => {
-      return await apiRequest('/api/engineering/project-assignments', 'POST', data);
+      return await apiRequest('POST', '/api/engineering/project-assignments', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
@@ -372,7 +372,7 @@ export default function Engineering() {
   // Mutation for updating project assignment percentage
   const updateAssignmentPercentageMutation = useMutation({
     mutationFn: async ({ assignmentId, percentage }: { assignmentId: number; percentage: number }) => {
-      return await apiRequest(`/api/engineering/project-assignments/${assignmentId}`, 'PUT', { percentage });
+      return await apiRequest('PUT', `/api/engineering/project-assignments/${assignmentId}`, { percentage });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
