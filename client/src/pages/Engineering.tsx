@@ -177,7 +177,7 @@ export default function Engineering() {
 
   // Fetch engineering resources
   const { data: resources = [], isLoading: resourcesLoading } = useQuery<EngineeringResource[]>({
-    queryKey: ['/api/engineering-resources'],
+    queryKey: ['/api/engineering/engineering-resources'],
   });
 
   // Fetch engineering tasks
@@ -261,10 +261,10 @@ export default function Engineering() {
   // Mutation for updating engineering resources
   const updateEngineerMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<EngineeringResource> & { id: number }) => {
-      return await apiRequest('PUT', `/api/engineering-resources/${id}`, data);
+      return await apiRequest('PUT', `/api/engineering/engineering-resources/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-resources'] });
       queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
       setShowEngineerEditDialog(false);
       setEditingEngineer(null);
