@@ -6,10 +6,12 @@ import {
   insertEngineeringResourceSchema, 
   insertEngineeringTaskSchema,
   insertEngineeringBenchmarkSchema,
+  insertBenchmarkTemplateSchema,
   insertProjectEngineeringAssignmentSchema,
   engineeringResources,
   engineeringTasks,
   engineeringBenchmarks,
+  benchmarkTemplates,
   projectEngineeringAssignments,
   projects,
   users
@@ -604,6 +606,123 @@ router.delete('/project-assignments/:id', async (req: Request, res: Response) =>
   } catch (error) {
     console.error("Error deleting project engineering assignment:", error);
     res.status(500).json({ error: "Failed to delete project engineering assignment" });
+  }
+});
+
+// ==== BENCHMARK TEMPLATE ROUTES ====
+
+// GET all benchmark templates
+router.get('/benchmark-templates', async (req: Request, res: Response) => {
+  try {
+    const templates = await storage.getBenchmarkTemplates();
+    res.json(templates);
+  } catch (error) {
+    console.error("Error fetching benchmark templates:", error);
+    res.status(500).json({ error: "Failed to fetch benchmark templates" });
+  }
+});
+
+// GET benchmark templates by discipline
+router.get('/benchmark-templates/discipline/:discipline', async (req: Request, res: Response) => {
+  try {
+    const discipline = req.params.discipline;
+    const templates = await storage.getBenchmarkTemplatesByDiscipline(discipline);
+    res.json(templates);
+  } catch (error) {
+    console.error("Error fetching benchmark templates by discipline:", error);
+    res.status(500).json({ error: "Failed to fetch benchmark templates by discipline" });
+  }
+});
+
+// CREATE a new benchmark template
+router.post('/benchmark-templates', async (req: Request, res: Response) => {
+  try {
+    const validationResult = insertBenchmarkTemplateSchema.safeParse({
+      ...req.body,
+      createdBy: req.user?.id
+    });
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid template data", 
+        details: validationResult.error.format() 
+      });
+    }
+
+    const newTemplate = await storage.createBenchmarkTemplate(validationResult.data);
+    res.status(201).json(newTemplate);
+  } catch (error) {
+    console.error("Error creating benchmark template:", error);
+    res.status(500).json({ error: "Failed to create benchmark template" });
+  }
+});
+
+// UPDATE a benchmark template
+router.put('/benchmark-templates/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const validationResult = insertBenchmarkTemplateSchema.partial().safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid template data", 
+        details: validationResult.error.format() 
+      });
+    }
+
+    const updatedTemplate = await storage.updateBenchmarkTemplate(id, validationResult.data);
+    if (!updatedTemplate) {
+      return res.status(404).json({ error: "Benchmark template not found" });
+    }
+
+    res.json(updatedTemplate);
+  } catch (error) {
+    console.error("Error updating benchmark template:", error);
+    res.status(500).json({ error: "Failed to update benchmark template" });
+  }
+});
+
+// DELETE a benchmark template (soft delete)
+router.delete('/benchmark-templates/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const success = await storage.deleteBenchmarkTemplate(id);
+    if (!success) {
+      return res.status(404).json({ error: "Benchmark template not found" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting benchmark template:", error);
+    res.status(500).json({ error: "Failed to delete benchmark template" });
+  }
+});
+
+// APPLY benchmark templates to a project
+router.post('/benchmark-templates/apply', async (req: Request, res: Response) => {
+  try {
+    const { projectId, templateIds } = req.body;
+    
+    if (!projectId || !Array.isArray(templateIds) || templateIds.length === 0) {
+      return res.status(400).json({ error: "Project ID and template IDs are required" });
+    }
+
+    const createdBenchmarks = await storage.applyBenchmarkTemplatesToProject(projectId, templateIds);
+    res.json({ 
+      success: true, 
+      createdBenchmarks,
+      count: createdBenchmarks.length 
+    });
+  } catch (error) {
+    console.error("Error applying benchmark templates:", error);
+    res.status(500).json({ error: "Failed to apply benchmark templates" });
   }
 });
 

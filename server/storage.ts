@@ -51,6 +51,7 @@ import {
   engineeringResources,
   engineeringTasks,
   engineeringBenchmarks,
+  benchmarkTemplates,
   projectEngineeringAssignments,
   type User,
   type InsertUser,
@@ -120,6 +121,8 @@ import {
   type InsertEngineeringTask,
   type EngineeringBenchmark,
   type InsertEngineeringBenchmark,
+  type BenchmarkTemplate,
+  type InsertBenchmarkTemplate,
   priorities,
   priorityComments,
   priorityActivityLog,
@@ -5911,6 +5914,128 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error deleting engineering benchmark:", error);
       return false;
+    }
+  }
+
+  // Benchmark Template methods
+  async getBenchmarkTemplates(): Promise<BenchmarkTemplate[]> {
+    return await safeQuery<BenchmarkTemplate>(() =>
+      db.select().from(benchmarkTemplates)
+        .where(eq(benchmarkTemplates.isActive, true))
+        .orderBy(asc(benchmarkTemplates.discipline), asc(benchmarkTemplates.name))
+    );
+  }
+
+  async getBenchmarkTemplatesByDiscipline(discipline: string): Promise<BenchmarkTemplate[]> {
+    return await safeQuery<BenchmarkTemplate>(() =>
+      db.select().from(benchmarkTemplates)
+        .where(and(
+          eq(benchmarkTemplates.discipline, discipline),
+          eq(benchmarkTemplates.isActive, true)
+        ))
+        .orderBy(asc(benchmarkTemplates.name))
+    );
+  }
+
+  async createBenchmarkTemplate(template: InsertBenchmarkTemplate): Promise<BenchmarkTemplate> {
+    try {
+      const [newTemplate] = await db.insert(benchmarkTemplates).values({
+        ...template,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newTemplate;
+    } catch (error) {
+      console.error("Error creating benchmark template:", error);
+      throw error;
+    }
+  }
+
+  async updateBenchmarkTemplate(id: number, template: Partial<InsertBenchmarkTemplate>): Promise<BenchmarkTemplate | undefined> {
+    try {
+      const [updatedTemplate] = await db
+        .update(benchmarkTemplates)
+        .set({
+          ...template,
+          updatedAt: new Date()
+        })
+        .where(eq(benchmarkTemplates.id, id))
+        .returning();
+      return updatedTemplate;
+    } catch (error) {
+      console.error("Error updating benchmark template:", error);
+      return undefined;
+    }
+  }
+
+  async deleteBenchmarkTemplate(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .update(benchmarkTemplates)
+        .set({ 
+          isActive: false,
+          updatedAt: new Date()
+        })
+        .where(eq(benchmarkTemplates.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting benchmark template:", error);
+      return false;
+    }
+  }
+
+  // Apply benchmark templates to a project - creates actual benchmarks from templates
+  async applyBenchmarkTemplatesToProject(projectId: number, templateIds: number[]): Promise<EngineeringBenchmark[]> {
+    try {
+      // First get the project to access FAB and Production start dates
+      const project = await this.getProject(projectId);
+      if (!project) {
+        throw new Error(`Project ${projectId} not found`);
+      }
+
+      // Get the selected templates
+      const templates = await db.select().from(benchmarkTemplates)
+        .where(and(
+          inArray(benchmarkTemplates.id, templateIds),
+          eq(benchmarkTemplates.isActive, true)
+        ));
+
+      const createdBenchmarks: EngineeringBenchmark[] = [];
+
+      for (const template of templates) {
+        let referenceDate: Date | null = null;
+
+        // Determine reference date based on template's reference phase
+        if (template.referencePhase === 'FAB_START' && project.fabricationStart) {
+          referenceDate = new Date(project.fabricationStart);
+        } else if (template.referencePhase === 'PRODUCTION_START' && project.productionStart) {
+          referenceDate = new Date(project.productionStart);
+        }
+
+        if (referenceDate) {
+          // Calculate target date by subtracting daysBefore from reference date
+          const targetDate = new Date(referenceDate);
+          targetDate.setDate(targetDate.getDate() - template.daysBefore);
+
+          // Create the benchmark
+          const newBenchmark = await this.createEngineeringBenchmark({
+            projectId,
+            discipline: template.discipline,
+            benchmarkName: template.name,
+            description: template.description,
+            targetDate: targetDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+            commitmentLevel: template.commitmentLevel,
+            isCompleted: false
+          });
+
+          createdBenchmarks.push(newBenchmark);
+        }
+      }
+
+      return createdBenchmarks;
+    } catch (error) {
+      console.error("Error applying benchmark templates to project:", error);
+      throw error;
     }
   }
 

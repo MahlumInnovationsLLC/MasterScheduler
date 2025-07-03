@@ -172,9 +172,11 @@ export default function Engineering() {
 
   // All hooks must be called before any conditional returns
   // Fetch engineering overview data
-  const { data: overview, isLoading: overviewLoading } = useQuery<EngineeringOverview>({
-    queryKey: ['/api/engineering-overview'],
+  const { data: overview, isLoading: overviewLoading, error: overviewError } = useQuery<EngineeringOverview>({
+    queryKey: ['/api/engineering/engineering-overview'],
   });
+
+
 
   // Fetch engineering resources
   const { data: resources = [], isLoading: resourcesLoading } = useQuery<EngineeringResource[]>({
@@ -623,7 +625,8 @@ export default function Engineering() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div>
+      <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
@@ -1266,11 +1269,27 @@ export default function Engineering() {
         <TabsContent value="benchmarks-overview" className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Engineering Benchmarks Overview</h2>
-            <Button className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Benchmark
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Templates
+              </Button>
+              <Button className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Benchmark
+              </Button>
+            </div>
           </div>
+
+          {/* Nested Tabs for Benchmarks and Templates */}
+          <Tabs defaultValue="active-benchmarks" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="active-benchmarks">Active Benchmarks</TabsTrigger>
+              <TabsTrigger value="benchmark-templates">Benchmark Templates</TabsTrigger>
+            </TabsList>
+            
+            {/* Active Benchmarks Tab */}
+            <TabsContent value="active-benchmarks" className="space-y-4">
 
           {/* Benchmark Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1385,8 +1404,38 @@ export default function Engineering() {
               </CardContent>
             </Card>
           )}
+            </TabsContent>
+            
+            {/* Benchmark Templates Tab */}
+            <TabsContent value="benchmark-templates" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Benchmark Templates</h3>
+                <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Template
+                </Button>
+              </div>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center py-8">
+                    <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Benchmark Templates</h3>
+                    <p className="text-gray-500 mb-4">
+                      Create reusable benchmark templates that can be applied to projects based on FAB and Production start dates.
+                    </p>
+                    <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Template
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
+      </div>
 
       {/* Project Engineering Dialog */}
       <Dialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>

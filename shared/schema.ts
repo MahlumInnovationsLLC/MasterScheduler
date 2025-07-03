@@ -1481,6 +1481,23 @@ export const engineeringBenchmarks = pgTable("engineering_benchmarks", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Benchmark Templates Table - Standard benchmarks that can be applied to projects
+export const benchmarkTemplates = pgTable("benchmark_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  discipline: text("discipline").notNull(), // 'ME', 'EE', 'ITE', 'NTC'
+  daysBefore: integer("days_before").notNull(), // Days before the reference date
+  referencePhase: text("reference_phase").notNull(), // 'FAB_START', 'PRODUCTION_START'
+  commitmentLevel: text("commitment_level").default("medium").notNull(), // 'low', 'medium', 'high', 'critical'
+  isActive: boolean("is_active").default(true).notNull(),
+  createdBy: varchar("created_by", { length: 255 })
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Project Engineering Assignments Table
 export const projectEngineeringAssignments = pgTable("project_engineering_assignments", {
   id: serial("id").primaryKey(),
@@ -1527,6 +1544,13 @@ export const engineeringBenchmarksRelations = relations(engineeringBenchmarks, (
   }),
 }));
 
+export const benchmarkTemplatesRelations = relations(benchmarkTemplates, ({ one }) => ({
+  createdByUser: one(users, {
+    fields: [benchmarkTemplates.createdBy],
+    references: [users.id],
+  }),
+}));
+
 export const projectEngineeringAssignmentsRelations = relations(projectEngineeringAssignments, ({ one }) => ({
   project: one(projects, {
     fields: [projectEngineeringAssignments.projectId],
@@ -1557,6 +1581,12 @@ export const insertEngineeringBenchmarkSchema = createInsertSchema(engineeringBe
   updatedAt: true,
 });
 
+export const insertBenchmarkTemplateSchema = createInsertSchema(benchmarkTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertProjectEngineeringAssignmentSchema = createInsertSchema(projectEngineeringAssignments).omit({
   id: true,
   createdAt: true,
@@ -1569,6 +1599,8 @@ export type EngineeringTask = typeof engineeringTasks.$inferSelect;
 export type InsertEngineeringTask = z.infer<typeof insertEngineeringTaskSchema>;
 export type EngineeringBenchmark = typeof engineeringBenchmarks.$inferSelect;
 export type InsertEngineeringBenchmark = z.infer<typeof insertEngineeringBenchmarkSchema>;
+export type BenchmarkTemplate = typeof benchmarkTemplates.$inferSelect;
+export type InsertBenchmarkTemplate = z.infer<typeof insertBenchmarkTemplateSchema>;
 export type ProjectEngineeringAssignment = typeof projectEngineeringAssignments.$inferSelect;
 export type InsertProjectEngineeringAssignment = z.infer<typeof insertProjectEngineeringAssignmentSchema>;
 
