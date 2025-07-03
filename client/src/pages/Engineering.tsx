@@ -888,7 +888,7 @@ export default function Engineering() {
         <TabsContent value="resource-planning" className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Resource Planning & Workload Monitoring</h2>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" />
               Add Engineer
             </Button>
@@ -947,15 +947,15 @@ export default function Engineering() {
                 </div>
 
                 {/* View Toggle */}
-                <div className="flex border border-border rounded-lg">
+                <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg">
                   <Button
                     variant={projectViewMode === 'project' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setProjectViewMode('project')}
                     className={`rounded-r-none ${
                       projectViewMode === 'project' 
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                        : 'bg-background text-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
+                        : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
                     <BarChart3 className="h-4 w-4 mr-1" />
@@ -967,8 +967,8 @@ export default function Engineering() {
                     onClick={() => setProjectViewMode('engineer')}
                     className={`rounded-l-none ${
                       projectViewMode === 'engineer' 
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                        : 'bg-background text-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
+                        : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
                     <Users className="h-4 w-4 mr-1" />
