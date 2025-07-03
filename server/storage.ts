@@ -1346,7 +1346,52 @@ export class DatabaseStorage implements IStorage {
 
   // Project methods
   async getProjects(): Promise<Project[]> {
-    return await db.select().from(projects).orderBy(desc(projects.updatedAt));
+    const projectsData = await db.select().from(projects).orderBy(desc(projects.updatedAt));
+    
+    // Get all engineering assignments to merge with project data
+    const allAssignments = await db.select().from(projectEngineeringAssignments);
+    
+    // Get user names for the assignments
+    const userIds = [...new Set(allAssignments.map(a => a.resourceId))];
+    const usersMap = new Map();
+    
+    if (userIds.length > 0) {
+      const userData = await db.select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName
+      }).from(users).where(inArray(users.id, userIds));
+      
+      userData.forEach(user => {
+        usersMap.set(user.id, `${user.firstName} ${user.lastName}`);
+      });
+    }
+    
+    // Merge engineering assignments with project data
+    const projectsWithAssignments = projectsData.map(project => {
+      const projectAssignments = allAssignments.filter(a => a.projectId === project.id);
+      
+      // Find assignments by discipline
+      const meAssignment = projectAssignments.find(a => a.discipline === 'ME');
+      const eeAssignment = projectAssignments.find(a => a.discipline === 'EE');
+      const iteAssignment = projectAssignments.find(a => a.discipline === 'ITE');
+      const ntcAssignment = projectAssignments.find(a => a.discipline === 'NTC');
+      
+      return {
+        ...project,
+        // Update assignment fields with actual user names from assignments
+        meAssigned: meAssignment ? usersMap.get(meAssignment.resourceId) || project.meAssigned : project.meAssigned,
+        eeAssigned: eeAssignment ? usersMap.get(eeAssignment.resourceId) || project.eeAssigned : project.eeAssigned,
+        iteAssigned: iteAssignment ? usersMap.get(iteAssignment.resourceId) || project.iteAssigned : project.iteAssigned,
+        // Update percentage fields from assignments
+        meDesignOrdersPercent: meAssignment ? meAssignment.percentage : project.meDesignOrdersPercent,
+        eeDesignOrdersPercent: eeAssignment ? eeAssignment.percentage : project.eeDesignOrdersPercent,
+        itDesignOrdersPercent: iteAssignment ? iteAssignment.percentage : project.itDesignOrdersPercent,
+        ntcPercentage: ntcAssignment ? ntcAssignment.percentage : project.ntcPercentage,
+      };
+    });
+    
+    return projectsWithAssignments;
   }
 
   async getProject(id: number): Promise<Project | undefined> {
