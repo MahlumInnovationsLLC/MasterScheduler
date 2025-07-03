@@ -298,20 +298,26 @@ export default function Engineering() {
     },
     onSuccess: (data) => {
       console.log('🔍 DEBUG: MUTATION onSuccess triggered with data:', data);
+      console.log('🔍 DEBUG: SUCCESS - Assignment created successfully, invalidating queries...');
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
       toast({
         title: "Success",
         description: "Engineer assigned to project successfully",
       });
+      console.log('🔍 DEBUG: SUCCESS toast shown and queries invalidated');
     },
     onError: (error: any) => {
       console.error('🔍 DEBUG: MUTATION onError triggered with error:', error);
+      console.error('🔍 DEBUG: ERROR - Full error object:', JSON.stringify(error, null, 2));
+      console.error('🔍 DEBUG: ERROR - Error message:', error.message);
+      console.error('🔍 DEBUG: ERROR - Error stack:', error.stack);
       toast({
         title: "Error",
         description: error.message || "Failed to assign engineer to project",
         variant: "destructive",
       });
+      console.error('🔍 DEBUG: ERROR toast shown');
     },
   });
 
@@ -517,8 +523,14 @@ export default function Engineering() {
 
   // Function to handle engineer form submission
   const handleEngineerSubmit = (formData: any) => {
+    console.log('🔍 DEBUG: SUBMIT BUTTON CLICKED - Starting form submission process');
+    console.log('🔍 DEBUG: Form data received:', formData);
+    console.log('🔍 DEBUG: Editing engineer:', editingEngineer);
+    console.log('🔍 DEBUG: Selected project ID:', selectedProjectId);
+    
     if (editingEngineer) {
       // First update the engineer
+      console.log('🔍 DEBUG: Updating engineer with mutation...');
       updateEngineerMutation.mutate({
         id: editingEngineer.id,
         ...formData,
@@ -527,10 +539,16 @@ export default function Engineering() {
       // Then handle project assignment if a project was selected
       if (selectedProjectId) {
         console.log('🔍 DEBUG: SAVE CLICKED - Creating assignment for project:', selectedProjectId);
+        console.log('🔍 DEBUG: About to call handleProjectAssignment with engineer ID:', editingEngineer.id);
         handleProjectAssignment(editingEngineer.id, selectedProjectId);
         // Reset the selected project after assignment
+        console.log('🔍 DEBUG: Resetting selected project ID to null');
         setSelectedProjectId(null);
+      } else {
+        console.log('🔍 DEBUG: No project selected - skipping assignment creation');
       }
+    } else {
+      console.error('🔍 DEBUG: ERROR - No editing engineer found');
     }
   };
 
@@ -1645,7 +1663,12 @@ export default function Engineering() {
 
               <div>
                 <Label htmlFor="projectAssignment">Assign to Project</Label>
-                <Select onValueChange={(value) => setSelectedProjectId(value)}>
+                <Select onValueChange={(value) => {
+                  console.log('🔍 DEBUG: DROPDOWN SELECTION - User selected project ID:', value);
+                  console.log('🔍 DEBUG: DROPDOWN SELECTION - Setting selectedProjectId state to:', value);
+                  setSelectedProjectId(value);
+                  console.log('🔍 DEBUG: DROPDOWN SELECTION - State updated, selectedProjectId should now be:', value);
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a project to assign" />
                   </SelectTrigger>
@@ -1657,6 +1680,11 @@ export default function Engineering() {
                     ))}
                   </SelectContent>
                 </Select>
+                {selectedProjectId && (
+                  <p className="text-sm text-green-600 mt-1">
+                    Selected project: {projects.find(p => p.id.toString() === selectedProjectId)?.projectNumber} (will be assigned when you click Save)
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">
