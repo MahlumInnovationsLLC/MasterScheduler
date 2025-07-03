@@ -545,7 +545,7 @@ export default function Engineering() {
   const getEngineerAssignments = (engineerId: number) => {
     console.log('🔍 DEBUG: Getting assignments for engineer ID:', engineerId);
     console.log('🔍 DEBUG: Available project assignments:', projectAssignments);
-    console.log('🔍 DEBUG: Available engineer resources:', engineeringResources);
+    console.log('🔍 DEBUG: Project assignments loading:', assignmentsLoading);
     
     const assignments = projectAssignments.filter(assignment => assignment.resourceId === engineerId);
     console.log('🔍 DEBUG: Found assignments:', assignments);

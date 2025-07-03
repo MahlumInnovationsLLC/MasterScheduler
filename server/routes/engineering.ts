@@ -487,6 +487,8 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
 router.get('/project-assignments', async (req: Request, res: Response) => {
   try {
     const assignments = await storage.getProjectEngineeringAssignments();
+    console.log('🔍 SERVER DEBUG: Retrieved project assignments:', assignments.length, 'assignments');
+    console.log('🔍 SERVER DEBUG: Sample assignments:', assignments.slice(0, 3));
     res.json(assignments);
   } catch (error) {
     console.error("Error fetching project engineering assignments:", error);
