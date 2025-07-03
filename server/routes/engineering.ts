@@ -21,38 +21,34 @@ const router = Router();
 // Engineering routes use the main authentication middleware
 // This will be applied when mounting the router in the main routes file
 
-// GET all engineering resources (real Engineering users from users table)
+// GET all engineering resources (real Engineering users from users table ONLY)
 router.get('/engineering-resources', async (req: Request, res: Response) => {
   try {
-    // Get real Engineering users from the users table
+    // Get ONLY real Engineering users from the users table
     const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
     
-    // Get all engineering resource records
-    const engineeringResourceRecords = await db.select().from(engineeringResources);
+    console.log('🔍 SERVER DEBUG: Found engineering users:', engineeringUsers.length);
+    console.log('🔍 SERVER DEBUG: Engineering users:', engineeringUsers.map(u => ({ id: u.id, name: `${u.firstName} ${u.lastName}` })));
     
-    // Return all engineering resources, with user info merged if available
-    const resources = engineeringResourceRecords.map(record => {
-      // Find the corresponding user for active status
-      const correspondingUser = engineeringUsers.find(user => 
-        user.firstName === record.firstName && user.lastName === record.lastName
-      );
-      
+    // Return only actual users, using user IDs for consistency
+    const resources = engineeringUsers.map(user => {
       return {
-        id: record.id, // Use actual database ID from engineering_resources table
-        firstName: record.firstName,
-        lastName: record.lastName,
-        discipline: record.discipline,
-        title: record.title,
-        workloadStatus: record.workloadStatus,
-        currentCapacityPercent: record.currentCapacityPercent,
-        hourlyRate: record.hourlyRate,
-        skillLevel: record.skillLevel,
-        isActive: correspondingUser?.status === 'active' || true,
-        createdAt: record.createdAt,
-        updatedAt: record.updatedAt
+        id: user.id, // Use actual user ID for assignment mapping
+        firstName: user.firstName || 'Unknown',
+        lastName: user.lastName || 'User',
+        discipline: 'ME', // Default discipline, can be updated via edit
+        title: 'Engineering Specialist',
+        workloadStatus: 'available',
+        currentCapacityPercent: 0,
+        hourlyRate: 100,
+        skillLevel: 'intermediate',
+        isActive: user.status === 'active',
+        createdAt: user.createdAt || new Date(),
+        updatedAt: user.updatedAt || new Date()
       };
     });
 
+    console.log('🔍 SERVER DEBUG: Returning resources:', resources.length);
     res.json(resources);
   } catch (error) {
     console.error("Error fetching engineering resources:", error);
@@ -515,8 +511,8 @@ router.get('/project-assignments/project/:projectId', async (req: Request, res: 
 // GET project assignments by resource ID
 router.get('/project-assignments/resource/:resourceId', async (req: Request, res: Response) => {
   try {
-    const resourceId = parseInt(req.params.resourceId);
-    if (isNaN(resourceId)) {
+    const resourceId = req.params.resourceId;
+    if (!resourceId) {
       return res.status(400).json({ error: "Invalid resource ID format" });
     }
 

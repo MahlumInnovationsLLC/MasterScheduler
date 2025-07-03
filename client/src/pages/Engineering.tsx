@@ -45,7 +45,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ShieldX } from 'lucide-react';
 
 interface EngineeringResource {
-  id: number;
+  id: string; // User ID
   firstName: string;
   lastName: string;
   discipline: 'ME' | 'EE' | 'ITE' | 'NTC';
@@ -96,7 +96,7 @@ interface EngineeringBenchmark {
 interface ProjectEngineeringAssignment {
   id: number;
   projectId: number;
-  resourceId: number;
+  resourceId: string; // User ID
   discipline: 'ME' | 'EE' | 'ITE' | 'NTC';
   percentage: number;
   isLead: boolean;
@@ -514,7 +514,7 @@ export default function Engineering() {
   };
 
   // Function to handle project assignment
-  const handleProjectAssignment = async (engineerId: number, projectId: string) => {
+  const handleProjectAssignment = async (engineerId: string, projectId: string) => {
     console.log('🔍 DEBUG: Starting assignment creation for engineer:', engineerId, 'project:', projectId);
     
     const engineer = resources.find(r => r.id === engineerId);
@@ -525,7 +525,7 @@ export default function Engineering() {
 
     console.log('🔍 DEBUG: Found engineer in resources:', engineer);
 
-    // Check if engineer is already assigned to this project using the engineering resource ID
+    // Check if engineer is already assigned to this project using the user ID
     const existingAssignment = projectAssignments.find(
       a => a.resourceId === engineerId && a.projectId === parseInt(projectId)
     );
@@ -539,11 +539,11 @@ export default function Engineering() {
       return;
     }
 
-    console.log('🔍 DEBUG: Creating assignment with resource ID:', engineerId);
+    console.log('🔍 DEBUG: Creating assignment with user ID:', engineerId);
 
     createEngineerAssignmentMutation.mutate({
       projectId: parseInt(projectId),
-      resourceId: engineerId, // Use the engineering resource database ID directly
+      resourceId: engineerId, // Use the actual user ID
       discipline: engineer.discipline as 'ME' | 'EE' | 'ITE' | 'NTC',
       percentage: 50, // Default percentage
       isLead: false,
@@ -551,12 +551,12 @@ export default function Engineering() {
   };
 
   // Function to get engineer assignments
-  const getEngineerAssignments = (engineerId: number) => {
+  const getEngineerAssignments = (engineerId: string) => {
     console.log('🔍 DEBUG: Getting assignments for engineer ID:', engineerId);
     console.log('🔍 DEBUG: Available project assignments:', projectAssignments);
     console.log('🔍 DEBUG: Project assignments loading:', assignmentsLoading);
     
-    // Filter assignments by the engineering resource database ID directly
+    // Filter assignments by the user ID directly
     const assignments = projectAssignments.filter(assignment => assignment.resourceId === engineerId);
     console.log('🔍 DEBUG: Found assignments:', assignments);
     

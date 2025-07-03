@@ -5884,7 +5884,7 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getProjectEngineeringAssignmentsByResourceId(resourceId: number): Promise<ProjectEngineeringAssignment[]> {
+  async getProjectEngineeringAssignmentsByResourceId(resourceId: string): Promise<ProjectEngineeringAssignment[]> {
     return await safeQuery<ProjectEngineeringAssignment>(() =>
       db.select().from(projectEngineeringAssignments)
         .where(eq(projectEngineeringAssignments.resourceId, resourceId))

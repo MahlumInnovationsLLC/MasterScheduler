@@ -1487,8 +1487,8 @@ export const projectEngineeringAssignments = pgTable("project_engineering_assign
   projectId: integer("project_id")
     .references(() => projects.id)
     .notNull(),
-  resourceId: integer("resource_id")
-    .references(() => engineeringResources.id)
+  resourceId: varchar("resource_id", { length: 255 })
+    .references(() => users.id)
     .notNull(),
   discipline: text("discipline").notNull(), // 'ME', 'EE', 'ITE', 'NTC'
   percentage: integer("percentage").default(0).notNull(),
