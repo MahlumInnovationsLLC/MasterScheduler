@@ -1691,6 +1691,24 @@ export default function Engineering() {
                     Selected project: {projects.find(p => p.id.toString() === selectedProjectId)?.projectNumber} (will be assigned when you click Save)
                   </p>
                 )}
+                
+                {/* DEBUG: Test assignment button */}
+                <button 
+                  type="button"
+                  onClick={() => {
+                    console.log('🔍 DEBUG: TEST BUTTON CLICKED - Direct assignment test');
+                    if (editingEngineer && selectedProjectId) {
+                      console.log('🔍 DEBUG: TEST - Engineer ID:', editingEngineer.id);
+                      console.log('🔍 DEBUG: TEST - Project ID:', selectedProjectId);
+                      handleProjectAssignment(editingEngineer.id, selectedProjectId);
+                    } else {
+                      console.log('🔍 DEBUG: TEST - Missing data. Engineer:', editingEngineer, 'Project ID:', selectedProjectId);
+                    }
+                  }}
+                  className="mt-2 px-3 py-1 bg-red-500 text-white text-xs rounded"
+                >
+                  🔍 TEST ASSIGNMENT CREATION
+                </button>
               </div>
 
               <div className="flex items-center space-x-2">
