@@ -1098,11 +1098,11 @@ export default function Engineering() {
                               {getEngineerAssignments(resource.id).map((assignment) => {
                                 const project = projects.find(p => p.id === assignment.projectId);
                                 return (
-                                  <div key={assignment.id} className="bg-gray-50 p-2 rounded text-xs">
-                                    <div className="font-medium">{project?.projectNumber}</div>
-                                    <div className="text-gray-600 truncate">{project?.name}</div>
+                                  <div key={assignment.id} className="bg-gray-50 dark:bg-gray-700 p-2 rounded text-xs">
+                                    <div className="font-medium text-gray-900 dark:text-white">{project?.projectNumber}</div>
+                                    <div className="text-gray-600 dark:text-gray-300 truncate">{project?.name}</div>
                                     <div className="flex items-center justify-between mt-1">
-                                      <span className="text-gray-500">{assignment.discipline}</span>
+                                      <span className="text-gray-500 dark:text-gray-400">{assignment.discipline}</span>
                                       <div className="flex items-center gap-1">
                                         <Input
                                           type="number"
@@ -1110,10 +1110,10 @@ export default function Engineering() {
                                           max="100"
                                           value={assignment.percentage}
                                           onChange={(e) => handleAssignmentPercentageUpdate(assignment.id, parseInt(e.target.value) || 0)}
-                                          className="w-12 h-6 text-xs"
+                                          className="w-16 h-6 text-xs"
                                           disabled={!canEditEngineering()}
                                         />
-                                        <span className="text-xs">%</span>
+                                        <span className="text-xs text-gray-600 dark:text-gray-300">%</span>
                                       </div>
                                     </div>
                                   </div>

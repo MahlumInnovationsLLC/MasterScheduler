@@ -251,6 +251,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated backend routes to handle string resource IDs instead of parsing as integers
   - Fixed engineering resource PUT and GET routes to work with user ID strings
   - Cleared existing assignment data to support new user ID-based assignment system
+- July 03, 2025: Complete Engineering Assignment System Integration
+  - Fixed critical missing import: projectEngineeringAssignments table in storage.ts enabling assignment creation
+  - Enhanced Projects API to merge engineering assignments from project_engineering_assignments table
+  - Updated getProjects() method to join with assignments and populate ME/EE/ITE assigned fields with actual engineer names
+  - Fixed dark mode styling for project assignment cards with proper text contrast and expanded percentage input width
+  - Corrected Overview tab engineer counts to use actual engineering resources workload statistics instead of showing 0
+  - Assignment creation now fully functional: users can link projects to engineers through edit dialog with immediate UI updates
+  - Engineering assignments now properly display across Projects module, Overview tab, and Engineering Resource Planner
 
 ## User Preferences
 

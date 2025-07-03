@@ -375,17 +375,19 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     const tasks = await storage.getEngineeringTasks();
     const benchmarks = await storage.getEngineeringBenchmarks();
 
-    // Calculate workload statistics based on real Engineering users
+    // Get engineering resources for workload calculations
+    const resources = await storage.getEngineeringResources();
+    
+    // Calculate workload statistics based on actual engineering resources
     const workloadStats = {
-      totalEngineers: engineeringUsers.length,
-      availableEngineers: engineeringUsers.length, // Default all to available since we don't have workload status
-      atCapacityEngineers: 0,
-      overloadedEngineers: 0,
-      unavailableEngineers: 0,
+      totalEngineers: resources.length,
+      availableEngineers: resources.filter(r => r.workloadStatus === 'available').length,
+      atCapacityEngineers: resources.filter(r => r.workloadStatus === 'at_capacity').length,
+      overloadedEngineers: resources.filter(r => r.workloadStatus === 'overloaded').length,
+      unavailableEngineers: resources.filter(r => r.workloadStatus === 'unavailable').length,
     };
 
     // Calculate discipline distribution based on actual engineering resources
-    const resources = await storage.getEngineeringResources();
     const disciplineStats = {
       'ME': resources.filter(r => r.discipline === 'ME').length,
       'EE': resources.filter(r => r.discipline === 'EE').length,
