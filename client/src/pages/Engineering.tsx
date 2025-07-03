@@ -659,12 +659,16 @@ export default function Engineering() {
                       </div>
 
                       {/* View Mode Toggle */}
-                      <div className="flex border rounded-lg">
+                      <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg">
                         <Button
                           variant={projectViewMode === 'project' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setProjectViewMode('project')}
-                          className="rounded-r-none"
+                          className={`rounded-r-none ${
+                            projectViewMode === 'project' 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
+                              : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
+                          }`}
                         >
                           <FileText className="h-4 w-4 mr-1" />
                           Project View
@@ -673,7 +677,11 @@ export default function Engineering() {
                           variant={projectViewMode === 'engineer' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setProjectViewMode('engineer')}
-                          className="rounded-l-none"
+                          className={`rounded-l-none ${
+                            projectViewMode === 'engineer' 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
+                              : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
+                          }`}
                         >
                           <Users className="h-4 w-4 mr-1" />
                           Engineer View
@@ -1189,7 +1197,7 @@ export default function Engineering() {
         <TabsContent value="benchmarks-overview" className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Engineering Benchmarks Overview</h2>
-            <Button>
+            <Button className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" />
               Add Benchmark
             </Button>
