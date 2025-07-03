@@ -589,9 +589,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Engineering module access middleware - allows EDITOR/ADMIN or VIEWER in engineering department
   const requireEngineeringAccess = async (req: any, res: any, next: any) => {
+    console.log(`🔍 Auth middleware: Checking authentication for ${req.method} ${req.originalUrl}`);
     await requireAuth(req, res, () => {
       const userRole = req.user?.role;
       const userDepartment = req.user?.department;
+      
+      console.log(`🔍 Auth middleware: User role: ${userRole}, department: ${userDepartment}`);
       
       // EDITOR and ADMIN roles can access regardless of department
       if (userRole === 'admin' || userRole === 'editor') {
