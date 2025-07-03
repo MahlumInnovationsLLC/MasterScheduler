@@ -398,10 +398,44 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     const tasks = await storage.getEngineeringTasks();
     const benchmarks = await storage.getEngineeringBenchmarks();
 
-    // Get engineering resources for workload calculations
-    const resources = await storage.getEngineeringResources();
+    // Use the same discipline mapping and resources structure as the engineering-resources endpoint
+    const disciplineMap: { [key: string]: string } = {
+      '029521e7-8aae-4c5a-923b-423c12d7b928': 'ME', // Jordan Boyenga
+      '38468008': 'ME', // Colter P Mahlum
+      '93cb4a30-e9b4-409e-9196-7f5464484922': 'EE', // Jon Kuntz
+      '0bf8f4c2-a7e3-4217-8469-2a9fec5d9b76': 'EE', // Roger Fingar
+      'ece3b30f-d2df-450d-88dc-fe8bc388906d': 'ITE', // Mark Musick
+      '457a12dd-6cf5-40ce-8fcb-69be01898efb': 'ITE', // Andrew Burgess
+      '76840151-bb8e-4915-9686-a43dd395091c': 'NTC', // Calvin Campbell
+      '9ccddf13-92a7-4484-a68b-986baf96b903': 'NTC', // Dustin Hulse
+      'ef136e5c-f059-469d-b858-c90b11de43d6': 'ME', // William Janoch
+      '0bbf4a86-6080-419a-9448-e2b414353b2c': 'EE', // Trevor Jobst
+      '1b2eee23-9c1d-4400-a5c5-1c3d0a7a8254': 'ME', // Ethan Sauer
+      'ecd2b7a9-2f0b-4ecc-9652-e5fd9e11477a': 'EE', // Finn Simonson
+      '914890a7-9cd8-46e5-83d4-530011311f8c': 'ITE', // Sean Mcgee
+      'af41a446-9f1a-4b3c-a685-5151ea757d65': 'ME', // Will Busching
+      'bc1837b7-016d-46d8-a556-b709d30ec853': 'NTC', // Scott Barker
+      '4408dabc-c27a-475c-870d-565e5a251722': 'EE', // Austin Guth
+      '9c7048d1-b9f9-4cb2-8f13-7e4edc88e8b1': 'ME' // Michael Klassen
+    };
     
-    // Calculate workload statistics based on actual engineering resources
+    // Create resource objects that match the engineering resources format
+    const resources = engineeringUsers.map(user => ({
+      id: user.id,
+      firstName: user.firstName || 'Unknown',
+      lastName: user.lastName || 'User',
+      discipline: disciplineMap[user.id] || 'ME',
+      title: 'Engineering Specialist',
+      workloadStatus: 'available',
+      currentCapacityPercent: 0,
+      hourlyRate: 100,
+      skillLevel: 'intermediate',
+      isActive: user.status === 'active',
+      createdAt: user.createdAt || new Date(),
+      updatedAt: user.updatedAt || new Date()
+    }));
+    
+    // Calculate workload statistics based on real engineering users
     const workloadStats = {
       totalEngineers: resources.length,
       availableEngineers: resources.filter(r => r.workloadStatus === 'available').length,
@@ -410,7 +444,7 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       unavailableEngineers: resources.filter(r => r.workloadStatus === 'unavailable').length,
     };
 
-    // Calculate discipline distribution based on actual engineering resources
+    // Calculate discipline distribution based on real engineering users
     const disciplineStats = {
       'ME': resources.filter(r => r.discipline === 'ME').length,
       'EE': resources.filter(r => r.discipline === 'EE').length,
