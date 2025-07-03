@@ -169,6 +169,43 @@ export default function Engineering() {
   const [projectViewMode, setProjectViewMode] = useState<'project' | 'engineer'>('project');
   const queryClient = useQueryClient();
 
+  // All hooks must be called before any conditional returns
+  // Fetch engineering overview data
+  const { data: overview, isLoading: overviewLoading } = useQuery<EngineeringOverview>({
+    queryKey: ['/api/engineering-overview'],
+  });
+
+  // Fetch engineering resources
+  const { data: resources = [], isLoading: resourcesLoading } = useQuery<EngineeringResource[]>({
+    queryKey: ['/api/engineering-resources'],
+  });
+
+  // Fetch engineering tasks
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<EngineeringTask[]>({
+    queryKey: ['/api/engineering-tasks'],
+  });
+
+  // Fetch engineering benchmarks
+  const { data: benchmarks = [], isLoading: benchmarksLoading } = useQuery<EngineeringBenchmark[]>({
+    queryKey: ['/api/engineering-benchmarks'],
+  });
+
+  // Fetch project assignments
+  const { data: projectAssignments = [], isLoading: assignmentsLoading } = useQuery<ProjectEngineeringAssignment[]>({
+    queryKey: ['/api/engineering/project-assignments'],
+  });
+
+  // Fetch projects with engineering data
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+  });
+
+  // Fetch engineering users
+  const { data: engineers = [], isLoading: engineersLoading } = useQuery<any[]>({
+    queryKey: ['/api/users'],
+    select: (data: any[]) => data.filter(user => user.department === 'engineering'),
+  });
+
   // Check if user has access to Engineering module
   const hasEngineeringAccess = () => {
     // Only check userRole, user object can be null during loading
@@ -234,42 +271,6 @@ export default function Engineering() {
       </div>
     );
   }
-
-  // Fetch engineering overview data
-  const { data: overview, isLoading: overviewLoading } = useQuery<EngineeringOverview>({
-    queryKey: ['/api/engineering-overview'],
-  });
-
-  // Fetch engineering resources
-  const { data: resources = [], isLoading: resourcesLoading } = useQuery<EngineeringResource[]>({
-    queryKey: ['/api/engineering-resources'],
-  });
-
-  // Fetch engineering tasks
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery<EngineeringTask[]>({
-    queryKey: ['/api/engineering-tasks'],
-  });
-
-  // Fetch engineering benchmarks
-  const { data: benchmarks = [], isLoading: benchmarksLoading } = useQuery<EngineeringBenchmark[]>({
-    queryKey: ['/api/engineering-benchmarks'],
-  });
-
-  // Fetch project assignments
-  const { data: projectAssignments = [], isLoading: assignmentsLoading } = useQuery<ProjectEngineeringAssignment[]>({
-    queryKey: ['/api/engineering/project-assignments'],
-  });
-
-  // Fetch projects with engineering data
-  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
-  });
-
-  // Fetch engineering users
-  const { data: engineers = [], isLoading: engineersLoading } = useQuery<any[]>({
-    queryKey: ['/api/users'],
-    select: (data: any[]) => data.filter(user => user.department === 'engineering'),
-  });
 
   // Mutation for updating project assignments directly in Projects table
   const updateProjectAssignmentMutation = useMutation({
