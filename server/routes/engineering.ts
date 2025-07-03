@@ -30,26 +30,31 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
     // Get all engineering resource records
     const engineeringResourceRecords = await db.select().from(engineeringResources);
     
-    // Convert users to EngineeringResource format, merging with stored resource data
-    const resources = engineeringUsers.map((user, index) => {
-      // Find matching engineering resource record by name
-      const resourceRecord = engineeringResourceRecords.find(r => 
-        r.firstName === user.firstName && r.lastName === user.lastName
+    // Only return users who have corresponding engineering resource records
+    const resources = engineeringResourceRecords.filter(record => {
+      // Find corresponding user
+      return engineeringUsers.some(user => 
+        user.firstName === record.firstName && user.lastName === record.lastName
+      );
+    }).map(record => {
+      // Find the corresponding user for active status
+      const correspondingUser = engineeringUsers.find(user => 
+        user.firstName === record.firstName && user.lastName === record.lastName
       );
       
       return {
-        id: resourceRecord?.id || (index + 100), // Use database ID if available, otherwise generate unique ID
-        firstName: user.firstName || 'Unknown',
-        lastName: user.lastName || 'User', 
-        discipline: resourceRecord?.discipline || 'ME',
-        title: resourceRecord?.title || 'Engineering Specialist',
-        workloadStatus: resourceRecord?.workloadStatus || 'available',
-        currentCapacityPercent: resourceRecord?.currentCapacityPercent || 0,
-        hourlyRate: resourceRecord?.hourlyRate || 100,
-        skillLevel: resourceRecord?.skillLevel || 'intermediate',
-        isActive: user.status === 'active',
-        createdAt: user.createdAt || new Date(),
-        updatedAt: resourceRecord?.updatedAt || user.updatedAt || new Date()
+        id: record.id, // Use actual database ID from engineering_resources table
+        firstName: record.firstName,
+        lastName: record.lastName,
+        discipline: record.discipline,
+        title: record.title,
+        workloadStatus: record.workloadStatus,
+        currentCapacityPercent: record.currentCapacityPercent,
+        hourlyRate: record.hourlyRate,
+        skillLevel: record.skillLevel,
+        isActive: correspondingUser?.status === 'active' || true,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt
       };
     });
 

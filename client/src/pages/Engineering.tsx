@@ -524,28 +524,10 @@ export default function Engineering() {
     }
 
     console.log('🔍 DEBUG: Found engineer in resources:', engineer);
-    console.log('🔍 DEBUG: Available engineers list:', engineers.map(u => ({ id: u.id, firstName: u.firstName, lastName: u.lastName })));
 
-    // Find the actual user record to get the real user ID
-    const actualUser = engineers.find(u => 
-      u.firstName === engineer.firstName && u.lastName === engineer.lastName
-    );
-    
-    if (!actualUser) {
-      console.error('🔍 DEBUG: Could not find actual user for engineer:', engineer);
-      console.error('🔍 DEBUG: Looking for firstName:', engineer.firstName, 'lastName:', engineer.lastName);
-      console.error('🔍 DEBUG: Available engineers:', engineers.map(u => `${u.firstName} ${u.lastName}`));
-      return;
-    }
-
-    console.log('🔍 DEBUG: Creating assignment with actual user ID:', actualUser.id);
-    console.log('🔍 DEBUG: Engineer synthetic ID:', engineerId);
-    console.log('🔍 DEBUG: Engineer data:', engineer);
-    console.log('🔍 DEBUG: Actual user data:', actualUser);
-
-    // Check if engineer is already assigned to this project using actual user ID
+    // Check if engineer is already assigned to this project using the engineering resource ID
     const existingAssignment = projectAssignments.find(
-      a => a.resourceId === actualUser.id && a.projectId === parseInt(projectId)
+      a => a.resourceId === engineerId && a.projectId === parseInt(projectId)
     );
 
     if (existingAssignment) {
@@ -557,9 +539,11 @@ export default function Engineering() {
       return;
     }
 
+    console.log('🔍 DEBUG: Creating assignment with resource ID:', engineerId);
+
     createEngineerAssignmentMutation.mutate({
       projectId: parseInt(projectId),
-      resourceId: actualUser.id, // Use actual user ID instead of synthetic ID
+      resourceId: engineerId, // Use the engineering resource database ID directly
       discipline: engineer.discipline as 'ME' | 'EE' | 'ITE' | 'NTC',
       percentage: 50, // Default percentage
       isLead: false,
@@ -572,27 +556,8 @@ export default function Engineering() {
     console.log('🔍 DEBUG: Available project assignments:', projectAssignments);
     console.log('🔍 DEBUG: Project assignments loading:', assignmentsLoading);
     
-    // Find the engineer resource by synthetic ID
-    const engineer = resources.find(r => r.id === engineerId);
-    if (!engineer) {
-      console.log('🔍 DEBUG: Engineer not found for ID:', engineerId);
-      return [];
-    }
-    
-    // Find the actual user record to get the real user ID
-    const actualUser = engineers.find(u => 
-      u.firstName === engineer.firstName && u.lastName === engineer.lastName
-    );
-    
-    if (!actualUser) {
-      console.log('🔍 DEBUG: Actual user not found for engineer:', engineer);
-      return [];
-    }
-    
-    console.log('🔍 DEBUG: Looking up assignments for actual user ID:', actualUser.id);
-    
-    // Filter assignments by the actual user ID
-    const assignments = projectAssignments.filter(assignment => assignment.resourceId === actualUser.id);
+    // Filter assignments by the engineering resource database ID directly
+    const assignments = projectAssignments.filter(assignment => assignment.resourceId === engineerId);
     console.log('🔍 DEBUG: Found assignments:', assignments);
     
     return assignments;
