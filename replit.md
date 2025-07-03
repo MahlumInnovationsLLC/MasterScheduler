@@ -224,6 +224,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Enhanced BillingStatusCard component with blue theming for the new Future/TBD category
   - Milestone breakdown now provides clear action priorities: 134 total open milestones requiring attention, with 38 needing immediate focus
   - Removed Revenue Summary widget from top of Billing Milestones page for cleaner UI design
+- July 03, 2025: Engineering Module Department-Based Access Control Enhancement
+  - Enhanced Engineering module visibility to allow VIEWER role users in engineering department to access and edit within the module
+  - Updated client-side module visibility logic in use-module-visibility.ts to check both role and department for engineering module
+  - Modified Engineering.tsx component to include department-based access control with canEditEngineering() permission function
+  - Added server-side requireEngineeringAccess middleware to allow EDITOR/ADMIN roles or VIEWER roles in engineering department
+  - Updated engineering routes mounting to use new middleware instead of generic requireEditor middleware
+  - Engineering module now grants full editing capabilities to viewers in the engineering department while maintaining security
+  - Access denied message updated to reflect new requirements: EDITOR/ADMIN role OR VIEWER role in engineering department
 
 ## User Preferences
 

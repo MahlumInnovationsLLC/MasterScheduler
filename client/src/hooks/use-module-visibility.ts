@@ -41,12 +41,15 @@ export const useModuleVisibility = () => {
     
     // Special access control for Engineering module
     if (moduleId === 'engineering') {
-      // VIEWER role cannot access regardless of department
-      if (userRole === 'viewer') {
-        return false;
-      }
       // EDITOR and ADMIN roles can access regardless of department
-      return userRole === 'editor' || userRole === 'admin';
+      if (userRole === 'editor' || userRole === 'admin') {
+        return true;
+      }
+      // VIEWER role can access ONLY if they are in the engineering department
+      if (userRole === 'viewer') {
+        return user?.department === 'engineering';
+      }
+      return false;
     }
     
     // Fallback to role-based defaults if no saved data

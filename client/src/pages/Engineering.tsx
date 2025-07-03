@@ -41,6 +41,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { ModuleHelpButton } from '@/components/ModuleHelpButton';
 import { engineeringHelpContent } from '@/data/moduleHelpContent';
 import { usePermissions } from '@/components/PermissionsManager';
+import { useAuth } from '@/hooks/use-auth';
 import { ShieldX } from 'lucide-react';
 
 interface EngineeringResource {
@@ -151,7 +152,8 @@ interface EngineeringOverview {
 }
 
 export default function Engineering() {
-  const { user, userRole } = usePermissions();
+  const { userRole } = usePermissions();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
@@ -174,13 +176,37 @@ export default function Engineering() {
       return false;
     }
 
-    // VIEWER role cannot access regardless of department
+    // EDITOR and ADMIN roles can access regardless of department
+    if (userRole === 'editor' || userRole === 'admin') {
+      return true;
+    }
+
+    // VIEWER role can access ONLY if they are in the engineering department
     if (userRole === 'viewer') {
+      return user?.department === 'engineering';
+    }
+
+    return false;
+  };
+
+  // Check if user can edit within Engineering module
+  const canEditEngineering = () => {
+    // Only check userRole, user object can be null during loading
+    if (!userRole) {
       return false;
     }
 
-    // EDITOR and ADMIN roles can access regardless of department
-    return userRole === 'editor' || userRole === 'admin';
+    // EDITOR and ADMIN roles can edit regardless of department
+    if (userRole === 'editor' || userRole === 'admin') {
+      return true;
+    }
+
+    // VIEWER role can edit ONLY if they are in the engineering department
+    if (userRole === 'viewer') {
+      return user?.department === 'engineering';
+    }
+
+    return false;
   };
 
   // If user doesn't have access, show access denied message
@@ -199,7 +225,9 @@ export default function Engineering() {
               <br />
               • Must have EDITOR or ADMIN role
               <br />
-              • VIEWER access is restricted
+              • OR be a VIEWER in the Engineering department
+              <br />
+              • General VIEWER access is restricted
             </p>
           </div>
         </div>
@@ -998,6 +1026,7 @@ export default function Engineering() {
                                           value={assignment.percentage}
                                           onChange={(e) => handleAssignmentPercentageUpdate(assignment.id, parseInt(e.target.value) || 0)}
                                           className="w-12 h-6 text-xs"
+                                          disabled={!canEditEngineering()}
                                         />
                                         <span className="text-xs">%</span>
                                       </div>
@@ -1016,6 +1045,7 @@ export default function Engineering() {
                             variant="outline" 
                             size="sm"
                             onClick={() => handleEditEngineer(resource)}
+                            disabled={!canEditEngineering()}
                           >
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
@@ -1089,6 +1119,7 @@ export default function Engineering() {
                                         variant="outline" 
                                         size="sm"
                                         onClick={() => handleEditEngineer(resource)}
+                                        disabled={!canEditEngineering()}
                                       >
                                         <Edit className="h-4 w-4 mr-1" />
                                         Edit

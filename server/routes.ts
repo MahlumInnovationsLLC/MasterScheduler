@@ -587,6 +587,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   };
 
+  // Engineering module access middleware - allows EDITOR/ADMIN or VIEWER in engineering department
+  const requireEngineeringAccess = async (req: any, res: any, next: any) => {
+    await requireAuth(req, res, () => {
+      const userRole = req.user?.role;
+      const userDepartment = req.user?.department;
+      
+      // EDITOR and ADMIN roles can access regardless of department
+      if (userRole === 'admin' || userRole === 'editor') {
+        console.log(`✅ Engineering access granted for ${userRole}: ${req.user.email}`);
+        return next();
+      }
+      
+      // VIEWER role can access ONLY if they are in the engineering department
+      if (userRole === 'viewer' && userDepartment === 'engineering') {
+        console.log(`✅ Engineering access granted for engineering viewer: ${req.user.email}`);
+        return next();
+      }
+      
+      console.log(`❌ Engineering access denied for role: ${userRole}, department: ${userDepartment}`);
+      return res.status(403).json({ message: "Engineering module access requires EDITOR/ADMIN role or VIEWER role in engineering department" });
+    });
+  };
+
 
   // User module visibility routes
   app.get("/api/users/:userId/module-visibility", requireAuth, async (req, res) => {
@@ -5253,7 +5276,7 @@ Response format:
 
   // System Routes
   app.use('/api/system', systemRoutes);
-  app.use('/api', requireEditor, engineeringRoutes);
+  app.use('/api', requireEngineeringAccess, engineeringRoutes);
 
   // Elevated Concerns Routes
   app.get("/api/elevated-concerns", simpleAuth, async (req, res) => {
