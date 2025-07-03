@@ -30,13 +30,8 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
     // Get all engineering resource records
     const engineeringResourceRecords = await db.select().from(engineeringResources);
     
-    // Only return users who have corresponding engineering resource records
-    const resources = engineeringResourceRecords.filter(record => {
-      // Find corresponding user
-      return engineeringUsers.some(user => 
-        user.firstName === record.firstName && user.lastName === record.lastName
-      );
-    }).map(record => {
+    // Return all engineering resources, with user info merged if available
+    const resources = engineeringResourceRecords.map(record => {
       // Find the corresponding user for active status
       const correspondingUser = engineeringUsers.find(user => 
         user.firstName === record.firstName && user.lastName === record.lastName
