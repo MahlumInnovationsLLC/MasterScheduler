@@ -190,7 +190,7 @@ export default function Engineering() {
 
   // Fetch engineering benchmarks
   const { data: benchmarks = [], isLoading: benchmarksLoading } = useQuery<EngineeringBenchmark[]>({
-    queryKey: ['/api/engineering-benchmarks'],
+    queryKey: ['/api/engineering/engineering-benchmarks'],
   });
 
   // Fetch project assignments
