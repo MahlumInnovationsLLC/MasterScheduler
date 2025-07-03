@@ -38,13 +38,34 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
     console.log('🔍 SERVER DEBUG: First few users:', engineeringUsers.slice(0, 3));
     
     // Return only actual users, using user IDs for consistency
+    // Create a discipline mapping for different engineers for demonstration
+    const disciplineMap: { [key: string]: string } = {
+      '029521e7-8aae-4c5a-923b-423c12d7b928': 'ME', // Jordan Boyenga
+      '38468008': 'ME', // Colter P Mahlum
+      '93cb4a30-e9b4-409e-9196-7f5464484922': 'EE', // Engineering user
+      '0bf8f4c2-a7e3-4217-8469-2a9fec5d9b76': 'EE', // Engineering user
+      'ece3b30f-d2df-450d-88dc-fe8bc388906d': 'ITE', // Engineering user
+      '457a12dd-6cf5-40ce-8fcb-69be01898efb': 'ITE', // Engineering user
+      '76840151-bb8e-4915-9686-a43dd395091c': 'NTC', // Engineering user
+      '9ccddf13-92a7-4484-a68b-986baf96b903': 'NTC', // Engineering user
+      'ef136e5c-f059-469d-b858-c90b11de43d6': 'ME', // Engineering user
+      '0bbf4a86-6080-419a-9448-e2b414353b2c': 'EE', // Trevor Jobst
+      '1b2eee23-9c1d-4400-a5c5-1c3d0a7a8254': 'ME', // Ethan Sauer
+      'ecd2b7a9-2f0b-4ecc-9652-e5fd9e11477a': 'EE', // Finn Simonson
+      '914890a7-9cd8-46e5-83d4-530011311f8c': 'ITE', // Sean Mcgee
+      'af41a446-9f1a-4b3c-a685-5151ea757d65': 'ME', // Will Busching
+      'bc1837b7-016d-46d8-a556-b709d30ec853': 'NTC', // Scott Barker
+      '4408dabc-c27a-475c-870d-565e5a251722': 'EE', // Austin Guth
+      '9c7048d1-b9f9-4cb2-8f13-7e4edc88e8b1': 'ME' // Michael Klassen
+    };
+    
     const resources = engineeringUsers.map(user => {
       console.log('🔍 SERVER DEBUG: Processing user:', { id: user.id, firstName: user.firstName, lastName: user.lastName });
       return {
         id: user.id, // Use actual user ID for assignment mapping
         firstName: user.firstName || 'Unknown',
         lastName: user.lastName || 'User',
-        discipline: 'ME', // Default discipline, can be updated via edit
+        discipline: disciplineMap[user.id] || 'ME', // Use mapped discipline or default to ME
         title: 'Engineering Specialist',
         workloadStatus: 'available',
         currentCapacityPercent: 0,

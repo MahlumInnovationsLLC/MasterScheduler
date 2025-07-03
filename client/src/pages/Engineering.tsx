@@ -455,34 +455,31 @@ export default function Engineering() {
     const assignments = getProjectAssignments(projectId);
     const disciplineAssignments = assignments.filter(a => a.discipline === discipline);
     return disciplineAssignments.map(assignment => {
-      const engineer = engineers.find(eng => eng.id === assignment.resourceId);
+      const engineer = resources.find(resource => resource.id === assignment.resourceId);
       return engineer ? `${engineer.firstName} ${engineer.lastName}` : 'Unknown';
     }).join(', ');
   };
 
   // Function to handle engineer assignment update
   const handleEngineerAssignment = async (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC', engineerId: string) => {
-    const engineer = engineers.find(eng => eng.id.toString() === engineerId);
+    console.log('🔍 DEBUG: handleEngineerAssignment called with:', { projectId, discipline, engineerId });
+    
+    const engineer = resources.find(resource => resource.id === engineerId);
+    console.log('🔍 DEBUG: Found engineer:', engineer);
+    
     if (engineer) {
-      const assignmentData: any = {};
-      const engineerName = `${engineer.firstName} ${engineer.lastName}`;
+      const assignmentData: Omit<ProjectEngineeringAssignment, 'id' | 'createdAt' | 'updatedAt'> = {
+        projectId: projectId,
+        resourceId: engineerId,
+        discipline: discipline,
+        percentage: 50, // Default to 50% assignment
+        isLead: false // Default to not lead
+      };
 
-      switch (discipline) {
-        case 'ME':
-          assignmentData.meAssigned = engineerName;
-          break;
-        case 'EE':
-          assignmentData.eeAssigned = engineerName;
-          break;
-        case 'ITE':
-          assignmentData.iteAssigned = engineerName;
-          break;
-      }
-
-      await updateProjectAssignmentMutation.mutateAsync({
-        id: projectId,
-        ...assignmentData
-      });
+      console.log('🔍 DEBUG: Creating assignment:', assignmentData);
+      await createEngineerAssignmentMutation.mutateAsync(assignmentData);
+    } else {
+      console.error('🔍 DEBUG: Engineer not found with ID:', engineerId);
     }
   };
 
@@ -1534,11 +1531,11 @@ export default function Engineering() {
                                 <SelectValue placeholder="Select engineer" />
                               </SelectTrigger>
                               <SelectContent>
-                                {engineers
-                                  .filter(eng => eng.discipline === discipline)
-                                  .map(engineer => (
-                                    <SelectItem key={engineer.id} value={engineer.id.toString()}>
-                                      {engineer.firstName} {engineer.lastName} - {engineer.title}
+                                {resources
+                                  .filter(resource => resource.discipline === discipline)
+                                  .map(resource => (
+                                    <SelectItem key={resource.id} value={resource.id}>
+                                      {resource.firstName} {resource.lastName} - {resource.title}
                                     </SelectItem>
                                   ))
                                 }
