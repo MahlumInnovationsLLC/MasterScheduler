@@ -206,72 +206,6 @@ export default function Engineering() {
     select: (data: any[]) => data.filter(user => user.department === 'engineering'),
   });
 
-  // Check if user has access to Engineering module
-  const hasEngineeringAccess = () => {
-    // Only check userRole, user object can be null during loading
-    if (!userRole) {
-      return false;
-    }
-
-    // EDITOR and ADMIN roles can access regardless of department
-    if (userRole === 'editor' || userRole === 'admin') {
-      return true;
-    }
-
-    // VIEWER role can access ONLY if they are in the engineering department
-    if (userRole === 'viewer') {
-      return user?.department === 'engineering';
-    }
-
-    return false;
-  };
-
-  // Check if user can edit within Engineering module
-  const canEditEngineering = () => {
-    // Only check userRole, user object can be null during loading
-    if (!userRole) {
-      return false;
-    }
-
-    // EDITOR and ADMIN roles can edit regardless of department
-    if (userRole === 'editor' || userRole === 'admin') {
-      return true;
-    }
-
-    // VIEWER role can edit ONLY if they are in the engineering department
-    if (userRole === 'viewer') {
-      return user?.department === 'engineering';
-    }
-
-    return false;
-  };
-
-  // If user doesn't have access, show access denied message
-  if (!hasEngineeringAccess()) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <ShieldX className="h-16 w-16 text-red-500 mb-4" />
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
-          <p className="text-gray-600 mb-4">
-            You don't have permission to access the Engineering Resource Planner.
-          </p>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md">
-            <p className="text-sm text-red-700">
-              <strong>Requirements:</strong>
-              <br />
-              • Must have EDITOR or ADMIN role
-              <br />
-              • OR be a VIEWER in the Engineering department
-              <br />
-              • General VIEWER access is restricted
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Mutation for updating project assignments directly in Projects table
   const updateProjectAssignmentMutation = useMutation({
     mutationFn: async ({ id, ...data }: { id: number } & Partial<{ 
@@ -370,7 +304,7 @@ export default function Engineering() {
     },
   });
 
-  // Mutation for updating project assignment percentage
+  // Mutation for updating assignment percentage
   const updateAssignmentPercentageMutation = useMutation({
     mutationFn: async ({ assignmentId, percentage }: { assignmentId: number; percentage: number }) => {
       return await apiRequest('PUT', `/api/engineering/project-assignments/${assignmentId}`, { percentage });
@@ -391,6 +325,74 @@ export default function Engineering() {
       });
     },
   });
+
+  // Check if user has access to Engineering module
+  const hasEngineeringAccess = () => {
+    // Only check userRole, user object can be null during loading
+    if (!userRole) {
+      return false;
+    }
+
+    // EDITOR and ADMIN roles can access regardless of department
+    if (userRole === 'editor' || userRole === 'admin') {
+      return true;
+    }
+
+    // VIEWER role can access ONLY if they are in the engineering department
+    if (userRole === 'viewer') {
+      return user?.department === 'engineering';
+    }
+
+    return false;
+  };
+
+  // Check if user can edit within Engineering module
+  const canEditEngineering = () => {
+    // Only check userRole, user object can be null during loading
+    if (!userRole) {
+      return false;
+    }
+
+    // EDITOR and ADMIN roles can edit regardless of department
+    if (userRole === 'editor' || userRole === 'admin') {
+      return true;
+    }
+
+    // VIEWER role can edit ONLY if they are in the engineering department
+    if (userRole === 'viewer') {
+      return user?.department === 'engineering';
+    }
+
+    return false;
+  };
+
+  // If user doesn't have access, show access denied message
+  if (!hasEngineeringAccess()) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <ShieldX className="h-16 w-16 text-red-500 mb-4" />
+          <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
+          <p className="text-gray-600 mb-4">
+            You don't have permission to access the Engineering Resource Planner.
+          </p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md">
+            <p className="text-sm text-red-700">
+              <strong>Requirements:</strong>
+              <br />
+              • Must have EDITOR or ADMIN role
+              <br />
+              • OR be a VIEWER in the Engineering department
+              <br />
+              • General VIEWER access is restricted
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
 
   const getStatusColor = (status: string) => {
     switch (status) {

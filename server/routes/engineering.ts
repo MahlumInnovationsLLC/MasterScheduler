@@ -31,14 +31,14 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
     const engineeringResourceRecords = await db.select().from(engineeringResources);
     
     // Convert users to EngineeringResource format, merging with stored resource data
-    const resources = engineeringUsers.map((user) => {
+    const resources = engineeringUsers.map((user, index) => {
       // Find matching engineering resource record by name
       const resourceRecord = engineeringResourceRecords.find(r => 
         r.firstName === user.firstName && r.lastName === user.lastName
       );
       
       return {
-        id: resourceRecord?.id || 0, // Use actual database ID
+        id: resourceRecord?.id || (index + 100), // Use database ID if available, otherwise generate unique ID
         firstName: user.firstName || 'Unknown',
         lastName: user.lastName || 'User', 
         discipline: resourceRecord?.discipline || 'ME',
@@ -51,7 +51,7 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
         createdAt: user.createdAt || new Date(),
         updatedAt: resourceRecord?.updatedAt || user.updatedAt || new Date()
       };
-    }).filter(resource => resource.id > 0); // Only include resources with valid database IDs
+    });
 
     res.json(resources);
   } catch (error) {
