@@ -540,12 +540,18 @@ export default function Engineering() {
       if (selectedProjectId) {
         console.log('🔍 DEBUG: SAVE CLICKED - Creating assignment for project:', selectedProjectId);
         console.log('🔍 DEBUG: About to call handleProjectAssignment with engineer ID:', editingEngineer.id);
+        console.log('🔍 DEBUG: Current selectedProjectId state:', selectedProjectId);
+        console.log('🔍 DEBUG: Current editingEngineer:', editingEngineer);
+        
+        // Call the assignment creation function
         handleProjectAssignment(editingEngineer.id, selectedProjectId);
+        
         // Reset the selected project after assignment
         console.log('🔍 DEBUG: Resetting selected project ID to null');
         setSelectedProjectId(null);
       } else {
         console.log('🔍 DEBUG: No project selected - skipping assignment creation');
+        console.log('🔍 DEBUG: Current selectedProjectId state when no project selected:', selectedProjectId);
       }
     } else {
       console.error('🔍 DEBUG: ERROR - No editing engineer found');
