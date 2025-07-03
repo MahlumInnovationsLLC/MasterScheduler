@@ -24,6 +24,9 @@ const router = Router();
 // GET all engineering resources (real Engineering users from users table ONLY)
 router.get('/engineering-resources', async (req: Request, res: Response) => {
   try {
+    console.log('🔍 SERVER DEBUG: *** ENGINEERING RESOURCES REQUEST RECEIVED ***');
+    console.log('🔍 SERVER DEBUG: Request URL:', req.url);
+    console.log('🔍 SERVER DEBUG: Request method:', req.method);
     console.log('🔍 SERVER DEBUG: Starting engineering resources query...');
     
     // Get ONLY real Engineering users from the users table
@@ -53,6 +56,12 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
 
     console.log('🔍 SERVER DEBUG: Returning resources:', resources.length);
     console.log('🔍 SERVER DEBUG: Sample resources:', resources.slice(0, 2));
+    
+    // Add cache-busting headers
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
     res.json(resources);
   } catch (error) {
     console.error("🔍 SERVER DEBUG: Error fetching engineering resources:", error);
