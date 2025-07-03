@@ -496,11 +496,23 @@ router.post('/project-assignments', async (req: Request, res: Response) => {
     }
 
     console.log('🔍 SERVER DEBUG: Validated data:', validationResult.data);
+    
+    // Additional logging for the storage call
+    console.log('🔍 SERVER DEBUG: Calling storage.createProjectEngineeringAssignment...');
     const newAssignment = await storage.createProjectEngineeringAssignment(validationResult.data);
-    console.log('🔍 SERVER DEBUG: Created assignment:', newAssignment);
+    console.log('🔍 SERVER DEBUG: Storage returned:', newAssignment);
+    console.log('🔍 SERVER DEBUG: Assignment ID:', newAssignment?.id);
+    
+    if (!newAssignment || !newAssignment.id) {
+      console.error('🔍 SERVER DEBUG: Assignment creation failed - no assignment returned');
+      return res.status(500).json({ error: "Failed to create assignment - no data returned" });
+    }
+    
+    console.log('🔍 SERVER DEBUG: Successfully created assignment with ID:', newAssignment.id);
     res.status(201).json(newAssignment);
   } catch (error) {
-    console.error("Error creating project engineering assignment:", error);
+    console.error("🔍 SERVER DEBUG: Error creating project engineering assignment:", error);
+    console.error("🔍 SERVER DEBUG: Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     res.status(500).json({ error: "Failed to create project engineering assignment" });
   }
 });

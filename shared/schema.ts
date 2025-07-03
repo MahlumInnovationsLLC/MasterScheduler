@@ -1532,9 +1532,9 @@ export const projectEngineeringAssignmentsRelations = relations(projectEngineeri
     fields: [projectEngineeringAssignments.projectId],
     references: [projects.id],
   }),
-  resource: one(engineeringResources, {
+  resource: one(users, {
     fields: [projectEngineeringAssignments.resourceId],
-    references: [engineeringResources.id],
+    references: [users.id],
   }),
 }));
 
