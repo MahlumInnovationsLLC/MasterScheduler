@@ -543,7 +543,14 @@ export default function Engineering() {
 
   // Function to get engineer assignments
   const getEngineerAssignments = (engineerId: number) => {
-    return projectAssignments.filter(assignment => assignment.resourceId === engineerId);
+    console.log('🔍 DEBUG: Getting assignments for engineer ID:', engineerId);
+    console.log('🔍 DEBUG: Available project assignments:', projectAssignments);
+    console.log('🔍 DEBUG: Available engineer resources:', engineeringResources);
+    
+    const assignments = projectAssignments.filter(assignment => assignment.resourceId === engineerId);
+    console.log('🔍 DEBUG: Found assignments:', assignments);
+    
+    return assignments;
   };
 
   // Function to update assignment percentage
