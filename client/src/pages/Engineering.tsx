@@ -285,9 +285,18 @@ export default function Engineering() {
   // Mutation for creating project engineering assignments
   const createEngineerAssignmentMutation = useMutation({
     mutationFn: async (data: Omit<ProjectEngineeringAssignment, 'id' | 'createdAt' | 'updatedAt'>) => {
-      return await apiRequest('POST', '/api/engineering/project-assignments', data);
+      console.log('🔍 DEBUG: MUTATION STARTING - Assignment data:', data);
+      try {
+        const result = await apiRequest('POST', '/api/engineering/project-assignments', data);
+        console.log('🔍 DEBUG: MUTATION SUCCESS - API result:', result);
+        return result;
+      } catch (error) {
+        console.error('🔍 DEBUG: MUTATION ERROR - API failed:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🔍 DEBUG: MUTATION onSuccess triggered with data:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
       toast({
@@ -296,6 +305,7 @@ export default function Engineering() {
       });
     },
     onError: (error: any) => {
+      console.error('🔍 DEBUG: MUTATION onError triggered with error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to assign engineer to project",
