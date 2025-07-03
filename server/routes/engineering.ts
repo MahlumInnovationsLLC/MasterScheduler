@@ -24,14 +24,17 @@ const router = Router();
 // GET all engineering resources (real Engineering users from users table ONLY)
 router.get('/engineering-resources', async (req: Request, res: Response) => {
   try {
+    console.log('🔍 SERVER DEBUG: Starting engineering resources query...');
+    
     // Get ONLY real Engineering users from the users table
     const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
     
     console.log('🔍 SERVER DEBUG: Found engineering users:', engineeringUsers.length);
-    console.log('🔍 SERVER DEBUG: Engineering users:', engineeringUsers.map(u => ({ id: u.id, name: `${u.firstName} ${u.lastName}` })));
+    console.log('🔍 SERVER DEBUG: First few users:', engineeringUsers.slice(0, 3));
     
     // Return only actual users, using user IDs for consistency
     const resources = engineeringUsers.map(user => {
+      console.log('🔍 SERVER DEBUG: Processing user:', { id: user.id, firstName: user.firstName, lastName: user.lastName });
       return {
         id: user.id, // Use actual user ID for assignment mapping
         firstName: user.firstName || 'Unknown',
@@ -49,9 +52,10 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
     });
 
     console.log('🔍 SERVER DEBUG: Returning resources:', resources.length);
+    console.log('🔍 SERVER DEBUG: Sample resources:', resources.slice(0, 2));
     res.json(resources);
   } catch (error) {
-    console.error("Error fetching engineering resources:", error);
+    console.error("🔍 SERVER DEBUG: Error fetching engineering resources:", error);
     res.status(500).json({ error: "Failed to fetch engineering resources" });
   }
 });
