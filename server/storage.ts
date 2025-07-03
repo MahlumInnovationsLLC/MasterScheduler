@@ -51,6 +51,7 @@ import {
   engineeringResources,
   engineeringTasks,
   engineeringBenchmarks,
+  projectEngineeringAssignments,
   type User,
   type InsertUser,
   type Project,
