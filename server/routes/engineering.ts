@@ -27,21 +27,31 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
     // Get real Engineering users from the users table
     const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
     
-    // Convert users to EngineeringResource format
-    const resources = engineeringUsers.map((user, index) => ({
-      id: index + 1,
-      firstName: user.firstName || 'Unknown',
-      lastName: user.lastName || 'User', 
-      discipline: 'ME' as const, // Default discipline - could be determined from project assignments
-      title: 'Engineering Specialist',
-      workloadStatus: 'available' as const,
-      currentCapacityPercent: 0,
-      hourlyRate: 100,
-      skillLevel: 'intermediate' as const,
-      isActive: user.status === 'active',
-      createdAt: user.createdAt || new Date(),
-      updatedAt: user.updatedAt || new Date()
-    }));
+    // Get all engineering resource records
+    const engineeringResourceRecords = await db.select().from(engineeringResources);
+    
+    // Convert users to EngineeringResource format, merging with stored resource data
+    const resources = engineeringUsers.map((user, index) => {
+      // Find matching engineering resource record by name
+      const resourceRecord = engineeringResourceRecords.find(r => 
+        r.firstName === user.firstName && r.lastName === user.lastName
+      );
+      
+      return {
+        id: index + 1,
+        firstName: user.firstName || 'Unknown',
+        lastName: user.lastName || 'User', 
+        discipline: resourceRecord?.discipline || 'ME',
+        title: resourceRecord?.title || 'Engineering Specialist',
+        workloadStatus: resourceRecord?.workloadStatus || 'available',
+        currentCapacityPercent: resourceRecord?.currentCapacityPercent || 0,
+        hourlyRate: resourceRecord?.hourlyRate || 100,
+        skillLevel: resourceRecord?.skillLevel || 'intermediate',
+        isActive: user.status === 'active',
+        createdAt: user.createdAt || new Date(),
+        updatedAt: resourceRecord?.updatedAt || user.updatedAt || new Date()
+      };
+    });
 
     res.json(resources);
   } catch (error) {
@@ -101,56 +111,90 @@ router.post('/engineering-resources', async (req: Request, res: Response) => {
   }
 });
 
-// UPDATE an engineering resource
+// UPDATE an engineering resource (which is actually a user)
 router.put('/engineering-resources/:id', async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
+    const resourceId = parseInt(req.params.id);
+    if (isNaN(resourceId)) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
 
-    const validationResult = insertEngineeringResourceSchema.partial().safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        error: "Invalid resource data", 
-        details: validationResult.error.format() 
-      });
-    }
+    const { discipline, title, hourlyRate, skillLevel, workloadStatus } = req.body;
 
-    const updatedResource = await storage.updateEngineeringResource(id, validationResult.data);
-    if (!updatedResource) {
+    // Since engineering resources are derived from users table, we need to find the actual user
+    // The resourceId corresponds to the index+1 in the engineeringUsers array
+    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
+    
+    if (resourceId < 1 || resourceId > engineeringUsers.length) {
       return res.status(404).json({ error: "Engineering resource not found" });
     }
 
-    res.json(updatedResource);
-  } catch (error) {
-    console.error("Error updating engineering resource:", error);
-    res.status(500).json({ error: "Failed to update engineering resource" });
-  }
-});
+    const userToUpdate = engineeringUsers[resourceId - 1]; // Convert back to 0-based index
+    
+    // Create or update engineering resource data in the engineering_resources table
+    // First check if an engineering resource record exists for this user
+    const existingResource = await db.select()
+      .from(engineeringResources)
+      .where(eq(engineeringResources.firstName, userToUpdate.firstName || ''))
+      .limit(1);
 
-// UPDATE an engineering resource
-router.put('/engineering-resources/:id', async (req: Request, res: Response) => {
-  try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid ID format" });
+    let updatedResource;
+    
+    if (existingResource.length > 0) {
+      // Update existing resource
+      const [updated] = await db
+        .update(engineeringResources)
+        .set({
+          discipline: discipline || existingResource[0].discipline,
+          title: title || existingResource[0].title,
+          hourlyRate: hourlyRate || existingResource[0].hourlyRate,
+          skillLevel: skillLevel || existingResource[0].skillLevel,
+          workloadStatus: workloadStatus || existingResource[0].workloadStatus,
+          updatedAt: new Date()
+        })
+        .where(eq(engineeringResources.id, existingResource[0].id))
+        .returning();
+      
+      updatedResource = updated;
+    } else {
+      // Create new resource record
+      const [created] = await db
+        .insert(engineeringResources)
+        .values({
+          firstName: userToUpdate.firstName || 'Unknown',
+          lastName: userToUpdate.lastName || 'User',
+          discipline: discipline || 'ME',
+          title: title || 'Engineering Specialist',
+          workloadStatus: workloadStatus || 'available',
+          currentCapacityPercent: 0,
+          hourlyRate: hourlyRate || 100,
+          skillLevel: skillLevel || 'intermediate',
+          isActive: userToUpdate.status === 'active',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      updatedResource = created;
     }
 
-    const validationResult = insertEngineeringResourceSchema.partial().safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        error: "Invalid resource data", 
-        details: validationResult.error.format() 
-      });
-    }
+    // Return the resource in the same format as the GET endpoint
+    const formattedResource = {
+      id: resourceId,
+      firstName: userToUpdate.firstName || 'Unknown',
+      lastName: userToUpdate.lastName || 'User',
+      discipline: updatedResource.discipline,
+      title: updatedResource.title,
+      workloadStatus: updatedResource.workloadStatus,
+      currentCapacityPercent: updatedResource.currentCapacityPercent,
+      hourlyRate: updatedResource.hourlyRate,
+      skillLevel: updatedResource.skillLevel,
+      isActive: userToUpdate.status === 'active',
+      createdAt: userToUpdate.createdAt || new Date(),
+      updatedAt: new Date()
+    };
 
-    const updatedResource = await storage.updateEngineeringResource(id, validationResult.data);
-    if (!updatedResource) {
-      return res.status(404).json({ error: "Engineering resource not found" });
-    }
-
-    res.json(updatedResource);
+    res.json(formattedResource);
   } catch (error) {
     console.error("Error updating engineering resource:", error);
     res.status(500).json({ error: "Failed to update engineering resource" });
