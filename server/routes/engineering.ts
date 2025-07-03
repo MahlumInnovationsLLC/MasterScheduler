@@ -59,21 +59,28 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
       '9c7048d1-b9f9-4cb2-8f13-7e4edc88e8b1': 'ME' // Michael Klassen
     };
     
+    // Get all engineering resource customizations
+    const engineeringResourceCustomizations = await db.select().from(engineeringResources);
+    
     const resources = engineeringUsers.map(user => {
       console.log('🔍 SERVER DEBUG: Processing user:', { id: user.id, firstName: user.firstName, lastName: user.lastName });
+      
+      // Find any existing customizations for this user
+      const customization = engineeringResourceCustomizations.find(resource => resource.userId === user.id);
+      
       return {
         id: user.id, // Use actual user ID for assignment mapping
         firstName: user.firstName || 'Unknown',
         lastName: user.lastName || 'User',
-        discipline: disciplineMap[user.id] || 'ME', // Use mapped discipline or default to ME
-        title: 'Engineering Specialist',
-        workloadStatus: 'available',
-        currentCapacityPercent: 0,
-        hourlyRate: 100,
-        skillLevel: 'intermediate',
+        discipline: customization?.discipline || disciplineMap[user.id] || 'ME', // Use saved customization first, then default mapping
+        title: customization?.title || 'Engineering Specialist',
+        workloadStatus: customization?.workloadStatus || 'available',
+        currentCapacityPercent: customization?.currentCapacityPercent || 0,
+        hourlyRate: customization?.hourlyRate || 100,
+        skillLevel: customization?.skillLevel || 'intermediate',
         isActive: user.status === 'active',
-        createdAt: user.createdAt || new Date(),
-        updatedAt: user.updatedAt || new Date()
+        createdAt: customization?.createdAt || user.createdAt || new Date(),
+        updatedAt: customization?.updatedAt || user.updatedAt || new Date()
       };
     });
 
@@ -144,7 +151,7 @@ router.post('/engineering-resources', async (req: Request, res: Response) => {
   }
 });
 
-// UPDATE an engineering resource (which is actually a user)
+// UPDATE an engineering resource (create or update in engineering_resources table)
 router.put('/engineering-resources/:id', async (req: Request, res: Response) => {
   try {
     const resourceId = req.params.id;
@@ -154,8 +161,7 @@ router.put('/engineering-resources/:id', async (req: Request, res: Response) => 
 
     const { discipline, title, hourlyRate, skillLevel, workloadStatus } = req.body;
 
-    // Since engineering resources are derived from users table, we need to find the actual user
-    // The resourceId is the actual user ID
+    // Verify the user exists in engineering department
     const userToUpdate = await db.select()
       .from(users)
       .where(and(eq(users.id, resourceId), eq(users.department, 'engineering')))
@@ -167,23 +173,76 @@ router.put('/engineering-resources/:id', async (req: Request, res: Response) => 
 
     const user = userToUpdate[0];
     
-    // Since engineering resources are now purely derived from users table,
-    // we just return a success response with the updated virtual resource data
-    const updatedResource = {
-      id: user.id,
-      firstName: user.firstName || 'Unknown',
-      lastName: user.lastName || 'User',
-      discipline: discipline || 'ME',
-      title: title || 'Engineering Specialist',
-      workloadStatus: workloadStatus || 'available',
-      currentCapacityPercent: 0,
-      hourlyRate: hourlyRate || 100,
-      skillLevel: skillLevel || 'intermediate',
-      isActive: user.status === 'active',
-      createdAt: user.createdAt || new Date(),
-      updatedAt: new Date()
-    };
+    // Check if an engineering resource record already exists for this user
+    const existingResource = await db.select()
+      .from(engineeringResources)
+      .where(eq(engineeringResources.userId, resourceId))
+      .limit(1);
 
+    let updatedResource;
+    
+    if (existingResource.length > 0) {
+      // Update existing engineering resource record
+      const [updated] = await db.update(engineeringResources)
+        .set({
+          discipline: discipline || existingResource[0].discipline,
+          title: title || existingResource[0].title,
+          hourlyRate: hourlyRate || existingResource[0].hourlyRate,
+          skillLevel: skillLevel || existingResource[0].skillLevel,
+          workloadStatus: workloadStatus || existingResource[0].workloadStatus,
+          updatedAt: new Date()
+        })
+        .where(eq(engineeringResources.userId, resourceId))
+        .returning();
+      
+      updatedResource = {
+        id: resourceId,
+        firstName: user.firstName || 'Unknown',
+        lastName: user.lastName || 'User', 
+        discipline: updated.discipline,
+        title: updated.title,
+        workloadStatus: updated.workloadStatus,
+        currentCapacityPercent: updated.currentCapacityPercent,
+        hourlyRate: updated.hourlyRate,
+        skillLevel: updated.skillLevel,
+        isActive: user.status === 'active',
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt
+      };
+    } else {
+      // Create new engineering resource record
+      const [created] = await db.insert(engineeringResources)
+        .values({
+          userId: resourceId,
+          firstName: user.firstName || 'Unknown',
+          lastName: user.lastName || 'User',
+          discipline: discipline || 'ME',
+          title: title || 'Engineering Specialist', 
+          hourlyRate: hourlyRate || 100,
+          skillLevel: skillLevel || 'intermediate',
+          workloadStatus: workloadStatus || 'available',
+          currentCapacityPercent: 0,
+          isActive: user.status === 'active'
+        })
+        .returning();
+      
+      updatedResource = {
+        id: resourceId,
+        firstName: user.firstName || 'Unknown',
+        lastName: user.lastName || 'User',
+        discipline: created.discipline,
+        title: created.title,
+        workloadStatus: created.workloadStatus,
+        currentCapacityPercent: created.currentCapacityPercent,
+        hourlyRate: created.hourlyRate,
+        skillLevel: created.skillLevel,
+        isActive: user.status === 'active',
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt
+      };
+    }
+
+    console.log('✅ Engineering resource updated successfully:', updatedResource);
     res.json(updatedResource);
   } catch (error) {
     console.error("Error updating engineering resource:", error);
@@ -419,21 +478,28 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       '9c7048d1-b9f9-4cb2-8f13-7e4edc88e8b1': 'ME' // Michael Klassen
     };
     
+    // Get engineering resource customizations for the overview
+    const engineeringResourceCustomizations = await db.select().from(engineeringResources);
+    
     // Create resource objects that match the engineering resources format
-    const resources = engineeringUsers.map(user => ({
-      id: user.id,
-      firstName: user.firstName || 'Unknown',
-      lastName: user.lastName || 'User',
-      discipline: disciplineMap[user.id] || 'ME',
-      title: 'Engineering Specialist',
-      workloadStatus: 'available',
-      currentCapacityPercent: 0,
-      hourlyRate: 100,
-      skillLevel: 'intermediate',
-      isActive: user.status === 'active',
-      createdAt: user.createdAt || new Date(),
-      updatedAt: user.updatedAt || new Date()
-    }));
+    const resources = engineeringUsers.map(user => {
+      const customization = engineeringResourceCustomizations.find(resource => resource.userId === user.id);
+      
+      return {
+        id: user.id,
+        firstName: user.firstName || 'Unknown',
+        lastName: user.lastName || 'User',
+        discipline: customization?.discipline || disciplineMap[user.id] || 'ME',
+        title: customization?.title || 'Engineering Specialist',
+        workloadStatus: customization?.workloadStatus || 'available',
+        currentCapacityPercent: customization?.currentCapacityPercent || 0,
+        hourlyRate: customization?.hourlyRate || 100,
+        skillLevel: customization?.skillLevel || 'intermediate',
+        isActive: user.status === 'active',
+        createdAt: customization?.createdAt || user.createdAt || new Date(),
+        updatedAt: customization?.updatedAt || user.updatedAt || new Date()
+      };
+    });
     
     // Calculate workload statistics based on real engineering users
     const workloadStats = {
