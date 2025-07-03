@@ -232,6 +232,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated engineering routes mounting to use new middleware instead of generic requireEditor middleware
   - Engineering module now grants full editing capabilities to viewers in the engineering department while maintaining security
   - Access denied message updated to reflect new requirements: EDITOR/ADMIN role OR VIEWER role in engineering department
+- July 03, 2025: Engineering Module API and Dark Mode Fixes
+  - Fixed duplicate PUT routes in engineering backend causing routing conflicts
+  - Corrected all apiRequest parameter order issues in engineering mutations (method, url, data)
+  - Updated backend engineering resource endpoints to properly handle user-based resources with data merging
+  - Fixed dark mode styling issues for "Add Engineer" and view toggle buttons in Resource Planning tab
+  - Applied proper color contrast using CSS variables for consistent theme support across light/dark modes
+  - Engineering resource updates (discipline changes like ME to EE) now working correctly with proper API calls
 
 ## User Preferences
 

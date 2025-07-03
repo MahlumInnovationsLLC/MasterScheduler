@@ -888,7 +888,7 @@ export default function Engineering() {
         <TabsContent value="resource-planning" className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Resource Planning & Workload Monitoring</h2>
-            <Button>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
               Add Engineer
             </Button>
@@ -947,12 +947,16 @@ export default function Engineering() {
                 </div>
 
                 {/* View Toggle */}
-                <div className="flex border rounded-lg">
+                <div className="flex border border-border rounded-lg">
                   <Button
                     variant={projectViewMode === 'project' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setProjectViewMode('project')}
-                    className="rounded-r-none"
+                    className={`rounded-r-none ${
+                      projectViewMode === 'project' 
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                        : 'bg-background text-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
                   >
                     <BarChart3 className="h-4 w-4 mr-1" />
                     Grid View
@@ -961,7 +965,11 @@ export default function Engineering() {
                     variant={projectViewMode === 'engineer' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setProjectViewMode('engineer')}
-                    className="rounded-l-none"
+                    className={`rounded-l-none ${
+                      projectViewMode === 'engineer' 
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                        : 'bg-background text-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
                   >
                     <Users className="h-4 w-4 mr-1" />
                     List View
