@@ -23,12 +23,12 @@ const router = Router();
 
 // GET all engineering resources (real Engineering users from users table ONLY)
 router.get('/engineering-resources', async (req: Request, res: Response) => {
+  console.log('🔍 SERVER DEBUG: *** ENGINEERING RESOURCES REQUEST RECEIVED ***');
+  console.log('🔍 SERVER DEBUG: Request URL:', req.url);
+  console.log('🔍 SERVER DEBUG: Request method:', req.method);
+  console.log('🔍 SERVER DEBUG: Starting engineering resources query...');
+  
   try {
-    console.log('🔍 SERVER DEBUG: *** ENGINEERING RESOURCES REQUEST RECEIVED ***');
-    console.log('🔍 SERVER DEBUG: Request URL:', req.url);
-    console.log('🔍 SERVER DEBUG: Request method:', req.method);
-    console.log('🔍 SERVER DEBUG: Starting engineering resources query...');
-    
     // Get ONLY real Engineering users from the users table
     const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
     
@@ -65,6 +65,7 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
     res.json(resources);
   } catch (error) {
     console.error("🔍 SERVER DEBUG: Error fetching engineering resources:", error);
+    console.error("🔍 SERVER DEBUG: Error stack:", error);
     res.status(500).json({ error: "Failed to fetch engineering resources" });
   }
 });
