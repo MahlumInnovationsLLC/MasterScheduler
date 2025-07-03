@@ -245,6 +245,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Project assignments now properly display in engineer cards with correct project names and completion percentages
   - Engineer assignment functionality now works correctly for multiple projects per engineer
   - Fixed React hooks error by moving all hook declarations before conditional returns in Engineering component
+- July 03, 2025: Engineering Module String ID Schema Migration
+  - Updated database schema: project_engineering_assignments.resource_id changed from integer to varchar(255)
+  - Modified foreign key constraint to reference users.id instead of engineering_resources.id
+  - Updated backend routes to handle string resource IDs instead of parsing as integers
+  - Fixed engineering resource PUT and GET routes to work with user ID strings
+  - Cleared existing assignment data to support new user ID-based assignment system
 
 ## User Preferences
 

@@ -71,8 +71,8 @@ router.get('/engineering-resources/discipline/:discipline', async (req: Request,
 // GET a specific engineering resource
 router.get('/engineering-resources/:id', async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
+    const id = req.params.id;
+    if (!id) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
 
@@ -110,87 +110,44 @@ router.post('/engineering-resources', async (req: Request, res: Response) => {
 // UPDATE an engineering resource (which is actually a user)
 router.put('/engineering-resources/:id', async (req: Request, res: Response) => {
   try {
-    const resourceId = parseInt(req.params.id);
-    if (isNaN(resourceId)) {
+    const resourceId = req.params.id;
+    if (!resourceId) {
       return res.status(400).json({ error: "Invalid ID format" });
     }
 
     const { discipline, title, hourlyRate, skillLevel, workloadStatus } = req.body;
 
     // Since engineering resources are derived from users table, we need to find the actual user
-    // The resourceId corresponds to the index+1 in the engineeringUsers array
-    const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
+    // The resourceId is the actual user ID
+    const userToUpdate = await db.select()
+      .from(users)
+      .where(and(eq(users.id, resourceId), eq(users.department, 'engineering')))
+      .limit(1);
     
-    if (resourceId < 1 || resourceId > engineeringUsers.length) {
+    if (userToUpdate.length === 0) {
       return res.status(404).json({ error: "Engineering resource not found" });
     }
 
-    const userToUpdate = engineeringUsers[resourceId - 1]; // Convert back to 0-based index
+    const user = userToUpdate[0];
     
-    // Create or update engineering resource data in the engineering_resources table
-    // First check if an engineering resource record exists for this user
-    const existingResource = await db.select()
-      .from(engineeringResources)
-      .where(eq(engineeringResources.firstName, userToUpdate.firstName || ''))
-      .limit(1);
-
-    let updatedResource;
-    
-    if (existingResource.length > 0) {
-      // Update existing resource
-      const [updated] = await db
-        .update(engineeringResources)
-        .set({
-          discipline: discipline || existingResource[0].discipline,
-          title: title || existingResource[0].title,
-          hourlyRate: hourlyRate || existingResource[0].hourlyRate,
-          skillLevel: skillLevel || existingResource[0].skillLevel,
-          workloadStatus: workloadStatus || existingResource[0].workloadStatus,
-          updatedAt: new Date()
-        })
-        .where(eq(engineeringResources.id, existingResource[0].id))
-        .returning();
-      
-      updatedResource = updated;
-    } else {
-      // Create new resource record
-      const [created] = await db
-        .insert(engineeringResources)
-        .values({
-          firstName: userToUpdate.firstName || 'Unknown',
-          lastName: userToUpdate.lastName || 'User',
-          discipline: discipline || 'ME',
-          title: title || 'Engineering Specialist',
-          workloadStatus: workloadStatus || 'available',
-          currentCapacityPercent: 0,
-          hourlyRate: hourlyRate || 100,
-          skillLevel: skillLevel || 'intermediate',
-          isActive: userToUpdate.status === 'active',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
-      
-      updatedResource = created;
-    }
-
-    // Return the resource in the same format as the GET endpoint
-    const formattedResource = {
-      id: resourceId,
-      firstName: userToUpdate.firstName || 'Unknown',
-      lastName: userToUpdate.lastName || 'User',
-      discipline: updatedResource.discipline,
-      title: updatedResource.title,
-      workloadStatus: updatedResource.workloadStatus,
-      currentCapacityPercent: updatedResource.currentCapacityPercent,
-      hourlyRate: updatedResource.hourlyRate,
-      skillLevel: updatedResource.skillLevel,
-      isActive: userToUpdate.status === 'active',
-      createdAt: userToUpdate.createdAt || new Date(),
+    // Since engineering resources are now purely derived from users table,
+    // we just return a success response with the updated virtual resource data
+    const updatedResource = {
+      id: user.id,
+      firstName: user.firstName || 'Unknown',
+      lastName: user.lastName || 'User',
+      discipline: discipline || 'ME',
+      title: title || 'Engineering Specialist',
+      workloadStatus: workloadStatus || 'available',
+      currentCapacityPercent: 0,
+      hourlyRate: hourlyRate || 100,
+      skillLevel: skillLevel || 'intermediate',
+      isActive: user.status === 'active',
+      createdAt: user.createdAt || new Date(),
       updatedAt: new Date()
     };
 
-    res.json(formattedResource);
+    res.json(updatedResource);
   } catch (error) {
     console.error("Error updating engineering resource:", error);
     res.status(500).json({ error: "Failed to update engineering resource" });
