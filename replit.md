@@ -239,6 +239,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Fixed dark mode styling issues for "Add Engineer" and view toggle buttons in Resource Planning tab
   - Applied proper color contrast using CSS variables for consistent theme support across light/dark modes
   - Engineering resource updates (discipline changes like ME to EE) now working correctly with proper API calls
+- July 03, 2025: Engineering Module Project Assignment Fix
+  - Fixed critical engineer-project assignment display issue by correcting ID mapping between frontend and backend
+  - Changed engineering resources endpoint to use actual database IDs instead of index-based IDs
+  - Project assignments now properly display in engineer cards with correct project names and completion percentages
+  - Engineer assignment functionality now works correctly for multiple projects per engineer
+  - Fixed React hooks error by moving all hook declarations before conditional returns in Engineering component
 
 ## User Preferences
 
