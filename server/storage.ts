@@ -5894,14 +5894,25 @@ export class DatabaseStorage implements IStorage {
 
   async createProjectEngineeringAssignment(assignment: InsertProjectEngineeringAssignment): Promise<ProjectEngineeringAssignment> {
     try {
-      const [newAssignment] = await db.insert(projectEngineeringAssignments).values({
+      console.log('🔍 STORAGE DEBUG: Creating assignment with data:', assignment);
+      
+      const insertData = {
         ...assignment,
         createdAt: new Date(),
         updatedAt: new Date()
-      }).returning();
+      };
+      
+      console.log('🔍 STORAGE DEBUG: Insert data:', insertData);
+      
+      const [newAssignment] = await db.insert(projectEngineeringAssignments).values(insertData).returning();
+      
+      console.log('🔍 STORAGE DEBUG: Database returned:', newAssignment);
+      
       return newAssignment;
     } catch (error) {
-      console.error("Error creating project engineering assignment:", error);
+      console.error("🔍 STORAGE DEBUG: Error creating project engineering assignment:", error);
+      console.error("🔍 STORAGE DEBUG: Error details:", error instanceof Error ? error.message : 'Unknown error');
+      console.error("🔍 STORAGE DEBUG: Error stack:", error instanceof Error ? error.stack : 'No stack');
       throw error;
     }
   }
