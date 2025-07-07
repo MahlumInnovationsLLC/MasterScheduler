@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
 import { formatDate } from '@/lib/utils';
@@ -49,7 +49,10 @@ const EditableDateFieldWithOP: React.FC<EditableDateFieldWithOPProps> = ({
     }
   };
 
-  const isPastOP = isCurrentDatePastOP();
+  // Calculate isPastOP dynamically to ensure it updates with pagination
+  const isPastOP = useMemo(() => {
+    return isCurrentDatePastOP();
+  }, [value, opValue]);
 
   // Reset date value when value changes - use direct value without adjustments
   useEffect(() => {
