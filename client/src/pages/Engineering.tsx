@@ -94,6 +94,9 @@ interface EngineeringBenchmark {
   progressPercentage?: number; // Progress from 0-100
   createdAt: Date;
   updatedAt: Date;
+  // Project information from join
+  projectNumber?: string;
+  projectName?: string;
 }
 
 interface BenchmarkTemplate {
@@ -1621,7 +1624,7 @@ export default function Engineering() {
                               )}
                             </div>
                           </td>
-                          <td className="p-2 text-sm">Project #{benchmark.projectId}</td>
+                          <td className="p-2 text-sm">{benchmark.projectNumber || `Project #${benchmark.projectId}`}</td>
                           <td className="p-2">
                             <Badge variant="outline">{benchmark.discipline}</Badge>
                           </td>

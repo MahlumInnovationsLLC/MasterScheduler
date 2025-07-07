@@ -5861,7 +5861,25 @@ export class DatabaseStorage implements IStorage {
   // Engineering Benchmark methods
   async getEngineeringBenchmarks(): Promise<EngineeringBenchmark[]> {
     return await safeQuery<EngineeringBenchmark>(() =>
-      db.select().from(engineeringBenchmarks)
+      db.select({
+        id: engineeringBenchmarks.id,
+        projectId: engineeringBenchmarks.projectId,
+        benchmarkName: engineeringBenchmarks.benchmarkName,
+        description: engineeringBenchmarks.description,
+        discipline: engineeringBenchmarks.discipline,
+        targetDate: engineeringBenchmarks.targetDate,
+        actualDate: engineeringBenchmarks.actualDate,
+        isCompleted: engineeringBenchmarks.isCompleted,
+        commitmentLevel: engineeringBenchmarks.commitmentLevel,
+        notes: engineeringBenchmarks.notes,
+        progressPercentage: engineeringBenchmarks.progressPercentage,
+        createdAt: engineeringBenchmarks.createdAt,
+        updatedAt: engineeringBenchmarks.updatedAt,
+        // Include project information
+        projectNumber: projects.projectNumber,
+        projectName: projects.name
+      }).from(engineeringBenchmarks)
+        .leftJoin(projects, eq(engineeringBenchmarks.projectId, projects.id))
         .orderBy(asc(engineeringBenchmarks.targetDate))
     );
   }
