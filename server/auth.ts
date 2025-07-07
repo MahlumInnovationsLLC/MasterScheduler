@@ -566,11 +566,15 @@ export const requireAdmin = async (req: any, res: any, next: any) => {
 export const requireEditor = async (req: any, res: any, next: any) => {
   try {
     console.log(`🔍 Auth middleware: Checking authentication for ${req.method} ${req.url}`);
+    console.log(`🔍 Session ID: ${req.sessionID}`);
+    console.log(`🔍 Session exists: ${!!req.session}`);
+    console.log(`🔍 Cookies:`, req.headers.cookie);
     
     // Check session user first (consistent with main auth middleware)
     const sessionUser = (req.session as any)?.user;
     if (!sessionUser) {
       console.log(`🔍 Auth middleware: ❌ No session user found`);
+      console.log(`🔍 Full session:`, JSON.stringify(req.session, null, 2));
       return res.status(401).json({ message: "Authentication required" });
     }
 
@@ -595,6 +599,7 @@ export const requireEditor = async (req: any, res: any, next: any) => {
     return next();
   } catch (error) {
     console.error('[EDITOR MIDDLEWARE] Error in editor check:', error);
+    console.error('Error details:', error.stack);
     res.status(500).json({ message: "Server error" });
   }
 };
