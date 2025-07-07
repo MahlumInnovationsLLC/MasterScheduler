@@ -1217,32 +1217,7 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              // Snap to today functionality
-              const todayMarker = document.querySelector('.today-marker');
-              if (todayMarker) {
-                todayMarker.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'center', 
-                  inline: 'center' 
-                });
-              }
-            }}
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Today
-          </Button>
-          <Link href="/bay-scheduling">
-            <Button variant="outline" size="sm">
-              <Eye className="h-4 w-4 mr-2" />
-              Open Full Schedule
-            </Button>
-          </Link>
-        </div>
+        
       </div>
 
       
