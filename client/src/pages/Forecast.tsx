@@ -121,7 +121,7 @@ export function Forecast() {
     queryKey: ['/api/manufacturing-schedules'],
   });
 
-  // Calculate forecast statistics (year-based)
+  // Calculate forecast statistics (year-based, only scheduled projects)
   const calculateForecastStats = (): ForecastStats => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -139,22 +139,32 @@ export function Forecast() {
     let lastQuarterHours = 0;
     let ytdHours = 0;
 
+    // Get all project IDs that are scheduled in manufacturing bays for 2025
+    const scheduledProjectIds = new Set();
+    schedules.forEach((schedule: any) => {
+      if (schedule.startDate && schedule.endDate) {
+        const scheduleStart = new Date(schedule.startDate);
+        const scheduleEnd = new Date(schedule.endDate);
+        
+        // Check if schedule overlaps with 2025
+        if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+          scheduledProjectIds.add(schedule.projectId);
+        }
+      }
+    });
+
     projects.forEach((project: any) => {
       if (!project.totalHours) return;
 
-      // Only count hours for projects active in the current year
-      const projectStart = project.startDate ? new Date(project.startDate) : null;
-      const projectEnd = project.deliveryDate ? new Date(project.deliveryDate) : 
-                       (project.estimatedCompletionDate ? new Date(project.estimatedCompletionDate) : null);
+      // Only include projects that are scheduled in manufacturing bays for 2025
+      if (!scheduledProjectIds.has(project.id)) return;
 
-      // Check if project is active in current year
-      if (projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd) {
-        totalHours += project.totalHours;
+      totalHours += project.totalHours;
 
-        // Calculate earned hours based on project progress
-        const percentComplete = parseFloat(project.percentComplete || '0');
-        const projectEarnedHours = (project.totalHours * percentComplete) / 100;
-        earnedHours += projectEarnedHours;
+      // Calculate earned hours based on project progress
+      const percentComplete = parseFloat(project.percentComplete || '0');
+      const projectEarnedHours = (project.totalHours * percentComplete) / 100;
+      earnedHours += projectEarnedHours;
 
       // Calculate hours earned in different periods
       if (project.status === 'delivered' || percentComplete > 0) {
@@ -173,10 +183,9 @@ export function Forecast() {
         }
       }
 
-        // Calculate projected hours for active projects
-        if (project.status === 'active' && percentComplete < 100) {
-          projectedHours += project.totalHours - projectEarnedHours;
-        }
+      // Calculate projected hours for active projects
+      if (project.status === 'active' && percentComplete < 100) {
+        projectedHours += project.totalHours - projectEarnedHours;
       }
     });
 
@@ -306,15 +315,38 @@ export function Forecast() {
           value={stats.totalHours}
           type="total"
           stats={[
-            { label: "Active Projects", value: projects.filter((p: any) => p.status === 'active').length },
-            { label: "All Projects", value: projects.filter((p: any) => {
-              const projectStart = p.startDate ? new Date(p.startDate) : null;
-              const projectEnd = p.deliveryDate ? new Date(p.deliveryDate) : 
-                               (p.estimatedCompletionDate ? new Date(p.estimatedCompletionDate) : null);
-              const yearStart = new Date(new Date().getFullYear(), 0, 1);
-              const yearEnd = new Date(new Date().getFullYear(), 11, 31);
-              return projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd;
-            }).length }
+            { label: "Active Projects", value: (() => {
+              const currentYear = new Date().getFullYear();
+              const yearStart = new Date(currentYear, 0, 1);
+              const yearEnd = new Date(currentYear, 11, 31);
+              const scheduledProjectIds = new Set();
+              schedules.forEach((schedule: any) => {
+                if (schedule.startDate && schedule.endDate) {
+                  const scheduleStart = new Date(schedule.startDate);
+                  const scheduleEnd = new Date(schedule.endDate);
+                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+                    scheduledProjectIds.add(schedule.projectId);
+                  }
+                }
+              });
+              return projects.filter((p: any) => p.status === 'active' && scheduledProjectIds.has(p.id)).length;
+            })() },
+            { label: "All Projects", value: (() => {
+              const currentYear = new Date().getFullYear();
+              const yearStart = new Date(currentYear, 0, 1);
+              const yearEnd = new Date(currentYear, 11, 31);
+              const scheduledProjectIds = new Set();
+              schedules.forEach((schedule: any) => {
+                if (schedule.startDate && schedule.endDate) {
+                  const scheduleStart = new Date(schedule.startDate);
+                  const scheduleEnd = new Date(schedule.endDate);
+                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+                    scheduledProjectIds.add(schedule.projectId);
+                  }
+                }
+              });
+              return projects.filter((p: any) => scheduledProjectIds.has(p.id)).length;
+            })() }
           ]}
         />
 
@@ -324,12 +356,27 @@ export function Forecast() {
           type="earned"
           stats={[
             { label: "% Complete", value: stats.totalHours > 0 ? `${((stats.earnedHours / stats.totalHours) * 100).toFixed(1)}%` : '0%' },
-            { label: "Delivered Projects", value: projects.filter((p: any) => {
-              if (p.status !== 'delivered') return false;
-              const deliveryDate = p.deliveryDate ? new Date(p.deliveryDate) : null;
-              const yearStart = new Date(new Date().getFullYear(), 0, 1);
-              return deliveryDate && deliveryDate >= yearStart;
-            }).length }
+            { label: "Delivered Projects", value: (() => {
+              const currentYear = new Date().getFullYear();
+              const yearStart = new Date(currentYear, 0, 1);
+              const yearEnd = new Date(currentYear, 11, 31);
+              const scheduledProjectIds = new Set();
+              schedules.forEach((schedule: any) => {
+                if (schedule.startDate && schedule.endDate) {
+                  const scheduleStart = new Date(schedule.startDate);
+                  const scheduleEnd = new Date(schedule.endDate);
+                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+                    scheduledProjectIds.add(schedule.projectId);
+                  }
+                }
+              });
+              return projects.filter((p: any) => {
+                if (p.status !== 'delivered') return false;
+                if (!scheduledProjectIds.has(p.id)) return false;
+                const deliveryDate = p.deliveryDate ? new Date(p.deliveryDate) : null;
+                return deliveryDate && deliveryDate >= yearStart;
+              }).length;
+            })() }
           ]}
         />
 
@@ -338,24 +385,42 @@ export function Forecast() {
           value={stats.projectedHours}
           type="projected"
           stats={[
-            { label: "In Progress", value: projects.filter((p: any) => {
-              const projectStart = p.startDate ? new Date(p.startDate) : null;
-              const projectEnd = p.deliveryDate ? new Date(p.deliveryDate) : 
-                               (p.estimatedCompletionDate ? new Date(p.estimatedCompletionDate) : null);
-              const yearStart = new Date(new Date().getFullYear(), 0, 1);
-              const yearEnd = new Date(new Date().getFullYear(), 11, 31);
-              return p.status === 'active' && parseFloat(p.percentComplete) > 0 && 
-                     projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd;
-            }).length },
-            { label: "Not Started", value: projects.filter((p: any) => {
-              const projectStart = p.startDate ? new Date(p.startDate) : null;
-              const projectEnd = p.deliveryDate ? new Date(p.deliveryDate) : 
-                               (p.estimatedCompletionDate ? new Date(p.estimatedCompletionDate) : null);
-              const yearStart = new Date(new Date().getFullYear(), 0, 1);
-              const yearEnd = new Date(new Date().getFullYear(), 11, 31);
-              return p.status === 'active' && parseFloat(p.percentComplete) === 0 && 
-                     projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd;
-            }).length }
+            { label: "In Progress", value: (() => {
+              const currentYear = new Date().getFullYear();
+              const yearStart = new Date(currentYear, 0, 1);
+              const yearEnd = new Date(currentYear, 11, 31);
+              const scheduledProjectIds = new Set();
+              schedules.forEach((schedule: any) => {
+                if (schedule.startDate && schedule.endDate) {
+                  const scheduleStart = new Date(schedule.startDate);
+                  const scheduleEnd = new Date(schedule.endDate);
+                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+                    scheduledProjectIds.add(schedule.projectId);
+                  }
+                }
+              });
+              return projects.filter((p: any) => {
+                return p.status === 'active' && parseFloat(p.percentComplete) > 0 && scheduledProjectIds.has(p.id);
+              }).length;
+            })() },
+            { label: "Not Started", value: (() => {
+              const currentYear = new Date().getFullYear();
+              const yearStart = new Date(currentYear, 0, 1);
+              const yearEnd = new Date(currentYear, 11, 31);
+              const scheduledProjectIds = new Set();
+              schedules.forEach((schedule: any) => {
+                if (schedule.startDate && schedule.endDate) {
+                  const scheduleStart = new Date(schedule.startDate);
+                  const scheduleEnd = new Date(schedule.endDate);
+                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+                    scheduledProjectIds.add(schedule.projectId);
+                  }
+                }
+              });
+              return projects.filter((p: any) => {
+                return p.status === 'active' && parseFloat(p.percentComplete) === 0 && scheduledProjectIds.has(p.id);
+              }).length;
+            })() }
           ]}
         />
 
@@ -365,14 +430,25 @@ export function Forecast() {
           type="remaining"
           stats={[
             { label: "% Remaining", value: stats.totalHours > 0 ? `${((stats.remainingHours / stats.totalHours) * 100).toFixed(1)}%` : '0%' },
-            { label: "Avg per Project", value: Math.round(stats.remainingHours / Math.max(projects.filter((p: any) => {
-              const projectStart = p.startDate ? new Date(p.startDate) : null;
-              const projectEnd = p.deliveryDate ? new Date(p.deliveryDate) : 
-                               (p.estimatedCompletionDate ? new Date(p.estimatedCompletionDate) : null);
-              const yearStart = new Date(new Date().getFullYear(), 0, 1);
-              const yearEnd = new Date(new Date().getFullYear(), 11, 31);
-              return p.status === 'active' && projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd;
-            }).length, 1)) }
+            { label: "Avg per Project", value: (() => {
+              const currentYear = new Date().getFullYear();
+              const yearStart = new Date(currentYear, 0, 1);
+              const yearEnd = new Date(currentYear, 11, 31);
+              const scheduledProjectIds = new Set();
+              schedules.forEach((schedule: any) => {
+                if (schedule.startDate && schedule.endDate) {
+                  const scheduleStart = new Date(schedule.startDate);
+                  const scheduleEnd = new Date(schedule.endDate);
+                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+                    scheduledProjectIds.add(schedule.projectId);
+                  }
+                }
+              });
+              const activeScheduledProjects = projects.filter((p: any) => {
+                return p.status === 'active' && scheduledProjectIds.has(p.id);
+              }).length;
+              return Math.round(stats.remainingHours / Math.max(activeScheduledProjects, 1));
+            })() }
           ]}
         />
       </div>

@@ -310,6 +310,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Provides AI-powered insights for capacity utilization, peak periods, and phase distribution analysis
   - Added to main navigation in Sidebar and MobileSidebar with TrendingUp icon
   - Integrated with existing project data and manufacturing schedules for real-time calculations
+- January 07, 2025: Hours Forecast Module - Scheduled Projects Only Enhancement
+  - Modified Forecast module to only include projects that are actively scheduled in manufacturing bays
+  - Updated calculations to filter projects based on manufacturing schedules rather than all projects
+  - Enhanced year-based filtering to cross-reference with manufacturing bay schedules for 2025
+  - Updated all status cards to show accurate counts for scheduled projects only
+  - Modified EnhancedHoursFlowWidget to use only scheduled projects for hours flow calculations
+  - All hours calculations now reflect realistic manufacturing capacity and scheduled workload
 
 ## User Preferences
 

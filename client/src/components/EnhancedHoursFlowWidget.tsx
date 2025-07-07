@@ -219,10 +219,18 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
 
   // Calculate hours flow data
   useEffect(() => {
-    if (!projects || projects.length === 0) return;
+    if (!projects || projects.length === 0 || !schedules) return;
 
     const now = new Date();
     const data: HoursFlowData[] = [];
+
+    // Get all project IDs that are scheduled in manufacturing bays
+    const scheduledProjectIds = new Set();
+    schedules.forEach((schedule: any) => {
+      if (schedule.startDate && schedule.endDate && schedule.projectId) {
+        scheduledProjectIds.add(schedule.projectId);
+      }
+    });
 
     // Generate periods based on selection and selected year
     const periods = selectedTimeframe === 'historical' ? 
@@ -243,6 +251,9 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
 
       projects.forEach(project => {
         if (!project.totalHours) return;
+        
+        // Only include projects that are scheduled in manufacturing bays
+        if (!scheduledProjectIds.has(project.id)) return;
 
         // For historical data, calculate earned hours
         if (selectedTimeframe === 'historical') {
