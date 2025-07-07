@@ -402,8 +402,8 @@ router.post('/auto-complete-delivered-benchmarks', async (req: Request, res: Res
   try {
     console.log('🔍 SERVER DEBUG: Auto-completing benchmarks for delivered projects...');
     
-    // Get all projects with "Delivered" status
-    const deliveredProjects = await db.select().from(projects).where(eq(projects.status, 'Delivered'));
+    // Get all projects with "delivered" status (lowercase)
+    const deliveredProjects = await db.select().from(projects).where(eq(projects.status, 'delivered'));
     console.log('🔍 SERVER DEBUG: Found delivered projects:', deliveredProjects.length);
     
     if (deliveredProjects.length === 0) {
