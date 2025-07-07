@@ -218,11 +218,18 @@ export default function Engineering() {
   // All hooks must be called before any conditional returns
   // Fetch engineering overview data
   const { data: overview, isLoading: overviewLoading, error: overviewError } = useQuery<EngineeringOverview>({
-    queryKey: ['/api/engineering-overview'],
+    queryKey: ['/api/engineering/engineering-overview'],
+    retry: 3,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
   });
   
   // Debug logging whenever overview data changes
   React.useEffect(() => {
+    console.log('🔍 FRONTEND: Overview loading status:', overviewLoading);
+    console.log('🔍 FRONTEND: Overview data:', overview);
+    console.log('🔍 FRONTEND: Overview error:', overviewError);
+    
     if (overview) {
       console.log('🔍 FRONTEND: Engineering overview data loaded successfully:', overview);
       console.log('🔍 FRONTEND: First project with ME benchmarks:', overview.projects.find(p => p.meBenchmarks > 0));
@@ -230,7 +237,7 @@ export default function Engineering() {
     if (overviewError) {
       console.error('🔍 FRONTEND: Engineering overview error:', overviewError);
     }
-  }, [overview, overviewError]);
+  }, [overview, overviewError, overviewLoading]);
 
 
 
@@ -429,13 +436,13 @@ export default function Engineering() {
       apiRequest('PUT', `/api/engineering/projects/${projectId}/manual-percentages`, percentages),
     onMutate: async ({ projectId, percentages }) => {
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey: ['/api/engineering-overview'] });
+      await queryClient.cancelQueries({ queryKey: ['/api/engineering/engineering-overview'] });
       
       // Snapshot the previous value
-      const previousOverview = queryClient.getQueryData(['/api/engineering-overview']);
+      const previousOverview = queryClient.getQueryData(['/api/engineering/engineering-overview']);
       
       // Optimistically update to the new value
-      queryClient.setQueryData(['/api/engineering-overview'], (old: any) => {
+      queryClient.setQueryData(['/api/engineering/engineering-overview'], (old: any) => {
         if (!old) return old;
         return {
           ...old,
@@ -470,12 +477,12 @@ export default function Engineering() {
         title: 'Success',
         description: 'Manual percentages updated successfully',
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
     },
     onError: (error, variables, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousOverview) {
-        queryClient.setQueryData(['/api/engineering-overview'], context.previousOverview);
+        queryClient.setQueryData(['/api/engineering/engineering-overview'], context.previousOverview);
       }
       toast({
         title: 'Error',
@@ -484,7 +491,7 @@ export default function Engineering() {
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
     },
   });
 
@@ -528,7 +535,7 @@ export default function Engineering() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
     },
   });
 
@@ -572,7 +579,7 @@ export default function Engineering() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-resources'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
       setShowEngineerEditDialog(false);
       setEditingEngineer(null);
       toast({
@@ -606,7 +613,7 @@ export default function Engineering() {
       console.log('🔍 DEBUG: MUTATION onSuccess triggered with data:', data);
       console.log('🔍 DEBUG: SUCCESS - Assignment created successfully, invalidating queries...');
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
       toast({
         title: "Success",
         description: "Engineer assigned to project successfully",
@@ -634,7 +641,7 @@ export default function Engineering() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/project-assignments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
       toast({
         title: "Success",
         description: "Assignment percentage updated successfully",

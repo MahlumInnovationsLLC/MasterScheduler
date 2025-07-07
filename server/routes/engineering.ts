@@ -759,7 +759,7 @@ router.post('/apply-benchmark-template', async (req: Request, res: Response) => 
   }
 });
 
-// GET engineering overview analytics
+// GET engineering overview analytics (also exposed at /api/engineering-overview)
 router.get('/engineering-overview', async (req: Request, res: Response) => {
   try {
     console.log('🔍 DEBUG: Engineering overview endpoint called');
@@ -938,14 +938,20 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     });
 
     console.log(`🔍 DEBUG: Final response will have ${projectsWithEngineering.length} projects`);
+    const sampleProjectWithBenchmarks = projectsWithEngineering.find(p => p.meBenchmarks > 0);
     console.log(`🔍 DEBUG: Sample project with benchmarks:`, 
-      projectsWithEngineering.find(p => p.meBenchmarks > 0) ? 
+      sampleProjectWithBenchmarks ? 
       {
-        projectNumber: projectsWithEngineering.find(p => p.meBenchmarks > 0)?.projectNumber,
-        meBenchmarks: projectsWithEngineering.find(p => p.meBenchmarks > 0)?.meBenchmarks,
-        meCompletionPercent: projectsWithEngineering.find(p => p.meBenchmarks > 0)?.meCompletionPercent
+        projectNumber: sampleProjectWithBenchmarks.projectNumber,
+        meBenchmarks: sampleProjectWithBenchmarks.meBenchmarks,
+        meCompletionPercent: sampleProjectWithBenchmarks.meCompletionPercent,
+        eeBenchmarks: sampleProjectWithBenchmarks.eeBenchmarks,
+        eeCompletionPercent: sampleProjectWithBenchmarks.eeCompletionPercent
       } : 'No projects with ME benchmarks found'
     );
+    
+    console.log(`🔍 DEBUG: Workload stats:`, workloadStats);
+    console.log(`🔍 DEBUG: Benchmark stats:`, benchmarkStats);
 
     res.json({
       workloadStats,
