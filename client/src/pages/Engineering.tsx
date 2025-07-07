@@ -281,6 +281,18 @@ export default function Engineering() {
     }
   });
 
+  const deleteBenchmarkMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/engineering/engineering-benchmarks/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-benchmarks'] });
+      toast({ title: "Benchmark deleted successfully" });
+    },
+    onError: (error) => {
+      console.error('Error deleting benchmark:', error);
+      toast({ title: "Failed to delete benchmark", variant: "destructive" });
+    }
+  });
+
   // Fetch project assignments
   const { data: projectAssignments = [], isLoading: assignmentsLoading } = useQuery<ProjectEngineeringAssignment[]>({
     queryKey: ['/api/engineering/project-assignments'],
@@ -1490,7 +1502,12 @@ export default function Engineering() {
                               <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => deleteBenchmarkMutation.mutate(benchmark.id)}
+                                disabled={deleteBenchmarkMutation.isPending}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
