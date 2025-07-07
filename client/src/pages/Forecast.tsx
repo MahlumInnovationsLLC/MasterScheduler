@@ -139,73 +139,70 @@ export function Forecast() {
     let lastQuarterHours = 0;
     let ytdHours = 0;
 
-    // Get all project IDs that are scheduled in manufacturing bays for 2025
+    // Get all project IDs that are scheduled in manufacturing bays
     const scheduledProjectIds = new Set();
     schedules.forEach((schedule: any) => {
-      if (schedule.startDate && schedule.endDate) {
-        const scheduleStart = new Date(schedule.startDate);
-        const scheduleEnd = new Date(schedule.endDate);
-        
-        // Check if schedule overlaps with 2025
-        if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
-          scheduledProjectIds.add(schedule.projectId);
-        }
+      if (schedule.startDate && schedule.endDate && schedule.projectId) {
+        scheduledProjectIds.add(schedule.projectId);
       }
     });
 
     projects.forEach((project: any) => {
       if (!project.totalHours) return;
 
-      // Only include projects that are scheduled in manufacturing bays for 2025
+      // Only include projects that are scheduled in manufacturing bays
       if (!scheduledProjectIds.has(project.id)) return;
 
-      // Calculate only the portion of project hours that fall within 2025
+      // Calculate project dates for 2025 overlap calculation
       const projectStart = project.startDate ? new Date(project.startDate) : null;
       const projectEnd = project.deliveryDate ? new Date(project.deliveryDate) : 
                        (project.estimatedCompletionDate ? new Date(project.estimatedCompletionDate) : null);
 
       if (!projectStart || !projectEnd) return;
 
-      // Calculate overlap with 2025
-      const overlapStart = projectStart > yearStart ? projectStart : yearStart;
-      const overlapEnd = projectEnd < yearEnd ? projectEnd : yearEnd;
-      
-      if (overlapStart > overlapEnd) return; // No overlap
+      // Check if project overlaps with 2025
+      if (projectStart <= yearEnd && projectEnd >= yearStart) {
+        // Calculate overlap with 2025
+        const overlapStart = projectStart > yearStart ? projectStart : yearStart;
+        const overlapEnd = projectEnd < yearEnd ? projectEnd : yearEnd;
+        
+        if (overlapStart <= overlapEnd) {
+          // Calculate proportion of project that falls in 2025
+          const totalProjectDays = (projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24);
+          const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
+          const overlapRatio = totalProjectDays > 0 ? overlapDays / totalProjectDays : 1;
 
-      // Calculate proportion of project that falls in 2025
-      const totalProjectDays = (projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24);
-      const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
-      const overlapRatio = totalProjectDays > 0 ? overlapDays / totalProjectDays : 0;
+          // Only count the portion of project hours that fall within 2025
+          const projectHoursIn2025 = project.totalHours * overlapRatio;
+          totalHours += projectHoursIn2025;
 
-      // Only count the portion of hours that fall within 2025
-      const projectHoursIn2025 = project.totalHours * overlapRatio;
-      totalHours += projectHoursIn2025;
+          // Calculate earned hours based on project progress, but only for the 2025 portion
+          const percentComplete = parseFloat(project.percentComplete || '0');
+          const projectEarnedHours = (projectHoursIn2025 * percentComplete) / 100;
+          earnedHours += projectEarnedHours;
 
-      // Calculate earned hours based on project progress, but only for the 2025 portion
-      const percentComplete = parseFloat(project.percentComplete || '0');
-      const projectEarnedHours = (projectHoursIn2025 * percentComplete) / 100;
-      earnedHours += projectEarnedHours;
-
-      // Calculate hours earned in different periods
-      if (project.status === 'delivered' || percentComplete > 0) {
-        // For last month
-        if (project.actualCompletionDate || project.deliveryDate) {
-          const completionDate = new Date(project.actualCompletionDate || project.deliveryDate);
-          if (completionDate >= lastMonthStart && completionDate <= lastMonthEnd) {
-            lastMonthHours += projectEarnedHours;
+          // Calculate hours earned in different periods
+          if (project.status === 'delivered' || percentComplete > 0) {
+            // For last month
+            if (project.actualCompletionDate || project.deliveryDate) {
+              const completionDate = new Date(project.actualCompletionDate || project.deliveryDate);
+              if (completionDate >= lastMonthStart && completionDate <= lastMonthEnd) {
+                lastMonthHours += projectEarnedHours;
+              }
+              if (completionDate >= lastQuarterStart && completionDate <= lastQuarterEnd) {
+                lastQuarterHours += projectEarnedHours;
+              }
+              if (completionDate >= yearStart) {
+                ytdHours += projectEarnedHours;
+              }
+            }
           }
-          if (completionDate >= lastQuarterStart && completionDate <= lastQuarterEnd) {
-            lastQuarterHours += projectEarnedHours;
-          }
-          if (completionDate >= yearStart) {
-            ytdHours += projectEarnedHours;
+
+          // Calculate projected hours for active projects (only the 2025 portion)
+          if (project.status === 'active' && percentComplete < 100) {
+            projectedHours += projectHoursIn2025 - projectEarnedHours;
           }
         }
-      }
-
-      // Calculate projected hours for active projects (only the 2025 portion)
-      if (project.status === 'active' && percentComplete < 100) {
-        projectedHours += projectHoursIn2025 - projectEarnedHours;
       }
     });
 
