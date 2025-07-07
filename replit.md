@@ -268,6 +268,15 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Fixed benchmark delete functionality with proper mutation handling and user feedback
   - Templates can be applied to all projects or specific projects with toggle options
   - All benchmark data now pulls from authentic project information with proper date-based calculations
+- July 07, 2025: Engineering Benchmarks Progress Tracking Enhancement
+  - Added progress_percentage field to engineering_benchmarks database table
+  - Implemented inline interactive progress bars that can be dragged to manually set completion percentage
+  - Added complete checkmark button to instantly mark benchmarks as 100% complete
+  - Created comprehensive edit dialog for modifying all benchmark details including name, discipline, description, target date, commitment level, progress, and notes
+  - Implemented column sorting functionality for all table columns with visual indicators (chevron icons)
+  - Auto-sorting feature places completed benchmarks at the bottom of the table with reduced opacity
+  - Progress bars show green when completed (100%) and blue when in progress
+  - Real-time updates to progress without page refresh using React Query mutations
 
 ## User Preferences
 

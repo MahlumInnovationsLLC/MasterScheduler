@@ -35,7 +35,8 @@ import {
   Upload,
   Search,
   Filter,
-  Play
+  Play,
+  ChevronUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -187,6 +188,8 @@ export default function Engineering() {
   const [showManageTemplatesDialog, setShowManageTemplatesDialog] = useState(false);
   const [showBenchmarkEditDialog, setShowBenchmarkEditDialog] = useState(false);
   const [selectedBenchmark, setSelectedBenchmark] = useState<EngineeringBenchmark | null>(null);
+  const [sortField, setSortField] = useState<string>('status');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<string>('all');
@@ -216,6 +219,58 @@ export default function Engineering() {
   const { data: benchmarks = [], isLoading: benchmarksLoading } = useQuery<EngineeringBenchmark[]>({
     queryKey: ['/api/engineering/engineering-benchmarks'],
   });
+
+  // Sort benchmarks with completed ones at the bottom
+  const sortedBenchmarks = React.useMemo(() => {
+    if (!benchmarks) return [];
+    
+    const benchmarksCopy = [...benchmarks];
+    
+    return benchmarksCopy.sort((a, b) => {
+      // Always put completed benchmarks at the bottom
+      if (a.isCompleted && !b.isCompleted) return 1;
+      if (!a.isCompleted && b.isCompleted) return -1;
+      
+      // Then sort by the selected field
+      if (sortField === 'benchmark') {
+        return sortOrder === 'asc' 
+          ? a.benchmarkName.localeCompare(b.benchmarkName)
+          : b.benchmarkName.localeCompare(a.benchmarkName);
+      } else if (sortField === 'project') {
+        return sortOrder === 'asc' 
+          ? a.projectId - b.projectId
+          : b.projectId - a.projectId;
+      } else if (sortField === 'discipline') {
+        return sortOrder === 'asc'
+          ? a.discipline.localeCompare(b.discipline)
+          : b.discipline.localeCompare(a.discipline);
+      } else if (sortField === 'targetDate') {
+        return sortOrder === 'asc'
+          ? new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime()
+          : new Date(b.targetDate).getTime() - new Date(a.targetDate).getTime();
+      } else if (sortField === 'progress') {
+        const aProgress = a.progressPercentage || 0;
+        const bProgress = b.progressPercentage || 0;
+        return sortOrder === 'asc' ? aProgress - bProgress : bProgress - aProgress;
+      } else if (sortField === 'commitment') {
+        const commitmentOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+        const aOrder = commitmentOrder[a.commitmentLevel as keyof typeof commitmentOrder];
+        const bOrder = commitmentOrder[b.commitmentLevel as keyof typeof commitmentOrder];
+        return sortOrder === 'asc' ? aOrder - bOrder : bOrder - aOrder;
+      }
+      
+      return 0;
+    });
+  }, [benchmarks, sortField, sortOrder]);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<BenchmarkTemplate[]>({
     queryKey: ['/api/engineering/benchmark-templates'],
@@ -1485,19 +1540,79 @@ export default function Engineering() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-2">Benchmark</th>
-                        <th className="text-left p-2">Project</th>
-                        <th className="text-left p-2">Discipline</th>
-                        <th className="text-left p-2">Target Date</th>
-                        <th className="text-left p-2">Progress</th>
+                        <th 
+                          className="text-left p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                          onClick={() => handleSort('benchmark')}
+                        >
+                          <div className="flex items-center gap-1">
+                            Benchmark
+                            {sortField === 'benchmark' && (
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-left p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                          onClick={() => handleSort('project')}
+                        >
+                          <div className="flex items-center gap-1">
+                            Project
+                            {sortField === 'project' && (
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-left p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                          onClick={() => handleSort('discipline')}
+                        >
+                          <div className="flex items-center gap-1">
+                            Discipline
+                            {sortField === 'discipline' && (
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-left p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                          onClick={() => handleSort('targetDate')}
+                        >
+                          <div className="flex items-center gap-1">
+                            Target Date
+                            {sortField === 'targetDate' && (
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-left p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                          onClick={() => handleSort('progress')}
+                        >
+                          <div className="flex items-center gap-1">
+                            Progress
+                            {sortField === 'progress' && (
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
                         <th className="text-left p-2">Status</th>
-                        <th className="text-left p-2">Commitment Level</th>
+                        <th 
+                          className="text-left p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                          onClick={() => handleSort('commitment')}
+                        >
+                          <div className="flex items-center gap-1">
+                            Commitment Level
+                            {sortField === 'commitment' && (
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
                         <th className="text-left p-2">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {benchmarks.slice(0, 20).map((benchmark) => (
-                        <tr key={benchmark.id} className="border-b hover:bg-gray-50">
+                      {sortedBenchmarks.slice(0, 20).map((benchmark) => (
+                        <tr key={benchmark.id} className={`border-b hover:bg-gray-50 ${benchmark.isCompleted ? 'opacity-60' : ''}`}>
                           <td className="p-2">
                             <div>
                               <div className="font-medium">{benchmark.benchmarkName}</div>
@@ -2332,10 +2447,28 @@ export default function Engineering() {
               Cancel
             </Button>
             <Button onClick={() => {
-              // Get form values and update benchmark
-              const form = document.querySelector('#benchmark-name')?.closest('form');
-              const formData = new FormData(form as HTMLFormElement);
-              // Implementation for save will be added
+              if (selectedBenchmark) {
+                const nameInput = document.querySelector('#benchmark-name') as HTMLInputElement;
+                const descInput = document.querySelector('#benchmark-description') as HTMLTextAreaElement;
+                const targetDateInput = document.querySelector('#benchmark-target-date') as HTMLInputElement;
+                const notesInput = document.querySelector('#benchmark-notes') as HTMLTextAreaElement;
+                const progressInput = document.querySelector('#benchmark-progress') as HTMLInputElement;
+                const disciplineSelect = document.querySelector('[id^="radix-"][id*="discipline"]') as HTMLSelectElement;
+                const commitmentSelect = document.querySelector('[id^="radix-"][id*="commitment"]') as HTMLSelectElement;
+                
+                updateBenchmarkMutation.mutate({
+                  id: selectedBenchmark.id,
+                  benchmark: {
+                    benchmarkName: nameInput?.value || selectedBenchmark.benchmarkName,
+                    description: descInput?.value || null,
+                    targetDate: targetDateInput?.value || selectedBenchmark.targetDate,
+                    notes: notesInput?.value || null,
+                    progressPercentage: parseInt(progressInput?.value || '0'),
+                    discipline: selectedBenchmark.discipline,
+                    commitmentLevel: selectedBenchmark.commitmentLevel
+                  }
+                });
+              }
               setShowBenchmarkEditDialog(false);
               setSelectedBenchmark(null);
             }}>
