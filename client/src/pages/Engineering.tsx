@@ -584,6 +584,24 @@ export default function Engineering() {
     },
   });
 
+
+
+
+
+  // Handler for manual percentage update
+  const handleManualPercentageUpdate = (projectId: number, discipline: 'me' | 'ee' | 'ite' | 'ntc', percentage: number) => {
+    const percentages: any = {};
+    percentages[`${discipline}ManualPercent`] = percentage;
+    updateManualPercentageMutation.mutate({ projectId, percentages });
+  };
+
+  // Handler for reverting to calculated percentage
+  const handleRevertToCalculated = (projectId: number, discipline: 'me' | 'ee' | 'ite' | 'ntc') => {
+    const percentages: any = {};
+    percentages[`${discipline}ManualPercent`] = null;
+    updateManualPercentageMutation.mutate({ projectId, percentages });
+  };
+
   // Check if user has access to Engineering module
   const hasEngineeringAccess = () => {
     // Only check userRole, user object can be null during loading
@@ -2021,26 +2039,60 @@ export default function Engineering() {
 
                           <div>
                             <Label className="text-sm">Current Percentage</Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={
-                                  discipline === 'ME' ? (selectedProject.meDesignOrdersPercent || 0) :
-                                  discipline === 'EE' ? (selectedProject.eeDesignOrdersPercent || 0) :
-                                  discipline === 'ITE' ? (selectedProject.itDesignOrdersPercent || 0) :
-                                  discipline === 'NTC' ? (selectedProject.ntcPercentage || 0) : 0
-                                }
-                                onChange={(e) => handlePercentageUpdate(
-                                  selectedProject.id, 
-                                  discipline as 'ME' | 'EE' | 'ITE' | 'NTC', 
-                                  parseInt(e.target.value) || 0
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={
+                                    discipline === 'ME' ? (selectedProject.meManualPercent ?? selectedProject.meDesignOrdersPercent ?? 0) :
+                                    discipline === 'EE' ? (selectedProject.eeManualPercent ?? selectedProject.eeDesignOrdersPercent ?? 0) :
+                                    discipline === 'ITE' ? (selectedProject.iteManualPercent ?? selectedProject.itDesignOrdersPercent ?? 0) :
+                                    discipline === 'NTC' ? (selectedProject.ntcManualPercent ?? selectedProject.ntcPercentage ?? 0) : 0
+                                  }
+                                  onChange={(e) => handleManualPercentageUpdate(
+                                    selectedProject.id, 
+                                    discipline.toLowerCase() as 'me' | 'ee' | 'ite' | 'ntc', 
+                                    parseInt(e.target.value) || 0
+                                  )}
+                                  className="flex-1"
+                                  disabled={updateProjectAssignmentMutation.isPending}
+                                />
+                                <span className="text-sm w-12 text-right">
+                                  {discipline === 'ME' ? (selectedProject.meManualPercent ?? selectedProject.meDesignOrdersPercent ?? 0) :
+                                   discipline === 'EE' ? (selectedProject.eeManualPercent ?? selectedProject.eeDesignOrdersPercent ?? 0) :
+                                   discipline === 'ITE' ? (selectedProject.iteManualPercent ?? selectedProject.itDesignOrdersPercent ?? 0) :
+                                   discipline === 'NTC' ? (selectedProject.ntcManualPercent ?? selectedProject.ntcPercentage ?? 0) : 0}%
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {((discipline === 'ME' && selectedProject.meManualPercent !== null) ||
+                                  (discipline === 'EE' && selectedProject.eeManualPercent !== null) ||
+                                  (discipline === 'ITE' && selectedProject.iteManualPercent !== null) ||
+                                  (discipline === 'NTC' && selectedProject.ntcManualPercent !== null)) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleRevertToCalculated(
+                                      selectedProject.id,
+                                      discipline.toLowerCase() as 'me' | 'ee' | 'ite' | 'ntc'
+                                    )}
+                                    disabled={updateProjectAssignmentMutation.isPending}
+                                  >
+                                    <RotateCcw className="h-3 w-3 mr-1" />
+                                    Revert to Auto
+                                  </Button>
                                 )}
-                                className="w-20"
-                                disabled={updateProjectAssignmentMutation.isPending}
-                              />
-                              <span className="text-sm">%</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {(discipline === 'ME' && selectedProject.meManualPercent !== null) ||
+                                   (discipline === 'EE' && selectedProject.eeManualPercent !== null) ||
+                                   (discipline === 'ITE' && selectedProject.iteManualPercent !== null) ||
+                                   (discipline === 'NTC' && selectedProject.ntcManualPercent !== null) 
+                                    ? 'Manual override'
+                                    : 'Auto calculated'}
+                                </span>
+                              </div>
                             </div>
                           </div>
 

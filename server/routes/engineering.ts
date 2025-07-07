@@ -763,33 +763,31 @@ router.post('/apply-benchmark-template', async (req: Request, res: Response) => 
 router.get('/engineering-overview', async (req: Request, res: Response) => {
   try {
     // Get all projects and their engineering data
-    const projects = await storage.getProjects();
+    const projectsData = await storage.getProjects();
     
     // Get real Engineering users from the users table
     const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
     
     const tasks = await storage.getEngineeringTasks();
     
-    // Get benchmarks with project information using proper JOIN
-    const benchmarks = await db.select({
-      id: engineeringBenchmarks.id,
-      projectId: engineeringBenchmarks.projectId,
-      discipline: engineeringBenchmarks.discipline,
-      benchmarkName: engineeringBenchmarks.benchmarkName,
-      description: engineeringBenchmarks.description,
-      targetDate: engineeringBenchmarks.targetDate,
-      isCompleted: engineeringBenchmarks.isCompleted,
-      progressPercentage: engineeringBenchmarks.progressPercentage,
-      commitmentLevel: engineeringBenchmarks.commitmentLevel,
-      notes: engineeringBenchmarks.notes,
-      createdAt: engineeringBenchmarks.createdAt,
-      updatedAt: engineeringBenchmarks.updatedAt,
-      projectNumber: projects.projectNumber,
-      projectName: projects.name
-    })
-    .from(engineeringBenchmarks)
-    .leftJoin(projects, eq(engineeringBenchmarks.projectId, projects.id))
-    .orderBy(asc(engineeringBenchmarks.targetDate));
+    // Get benchmarks directly
+    const benchmarksData = await db.select().from(engineeringBenchmarks).orderBy(asc(engineeringBenchmarks.targetDate));
+    
+    // Get projects info for benchmarks - simplified query
+    const projectsInfo = await db.select().from(projects);
+    
+    // Create a lookup map for projects
+    const projectLookup = new Map(projectsInfo.map(p => [p.id, p]));
+    
+    // Transform benchmarks with project info
+    const benchmarks = benchmarksData.map(benchmark => {
+      const project = projectLookup.get(benchmark.projectId);
+      return {
+        ...benchmark,
+        projectNumber: project?.projectNumber || '',
+        projectName: project?.name || ''
+      };
+    });
 
     // Use the same discipline mapping and resources structure as the engineering-resources endpoint
     const disciplineMap: { [key: string]: string } = {
@@ -870,7 +868,7 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     };
 
     // Get projects with engineering data
-    const projectsWithEngineering = projects.map(project => {
+    const projectsWithEngineering = projectsData.map(project => {
       const projectTasks = tasks.filter(t => t.projectId === project.id);
       const projectBenchmarks = benchmarks.filter(b => b.projectId === project.id);
       

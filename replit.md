@@ -285,6 +285,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added "Auto-Complete Delivered" button to automatically mark all benchmarks as 100% complete for projects with "Delivered" status
   - Enhanced database query to include project information (project number and name) in benchmark responses
   - All benchmarks table now displays unlimited entries with proper scrolling functionality
+- July 07, 2025: Engineering Overview Manual Percentage Override Implementation
+  - Added manual percentage override fields to projects schema (meManualPercent, eeManualPercent, iteManualPercent, ntcManualPercent)
+  - Implemented slider-based manual percentage controls in Engineering Overview "Manage" dialog
+  - Added "Revert to Auto" button to restore calculated percentages from benchmark progress
+  - Fixed engineering overview backend query issues that were causing database errors
+  - Manual percentages override calculated values when set, providing flexibility for custom progress reporting
+  - Overview tab now properly displays benchmark counts for each discipline (ME, EE, ITE, NTC) per project
+  - Enhanced user experience with visual indicators showing whether percentages are manually set or auto-calculated
 
 ## User Preferences
 
