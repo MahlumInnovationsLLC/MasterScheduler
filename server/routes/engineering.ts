@@ -762,8 +762,11 @@ router.post('/apply-benchmark-template', async (req: Request, res: Response) => 
 // GET engineering overview analytics
 router.get('/engineering-overview', async (req: Request, res: Response) => {
   try {
+    console.log('🔍 DEBUG: Engineering overview endpoint called');
+    
     // Get all projects and their engineering data
     const projectsData = await storage.getProjects();
+    console.log(`🔍 DEBUG: Retrieved ${projectsData.length} projects from storage`);
     
     // Get real Engineering users from the users table
     const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
@@ -868,6 +871,9 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     };
 
     // Get projects with engineering data
+    console.log(`🔍 DEBUG: Processing ${projectsData.length} projects for engineering data`);
+    console.log(`🔍 DEBUG: Total benchmarks available: ${benchmarks.length}`);
+    
     const projectsWithEngineering = projectsData.map(project => {
       const projectTasks = tasks.filter(t => t.projectId === project.id);
       const projectBenchmarks = benchmarks.filter(b => b.projectId === project.id);
@@ -877,6 +883,11 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       const eeBenchmarks = projectBenchmarks.filter(b => b.discipline === 'EE');
       const iteBenchmarks = projectBenchmarks.filter(b => b.discipline === 'ITE');
       const ntcBenchmarks = projectBenchmarks.filter(b => b.discipline === 'NTC');
+      
+      // Debug specific projects
+      if (project.projectNumber && ['805349', '805347', '805348', '803944'].includes(project.projectNumber)) {
+        console.log(`🔍 DEBUG: Project ${project.projectNumber} has ${meBenchmarks.length} ME benchmarks, ${eeBenchmarks.length} EE benchmarks`);
+      }
       
       // Use manual percentage if set, otherwise calculate from benchmarks
       const calculatedMePercent = meBenchmarks.length > 0 
@@ -925,6 +936,16 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
         ntcCompletionPercent,
       };
     });
+
+    console.log(`🔍 DEBUG: Final response will have ${projectsWithEngineering.length} projects`);
+    console.log(`🔍 DEBUG: Sample project with benchmarks:`, 
+      projectsWithEngineering.find(p => p.meBenchmarks > 0) ? 
+      {
+        projectNumber: projectsWithEngineering.find(p => p.meBenchmarks > 0)?.projectNumber,
+        meBenchmarks: projectsWithEngineering.find(p => p.meBenchmarks > 0)?.meBenchmarks,
+        meCompletionPercent: projectsWithEngineering.find(p => p.meBenchmarks > 0)?.meCompletionPercent
+      } : 'No projects with ME benchmarks found'
+    );
 
     res.json({
       workloadStats,

@@ -416,6 +416,44 @@ export default function Engineering() {
   const updateManualPercentageMutation = useMutation({
     mutationFn: ({ projectId, percentages }: { projectId: number, percentages: { meManualPercent?: number | null, eeManualPercent?: number | null, iteManualPercent?: number | null, ntcManualPercent?: number | null } }) => 
       apiRequest('PUT', `/api/engineering/projects/${projectId}/manual-percentages`, percentages),
+    onMutate: async ({ projectId, percentages }) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['/api/engineering/engineering-overview'] });
+      
+      // Snapshot the previous value
+      const previousOverview = queryClient.getQueryData(['/api/engineering/engineering-overview']);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(['/api/engineering/engineering-overview'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          projects: old.projects.map((project: any) => {
+            if (project.id === projectId) {
+              const updatedProject = { ...project };
+              // Update the appropriate completion percentages
+              if (percentages.meManualPercent !== undefined) {
+                updatedProject.meCompletionPercent = percentages.meManualPercent;
+              }
+              if (percentages.eeManualPercent !== undefined) {
+                updatedProject.eeCompletionPercent = percentages.eeManualPercent;
+              }
+              if (percentages.iteManualPercent !== undefined) {
+                updatedProject.iteCompletionPercent = percentages.iteManualPercent;
+              }
+              if (percentages.ntcManualPercent !== undefined) {
+                updatedProject.ntcCompletionPercent = percentages.ntcManualPercent;
+              }
+              return updatedProject;
+            }
+            return project;
+          })
+        };
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousOverview };
+    },
     onSuccess: () => {
       toast({
         title: 'Success',
@@ -423,12 +461,19 @@ export default function Engineering() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousOverview) {
+        queryClient.setQueryData(['/api/engineering/engineering-overview'], context.previousOverview);
+      }
       toast({
         title: 'Error',
         description: 'Failed to update manual percentages. Please try again.',
         variant: 'destructive',
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
     },
   });
 
