@@ -473,6 +473,12 @@ export const projects = pgTable("projects", {
   photosTaken: boolean("photos_taken").default(false), // New field for Photos Taken column
   isSalesEstimate: boolean("is_sales_estimate").default(false), // Sales Estimate Proposal flag
 
+  // Manual percentage overrides for engineering completion percentages
+  meManualPercent: integer("me_manual_percent"), // Manual override for ME completion percentage
+  eeManualPercent: integer("ee_manual_percent"), // Manual override for EE completion percentage
+  iteManualPercent: integer("ite_manual_percent"), // Manual override for ITE completion percentage
+  ntcManualPercent: integer("ntc_manual_percent"), // Manual override for NTC completion percentage
+
   // Store all raw data from Excel import
   rawData: jsonb("raw_data"), // JSON field to store all original Excel columns
 

@@ -398,6 +398,45 @@ router.post('/engineering-benchmarks', async (req: Request, res: Response) => {
 });
 
 // AUTO-COMPLETE benchmarks for delivered projects
+// UPDATE PROJECT MANUAL PERCENTAGES
+router.put('/projects/:projectId/manual-percentages', async (req: Request, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.projectId);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project ID" });
+    }
+
+    const { meManualPercent, eeManualPercent, iteManualPercent, ntcManualPercent } = req.body;
+
+    // Update the project with manual percentage overrides
+    const [updatedProject] = await db
+      .update(projects)
+      .set({
+        meManualPercent: meManualPercent === null ? null : meManualPercent,
+        eeManualPercent: eeManualPercent === null ? null : eeManualPercent,
+        iteManualPercent: iteManualPercent === null ? null : iteManualPercent,
+        ntcManualPercent: ntcManualPercent === null ? null : ntcManualPercent,
+        updatedAt: new Date()
+      })
+      .where(eq(projects.id, projectId))
+      .returning();
+
+    if (!updatedProject) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Manual percentages updated successfully",
+      project: updatedProject
+    });
+
+  } catch (error) {
+    console.error("Error updating project manual percentages:", error);
+    res.status(500).json({ error: "Failed to update project manual percentages" });
+  }
+});
+
 router.post('/auto-complete-delivered-benchmarks', async (req: Request, res: Response) => {
   try {
     console.log('🔍 SERVER DEBUG: Auto-completing benchmarks for delivered projects...');
@@ -730,7 +769,27 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
     const engineeringUsers = await db.select().from(users).where(eq(users.department, 'engineering'));
     
     const tasks = await storage.getEngineeringTasks();
-    const benchmarks = await storage.getEngineeringBenchmarks();
+    
+    // Get benchmarks with project information using proper JOIN
+    const benchmarks = await db.select({
+      id: engineeringBenchmarks.id,
+      projectId: engineeringBenchmarks.projectId,
+      discipline: engineeringBenchmarks.discipline,
+      benchmarkName: engineeringBenchmarks.benchmarkName,
+      description: engineeringBenchmarks.description,
+      targetDate: engineeringBenchmarks.targetDate,
+      isCompleted: engineeringBenchmarks.isCompleted,
+      progressPercentage: engineeringBenchmarks.progressPercentage,
+      commitmentLevel: engineeringBenchmarks.commitmentLevel,
+      notes: engineeringBenchmarks.notes,
+      createdAt: engineeringBenchmarks.createdAt,
+      updatedAt: engineeringBenchmarks.updatedAt,
+      projectNumber: projects.projectNumber,
+      projectName: projects.name
+    })
+    .from(engineeringBenchmarks)
+    .leftJoin(projects, eq(engineeringBenchmarks.projectId, projects.id))
+    .orderBy(asc(engineeringBenchmarks.targetDate));
 
     // Use the same discipline mapping and resources structure as the engineering-resources endpoint
     const disciplineMap: { [key: string]: string } = {
@@ -821,21 +880,26 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       const iteBenchmarks = projectBenchmarks.filter(b => b.discipline === 'ITE');
       const ntcBenchmarks = projectBenchmarks.filter(b => b.discipline === 'NTC');
       
-      const meCompletionPercent = meBenchmarks.length > 0 
+      // Use manual percentage if set, otherwise calculate from benchmarks
+      const calculatedMePercent = meBenchmarks.length > 0 
         ? Math.round((meBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / meBenchmarks.length)) 
         : 0;
+      const meCompletionPercent = project.meManualPercent ?? calculatedMePercent;
       
-      const eeCompletionPercent = eeBenchmarks.length > 0 
+      const calculatedEePercent = eeBenchmarks.length > 0 
         ? Math.round((eeBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / eeBenchmarks.length)) 
         : 0;
+      const eeCompletionPercent = project.eeManualPercent ?? calculatedEePercent;
       
-      const iteCompletionPercent = iteBenchmarks.length > 0 
+      const calculatedItePercent = iteBenchmarks.length > 0 
         ? Math.round((iteBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / iteBenchmarks.length)) 
         : 0;
+      const iteCompletionPercent = project.iteManualPercent ?? calculatedItePercent;
       
-      const ntcCompletionPercent = ntcBenchmarks.length > 0 
+      const calculatedNtcPercent = ntcBenchmarks.length > 0 
         ? Math.round((ntcBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / ntcBenchmarks.length)) 
         : 0;
+      const ntcCompletionPercent = project.ntcManualPercent ?? calculatedNtcPercent;
       
       return {
         ...project,

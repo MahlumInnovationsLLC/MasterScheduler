@@ -36,7 +36,8 @@ import {
   Search,
   Filter,
   Play,
-  ChevronUp
+  ChevronUp,
+  RotateCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -150,6 +151,11 @@ interface Project {
   eeCompletionPercent?: number;
   iteCompletionPercent?: number;
   ntcCompletionPercent?: number;
+  // Manual percentage overrides
+  meManualPercent?: number | null;
+  eeManualPercent?: number | null;
+  iteManualPercent?: number | null;
+  ntcManualPercent?: number | null;
 }
 
 interface EngineeringOverview {
@@ -405,6 +411,25 @@ export default function Engineering() {
       console.error('Error auto-completing delivered benchmarks:', error);
       toast({ title: "Failed to auto-complete delivered benchmarks", variant: "destructive" });
     }
+  });
+
+  const updateManualPercentageMutation = useMutation({
+    mutationFn: ({ projectId, percentages }: { projectId: number, percentages: { meManualPercent?: number | null, eeManualPercent?: number | null, iteManualPercent?: number | null, ntcManualPercent?: number | null } }) => 
+      apiRequest('PUT', `/api/engineering/projects/${projectId}/manual-percentages`, percentages),
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Manual percentages updated successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update manual percentages. Please try again.',
+        variant: 'destructive',
+      });
+    },
   });
 
   // Fetch project assignments
@@ -1144,7 +1169,55 @@ export default function Engineering() {
                                                 <Badge variant="outline" className="text-xs">{role}</Badge>
                                               </td>
                                               <td className="p-2 text-sm text-center">
-                                                {formatPercentage(percentage)}
+                                                <div className="flex items-center justify-center gap-2">
+                                                  <div className="flex-1 bg-gray-200 rounded-full h-2 relative min-w-[80px]">
+                                                    <div 
+                                                      className="h-2 rounded-full bg-blue-500 transition-all duration-300"
+                                                      style={{ width: `${percentage}%` }}
+                                                    />
+                                                    <input
+                                                      type="range"
+                                                      min="0"
+                                                      max="100"
+                                                      value={percentage}
+                                                      onChange={(e) => {
+                                                        const newPercentage = parseInt(e.target.value);
+                                                        const fieldName = role === 'ME' ? 'meManualPercent' : 
+                                                                        role === 'EE' ? 'eeManualPercent' : 
+                                                                        role === 'ITE' ? 'iteManualPercent' : 
+                                                                        'ntcManualPercent';
+                                                        
+                                                        updateManualPercentageMutation.mutate({
+                                                          projectId: project.id,
+                                                          percentages: { [fieldName]: newPercentage }
+                                                        });
+                                                      }}
+                                                      className="absolute inset-0 w-full h-2 opacity-0 cursor-pointer"
+                                                    />
+                                                  </div>
+                                                  <span className="text-xs text-gray-600 min-w-[35px]">
+                                                    {formatPercentage(percentage)}
+                                                  </span>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="p-1 h-6 w-6 text-gray-400 hover:text-blue-600"
+                                                    onClick={() => {
+                                                      const fieldName = role === 'ME' ? 'meManualPercent' : 
+                                                                      role === 'EE' ? 'eeManualPercent' : 
+                                                                      role === 'ITE' ? 'iteManualPercent' : 
+                                                                      'ntcManualPercent';
+                                                      
+                                                      updateManualPercentageMutation.mutate({
+                                                        projectId: project.id,
+                                                        percentages: { [fieldName]: null }
+                                                      });
+                                                    }}
+                                                    title="Revert to calculated percentage"
+                                                  >
+                                                    <RotateCcw className="h-3 w-3" />
+                                                  </Button>
+                                                </div>
                                               </td>
                                               <td className="p-2 text-sm text-center">
                                                 {benchmarkCount}
