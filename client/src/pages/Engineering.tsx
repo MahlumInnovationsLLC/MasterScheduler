@@ -90,6 +90,7 @@ interface EngineeringBenchmark {
   isCompleted: boolean;
   commitmentLevel: 'low' | 'medium' | 'high' | 'critical';
   notes: string | null;
+  progressPercentage?: number; // Progress from 0-100
   createdAt: Date;
   updatedAt: Date;
 }
@@ -184,6 +185,8 @@ export default function Engineering() {
   const [selectedTemplate, setSelectedTemplate] = useState<BenchmarkTemplate | null>(null);
   const [showApplyTemplateDialog, setShowApplyTemplateDialog] = useState(false);
   const [showManageTemplatesDialog, setShowManageTemplatesDialog] = useState(false);
+  const [showBenchmarkEditDialog, setShowBenchmarkEditDialog] = useState(false);
+  const [selectedBenchmark, setSelectedBenchmark] = useState<EngineeringBenchmark | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<string>('all');
@@ -290,6 +293,35 @@ export default function Engineering() {
     onError: (error) => {
       console.error('Error deleting benchmark:', error);
       toast({ title: "Failed to delete benchmark", variant: "destructive" });
+    }
+  });
+
+  const updateBenchmarkMutation = useMutation({
+    mutationFn: ({ id, benchmark }: { id: number; benchmark: any }) => 
+      apiRequest('PUT', `/api/engineering/engineering-benchmarks/${id}`, benchmark),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-benchmarks'] });
+      toast({ title: "Benchmark updated successfully" });
+    },
+    onError: (error) => {
+      console.error('Error updating benchmark:', error);
+      toast({ title: "Failed to update benchmark", variant: "destructive" });
+    }
+  });
+
+  const updateBenchmarkProgressMutation = useMutation({
+    mutationFn: ({ id, progressPercentage, isCompleted }: { id: number; progressPercentage?: number; isCompleted?: boolean }) => 
+      apiRequest('PUT', `/api/engineering/engineering-benchmarks/${id}`, { 
+        progressPercentage,
+        isCompleted,
+        ...(isCompleted && { actualDate: new Date().toISOString().split('T')[0] })
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-benchmarks'] });
+    },
+    onError: (error) => {
+      console.error('Error updating benchmark progress:', error);
+      toast({ title: "Failed to update progress", variant: "destructive" });
     }
   });
 
@@ -1457,7 +1489,7 @@ export default function Engineering() {
                         <th className="text-left p-2">Project</th>
                         <th className="text-left p-2">Discipline</th>
                         <th className="text-left p-2">Target Date</th>
-                        <th className="text-left p-2">Actual Date</th>
+                        <th className="text-left p-2">Progress</th>
                         <th className="text-left p-2">Status</th>
                         <th className="text-left p-2">Commitment Level</th>
                         <th className="text-left p-2">Actions</th>
@@ -1481,11 +1513,53 @@ export default function Engineering() {
                           <td className="p-2 text-sm">
                             {format(new Date(benchmark.targetDate), 'MMM dd, yyyy')}
                           </td>
-                          <td className="p-2 text-sm">
-                            {benchmark.actualDate 
-                              ? format(new Date(benchmark.actualDate), 'MMM dd, yyyy')
-                              : 'Pending'
-                            }
+                          <td className="p-2 min-w-[200px]">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-gray-200 rounded-full h-2 relative">
+                                <div 
+                                  className={`h-2 rounded-full transition-all duration-300 ${
+                                    benchmark.isCompleted ? 'bg-green-500' : 'bg-blue-500'
+                                  }`}
+                                  style={{ width: `${benchmark.progressPercentage || 0}%` }}
+                                />
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={benchmark.progressPercentage || 0}
+                                  onChange={(e) => {
+                                    const value = parseInt(e.target.value);
+                                    updateBenchmarkProgressMutation.mutate({
+                                      id: benchmark.id,
+                                      progressPercentage: value,
+                                      isCompleted: value === 100
+                                    });
+                                  }}
+                                  className="absolute inset-0 w-full h-2 opacity-0 cursor-pointer"
+                                />
+                              </div>
+                              <span className="text-xs text-gray-600 min-w-[35px]">
+                                {benchmark.progressPercentage || 0}%
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={`p-1 h-6 w-6 ${
+                                  benchmark.isCompleted 
+                                    ? 'text-green-600 hover:text-green-700' 
+                                    : 'text-gray-400 hover:text-green-600'
+                                }`}
+                                onClick={() => {
+                                  updateBenchmarkProgressMutation.mutate({
+                                    id: benchmark.id,
+                                    progressPercentage: 100,
+                                    isCompleted: !benchmark.isCompleted
+                                  });
+                                }}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </td>
                           <td className="p-2">
                             <Badge className={benchmark.isCompleted ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
@@ -1499,7 +1573,14 @@ export default function Engineering() {
                           </td>
                           <td className="p-2">
                             <div className="flex gap-1">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedBenchmark(benchmark);
+                                  setShowBenchmarkEditDialog(true);
+                                }}
+                              >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button 
@@ -2139,6 +2220,126 @@ export default function Engineering() {
               setSelectedTemplate(null);
             }}>
               Apply Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Benchmark Edit Dialog */}
+      <Dialog open={showBenchmarkEditDialog} onOpenChange={setShowBenchmarkEditDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Benchmark</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="benchmark-name">Benchmark Name</Label>
+                <Input
+                  id="benchmark-name"
+                  defaultValue={selectedBenchmark?.benchmarkName || ''}
+                />
+              </div>
+              <div>
+                <Label htmlFor="benchmark-discipline">Discipline</Label>
+                <Select defaultValue={selectedBenchmark?.discipline || 'ME'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select discipline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ME">ME</SelectItem>
+                    <SelectItem value="EE">EE</SelectItem>
+                    <SelectItem value="ITE">ITE</SelectItem>
+                    <SelectItem value="NTC">NTC</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="benchmark-description">Description</Label>
+              <Textarea
+                id="benchmark-description"
+                defaultValue={selectedBenchmark?.description || ''}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="benchmark-target-date">Target Date</Label>
+                <Input
+                  id="benchmark-target-date"
+                  type="date"
+                  defaultValue={selectedBenchmark?.targetDate || ''}
+                />
+              </div>
+              <div>
+                <Label htmlFor="benchmark-commitment">Commitment Level</Label>
+                <Select defaultValue={selectedBenchmark?.commitmentLevel || 'medium'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select commitment level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="benchmark-progress">Progress ({selectedBenchmark?.progressPercentage || 0}%)</Label>
+              <div className="mt-2 flex items-center gap-4">
+                <div className="flex-1">
+                  <input
+                    id="benchmark-progress"
+                    type="range"
+                    min="0"
+                    max="100"
+                    defaultValue={selectedBenchmark?.progressPercentage || 0}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+                <div className="w-16">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue={selectedBenchmark?.progressPercentage || 0}
+                    className="text-center"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="benchmark-notes">Notes</Label>
+              <Textarea
+                id="benchmark-notes"
+                defaultValue={selectedBenchmark?.notes || ''}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowBenchmarkEditDialog(false);
+              setSelectedBenchmark(null);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              // Get form values and update benchmark
+              const form = document.querySelector('#benchmark-name')?.closest('form');
+              const formData = new FormData(form as HTMLFormElement);
+              // Implementation for save will be added
+              setShowBenchmarkEditDialog(false);
+              setSelectedBenchmark(null);
+            }}>
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1476,6 +1476,7 @@ export const engineeringBenchmarks = pgTable("engineering_benchmarks", {
   actualDate: text("actual_date"),
   isCompleted: boolean("is_completed").default(false).notNull(),
   commitmentLevel: text("commitment_level").default("medium").notNull(), // 'low', 'medium', 'high', 'critical'
+  progressPercentage: integer("progress_percentage").default(0).notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
