@@ -1663,22 +1663,7 @@ export default function Engineering() {
                 <Settings className="h-4 w-4 mr-2" />
                 Manage Templates
               </Button>
-              <Button 
-                variant="outline"
-                onClick={() => generateStandardBenchmarksMutation.mutate()}
-                disabled={generateStandardBenchmarksMutation.isPending}
-              >
-                <Target className="h-4 w-4 mr-2" />
-                {generateStandardBenchmarksMutation.isPending ? 'Generating...' : 'Generate Standard Benchmarks'}
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => autoCompleteDeliveredBenchmarksMutation.mutate()}
-                disabled={autoCompleteDeliveredBenchmarksMutation.isPending}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {autoCompleteDeliveredBenchmarksMutation.isPending ? 'Processing...' : 'Auto-Complete Delivered'}
-              </Button>
+
               <Button 
                 className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
                 onClick={() => setShowTemplateDialog(true)}

@@ -293,6 +293,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Manual percentages override calculated values when set, providing flexibility for custom progress reporting
   - Overview tab now properly displays benchmark counts for each discipline (ME, EE, ITE, NTC) per project
   - Enhanced user experience with visual indicators showing whether percentages are manually set or auto-calculated
+- July 07, 2025: Engineering Benchmarks UI Clean-up
+  - Removed "Generate Standard Benchmarks" and "Auto-Complete Delivered" buttons from Benchmarks Overview interface
+  - Streamlined benchmark management interface to focus on essential functions: template management and benchmark creation
+  - Fixed critical authentication issue preventing Engineering Overview data access by moving endpoint to authenticated route
+  - Updated all frontend query references to use proper authenticated engineering routes (/api/engineering/engineering-overview)
+  - Confirmed authentication middleware working correctly with proper 401 responses for unauthenticated requests
 
 ## User Preferences
 
