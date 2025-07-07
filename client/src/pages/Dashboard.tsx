@@ -1209,7 +1209,14 @@ const Dashboard = () => {
 
       {/* Mini Bay Schedule Viewer */}
       <div className="mb-4 flex justify-between items-start">
-        <h2 className="text-xl font-sans font-bold">Manufacturing Bay Schedule Snapshot</h2>
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-sans font-bold">Manufacturing Bay Schedule Snapshot</h2>
+          <div className="border border-red-500 rounded-md px-3 py-2 bg-red-950/20 dark:bg-red-950/30">
+            <p className="text-red-400 dark:text-red-300 text-sm font-medium">
+              Bay Schedule is an estimated prediction of the Nomad GCS schedule. For Approved Timeline Dates, review the Projects Module.
+            </p>
+          </div>
+        </div></div>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
