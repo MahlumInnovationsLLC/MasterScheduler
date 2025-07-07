@@ -34,7 +34,8 @@ import {
   Download,
   Upload,
   Search,
-  Filter
+  Filter,
+  Play
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -89,6 +90,20 @@ interface EngineeringBenchmark {
   isCompleted: boolean;
   commitmentLevel: 'low' | 'medium' | 'high' | 'critical';
   notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface BenchmarkTemplate {
+  id: number;
+  name: string;
+  description: string;
+  discipline: 'ME' | 'EE' | 'ITE' | 'NTC';
+  referencePhase: 'fabrication_start' | 'production_start';
+  daysBefore: number;
+  commitmentLevel: 'low' | 'medium' | 'high' | 'critical';
+  isActive: boolean;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -163,6 +178,12 @@ export default function Engineering() {
   const [selectedTask, setSelectedTask] = useState<EngineeringTask | null>(null);
   const [showEngineerEditDialog, setShowEngineerEditDialog] = useState(false);
   const [editingEngineer, setEditingEngineer] = useState<EngineeringResource | null>(null);
+  
+  // Benchmark and template management states
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<BenchmarkTemplate | null>(null);
+  const [showApplyTemplateDialog, setShowApplyTemplateDialog] = useState(false);
+  const [showManageTemplatesDialog, setShowManageTemplatesDialog] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [disciplineFilter, setDisciplineFilter] = useState<string>('all');
@@ -191,6 +212,73 @@ export default function Engineering() {
   // Fetch engineering benchmarks
   const { data: benchmarks = [], isLoading: benchmarksLoading } = useQuery<EngineeringBenchmark[]>({
     queryKey: ['/api/engineering/engineering-benchmarks'],
+  });
+
+  const { data: templates = [], isLoading: templatesLoading } = useQuery<BenchmarkTemplate[]>({
+    queryKey: ['/api/engineering/benchmark-templates'],
+  });
+
+  // Mutations for benchmark management
+  const generateStandardBenchmarksMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/engineering/generate-standard-benchmarks', {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-benchmarks'] });
+      toast({ title: "Standard benchmarks generated successfully" });
+    },
+    onError: (error) => {
+      console.error('Error generating benchmarks:', error);
+      toast({ title: "Failed to generate benchmarks", variant: "destructive" });
+    }
+  });
+
+  const createTemplateMutation = useMutation({
+    mutationFn: (template: any) => apiRequest('POST', '/api/engineering/benchmark-templates', template),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/benchmark-templates'] });
+      toast({ title: "Template created successfully" });
+    },
+    onError: (error) => {
+      console.error('Error creating template:', error);
+      toast({ title: "Failed to create template", variant: "destructive" });
+    }
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, template }: { id: number; template: any }) => 
+      apiRequest('PUT', `/api/engineering/benchmark-templates/${id}`, template),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/benchmark-templates'] });
+      toast({ title: "Template updated successfully" });
+    },
+    onError: (error) => {
+      console.error('Error updating template:', error);
+      toast({ title: "Failed to update template", variant: "destructive" });
+    }
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/engineering/benchmark-templates/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/benchmark-templates'] });
+      toast({ title: "Template deleted successfully" });
+    },
+    onError: (error) => {
+      console.error('Error deleting template:', error);
+      toast({ title: "Failed to delete template", variant: "destructive" });
+    }
+  });
+
+  const applyTemplateMutation = useMutation({
+    mutationFn: (data: { templateId: number; projectIds?: number[]; applyToAll?: boolean }) => 
+      apiRequest('POST', '/api/engineering/apply-benchmark-template', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-benchmarks'] });
+      toast({ title: "Template applied successfully" });
+    },
+    onError: (error) => {
+      console.error('Error applying template:', error);
+      toast({ title: "Failed to apply template", variant: "destructive" });
+    }
   });
 
   // Fetch project assignments
@@ -1267,11 +1355,25 @@ export default function Engineering() {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Engineering Benchmarks Overview</h2>
             <div className="flex gap-2">
-              <Button variant="outline">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowManageTemplatesDialog(true)}
+              >
                 <Settings className="h-4 w-4 mr-2" />
                 Manage Templates
               </Button>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700">
+              <Button 
+                variant="outline"
+                onClick={() => generateStandardBenchmarksMutation.mutate()}
+                disabled={generateStandardBenchmarksMutation.isPending}
+              >
+                <Target className="h-4 w-4 mr-2" />
+                {generateStandardBenchmarksMutation.isPending ? 'Generating...' : 'Generate Standard Benchmarks'}
+              </Button>
+              <Button 
+                className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                onClick={() => setShowTemplateDialog(true)}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Benchmark
               </Button>
@@ -1407,27 +1509,116 @@ export default function Engineering() {
             <TabsContent value="benchmark-templates" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Benchmark Templates</h3>
-                <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                <Button 
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={() => setShowTemplateDialog(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Template
                 </Button>
               </div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center py-8">
-                    <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Benchmark Templates</h3>
-                    <p className="text-gray-500 mb-4">
-                      Create reusable benchmark templates that can be applied to projects based on FAB and Production start dates.
-                    </p>
-                    <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Your First Template
-                    </Button>
+              {templatesLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Loading templates...</p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              ) : templates.length > 0 ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Template Name</th>
+                            <th className="text-left p-2">Discipline</th>
+                            <th className="text-left p-2">Relative To</th>
+                            <th className="text-left p-2">Days Before</th>
+                            <th className="text-left p-2">Commitment Level</th>
+                            <th className="text-left p-2">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {templates.map((template) => (
+                            <tr key={template.id} className="border-b hover:bg-gray-50">
+                              <td className="p-2">
+                                <div>
+                                  <div className="font-medium">{template.name}</div>
+                                  <div className="text-sm text-muted-foreground">{template.description}</div>
+                                </div>
+                              </td>
+                              <td className="p-2">
+                                <Badge variant="outline">{template.discipline}</Badge>
+                              </td>
+                              <td className="p-2 text-sm">
+                                {template.referencePhase === 'fabrication_start' ? 'Fabrication Start' : 'Production Start'}
+                              </td>
+                              <td className="p-2 text-sm">{template.daysBefore} days before</td>
+                              <td className="p-2">
+                                <Badge className={getPriorityColor(template.commitmentLevel)}>
+                                  {template.commitmentLevel}
+                                </Badge>
+                              </td>
+                              <td className="p-2">
+                                <div className="flex gap-1">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedTemplate(template);
+                                      setShowApplyTemplateDialog(true);
+                                    }}
+                                  >
+                                    <Play className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedTemplate(template);
+                                      setShowTemplateDialog(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => deleteTemplateMutation.mutate(template.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-center py-8">
+                      <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Benchmark Templates</h3>
+                      <p className="text-gray-500 mb-4">
+                        Create reusable benchmark templates that can be applied to projects based on FAB and Production start dates.
+                      </p>
+                      <Button 
+                        className="bg-blue-600 text-white hover:bg-blue-700"
+                        onClick={() => setShowTemplateDialog(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Your First Template
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -1767,6 +1958,170 @@ export default function Engineering() {
               disabled={updateEngineerMutation.isPending}
             >
               {updateEngineerMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Creation/Edit Dialog */}
+      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedTemplate ? 'Edit Template' : 'Create Benchmark Template'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="template-name">Template Name</Label>
+                <Input
+                  id="template-name"
+                  placeholder="e.g., Section X CAD Complete"
+                  defaultValue={selectedTemplate?.name || ''}
+                />
+              </div>
+              <div>
+                <Label htmlFor="template-discipline">Discipline</Label>
+                <Select defaultValue={selectedTemplate?.discipline || 'ME'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select discipline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ME">ME</SelectItem>
+                    <SelectItem value="EE">EE</SelectItem>
+                    <SelectItem value="ITE">ITE</SelectItem>
+                    <SelectItem value="NTC">NTC</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="template-description">Description</Label>
+              <Textarea
+                id="template-description"
+                placeholder="Template description (use {{project_name}} for dynamic project name)"
+                defaultValue={selectedTemplate?.description || ''}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="template-reference-phase">Reference Phase</Label>
+                <Select defaultValue={selectedTemplate?.referencePhase || 'fabrication_start'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select base date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fabrication_start">Fabrication Start</SelectItem>
+                    <SelectItem value="production_start">Production Start</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="template-days-before">Days Before</Label>
+                <Input
+                  id="template-days-before"
+                  type="number"
+                  placeholder="e.g., 30"
+                  defaultValue={selectedTemplate?.daysBefore || ''}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="template-commitment">Commitment Level</Label>
+              <Select defaultValue={selectedTemplate?.commitmentLevel || 'high'}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select commitment level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowTemplateDialog(false);
+              setSelectedTemplate(null);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              // Template save logic will be added
+              setShowTemplateDialog(false);
+              setSelectedTemplate(null);
+            }}>
+              {selectedTemplate ? 'Update Template' : 'Create Template'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Apply Template Dialog */}
+      <Dialog open={showApplyTemplateDialog} onOpenChange={setShowApplyTemplateDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Apply Template: {selectedTemplate?.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-medium mb-2">Template Details</h4>
+              <p className="text-sm text-gray-600 mb-1">
+                <strong>Discipline:</strong> {selectedTemplate?.discipline}
+              </p>
+              <p className="text-sm text-gray-600 mb-1">
+                <strong>Reference Phase:</strong> {selectedTemplate?.referencePhase === 'fabrication_start' ? 'Fabrication Start' : 'Production Start'}
+              </p>
+              <p className="text-sm text-gray-600 mb-1">
+                <strong>Days Before:</strong> {selectedTemplate?.daysBefore} days
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Commitment Level:</strong> {selectedTemplate?.commitmentLevel}
+              </p>
+            </div>
+            
+            <div>
+              <Label className="text-base font-medium">Apply to Projects</Label>
+              <div className="mt-2 space-y-2">
+                <label className="flex items-center space-x-2">
+                  <input type="radio" name="apply-scope" value="all" defaultChecked />
+                  <span>Apply to all projects</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input type="radio" name="apply-scope" value="specific" />
+                  <span>Apply to specific projects</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowApplyTemplateDialog(false);
+              setSelectedTemplate(null);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              if (selectedTemplate) {
+                applyTemplateMutation.mutate({
+                  templateId: selectedTemplate.id,
+                  applyToAll: true
+                });
+              }
+              setShowApplyTemplateDialog(false);
+              setSelectedTemplate(null);
+            }}>
+              Apply Template
             </Button>
           </DialogFooter>
         </DialogContent>

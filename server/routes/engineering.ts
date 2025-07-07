@@ -445,6 +445,243 @@ router.delete('/engineering-benchmarks/:id', async (req: Request, res: Response)
   }
 });
 
+// Generate standard benchmarks for all projects
+router.post('/generate-standard-benchmarks', async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 SERVER DEBUG: Generating standard benchmarks for all projects...');
+    
+    // Get all projects with fabrication and production start dates
+    const allProjects = await db.select({
+      id: projects.id,
+      name: projects.name,
+      projectNumber: projects.projectNumber,
+      fabricationStart: projects.fabricationStart,
+      productionStart: projects.productionStart
+    }).from(projects);
+    
+    console.log(`🔍 SERVER DEBUG: Found ${allProjects.length} projects to process`);
+    
+    // Clear existing benchmarks first
+    await db.delete(engineeringBenchmarks);
+    console.log('🔍 SERVER DEBUG: Cleared existing benchmarks');
+    
+    const benchmarksToCreate = [];
+    
+    for (const project of allProjects) {
+      // Only create benchmarks for projects that have the required dates
+      if (project.fabricationStart && project.productionStart) {
+        // Calculate Section X CAD Complete date (30 days before fabrication start)
+        const fabStartDate = new Date(project.fabricationStart);
+        const sectionXDate = new Date(fabStartDate);
+        sectionXDate.setDate(sectionXDate.getDate() - 30);
+        
+        // Calculate CAD Complete date (3 months before production start)
+        const prodStartDate = new Date(project.productionStart);
+        const cadCompleteDate = new Date(prodStartDate);
+        cadCompleteDate.setMonth(cadCompleteDate.getMonth() - 3);
+        
+        // Create Section X CAD Complete benchmark
+        benchmarksToCreate.push({
+          projectId: project.id,
+          discipline: 'ME',
+          benchmarkName: 'Section X CAD Complete',
+          description: `Section X CAD completion for ${project.name}`,
+          targetDate: sectionXDate.toISOString().split('T')[0],
+          isCompleted: false,
+          commitmentLevel: 'high',
+          notes: 'Auto-generated standard benchmark - 30 days before fabrication start'
+        });
+        
+        // Create CAD Complete benchmark
+        benchmarksToCreate.push({
+          projectId: project.id,
+          discipline: 'ME',
+          benchmarkName: 'CAD COMPLETE',
+          description: `CAD completion for ${project.name}`,
+          targetDate: cadCompleteDate.toISOString().split('T')[0],
+          isCompleted: false,
+          commitmentLevel: 'critical',
+          notes: 'Auto-generated standard benchmark - 3 months before production start'
+        });
+      }
+    }
+    
+    console.log(`🔍 SERVER DEBUG: Creating ${benchmarksToCreate.length} benchmarks`);
+    
+    // Insert all benchmarks
+    if (benchmarksToCreate.length > 0) {
+      await db.insert(engineeringBenchmarks).values(benchmarksToCreate);
+    }
+    
+    console.log('🔍 SERVER DEBUG: Successfully created standard benchmarks');
+    
+    res.json({ 
+      success: true, 
+      message: `Generated ${benchmarksToCreate.length} standard benchmarks for ${allProjects.length} projects`,
+      benchmarksCreated: benchmarksToCreate.length
+    });
+    
+  } catch (error) {
+    console.error("Error generating standard benchmarks:", error);
+    res.status(500).json({ error: "Failed to generate standard benchmarks" });
+  }
+});
+
+// Benchmark Template routes
+router.get('/benchmark-templates', async (req: Request, res: Response) => {
+  try {
+    const templates = await storage.getBenchmarkTemplates();
+    res.json(templates);
+  } catch (error) {
+    console.error("Error fetching benchmark templates:", error);
+    res.status(500).json({ error: "Failed to fetch benchmark templates" });
+  }
+});
+
+router.post('/benchmark-templates', async (req: Request, res: Response) => {
+  try {
+    const validationResult = insertBenchmarkTemplateSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid template data", 
+        details: validationResult.error.format() 
+      });
+    }
+
+    const newTemplate = await storage.createBenchmarkTemplate(validationResult.data);
+    res.status(201).json(newTemplate);
+  } catch (error) {
+    console.error("Error creating benchmark template:", error);
+    res.status(500).json({ error: "Failed to create benchmark template" });
+  }
+});
+
+router.put('/benchmark-templates/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const validationResult = insertBenchmarkTemplateSchema.partial().safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid template data", 
+        details: validationResult.error.format() 
+      });
+    }
+
+    const updatedTemplate = await storage.updateBenchmarkTemplate(id, validationResult.data);
+    if (!updatedTemplate) {
+      return res.status(404).json({ error: "Benchmark template not found" });
+    }
+
+    res.json(updatedTemplate);
+  } catch (error) {
+    console.error("Error updating benchmark template:", error);
+    res.status(500).json({ error: "Failed to update benchmark template" });
+  }
+});
+
+router.delete('/benchmark-templates/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    const success = await storage.deleteBenchmarkTemplate(id);
+    if (!success) {
+      return res.status(404).json({ error: "Benchmark template not found" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting benchmark template:", error);
+    res.status(500).json({ error: "Failed to delete benchmark template" });
+  }
+});
+
+// Apply template to projects
+router.post('/apply-benchmark-template', async (req: Request, res: Response) => {
+  try {
+    const { templateId, projectIds, applyToAll } = req.body;
+    
+    if (!templateId) {
+      return res.status(400).json({ error: "Template ID is required" });
+    }
+    
+    // Get the template
+    const template = await db.select().from(benchmarkTemplates).where(eq(benchmarkTemplates.id, templateId)).limit(1);
+    if (template.length === 0) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+    
+    const benchmarkTemplate = template[0];
+    
+    // Get projects to apply to
+    let targetProjects;
+    if (applyToAll) {
+      targetProjects = await db.select({
+        id: projects.id,
+        name: projects.name,
+        fabricationStart: projects.fabricationStart,
+        productionStart: projects.productionStart
+      }).from(projects);
+    } else {
+      targetProjects = await db.select({
+        id: projects.id,
+        name: projects.name,
+        fabricationStart: projects.fabricationStart,
+        productionStart: projects.productionStart
+      }).from(projects).where(inArray(projects.id, projectIds));
+    }
+    
+    const benchmarksToCreate = [];
+    
+    for (const project of targetProjects) {
+      // Calculate target date based on template
+      let targetDate;
+      if (benchmarkTemplate.referencePhase === 'fabrication_start' && project.fabricationStart) {
+        const baseDate = new Date(project.fabricationStart);
+        targetDate = new Date(baseDate);
+        targetDate.setDate(targetDate.getDate() - benchmarkTemplate.daysBefore);
+      } else if (benchmarkTemplate.referencePhase === 'production_start' && project.productionStart) {
+        const baseDate = new Date(project.productionStart);
+        targetDate = new Date(baseDate);
+        targetDate.setDate(targetDate.getDate() - benchmarkTemplate.daysBefore);
+      }
+      
+      if (targetDate) {
+        benchmarksToCreate.push({
+          projectId: project.id,
+          discipline: benchmarkTemplate.discipline,
+          benchmarkName: benchmarkTemplate.name,
+          description: benchmarkTemplate.description.replace('{{project_name}}', project.name),
+          targetDate: targetDate.toISOString().split('T')[0],
+          isCompleted: false,
+          commitmentLevel: benchmarkTemplate.commitmentLevel,
+          notes: `Applied from template: ${benchmarkTemplate.name}`
+        });
+      }
+    }
+    
+    if (benchmarksToCreate.length > 0) {
+      await db.insert(engineeringBenchmarks).values(benchmarksToCreate);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Applied template to ${benchmarksToCreate.length} projects`,
+      benchmarksCreated: benchmarksToCreate.length
+    });
+    
+  } catch (error) {
+    console.error("Error applying benchmark template:", error);
+    res.status(500).json({ error: "Failed to apply benchmark template" });
+  }
+});
+
 // GET engineering overview analytics
 router.get('/engineering-overview', async (req: Request, res: Response) => {
   try {
