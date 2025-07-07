@@ -27,6 +27,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     { id: "projects", icon: FolderOpen, label: 'Projects', path: '/projects' },
     { id: "bay-scheduling", icon: Building2, label: 'Bay Scheduling', path: '/bay-scheduling' },
     { id: "billing", icon: DollarSign, label: 'Billing', path: '/billing' },
+    { id: "forecast", icon: TrendingUp, label: 'Forecast', path: '/forecast' },
     { id: "manufacturing", icon: Package, label: 'Manufacturing', path: '/manufacturing' },
     { id: "on-time-delivery", icon: Clock, label: 'On-Time Delivery', path: '/on-time-delivery' },
     { id: "calendar", icon: Calendar, label: 'Calendar', path: '/calendar' },

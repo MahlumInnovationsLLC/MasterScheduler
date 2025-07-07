@@ -40,6 +40,7 @@ import Priorities from "@/pages/Priorities";
 import Tasks from "@/pages/Tasks";
 import MaterialManagement from "@/pages/MaterialManagement";
 import Engineering from "@/pages/Engineering";
+import Forecast from "@/pages/Forecast";
 import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -148,6 +149,7 @@ function MainContent() {
     if (location === '/calendar') return 'Calendar';
     if (location === '/meetings') return 'Meetings';
     if (location.startsWith('/meetings/')) return 'Meeting Details';
+    if (location === '/forecast') return 'Forecast';
     if (location === '/tasks') return 'My Tasks';
     if (location === '/quality-assurance') return 'Quality Assurance';
     if (location === '/sales-forecast') return 'Sales Forecast';
@@ -205,6 +207,7 @@ function MainContent() {
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/material-management" component={MaterialManagement} />
             <ProtectedRoute path="/engineering" component={Engineering} />
+            <ViewerRestrictedRoute path="/forecast" component={Forecast} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <ProtectedRoute path="/settings" component={Settings} />
@@ -254,6 +257,7 @@ function MainContent() {
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/material-management" component={MaterialManagement} />
             <ProtectedRoute path="/engineering" component={Engineering} />
+            <ViewerRestrictedRoute path="/forecast" component={Forecast} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/settings/system" component={SystemSettings} />
             <AdminRoute path="/system-settings" component={SystemSettings} />
