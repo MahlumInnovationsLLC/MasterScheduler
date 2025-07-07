@@ -218,8 +218,19 @@ export default function Engineering() {
   // All hooks must be called before any conditional returns
   // Fetch engineering overview data
   const { data: overview, isLoading: overviewLoading, error: overviewError } = useQuery<EngineeringOverview>({
-    queryKey: ['/api/engineering/engineering-overview'],
+    queryKey: ['/api/engineering-overview'],
   });
+  
+  // Debug logging whenever overview data changes
+  React.useEffect(() => {
+    if (overview) {
+      console.log('🔍 FRONTEND: Engineering overview data loaded successfully:', overview);
+      console.log('🔍 FRONTEND: First project with ME benchmarks:', overview.projects.find(p => p.meBenchmarks > 0));
+    }
+    if (overviewError) {
+      console.error('🔍 FRONTEND: Engineering overview error:', overviewError);
+    }
+  }, [overview, overviewError]);
 
 
 
@@ -418,13 +429,13 @@ export default function Engineering() {
       apiRequest('PUT', `/api/engineering/projects/${projectId}/manual-percentages`, percentages),
     onMutate: async ({ projectId, percentages }) => {
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey: ['/api/engineering/engineering-overview'] });
+      await queryClient.cancelQueries({ queryKey: ['/api/engineering-overview'] });
       
       // Snapshot the previous value
-      const previousOverview = queryClient.getQueryData(['/api/engineering/engineering-overview']);
+      const previousOverview = queryClient.getQueryData(['/api/engineering-overview']);
       
       // Optimistically update to the new value
-      queryClient.setQueryData(['/api/engineering/engineering-overview'], (old: any) => {
+      queryClient.setQueryData(['/api/engineering-overview'], (old: any) => {
         if (!old) return old;
         return {
           ...old,
@@ -459,12 +470,12 @@ export default function Engineering() {
         title: 'Success',
         description: 'Manual percentages updated successfully',
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
     },
     onError: (error, variables, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousOverview) {
-        queryClient.setQueryData(['/api/engineering/engineering-overview'], context.previousOverview);
+        queryClient.setQueryData(['/api/engineering-overview'], context.previousOverview);
       }
       toast({
         title: 'Error',
@@ -473,7 +484,7 @@ export default function Engineering() {
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering-overview'] });
     },
   });
 
@@ -486,6 +497,15 @@ export default function Engineering() {
   const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
+  
+  // Use overview data for projects if available, otherwise use direct projects data
+  const projectsWithEngineering = overview?.projects || projects;
+  
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔍 FRONTEND: projectsWithEngineering array length:', projectsWithEngineering.length);
+    console.log('🔍 FRONTEND: first project with benchmarks:', projectsWithEngineering.find(p => p.meBenchmarks > 0));
+  }, [projectsWithEngineering]);
 
   // Fetch engineering users
   const { data: engineers = [], isLoading: engineersLoading } = useQuery<any[]>({
@@ -1082,7 +1102,7 @@ export default function Engineering() {
                           </tr>
                         </thead>
                         <tbody>
-                          {projects
+                          {projectsWithEngineering
                             .filter(project => 
                               searchTerm === '' || 
                               project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1159,7 +1179,7 @@ export default function Engineering() {
                             `${engineer.firstName} ${engineer.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
                           )
                           .map((engineer) => {
-                            const engineerProjects = projects.filter(project => 
+                            const engineerProjects = projectsWithEngineering.filter(project => 
                               project.meAssigned === `${engineer.firstName} ${engineer.lastName}` ||
                               project.eeAssigned === `${engineer.firstName} ${engineer.lastName}` ||
                               project.iteAssigned === `${engineer.firstName} ${engineer.lastName}`
@@ -1458,7 +1478,7 @@ export default function Engineering() {
                           {getEngineerAssignments(resource.id).length > 0 ? (
                             <div className="space-y-2">
                               {getEngineerAssignments(resource.id).map((assignment) => {
-                                const project = projects.find(p => p.id === assignment.projectId);
+                                const project = projectsWithEngineering.find(p => p.id === assignment.projectId);
                                 return (
                                   <div key={assignment.id} className="bg-gray-50 dark:bg-gray-700 p-2 rounded text-xs">
                                     <div className="font-medium text-gray-900 dark:text-white">{project?.projectNumber}</div>
@@ -1585,7 +1605,7 @@ export default function Engineering() {
                                         </summary>
                                         <div className="mt-2 space-y-1 pl-4 border-l-2 border-gray-200">
                                           {getEngineerAssignments(resource.id).map((assignment) => {
-                                            const project = projects.find(p => p.id === assignment.projectId);
+                                            const project = projectsWithEngineering.find(p => p.id === assignment.projectId);
                                             return (
                                               <div key={assignment.id} className="bg-gray-50 p-2 rounded text-xs">
                                                 <div className="font-medium">{project?.projectNumber}</div>
