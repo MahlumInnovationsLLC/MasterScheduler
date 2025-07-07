@@ -15,12 +15,18 @@ export const usePriorityAccess = () => {
     queryFn: async () => {
       if (!user?.id) return { canViewPriorities: false, canEditPriorities: false, canDragReorder: false };
       
-      const response = await fetch(`/api/users/${user.id}/priority-access`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch priority access');
+      try {
+        const response = await fetch(`/api/users/${user.id}/priority-access`);
+        if (!response.ok) {
+          // Return default values instead of throwing error
+          return { canViewPriorities: false, canEditPriorities: false, canDragReorder: false };
+        }
+        
+        return response.json();
+      } catch (error) {
+        // Return default values on any error
+        return { canViewPriorities: false, canEditPriorities: false, canDragReorder: false };
       }
-      
-      return response.json();
     },
     enabled: !!user?.id,
   });
