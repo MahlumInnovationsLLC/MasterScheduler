@@ -198,7 +198,7 @@ export default function Engineering() {
   const [selectedTask, setSelectedTask] = useState<EngineeringTask | null>(null);
   const [showEngineerEditDialog, setShowEngineerEditDialog] = useState(false);
   const [editingEngineer, setEditingEngineer] = useState<EngineeringResource | null>(null);
-
+  
   // Benchmark and template management states
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<BenchmarkTemplate | null>(null);
@@ -241,14 +241,14 @@ export default function Engineering() {
   // Sort benchmarks with completed ones at the bottom
   const sortedBenchmarks = React.useMemo(() => {
     if (!benchmarks) return [];
-
+    
     const benchmarksCopy = [...benchmarks];
-
+    
     return benchmarksCopy.sort((a, b) => {
       // Always put completed benchmarks at the bottom
       if (a.isCompleted && !b.isCompleted) return 1;
       if (!a.isCompleted && b.isCompleted) return -1;
-
+      
       // Then sort by the selected field
       if (sortField === 'benchmark') {
         return sortOrder === 'asc' 
@@ -276,7 +276,7 @@ export default function Engineering() {
         const bOrder = commitmentOrder[b.commitmentLevel as keyof typeof commitmentOrder];
         return sortOrder === 'asc' ? aOrder - bOrder : bOrder - aOrder;
       }
-
+      
       return 0;
     });
   }, [benchmarks, sortField, sortOrder]);
@@ -702,10 +702,10 @@ export default function Engineering() {
   // Function to handle engineer assignment update
   const handleEngineerAssignment = async (projectId: number, discipline: 'ME' | 'EE' | 'ITE' | 'NTC', engineerId: string) => {
     console.log('🔍 DEBUG: handleEngineerAssignment called with:', { projectId, discipline, engineerId });
-
+    
     const engineer = resources.find(resource => resource.id === engineerId);
     console.log('🔍 DEBUG: Found engineer:', engineer);
-
+    
     if (engineer) {
       const assignmentData: Omit<ProjectEngineeringAssignment, 'id' | 'createdAt' | 'updatedAt'> = {
         projectId: projectId,
@@ -765,7 +765,7 @@ export default function Engineering() {
     console.log('🔍 DEBUG: Form data received:', formData);
     console.log('🔍 DEBUG: Editing engineer:', editingEngineer);
     console.log('🔍 DEBUG: Selected project ID:', selectedProjectId);
-
+    
     if (editingEngineer) {
       // First update the engineer
       console.log('🔍 DEBUG: Updating engineer with mutation...');
@@ -780,10 +780,10 @@ export default function Engineering() {
         console.log('🔍 DEBUG: About to call handleProjectAssignment with engineer ID:', editingEngineer.id);
         console.log('🔍 DEBUG: Current selectedProjectId state:', selectedProjectId);
         console.log('🔍 DEBUG: Current editingEngineer:', editingEngineer);
-
+        
         // Call the assignment creation function
         handleProjectAssignment(editingEngineer.id, selectedProjectId);
-
+        
         // Reset the selected project after assignment
         console.log('🔍 DEBUG: Resetting selected project ID to null');
         setSelectedProjectId(null);
@@ -799,14 +799,12 @@ export default function Engineering() {
   // Function to handle project assignment
   const handleProjectAssignment = async (engineerId: string, projectId: string) => {
     console.log('🔍 DEBUG: Starting assignment creation for engineer:', engineerId, 'project:', projectId);
-
+    
     const engineer = resources.find(r => r.id === engineerId);
     if (!engineer) {
       console.error('🔍 DEBUG: Engineer not found in resources for ID:', engineerId);
       return;
     }
-
-```text
 
     console.log('🔍 DEBUG: Found engineer in resources:', engineer);
 
@@ -825,7 +823,7 @@ export default function Engineering() {
     }
 
     console.log('🔍 DEBUG: Creating assignment with user ID:', engineerId);
-
+    
     const assignmentData = {
       projectId: parseInt(projectId),
       resourceId: engineerId, // Use the actual user ID
@@ -833,7 +831,7 @@ export default function Engineering() {
       percentage: 50, // Default percentage
       isLead: false,
     };
-
+    
     console.log('🔍 DEBUG: Assignment data to be sent:', assignmentData);
 
     createEngineerAssignmentMutation.mutate(assignmentData);
@@ -844,11 +842,11 @@ export default function Engineering() {
     console.log('🔍 DEBUG: Getting assignments for engineer ID:', engineerId);
     console.log('🔍 DEBUG: Available project assignments:', projectAssignments);
     console.log('🔍 DEBUG: Project assignments loading:', assignmentsLoading);
-
+    
     // Filter assignments by the user ID directly
     const assignments = projectAssignments.filter(assignment => assignment.resourceId === engineerId);
     console.log('🔍 DEBUG: Found assignments:', assignments);
-
+    
     return assignments;
   };
 
@@ -944,7 +942,7 @@ export default function Engineering() {
                 </Card>
               </div>
 
-
+              
 
               {/* Projects with Engineering Data */}
               <Card>
@@ -974,7 +972,11 @@ export default function Engineering() {
                           variant={projectViewMode === 'project' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setProjectViewMode('project')}
-                          className="rounded-r-none"
+                          className={`rounded-r-none ${
+                            projectViewMode === 'project' 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
+                              : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
+                          }`}
                         >
                           <FileText className="h-4 w-4 mr-1" />
                           Project View
@@ -983,7 +985,11 @@ export default function Engineering() {
                           variant={projectViewMode === 'engineer' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setProjectViewMode('engineer')}
-                          className="rounded-l-none"
+                          className={`rounded-l-none ${
+                            projectViewMode === 'engineer' 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
+                              : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
+                          }`}
                         >
                           <Users className="h-4 w-4 mr-1" />
                           Engineer View
@@ -1087,13 +1093,13 @@ export default function Engineering() {
                         {engineers
                           .filter(engineer => 
                             searchTerm === '' ||
-                            (engineer.firstName + ' ' + engineer.lastName).toLowerCase().includes(searchTerm.toLowerCase())
+                            `${engineer.firstName} ${engineer.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
                           )
                           .map((engineer) => {
                             const engineerProjects = projects.filter(project => 
-                              project.meAssigned === (engineer.firstName + ' ' + engineer.lastName) ||
-                              project.eeAssigned === (engineer.firstName + ' ' + engineer.lastName) ||
-                              project.iteAssigned === (engineer.firstName + ' ' + engineer.lastName)
+                              project.meAssigned === `${engineer.firstName} ${engineer.lastName}` ||
+                              project.eeAssigned === `${engineer.firstName} ${engineer.lastName}` ||
+                              project.iteAssigned === `${engineer.firstName} ${engineer.lastName}`
                             );
 
                             return (
@@ -1128,7 +1134,7 @@ export default function Engineering() {
                                       </thead>
                                       <tbody>
                                         {engineerProjects.map((project) => {
-                                          const engineerName = engineer.firstName + ' ' + engineer.lastName;
+                                          const engineerName = `${engineer.firstName} ${engineer.lastName}`;
                                           let role = '';
                                           let percentage = 0;
                                           let benchmarkCount = 0;
@@ -1167,7 +1173,7 @@ export default function Engineering() {
                                                   <div className="flex-1 bg-gray-200 rounded-full h-2 relative min-w-[80px]">
                                                     <div 
                                                       className="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                                                      style={{ width: percentage + '%' }}
+                                                      style={{ width: `${percentage}%` }}
                                                     />
                                                     <input
                                                       type="range"
@@ -1180,7 +1186,7 @@ export default function Engineering() {
                                                                         role === 'EE' ? 'eeManualPercent' : 
                                                                         role === 'ITE' ? 'iteManualPercent' : 
                                                                         'ntcManualPercent';
-
+                                                        
                                                         updateManualPercentageMutation.mutate({
                                                           projectId: project.id,
                                                           percentages: { [fieldName]: newPercentage }
@@ -1201,7 +1207,7 @@ export default function Engineering() {
                                                                       role === 'EE' ? 'eeManualPercent' : 
                                                                       role === 'ITE' ? 'iteManualPercent' : 
                                                                       'ntcManualPercent';
-
+                                                      
                                                       updateManualPercentageMutation.mutate({
                                                         projectId: project.id,
                                                         percentages: { [fieldName]: null }
@@ -1322,7 +1328,11 @@ export default function Engineering() {
                     variant={projectViewMode === 'project' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setProjectViewMode('project')}
-                    className="rounded-r-none"
+                    className={`rounded-r-none ${
+                      projectViewMode === 'project' 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
+                        : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
+                    }`}
                   >
                     <BarChart3 className="h-4 w-4 mr-1" />
                     Grid View
@@ -1331,7 +1341,11 @@ export default function Engineering() {
                     variant={projectViewMode === 'engineer' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setProjectViewMode('engineer')}
-                    className="rounded-l-none"
+                    className={`rounded-l-none ${
+                      projectViewMode === 'engineer' 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
+                        : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
+                    }`}
                   >
                     <Users className="h-4 w-4 mr-1" />
                     List View
@@ -1345,7 +1359,7 @@ export default function Engineering() {
                   {resources
                     .filter(resource => {
                       const matchesSearch = searchTerm === '' || 
-                        (resource.firstName + ' ' + resource.lastName).toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        `${resource.firstName} ${resource.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         resource.title.toLowerCase().includes(searchTerm.toLowerCase());
                       const matchesDiscipline = disciplineFilter === 'all' || resource.discipline === disciplineFilter;
                       const matchesStatus = statusFilter === 'all' || resource.workloadStatus === statusFilter;
@@ -1450,7 +1464,7 @@ export default function Engineering() {
                           {resources
                             .filter(resource => {
                               const matchesSearch = searchTerm === '' || 
-                                (resource.firstName + ' ' + resource.lastName).toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                `${resource.firstName} ${resource.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                 resource.title.toLowerCase().includes(searchTerm.toLowerCase());
                               const matchesDiscipline = disciplineFilter === 'all' || resource.discipline === disciplineFilter;
                               const matchesStatus = statusFilter === 'all' || resource.workloadStatus === statusFilter;
@@ -1591,7 +1605,7 @@ export default function Engineering() {
               <TabsTrigger value="active-benchmarks">Active Benchmarks</TabsTrigger>
               <TabsTrigger value="benchmark-templates">Benchmark Templates</TabsTrigger>
             </TabsList>
-
+            
             {/* Active Benchmarks Tab */}
             <TabsContent value="active-benchmarks" className="space-y-4">
 
@@ -1653,7 +1667,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Benchmark
                             {sortField === 'benchmark' && (
-                              <ChevronUp className="h-3 w-3 transition-transform" />
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
                             )}
                           </div>
                         </th>
@@ -1664,7 +1678,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Project
                             {sortField === 'project' && (
-                              <ChevronUp className="h-3 w-3 transition-transform" />
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
                             )}
                           </div>
                         </th>
@@ -1675,7 +1689,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Discipline
                             {sortField === 'discipline' && (
-                              <ChevronUp className="h-3 w-3 transition-transform" />
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
                             )}
                           </div>
                         </th>
@@ -1686,7 +1700,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Target Date
                             {sortField === 'targetDate' && (
-                              <ChevronUp className="h-3 w-3 transition-transform" />
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
                             )}
                           </div>
                         </th>
@@ -1697,7 +1711,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Progress
                             {sortField === 'progress' && (
-                              <ChevronUp className="h-3 w-3 transition-transform" />
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
                             )}
                           </div>
                         </th>
@@ -1709,7 +1723,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Commitment Level
                             {sortField === 'commitment' && (
-                              <ChevronUp className="h-3 w-3 transition-transform" />
+                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
                             )}
                           </div>
                         </th>
@@ -1823,7 +1837,7 @@ export default function Engineering() {
             </Card>
           )}
             </TabsContent>
-
+            
             {/* Benchmark Templates Tab */}
             <TabsContent value="benchmark-templates" className="space-y-4">
               <div className="flex items-center justify-between">
@@ -2290,7 +2304,7 @@ export default function Engineering() {
               {selectedTemplate ? 'Edit Template' : 'Create Benchmark Template'}
             </DialogTitle>
           </DialogHeader>
-
+          
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -2316,7 +2330,7 @@ export default function Engineering() {
                 </Select>
               </div>
             </div>
-
+            
             <div>
               <Label htmlFor="template-description">Description</Label>
               <Textarea
@@ -2325,7 +2339,7 @@ export default function Engineering() {
                 defaultValue={selectedTemplate?.description || ''}
               />
             </div>
-
+            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="template-reference-phase">Reference Phase</Label>
@@ -2349,7 +2363,7 @@ export default function Engineering() {
                 />
               </div>
             </div>
-
+            
             <div>
               <Label htmlFor="template-commitment">Commitment Level</Label>
               <Select defaultValue={selectedTemplate?.commitmentLevel || 'high'}>
@@ -2365,7 +2379,7 @@ export default function Engineering() {
               </Select>
             </div>
           </div>
-
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setShowTemplateDialog(false);
@@ -2390,7 +2404,7 @@ export default function Engineering() {
           <DialogHeader>
             <DialogTitle>Apply Template: {selectedTemplate?.name}</DialogTitle>
           </DialogHeader>
-
+          
           <div className="space-y-4">
             <div className="p-4 bg-gray-50 rounded-lg">
               <h4 className="font-medium mb-2">Template Details</h4>
@@ -2407,7 +2421,7 @@ export default function Engineering() {
                 <strong>Commitment Level:</strong> {selectedTemplate?.commitmentLevel}
               </p>
             </div>
-
+            
             <div>
               <Label className="text-base font-medium">Apply to Projects</Label>
               <div className="mt-2 space-y-2">
@@ -2422,7 +2436,7 @@ export default function Engineering() {
               </div>
             </div>
           </div>
-
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setShowApplyTemplateDialog(false);
@@ -2452,7 +2466,7 @@ export default function Engineering() {
           <DialogHeader>
             <DialogTitle>Edit Benchmark</DialogTitle>
           </DialogHeader>
-
+          
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -2477,7 +2491,7 @@ export default function Engineering() {
                 </Select>
               </div>
             </div>
-
+            
             <div>
               <Label htmlFor="benchmark-description">Description</Label>
               <Textarea
@@ -2485,7 +2499,7 @@ export default function Engineering() {
                 defaultValue={selectedBenchmark?.description || ''}
               />
             </div>
-
+            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="benchmark-target-date">Target Date</Label>
@@ -2535,7 +2549,7 @@ export default function Engineering() {
                 </div>
               </div>
             </div>
-
+            
             <div>
               <Label htmlFor="benchmark-notes">Notes</Label>
               <Textarea
@@ -2544,7 +2558,7 @@ export default function Engineering() {
               />
             </div>
           </div>
-
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setShowBenchmarkEditDialog(false);
@@ -2561,7 +2575,7 @@ export default function Engineering() {
                 const progressInput = document.querySelector('#benchmark-progress') as HTMLInputElement;
                 const disciplineSelect = document.querySelector('[id^="radix-"][id*="discipline"]') as HTMLSelectElement;
                 const commitmentSelect = document.querySelector('[id^="radix-"][id*="commitment"]') as HTMLSelectElement;
-
+                
                 updateBenchmarkMutation.mutate({
                   id: selectedBenchmark.id,
                   benchmark: {

@@ -884,40 +884,37 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       const calculatedMePercent = meBenchmarks.length > 0 
         ? Math.round((meBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / meBenchmarks.length)) 
         : 0;
-      const meCompletionPercent = (project.meManualPercent !== null && project.meManualPercent !== undefined) ? project.meManualPercent : calculatedMePercent;
+      const meCompletionPercent = project.meManualPercent ?? calculatedMePercent;
       
       const calculatedEePercent = eeBenchmarks.length > 0 
         ? Math.round((eeBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / eeBenchmarks.length)) 
         : 0;
-      const eeCompletionPercent = (project.eeManualPercent !== null && project.eeManualPercent !== undefined) ? project.eeManualPercent : calculatedEePercent;
+      const eeCompletionPercent = project.eeManualPercent ?? calculatedEePercent;
       
       const calculatedItePercent = iteBenchmarks.length > 0 
         ? Math.round((iteBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / iteBenchmarks.length)) 
         : 0;
-      const iteCompletionPercent = (project.iteManualPercent !== null && project.iteManualPercent !== undefined) ? project.iteManualPercent : calculatedItePercent;
+      const iteCompletionPercent = project.iteManualPercent ?? calculatedItePercent;
       
       const calculatedNtcPercent = ntcBenchmarks.length > 0 
         ? Math.round((ntcBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / ntcBenchmarks.length)) 
         : 0;
-      const ntcCompletionPercent = (project.ntcManualPercent !== null && project.ntcManualPercent !== undefined) ? project.ntcManualPercent : calculatedNtcPercent;
+      const ntcCompletionPercent = project.ntcManualPercent ?? calculatedNtcPercent;
       
       return {
-        id: project.id || 0,
-        name: project.name || '',
-        projectNumber: project.projectNumber || '',
-        status: project.status || 'unknown',
+        ...project,
         engineeringTasks: projectTasks.length,
         completedTasks: projectTasks.filter(t => t.status === 'completed').length,
         engineeringBenchmarks: projectBenchmarks.length,
         completedBenchmarks: projectBenchmarks.filter(b => b.isCompleted).length,
-        meAssigned: project.meAssigned || null,
-        eeAssigned: project.eeAssigned || null,
-        iteAssigned: project.iteAssigned || null,
+        meAssigned: project.meAssigned,
+        eeAssigned: project.eeAssigned,
+        iteAssigned: project.iteAssigned,
         meDesignOrdersPercent: meCompletionPercent,
         eeDesignOrdersPercent: eeCompletionPercent,
         itDesignOrdersPercent: iteCompletionPercent,
-        itPercentage: project.itPercentage || null,
-        ntcPercentage: project.ntcPercentage || null,
+        itPercentage: project.itPercentage,
+        ntcPercentage: project.ntcPercentage,
         // Add discipline-specific benchmark counts
         meBenchmarks: meBenchmarks.length,
         eeBenchmarks: eeBenchmarks.length,
@@ -928,11 +925,6 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
         eeCompletionPercent,
         iteCompletionPercent,
         ntcCompletionPercent,
-        // Manual percentage overrides
-        meManualPercent: project.meManualPercent || null,
-        eeManualPercent: project.eeManualPercent || null,
-        iteManualPercent: project.iteManualPercent || null,
-        ntcManualPercent: project.ntcManualPercent || null,
       };
     });
 
