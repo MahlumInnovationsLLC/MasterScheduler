@@ -277,6 +277,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Auto-sorting feature places completed benchmarks at the bottom of the table with reduced opacity
   - Progress bars show green when completed (100%) and blue when in progress
   - Real-time updates to progress without page refresh using React Query mutations
+- July 07, 2025: Engineering Benchmarks UI and Automation Enhancements
+  - Modified backend to join benchmarks with projects table to display real project numbers instead of generic "Project #" labels
+  - Updated frontend interface to show actual project numbers starting with 80
+  - Added scrollable container with max height to handle large numbers of benchmarks (removed 20-item limit)
+  - Implemented auto-completion feature for delivered projects with dedicated API endpoint
+  - Added "Auto-Complete Delivered" button to automatically mark all benchmarks as 100% complete for projects with "Delivered" status
+  - Enhanced database query to include project information (project number and name) in benchmark responses
+  - All benchmarks table now displays unlimited entries with proper scrolling functionality
 
 ## User Preferences
 

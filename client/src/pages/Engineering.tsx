@@ -383,6 +383,21 @@ export default function Engineering() {
     }
   });
 
+  const autoCompleteDeliveredBenchmarksMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/engineering/auto-complete-delivered-benchmarks', {}),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-benchmarks'] });
+      toast({ 
+        title: "Auto-completion successful", 
+        description: data.message || `Updated ${data.updated} benchmarks for delivered projects`
+      });
+    },
+    onError: (error) => {
+      console.error('Error auto-completing delivered benchmarks:', error);
+      toast({ title: "Failed to auto-complete delivered benchmarks", variant: "destructive" });
+    }
+  });
+
   // Fetch project assignments
   const { data: projectAssignments = [], isLoading: assignmentsLoading } = useQuery<ProjectEngineeringAssignment[]>({
     queryKey: ['/api/engineering/project-assignments'],
@@ -1473,6 +1488,14 @@ export default function Engineering() {
                 {generateStandardBenchmarksMutation.isPending ? 'Generating...' : 'Generate Standard Benchmarks'}
               </Button>
               <Button 
+                variant="outline"
+                onClick={() => autoCompleteDeliveredBenchmarksMutation.mutate()}
+                disabled={autoCompleteDeliveredBenchmarksMutation.isPending}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {autoCompleteDeliveredBenchmarksMutation.isPending ? 'Processing...' : 'Auto-Complete Delivered'}
+              </Button>
+              <Button 
                 className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
                 onClick={() => setShowTemplateDialog(true)}
               >
@@ -1539,7 +1562,7 @@ export default function Engineering() {
                 </p>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
@@ -1614,7 +1637,7 @@ export default function Engineering() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedBenchmarks.slice(0, 20).map((benchmark) => (
+                      {sortedBenchmarks.map((benchmark) => (
                         <tr key={benchmark.id} className={`border-b hover:bg-gray-50 ${benchmark.isCompleted ? 'opacity-60' : ''}`}>
                           <td className="p-2">
                             <div>
@@ -1744,7 +1767,7 @@ export default function Engineering() {
               ) : templates.length > 0 ? (
                 <Card>
                   <CardContent className="p-6">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                       <table className="w-full">
                         <thead>
                           <tr className="border-b">

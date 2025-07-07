@@ -397,6 +397,44 @@ router.post('/engineering-benchmarks', async (req: Request, res: Response) => {
   }
 });
 
+// AUTO-COMPLETE benchmarks for delivered projects
+router.post('/auto-complete-delivered-benchmarks', async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 SERVER DEBUG: Auto-completing benchmarks for delivered projects...');
+    
+    // Get all projects with "Delivered" status
+    const deliveredProjects = await db.select().from(projects).where(eq(projects.status, 'Delivered'));
+    console.log('🔍 SERVER DEBUG: Found delivered projects:', deliveredProjects.length);
+    
+    if (deliveredProjects.length === 0) {
+      return res.json({ success: true, message: 'No delivered projects found', updated: 0 });
+    }
+    
+    const deliveredProjectIds = deliveredProjects.map(p => p.id);
+    
+    // Update all benchmarks for delivered projects to 100% complete
+    const updateResult = await db.update(engineeringBenchmarks)
+      .set({ 
+        progressPercentage: 100,
+        isCompleted: true,
+        updatedAt: new Date()
+      })
+      .where(inArray(engineeringBenchmarks.projectId, deliveredProjectIds))
+      .returning();
+    
+    console.log('🔍 SERVER DEBUG: Updated benchmarks:', updateResult.length);
+    
+    res.json({ 
+      success: true, 
+      message: `Auto-completed ${updateResult.length} benchmarks for ${deliveredProjects.length} delivered projects`,
+      updated: updateResult.length
+    });
+  } catch (error) {
+    console.error("Error auto-completing delivered benchmarks:", error);
+    res.status(500).json({ error: "Failed to auto-complete delivered benchmarks" });
+  }
+});
+
 // UPDATE an engineering benchmark
 router.put('/engineering-benchmarks/:id', async (req: Request, res: Response) => {
   try {
