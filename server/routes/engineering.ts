@@ -815,6 +815,28 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       const projectTasks = tasks.filter(t => t.projectId === project.id);
       const projectBenchmarks = benchmarks.filter(b => b.projectId === project.id);
       
+      // Calculate discipline-specific completion percentages
+      const meBenchmarks = projectBenchmarks.filter(b => b.discipline === 'ME');
+      const eeBenchmarks = projectBenchmarks.filter(b => b.discipline === 'EE');
+      const iteBenchmarks = projectBenchmarks.filter(b => b.discipline === 'ITE');
+      const ntcBenchmarks = projectBenchmarks.filter(b => b.discipline === 'NTC');
+      
+      const meCompletionPercent = meBenchmarks.length > 0 
+        ? Math.round((meBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / meBenchmarks.length)) 
+        : 0;
+      
+      const eeCompletionPercent = eeBenchmarks.length > 0 
+        ? Math.round((eeBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / eeBenchmarks.length)) 
+        : 0;
+      
+      const iteCompletionPercent = iteBenchmarks.length > 0 
+        ? Math.round((iteBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / iteBenchmarks.length)) 
+        : 0;
+      
+      const ntcCompletionPercent = ntcBenchmarks.length > 0 
+        ? Math.round((ntcBenchmarks.reduce((sum, b) => sum + (b.progressPercentage || 0), 0) / ntcBenchmarks.length)) 
+        : 0;
+      
       return {
         ...project,
         engineeringTasks: projectTasks.length,
@@ -824,11 +846,21 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
         meAssigned: project.meAssigned,
         eeAssigned: project.eeAssigned,
         iteAssigned: project.iteAssigned,
-        meDesignOrdersPercent: project.meDesignOrdersPercent,
-        eeDesignOrdersPercent: project.eeDesignOrdersPercent,
-        itDesignOrdersPercent: project.itDesignOrdersPercent,
+        meDesignOrdersPercent: meCompletionPercent,
+        eeDesignOrdersPercent: eeCompletionPercent,
+        itDesignOrdersPercent: iteCompletionPercent,
         itPercentage: project.itPercentage,
         ntcPercentage: project.ntcPercentage,
+        // Add discipline-specific benchmark counts
+        meBenchmarks: meBenchmarks.length,
+        eeBenchmarks: eeBenchmarks.length,
+        iteBenchmarks: iteBenchmarks.length,
+        ntcBenchmarks: ntcBenchmarks.length,
+        // Add discipline-specific completion percentages
+        meCompletionPercent,
+        eeCompletionPercent,
+        iteCompletionPercent,
+        ntcCompletionPercent,
       };
     });
 

@@ -141,6 +141,15 @@ interface Project {
   completedTasks?: number;
   engineeringBenchmarks?: number;
   completedBenchmarks?: number;
+  // New discipline-specific benchmark fields
+  meBenchmarks?: number;
+  eeBenchmarks?: number;
+  iteBenchmarks?: number;
+  ntcBenchmarks?: number;
+  meCompletionPercent?: number;
+  eeCompletionPercent?: number;
+  iteCompletionPercent?: number;
+  ntcCompletionPercent?: number;
 }
 
 interface EngineeringOverview {
@@ -1009,22 +1018,26 @@ export default function Engineering() {
                               <td className="p-2 text-sm">{project.iteAssigned || 'Unassigned'}</td>
                               <td className="p-2">
                                 <div className="text-center text-sm">
-                                  {formatPercentage(project.meDesignOrdersPercent)}
+                                  {formatPercentage(project.meCompletionPercent)}
+                                  <div className="text-xs text-muted-foreground">{project.meBenchmarks || 0} benchmarks</div>
                                 </div>
                               </td>
                               <td className="p-2">
                                 <div className="text-center text-sm">
-                                  {formatPercentage(project.eeDesignOrdersPercent)}
+                                  {formatPercentage(project.eeCompletionPercent)}
+                                  <div className="text-xs text-muted-foreground">{project.eeBenchmarks || 0} benchmarks</div>
                                 </div>
                               </td>
                               <td className="p-2">
                                 <div className="text-center text-sm">
-                                  {formatPercentage(project.itDesignOrdersPercent)}
+                                  {formatPercentage(project.iteCompletionPercent)}
+                                  <div className="text-xs text-muted-foreground">{project.iteBenchmarks || 0} benchmarks</div>
                                 </div>
                               </td>
                               <td className="p-2">
                                 <div className="text-center text-sm">
-                                  {formatPercentage(project.ntcPercentage)}
+                                  {formatPercentage(project.ntcCompletionPercent)}
+                                  <div className="text-xs text-muted-foreground">{project.ntcBenchmarks || 0} benchmarks</div>
                                 </div>
                               </td>
                               <td className="p-2 text-sm">
@@ -1088,7 +1101,8 @@ export default function Engineering() {
                                           <th className="text-left p-2">Project</th>
                                           <th className="text-left p-2">Status</th>
                                           <th className="text-left p-2">Role</th>
-                                          <th className="text-left p-2">Percentage</th>
+                                          <th className="text-left p-2">Completion %</th>
+                                          <th className="text-left p-2">Benchmarks</th>
                                           <th className="text-left p-2">Tasks</th>
                                           <th className="text-left p-2">Actions</th>
                                         </tr>
@@ -1098,16 +1112,20 @@ export default function Engineering() {
                                           const engineerName = `${engineer.firstName} ${engineer.lastName}`;
                                           let role = '';
                                           let percentage = 0;
+                                          let benchmarkCount = 0;
 
                                           if (project.meAssigned === engineerName) {
                                             role = 'ME';
-                                            percentage = project.meDesignOrdersPercent || 0;
+                                            percentage = project.meCompletionPercent || 0;
+                                            benchmarkCount = project.meBenchmarks || 0;
                                           } else if (project.eeAssigned === engineerName) {
                                             role = 'EE';
-                                            percentage = project.eeDesignOrdersPercent || 0;
+                                            percentage = project.eeCompletionPercent || 0;
+                                            benchmarkCount = project.eeBenchmarks || 0;
                                           } else if (project.iteAssigned === engineerName) {
                                             role = 'ITE';
-                                            percentage = project.itDesignOrdersPercent || 0;
+                                            percentage = project.iteCompletionPercent || 0;
+                                            benchmarkCount = project.iteBenchmarks || 0;
                                           }
 
                                           return (
@@ -1127,6 +1145,9 @@ export default function Engineering() {
                                               </td>
                                               <td className="p-2 text-sm text-center">
                                                 {formatPercentage(percentage)}
+                                              </td>
+                                              <td className="p-2 text-sm text-center">
+                                                {benchmarkCount}
                                               </td>
                                               <td className="p-2 text-sm">
                                                 {project.completedTasks || 0} / {project.engineeringTasks || 0}
