@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Activity, TrendingUp, Calendar, Clock, AlertCircle, Lightbulb, BarChart } from 'lucide-react';
-import { AreaChart, Area, BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart as RechartsBarChart, Bar, Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import { format, addWeeks, addMonths, addQuarters, addYears, startOfWeek, startOfMonth, startOfQuarter, startOfYear, endOfWeek, endOfMonth, endOfQuarter, endOfYear, subWeeks, subMonths, subQuarters, subYears, differenceInDays } from 'date-fns';
 
 interface HoursFlowData {
@@ -12,6 +12,7 @@ interface HoursFlowData {
   earned: number;
   projected: number;
   capacity: number;
+  cumulative: number;
   phases: {
     fab: number;
     paint: number;
@@ -36,78 +37,118 @@ interface EnhancedHoursFlowWidgetProps {
 export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFlowWidgetProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   const [selectedTimeframe, setSelectedTimeframe] = useState<'historical' | 'future'>('future');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [hoursFlowData, setHoursFlowData] = useState<HoursFlowData[]>([]);
   const [insights, setInsights] = useState<HoursFlowInsight[]>([]);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [manualCapacity, setManualCapacity] = useState<number | null>(null);
+  const [showCapacityEdit, setShowCapacityEdit] = useState(false);
 
-  // Generate periods based on timeframe
-  const generateHistoricalPeriods = (now: Date, period: 'week' | 'month' | 'quarter' | 'year') => {
+  // Generate periods based on timeframe and selected year
+  const generateHistoricalPeriods = (year: number, period: 'week' | 'month' | 'quarter' | 'year') => {
     const periods = [];
-    const count = period === 'week' ? 12 : period === 'month' ? 12 : period === 'quarter' ? 8 : 5;
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year, 11, 31);
+    const now = new Date();
     
-    for (let i = count - 1; i >= 0; i--) {
-      let start, end, label;
+    if (period === 'year') {
+      // For year view, show the selected year only
+      periods.push({ 
+        start: yearStart, 
+        end: yearEnd > now ? now : yearEnd, 
+        label: year.toString() 
+      });
+    } else {
+      // Generate periods within the selected year
+      let currentDate = yearStart;
       
-      switch (period) {
-        case 'week':
-          start = startOfWeek(subWeeks(now, i));
-          end = endOfWeek(subWeeks(now, i));
-          label = format(start, 'MMM dd');
-          break;
-        case 'month':
-          start = startOfMonth(subMonths(now, i));
-          end = endOfMonth(subMonths(now, i));
-          label = format(start, 'MMM yyyy');
-          break;
-        case 'quarter':
-          start = startOfQuarter(subQuarters(now, i));
-          end = endOfQuarter(subQuarters(now, i));
-          label = `Q${Math.floor(start.getMonth() / 3) + 1} ${format(start, 'yyyy')}`;
-          break;
-        case 'year':
-          start = startOfYear(subYears(now, i));
-          end = endOfYear(subYears(now, i));
-          label = format(start, 'yyyy');
-          break;
+      while (currentDate <= yearEnd && currentDate <= now) {
+        let start, end, label;
+        
+        switch (period) {
+          case 'week':
+            start = startOfWeek(currentDate);
+            end = endOfWeek(currentDate);
+            if (end > yearEnd) end = yearEnd;
+            if (end > now) end = now;
+            label = format(start, 'MMM dd');
+            currentDate = addWeeks(currentDate, 1);
+            break;
+          case 'month':
+            start = startOfMonth(currentDate);
+            end = endOfMonth(currentDate);
+            if (end > yearEnd) end = yearEnd;
+            if (end > now) end = now;
+            label = format(start, 'MMM');
+            currentDate = addMonths(currentDate, 1);
+            break;
+          case 'quarter':
+            start = startOfQuarter(currentDate);
+            end = endOfQuarter(currentDate);
+            if (end > yearEnd) end = yearEnd;
+            if (end > now) end = now;
+            label = `Q${Math.floor(start.getMonth() / 3) + 1}`;
+            currentDate = addQuarters(currentDate, 1);
+            break;
+        }
+        
+        if (start <= now && start <= yearEnd) {
+          periods.push({ start, end, label });
+        }
       }
-      
-      periods.push({ start, end, label });
     }
     
     return periods;
   };
 
-  const generateFuturePeriods = (now: Date, period: 'week' | 'month' | 'quarter' | 'year') => {
+  const generateFuturePeriods = (year: number, period: 'week' | 'month' | 'quarter' | 'year') => {
     const periods = [];
-    const count = period === 'week' ? 12 : period === 'month' ? 12 : period === 'quarter' ? 8 : 5;
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year, 11, 31);
+    const now = new Date();
     
-    for (let i = 0; i < count; i++) {
-      let start, end, label;
+    if (period === 'year') {
+      // For year view, show the selected year only
+      periods.push({ 
+        start: now < yearStart ? yearStart : now, 
+        end: yearEnd, 
+        label: year.toString() 
+      });
+    } else {
+      // Generate periods within the selected year
+      let currentDate = now < yearStart ? yearStart : now;
       
-      switch (period) {
-        case 'week':
-          start = startOfWeek(addWeeks(now, i));
-          end = endOfWeek(addWeeks(now, i));
-          label = format(start, 'MMM dd');
-          break;
-        case 'month':
-          start = startOfMonth(addMonths(now, i));
-          end = endOfMonth(addMonths(now, i));
-          label = format(start, 'MMM yyyy');
-          break;
-        case 'quarter':
-          start = startOfQuarter(addQuarters(now, i));
-          end = endOfQuarter(addQuarters(now, i));
-          label = `Q${Math.floor(start.getMonth() / 3) + 1} ${format(start, 'yyyy')}`;
-          break;
-        case 'year':
-          start = startOfYear(addYears(now, i));
-          end = endOfYear(addYears(now, i));
-          label = format(start, 'yyyy');
-          break;
+      while (currentDate <= yearEnd) {
+        let start, end, label;
+        
+        switch (period) {
+          case 'week':
+            start = startOfWeek(currentDate);
+            end = endOfWeek(currentDate);
+            if (end > yearEnd) end = yearEnd;
+            label = format(start, 'MMM dd');
+            currentDate = addWeeks(currentDate, 1);
+            break;
+          case 'month':
+            start = startOfMonth(currentDate);
+            end = endOfMonth(currentDate);
+            if (end > yearEnd) end = yearEnd;
+            label = format(start, 'MMM');
+            currentDate = addMonths(currentDate, 1);
+            break;
+          case 'quarter':
+            start = startOfQuarter(currentDate);
+            end = endOfQuarter(currentDate);
+            if (end > yearEnd) end = yearEnd;
+            label = `Q${Math.floor(start.getMonth() / 3) + 1}`;
+            currentDate = addQuarters(currentDate, 1);
+            break;
+        }
+        
+        if (start <= yearEnd) {
+          periods.push({ start, end, label });
+        }
       }
-      
-      periods.push({ start, end, label });
     }
     
     return periods;
@@ -183,10 +224,10 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
     const now = new Date();
     const data: HoursFlowData[] = [];
 
-    // Generate periods based on selection
+    // Generate periods based on selection and selected year
     const periods = selectedTimeframe === 'historical' ? 
-      generateHistoricalPeriods(now, selectedPeriod) : 
-      generateFuturePeriods(now, selectedPeriod);
+      generateHistoricalPeriods(selectedYear, selectedPeriod) : 
+      generateFuturePeriods(selectedYear, selectedPeriod);
 
     periods.forEach(period => {
       let totalEarned = 0;
@@ -245,18 +286,19 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
         }
       });
 
-      // Calculate capacity (assuming 40 hours/week per resource, adjust based on actual capacity)
+      // Calculate capacity (use manual capacity if set, otherwise default)
       const weeksInPeriod = selectedPeriod === 'week' ? 1 : 
                           selectedPeriod === 'month' ? 4.33 : 
                           selectedPeriod === 'quarter' ? 13 : 52;
-      const resourceCount = 50; // Adjust based on actual resource count
-      const capacity = weeksInPeriod * 40 * resourceCount;
+      const defaultResourceCount = 50; // Default resource count
+      const capacity = manualCapacity || (weeksInPeriod * 40 * defaultResourceCount);
 
       data.push({
         period: period.label,
         earned: Math.round(totalEarned),
         projected: Math.round(totalProjected),
         capacity: Math.round(capacity),
+        cumulative: 0, // Will calculate after loop
         phases: {
           fab: Math.round(phaseHours.fab),
           paint: Math.round(phaseHours.paint),
@@ -268,9 +310,20 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
       });
     });
 
+    // Calculate cumulative hours
+    let cumulativeTotal = 0;
+    data.forEach((item, index) => {
+      if (selectedTimeframe === 'historical') {
+        cumulativeTotal += item.earned;
+      } else {
+        cumulativeTotal += item.projected;
+      }
+      data[index].cumulative = cumulativeTotal;
+    });
+
     setHoursFlowData(data);
     generateInsights(data);
-  }, [projects, schedules, selectedPeriod, selectedTimeframe]);
+  }, [projects, schedules, selectedPeriod, selectedTimeframe, selectedYear, manualCapacity]);
 
   // Generate insights based on data
   const generateInsights = (data: HoursFlowData[]) => {
@@ -372,12 +425,52 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
               <SelectItem value="year">Year</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+            <SelectTrigger className="w-full sm:w-[120px]">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {[2024, 2025, 2026, 2027, 2028].map(year => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2">
+            {showCapacityEdit ? (
+              <>
+                <input
+                  type="number"
+                  value={manualCapacity || ''}
+                  onChange={(e) => setManualCapacity(e.target.value ? parseInt(e.target.value) : null)}
+                  placeholder="Capacity hours"
+                  className="w-32 px-2 py-1 text-sm border rounded"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowCapacityEdit(false)}
+                >
+                  Set
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowCapacityEdit(true)}
+              >
+                Edit Capacity
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Hours Flow Chart */}
         <div className="w-full h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={hoursFlowData}>
+            <ComposedChart data={hoursFlowData}>
               <defs>
                 <linearGradient id="colorEarned" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
@@ -443,7 +536,18 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
                   />
                 </>
               )}
-            </AreaChart>
+              
+              {/* Cumulative Line */}
+              <Line
+                type="monotone"
+                dataKey="cumulative"
+                stroke="#8b5cf6"
+                strokeWidth={3}
+                strokeDasharray="5 5"
+                name="Cumulative Hours"
+                dot={false}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
 

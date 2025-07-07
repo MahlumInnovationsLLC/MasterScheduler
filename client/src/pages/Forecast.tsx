@@ -121,14 +121,16 @@ export function Forecast() {
     queryKey: ['/api/manufacturing-schedules'],
   });
 
-  // Calculate forecast statistics
+  // Calculate forecast statistics (year-based)
   const calculateForecastStats = (): ForecastStats => {
     const now = new Date();
+    const currentYear = now.getFullYear();
+    const yearStart = new Date(currentYear, 0, 1);
+    const yearEnd = new Date(currentYear, 11, 31);
     const lastMonthStart = startOfMonth(subMonths(now, 1));
     const lastMonthEnd = endOfMonth(subMonths(now, 1));
     const lastQuarterStart = startOfMonth(subQuarters(now, 1));
     const lastQuarterEnd = endOfMonth(subMonths(now, 1));
-    const yearStart = startOfYear(now);
 
     let totalHours = 0;
     let earnedHours = 0;
@@ -140,12 +142,19 @@ export function Forecast() {
     projects.forEach((project: any) => {
       if (!project.totalHours) return;
 
-      totalHours += project.totalHours;
+      // Only count hours for projects active in the current year
+      const projectStart = project.startDate ? new Date(project.startDate) : null;
+      const projectEnd = project.deliveryDate ? new Date(project.deliveryDate) : 
+                       (project.estimatedCompletionDate ? new Date(project.estimatedCompletionDate) : null);
 
-      // Calculate earned hours based on project progress
-      const percentComplete = parseFloat(project.percentComplete || '0');
-      const projectEarnedHours = (project.totalHours * percentComplete) / 100;
-      earnedHours += projectEarnedHours;
+      // Check if project is active in current year
+      if (projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd) {
+        totalHours += project.totalHours;
+
+        // Calculate earned hours based on project progress
+        const percentComplete = parseFloat(project.percentComplete || '0');
+        const projectEarnedHours = (project.totalHours * percentComplete) / 100;
+        earnedHours += projectEarnedHours;
 
       // Calculate hours earned in different periods
       if (project.status === 'delivered' || percentComplete > 0) {
@@ -164,9 +173,10 @@ export function Forecast() {
         }
       }
 
-      // Calculate projected hours for active projects
-      if (project.status === 'active' && percentComplete < 100) {
-        projectedHours += project.totalHours - projectEarnedHours;
+        // Calculate projected hours for active projects
+        if (project.status === 'active' && percentComplete < 100) {
+          projectedHours += project.totalHours - projectEarnedHours;
+        }
       }
     });
 
@@ -292,42 +302,77 @@ export function Forecast() {
       {/* Hour Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <HoursStatusCard
-          title="Total Hours"
+          title={`Total Hours (${new Date().getFullYear()})`}
           value={stats.totalHours}
           type="total"
           stats={[
             { label: "Active Projects", value: projects.filter((p: any) => p.status === 'active').length },
-            { label: "All Projects", value: projects.length }
+            { label: "All Projects", value: projects.filter((p: any) => {
+              const projectStart = p.startDate ? new Date(p.startDate) : null;
+              const projectEnd = p.deliveryDate ? new Date(p.deliveryDate) : 
+                               (p.estimatedCompletionDate ? new Date(p.estimatedCompletionDate) : null);
+              const yearStart = new Date(new Date().getFullYear(), 0, 1);
+              const yearEnd = new Date(new Date().getFullYear(), 11, 31);
+              return projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd;
+            }).length }
           ]}
         />
 
         <HoursStatusCard
-          title="Earned Hours"
+          title={`Earned Hours (${new Date().getFullYear()})`}
           value={stats.earnedHours}
           type="earned"
           stats={[
-            { label: "% Complete", value: `${((stats.earnedHours / stats.totalHours) * 100).toFixed(1)}%` },
-            { label: "Delivered Projects", value: projects.filter((p: any) => p.status === 'delivered').length }
+            { label: "% Complete", value: stats.totalHours > 0 ? `${((stats.earnedHours / stats.totalHours) * 100).toFixed(1)}%` : '0%' },
+            { label: "Delivered Projects", value: projects.filter((p: any) => {
+              if (p.status !== 'delivered') return false;
+              const deliveryDate = p.deliveryDate ? new Date(p.deliveryDate) : null;
+              const yearStart = new Date(new Date().getFullYear(), 0, 1);
+              return deliveryDate && deliveryDate >= yearStart;
+            }).length }
           ]}
         />
 
         <HoursStatusCard
-          title="Projected Hours"
+          title={`Projected Hours (${new Date().getFullYear()})`}
           value={stats.projectedHours}
           type="projected"
           stats={[
-            { label: "In Progress", value: projects.filter((p: any) => p.status === 'active' && parseFloat(p.percentComplete) > 0).length },
-            { label: "Not Started", value: projects.filter((p: any) => p.status === 'active' && parseFloat(p.percentComplete) === 0).length }
+            { label: "In Progress", value: projects.filter((p: any) => {
+              const projectStart = p.startDate ? new Date(p.startDate) : null;
+              const projectEnd = p.deliveryDate ? new Date(p.deliveryDate) : 
+                               (p.estimatedCompletionDate ? new Date(p.estimatedCompletionDate) : null);
+              const yearStart = new Date(new Date().getFullYear(), 0, 1);
+              const yearEnd = new Date(new Date().getFullYear(), 11, 31);
+              return p.status === 'active' && parseFloat(p.percentComplete) > 0 && 
+                     projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd;
+            }).length },
+            { label: "Not Started", value: projects.filter((p: any) => {
+              const projectStart = p.startDate ? new Date(p.startDate) : null;
+              const projectEnd = p.deliveryDate ? new Date(p.deliveryDate) : 
+                               (p.estimatedCompletionDate ? new Date(p.estimatedCompletionDate) : null);
+              const yearStart = new Date(new Date().getFullYear(), 0, 1);
+              const yearEnd = new Date(new Date().getFullYear(), 11, 31);
+              return p.status === 'active' && parseFloat(p.percentComplete) === 0 && 
+                     projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd;
+            }).length }
           ]}
         />
 
         <HoursStatusCard
-          title="Remaining Hours"
+          title={`Remaining Hours (${new Date().getFullYear()})`}
           value={stats.remainingHours}
           type="remaining"
           stats={[
-            { label: "% Remaining", value: `${((stats.remainingHours / stats.totalHours) * 100).toFixed(1)}%` },
-            { label: "Avg per Project", value: Math.round(stats.remainingHours / projects.filter((p: any) => p.status === 'active').length || 1) }
+            { label: "% Remaining", value: stats.totalHours > 0 ? `${((stats.remainingHours / stats.totalHours) * 100).toFixed(1)}%` : '0%' },
+            { label: "Avg per Project", value: Math.round(stats.remainingHours / Math.max(projects.filter((p: any) => {
+              const projectStart = p.startDate ? new Date(p.startDate) : null;
+              const projectEnd = p.deliveryDate ? new Date(p.deliveryDate) : 
+                               (p.estimatedCompletionDate ? new Date(p.estimatedCompletionDate) : null);
+              const yearStart = new Date(new Date().getFullYear(), 0, 1);
+              const yearEnd = new Date(new Date().getFullYear(), 11, 31);
+              return p.status === 'active' && projectStart && projectEnd && projectEnd >= yearStart && projectStart <= yearEnd;
+            }).length, 1)) }
           ]}
         />
       </div>
