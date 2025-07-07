@@ -43,6 +43,11 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [manualCapacity, setManualCapacity] = useState<number | null>(null);
   const [showCapacityEdit, setShowCapacityEdit] = useState(false);
+  const [visibleLines, setVisibleLines] = useState({
+    projected: true,
+    capacity: true,
+    cumulative: true
+  });
 
   // Generate periods based on timeframe and selected year
   const generateHistoricalPeriods = (year: number, period: 'week' | 'month' | 'quarter' | 'year') => {
@@ -478,6 +483,37 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
           </div>
         </div>
 
+        {/* Chart Toggle Controls */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button
+            size="sm"
+            variant={visibleLines.projected ? "default" : "outline"}
+            onClick={() => setVisibleLines(prev => ({ ...prev, projected: !prev.projected }))}
+            className="text-xs"
+          >
+            <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+            Projected Hours
+          </Button>
+          <Button
+            size="sm"
+            variant={visibleLines.capacity ? "default" : "outline"}
+            onClick={() => setVisibleLines(prev => ({ ...prev, capacity: !prev.capacity }))}
+            className="text-xs"
+          >
+            <div className="w-3 h-3 bg-amber-500 rounded mr-2"></div>
+            Capacity
+          </Button>
+          <Button
+            size="sm"
+            variant={visibleLines.cumulative ? "default" : "outline"}
+            onClick={() => setVisibleLines(prev => ({ ...prev, cumulative: !prev.cumulative }))}
+            className="text-xs"
+          >
+            <div className="w-3 h-3 bg-purple-500 rounded mr-2"></div>
+            Cumulative Hours
+          </Button>
+        </div>
+
         {/* Hours Flow Chart */}
         <div className="w-full h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -506,6 +542,20 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
                 className="text-xs"
                 tick={{ fill: 'currentColor' }}
                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                domain={(() => {
+                  // Calculate domain based on visible lines
+                  let maxValues: number[] = [];
+                  if (selectedTimeframe === 'historical') {
+                    maxValues = hoursFlowData.map(d => d.earned);
+                  } else {
+                    if (visibleLines.projected) maxValues.push(...hoursFlowData.map(d => d.projected));
+                    if (visibleLines.capacity) maxValues.push(...hoursFlowData.map(d => d.capacity));
+                  }
+                  if (visibleLines.cumulative) maxValues.push(...hoursFlowData.map(d => d.cumulative));
+                  
+                  const maxValue = maxValues.length > 0 ? Math.max(...maxValues) : 100000;
+                  return [0, Math.ceil(maxValue * 1.1)]; // Add 10% padding
+                })()}
               />
               <Tooltip
                 contentStyle={{
@@ -529,35 +579,41 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
                 />
               ) : (
                 <>
-                  <Area
-                    type="monotone"
-                    dataKey="projected"
-                    stroke="#3b82f6"
-                    fillOpacity={1}
-                    fill="url(#colorProjected)"
-                    name="Projected Hours"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="capacity"
-                    stroke="#f59e0b"
-                    fillOpacity={1}
-                    fill="url(#colorCapacity)"
-                    name="Capacity"
-                  />
+                  {visibleLines.projected && (
+                    <Area
+                      type="monotone"
+                      dataKey="projected"
+                      stroke="#3b82f6"
+                      fillOpacity={1}
+                      fill="url(#colorProjected)"
+                      name="Projected Hours"
+                    />
+                  )}
+                  {visibleLines.capacity && (
+                    <Area
+                      type="monotone"
+                      dataKey="capacity"
+                      stroke="#f59e0b"
+                      fillOpacity={1}
+                      fill="url(#colorCapacity)"
+                      name="Capacity"
+                    />
+                  )}
                 </>
               )}
               
               {/* Cumulative Line */}
-              <Line
-                type="monotone"
-                dataKey="cumulative"
-                stroke="#8b5cf6"
-                strokeWidth={3}
-                strokeDasharray="5 5"
-                name="Cumulative Hours"
-                dot={false}
-              />
+              {visibleLines.cumulative && (
+                <Line
+                  type="monotone"
+                  dataKey="cumulative"
+                  stroke="#8b5cf6"
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
+                  name="Cumulative Hours"
+                  dot={false}
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>

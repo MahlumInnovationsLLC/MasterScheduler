@@ -317,6 +317,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated all status cards to show accurate counts for scheduled projects only
   - Modified EnhancedHoursFlowWidget to use only scheduled projects for hours flow calculations
   - All hours calculations now reflect realistic manufacturing capacity and scheduled workload
+- January 07, 2025: Hours Forecast Module - Proportional Hours and Interactive Chart
+  - Fixed status card calculations to show only the portion of project hours that fall within 2025 timeframe
+  - Updated total hours calculation to use date overlap ratios instead of full project hours
+  - Added interactive toggle buttons to show/hide chart lines (Projected, Capacity, Cumulative)
+  - Implemented auto-scaling Y-axis based on visible chart elements for better visualization
+  - Enhanced chart with conditional rendering of data series based on user toggle selections
+  - Hours now accurately reflect time-proportional allocation matching the graph's cumulative totals
 
 ## User Preferences
 

@@ -159,11 +159,31 @@ export function Forecast() {
       // Only include projects that are scheduled in manufacturing bays for 2025
       if (!scheduledProjectIds.has(project.id)) return;
 
-      totalHours += project.totalHours;
+      // Calculate only the portion of project hours that fall within 2025
+      const projectStart = project.startDate ? new Date(project.startDate) : null;
+      const projectEnd = project.deliveryDate ? new Date(project.deliveryDate) : 
+                       (project.estimatedCompletionDate ? new Date(project.estimatedCompletionDate) : null);
 
-      // Calculate earned hours based on project progress
+      if (!projectStart || !projectEnd) return;
+
+      // Calculate overlap with 2025
+      const overlapStart = projectStart > yearStart ? projectStart : yearStart;
+      const overlapEnd = projectEnd < yearEnd ? projectEnd : yearEnd;
+      
+      if (overlapStart > overlapEnd) return; // No overlap
+
+      // Calculate proportion of project that falls in 2025
+      const totalProjectDays = (projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24);
+      const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
+      const overlapRatio = totalProjectDays > 0 ? overlapDays / totalProjectDays : 0;
+
+      // Only count the portion of hours that fall within 2025
+      const projectHoursIn2025 = project.totalHours * overlapRatio;
+      totalHours += projectHoursIn2025;
+
+      // Calculate earned hours based on project progress, but only for the 2025 portion
       const percentComplete = parseFloat(project.percentComplete || '0');
-      const projectEarnedHours = (project.totalHours * percentComplete) / 100;
+      const projectEarnedHours = (projectHoursIn2025 * percentComplete) / 100;
       earnedHours += projectEarnedHours;
 
       // Calculate hours earned in different periods
@@ -183,9 +203,9 @@ export function Forecast() {
         }
       }
 
-      // Calculate projected hours for active projects
+      // Calculate projected hours for active projects (only the 2025 portion)
       if (project.status === 'active' && percentComplete < 100) {
-        projectedHours += project.totalHours - projectEarnedHours;
+        projectedHours += projectHoursIn2025 - projectEarnedHours;
       }
     });
 
