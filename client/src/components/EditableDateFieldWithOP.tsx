@@ -34,8 +34,8 @@ const EditableDateFieldWithOP: React.FC<EditableDateFieldWithOPProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Helper function to check if current date is past OP date
-  const isCurrentDatePastOP = () => {
+  // Helper function to check if current date is different from OP date
+  const isCurrentDateDifferentFromOP = () => {
     if (!value || !opValue || value === 'N/A' || opValue === 'N/A' || value === 'PENDING' || opValue === 'PENDING' || value === 'TBD' || opValue === 'TBD') {
       return false;
     }
@@ -43,15 +43,16 @@ const EditableDateFieldWithOP: React.FC<EditableDateFieldWithOPProps> = ({
     try {
       const currentDate = new Date(value);
       const opDate = new Date(opValue);
-      return currentDate > opDate;
+      // Return true if dates are different (either earlier or later)
+      return currentDate.getTime() !== opDate.getTime();
     } catch {
       return false;
     }
   };
 
-  // Calculate isPastOP dynamically to ensure it updates with pagination
-  const isPastOP = useMemo(() => {
-    return isCurrentDatePastOP();
+  // Calculate if date is different from OP to ensure it updates with pagination
+  const isDifferentFromOP = useMemo(() => {
+    return isCurrentDateDifferentFromOP();
   }, [value, opValue]);
 
   // Reset date value when value changes - use direct value without adjustments
@@ -232,7 +233,7 @@ const EditableDateFieldWithOP: React.FC<EditableDateFieldWithOPProps> = ({
         <div className="flex flex-col">
           <div 
             className={`text-sm cursor-pointer flex items-center hover:bg-gray-100/10 px-2 py-1 rounded group ${
-              isPastOP ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : ''
+              isDifferentFromOP ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : ''
             } ${className || ''}`}
             onClick={() => setIsEditing(true)}
           >
