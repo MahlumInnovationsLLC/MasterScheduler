@@ -974,11 +974,7 @@ export default function Engineering() {
                           variant={projectViewMode === 'project' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setProjectViewMode('project')}
-                          className={`rounded-r-none ${
-                            projectViewMode === 'project' 
-                              ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
-                              : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
-                          }`}
+                          className="rounded-r-none"
                         >
                           <FileText className="h-4 w-4 mr-1" />
                           Project View
@@ -987,11 +983,7 @@ export default function Engineering() {
                           variant={projectViewMode === 'engineer' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setProjectViewMode('engineer')}
-                          className={`rounded-l-none ${
-                            projectViewMode === 'engineer' 
-                              ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
-                              : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
-                          }`}
+                          className="rounded-l-none"
                         >
                           <Users className="h-4 w-4 mr-1" />
                           Engineer View
@@ -1095,13 +1087,13 @@ export default function Engineering() {
                         {engineers
                           .filter(engineer => 
                             searchTerm === '' ||
-                            `${engineer.firstName} ${engineer.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
+                            (engineer.firstName + ' ' + engineer.lastName).toLowerCase().includes(searchTerm.toLowerCase())
                           )
                           .map((engineer) => {
                             const engineerProjects = projects.filter(project => 
-                              project.meAssigned === `${engineer.firstName} ${engineer.lastName}` ||
-                              project.eeAssigned === `${engineer.firstName} ${engineer.lastName}` ||
-                              project.iteAssigned === `${engineer.firstName} ${engineer.lastName}`
+                              project.meAssigned === (engineer.firstName + ' ' + engineer.lastName) ||
+                              project.eeAssigned === (engineer.firstName + ' ' + engineer.lastName) ||
+                              project.iteAssigned === (engineer.firstName + ' ' + engineer.lastName)
                             );
 
                             return (
@@ -1136,7 +1128,7 @@ export default function Engineering() {
                                       </thead>
                                       <tbody>
                                         {engineerProjects.map((project) => {
-                                          const engineerName = `${engineer.firstName} ${engineer.lastName}`;
+                                          const engineerName = engineer.firstName + ' ' + engineer.lastName;
                                           let role = '';
                                           let percentage = 0;
                                           let benchmarkCount = 0;
@@ -1175,7 +1167,7 @@ export default function Engineering() {
                                                   <div className="flex-1 bg-gray-200 rounded-full h-2 relative min-w-[80px]">
                                                     <div 
                                                       className="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                                                      style={{ width: `${percentage}%` }}
+                                                      style={{ width: percentage + '%' }}
                                                     />
                                                     <input
                                                       type="range"
@@ -1330,11 +1322,7 @@ export default function Engineering() {
                     variant={projectViewMode === 'project' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setProjectViewMode('project')}
-                    className={`rounded-r-none ${
-                      projectViewMode === 'project' 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
-                        : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
-                    }`}
+                    className="rounded-r-none"
                   >
                     <BarChart3 className="h-4 w-4 mr-1" />
                     Grid View
@@ -1343,11 +1331,7 @@ export default function Engineering() {
                     variant={projectViewMode === 'engineer' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setProjectViewMode('engineer')}
-                    className={`rounded-l-none ${
-                      projectViewMode === 'engineer' 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700' 
-                        : 'bg-white text-gray-900 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700'
-                    }`}
+                    className="rounded-l-none"
                   >
                     <Users className="h-4 w-4 mr-1" />
                     List View
@@ -1361,7 +1345,7 @@ export default function Engineering() {
                   {resources
                     .filter(resource => {
                       const matchesSearch = searchTerm === '' || 
-                        `${resource.firstName} ${resource.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (resource.firstName + ' ' + resource.lastName).toLowerCase().includes(searchTerm.toLowerCase()) ||
                         resource.title.toLowerCase().includes(searchTerm.toLowerCase());
                       const matchesDiscipline = disciplineFilter === 'all' || resource.discipline === disciplineFilter;
                       const matchesStatus = statusFilter === 'all' || resource.workloadStatus === statusFilter;
@@ -1466,7 +1450,7 @@ export default function Engineering() {
                           {resources
                             .filter(resource => {
                               const matchesSearch = searchTerm === '' || 
-                                `${resource.firstName} ${resource.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                (resource.firstName + ' ' + resource.lastName).toLowerCase().includes(searchTerm.toLowerCase()) ||
                                 resource.title.toLowerCase().includes(searchTerm.toLowerCase());
                               const matchesDiscipline = disciplineFilter === 'all' || resource.discipline === disciplineFilter;
                               const matchesStatus = statusFilter === 'all' || resource.workloadStatus === statusFilter;
@@ -1669,7 +1653,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Benchmark
                             {sortField === 'benchmark' && (
-                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                              <ChevronUp className="h-3 w-3 transition-transform" />
                             )}
                           </div>
                         </th>
@@ -1680,7 +1664,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Project
                             {sortField === 'project' && (
-                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                              <ChevronUp className="h-3 w-3 transition-transform" />
                             )}
                           </div>
                         </th>
@@ -1691,7 +1675,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Discipline
                             {sortField === 'discipline' && (
-                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                              <ChevronUp className="h-3 w-3 transition-transform" />
                             )}
                           </div>
                         </th>
@@ -1702,7 +1686,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Target Date
                             {sortField === 'targetDate' && (
-                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                              <ChevronUp className="h-3 w-3 transition-transform" />
                             )}
                           </div>
                         </th>
@@ -1713,7 +1697,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Progress
                             {sortField === 'progress' && (
-                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                              <ChevronUp className="h-3 w-3 transition-transform" />
                             )}
                           </div>
                         </th>
@@ -1725,7 +1709,7 @@ export default function Engineering() {
                           <div className="flex items-center gap-1">
                             Commitment Level
                             {sortField === 'commitment' && (
-                              <ChevronUp className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                              <ChevronUp className="h-3 w-3 transition-transform" />
                             )}
                           </div>
                         </th>
