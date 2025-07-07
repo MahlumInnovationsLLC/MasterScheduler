@@ -1216,7 +1216,7 @@ const Dashboard = () => {
               Bay Schedule is an estimated prediction of the Nomad GCS schedule. For Approved Timeline Dates, review the Projects Module.
             </p>
           </div>
-        </div></div>
+        </div>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
