@@ -44,6 +44,7 @@ const CalendarPage = () => {
   const [, navigate] = useLocation();
   const [billingMonth, setBillingMonth] = useState(new Date());
   const [timelineMonth, setTimelineMonth] = useState(new Date());
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
   // Fetch all projects
   const { data: projects = [] } = useQuery<Project[]>({
@@ -252,6 +253,19 @@ const CalendarPage = () => {
     }
   };
 
+  // Toggle expanded state for a date
+  const toggleDateExpanded = (dateKey: string) => {
+    setExpandedDates(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dateKey)) {
+        newSet.delete(dateKey);
+      } else {
+        newSet.add(dateKey);
+      }
+      return newSet;
+    });
+  };
+
   // Calendar component
   const CalendarView = ({ 
     month, 
@@ -318,6 +332,9 @@ const CalendarPage = () => {
                 {calendarDays.map((date, i) => {
                   const dateEvents = getEventsForDate(date, events);
                   const isCurrentMonth = isSameMonth(date, month);
+                  const dateKey = format(date, 'yyyy-MM-dd');
+                  const isExpanded = expandedDates.has(dateKey);
+                  const eventsToShow = isExpanded ? dateEvents : dateEvents.slice(0, 3);
                   
                   return (
                     <div 
@@ -325,7 +342,8 @@ const CalendarPage = () => {
                       className={cn(
                         "min-h-[120px] p-2 border-r border-b",
                         !isCurrentMonth && "bg-muted/30",
-                        isToday(date) && "bg-primary/5"
+                        isToday(date) && "bg-primary/5",
+                        isExpanded && "min-h-[160px]"
                       )}
                     >
                       <div className={cn(
@@ -336,12 +354,12 @@ const CalendarPage = () => {
                         {format(date, 'd')}
                       </div>
                       
-                      <div className="space-y-1">
-                        {dateEvents.slice(0, 3).map((event) => (
+                      <div className="space-y-1 overflow-y-auto" style={{ maxHeight: isExpanded ? '300px' : 'auto' }}>
+                        {eventsToShow.map((event) => (
                           <div 
                             key={event.id}
                             className={cn(
-                              "text-xs p-1 rounded cursor-pointer truncate",
+                              "text-xs p-1 rounded cursor-pointer",
                               event.color,
                               "hover:opacity-80 transition-opacity"
                             )}
@@ -351,15 +369,36 @@ const CalendarPage = () => {
                             <div className="font-medium truncate">
                               {event.projectNumber}
                             </div>
-                            <div className="truncate opacity-90">
+                            <div className="truncate opacity-90 text-[10px]">
+                              {event.projectName}
+                            </div>
+                            <div className="truncate opacity-80 text-[10px]">
                               {event.title}
                             </div>
                           </div>
                         ))}
                         
-                        {dateEvents.length > 3 && (
-                          <div className="text-xs text-muted-foreground text-center">
+                        {!isExpanded && dateEvents.length > 3 && (
+                          <div 
+                            className="text-xs text-primary font-medium text-center cursor-pointer hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDateExpanded(dateKey);
+                            }}
+                          >
                             +{dateEvents.length - 3} more
+                          </div>
+                        )}
+                        
+                        {isExpanded && dateEvents.length > 3 && (
+                          <div 
+                            className="text-xs text-primary font-medium text-center cursor-pointer hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDateExpanded(dateKey);
+                            }}
+                          >
+                            Show less
                           </div>
                         )}
                       </div>
