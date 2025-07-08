@@ -2293,7 +2293,8 @@ export default function Meetings() {
             <DialogDescription>
               Create a new elevated concern for a project
             </DialogDescription>
-          </DialogHeader          <div className="space-y-4">
+          </DialogHeader>
+          <div className="space-y-4">
             <div>
               <Label htmlFor="project">Project</Label>
               <Select value={concernForm.projectId} onValueChange={(value) => setConcernForm({...concernForm, projectId: value})}>

@@ -306,6 +306,24 @@ export function Forecast() {
 
   const periodStats = getPeriodStats();
 
+  // Calculate scheduled projects count for the current year
+  const getScheduledProjectsCount = () => {
+    const currentYear = new Date().getFullYear();
+    const yearStart = new Date(currentYear, 0, 1);
+    const yearEnd = new Date(currentYear, 11, 31);
+    const scheduledProjectIds = new Set();
+    schedules.forEach((schedule: any) => {
+      if (schedule.startDate && schedule.endDate) {
+        const scheduleStart = new Date(schedule.startDate);
+        const scheduleEnd = new Date(schedule.endDate);
+        if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+          scheduledProjectIds.add(schedule.projectId);
+        }
+      }
+    });
+    return projects.filter((p: any) => scheduledProjectIds.has(p.id)).length;
+  };
+
   if (projectsLoading || schedulesLoading) {
     return (
       <div className="container mx-auto px-6 py-8">
@@ -397,22 +415,7 @@ export function Forecast() {
           type="projected"
           stats={[
             { label: "All Bays", value: "All Projects" },
-            { label: "2025 Schedule", value: (() => {
-              const currentYear = new Date().getFullYear();
-              const yearStart = new Date(currentYear, 0, 1);
-              const yearEnd = new Date(currentYear, 11, 31);
-              const scheduledProjectIds = new Set();
-              schedules.forEach((schedule: any) => {
-                if (schedule.startDate && schedule.endDate) {
-                  const scheduleStart = new Date(schedule.startDate);
-                  const scheduleEnd = new Date(schedule.endDate);
-                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
-                    scheduledProjectIds.add(schedule.projectId);
-                  }
-                }
-              });
-              return projects.filter((p: any) => scheduledProjectIds.has(p.id)).length;
-            })() }
+            { label: "2025 Schedule", value: getScheduledProjectsCount() }
           ]}
         />
       </div>
