@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePermissions } from '@/components/PermissionsManager';
 import { Redirect } from 'wouter';
-import { Clock, TrendingUp, Calendar, Activity, ChevronRight, BarChart3, FileText } from 'lucide-react';
+import { Clock, TrendingUp, Calendar, Activity, ChevronRight, BarChart3, FileText, Settings, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { EnhancedHoursFlowWidget } from '@/components/EnhancedHoursFlowWidget';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { format, startOfMonth, endOfMonth, subMonths, subQuarters, startOfYear } from 'date-fns';
 
 interface ForecastStats {
@@ -16,6 +18,8 @@ interface ForecastStats {
   earnedHours: number;
   projectedHours: number;
   remainingHours: number;
+  engineeringHours: number;
+  manufacturingHours: number;
   lastMonth: {
     earnedHours: number;
     percentage: number;
@@ -105,6 +109,8 @@ function HoursStatusCard({ title, value, type, stats }: HoursStatusCardProps) {
 export function Forecast() {
   const { userRole } = usePermissions();
   const [selectedPeriod, setSelectedPeriod] = useState<'lastMonth' | 'lastQuarter' | 'ytd'>('lastMonth');
+  const [engineeringHoursPerMonth, setEngineeringHoursPerMonth] = useState<number>(2000);
+  const [showEngineeringSettings, setShowEngineeringSettings] = useState<boolean>(false);
 
   // Check permissions - only allow Editor and Admin roles
   if (userRole !== 'editor' && userRole !== 'admin') {
@@ -180,9 +186,8 @@ export function Forecast() {
             const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
             const overlapRatio = totalScheduleDays > 0 ? overlapDays / totalScheduleDays : 1;
             
-            // Apply same scaling factor as EnhancedHoursFlowWidget to match chart calculations
-            const scalingFactor = 0.55;
-            projectHoursIn2025 = project.totalHours * overlapRatio * scalingFactor;
+            // Use actual hours without scaling factor for real hours calculation
+            projectHoursIn2025 = project.totalHours * overlapRatio;
           }
         }
       }
@@ -248,8 +253,8 @@ export function Forecast() {
           
           if (totalScheduleDays > 0 && overlapDays > 0) {
             const overlapRatio = overlapDays / totalScheduleDays;
-            const scalingFactor = 0.55; // Same scaling factor as EnhancedHoursFlowWidget
-            const periodHours = project.totalHours * overlapRatio * scalingFactor;
+            // Use actual hours without scaling factor for real hours calculation
+            const periodHours = project.totalHours * overlapRatio;
             periodTotal += periodHours;
           }
         }
@@ -258,13 +263,13 @@ export function Forecast() {
       totalProjectedHours += periodTotal;
     });
     
-    // The graph shows 174,908 hours as final cumulative total
-    // Use this exact value to match the EnhancedHoursFlowWidget calculation
-    const finalCumulativeTotal = 174908; // From the graph's cumulative calculation
+    // Calculate engineering hours for remaining months of 2025 (July - December = 6 months)
+    const remainingMonths = 6;
+    const totalEngineeringHours = engineeringHoursPerMonth * remainingMonths;
     
-    // For display purposes, show the final cumulative total as "projected hours"
-    totalHours = finalCumulativeTotal;
-    projectedHours = finalCumulativeTotal; // Show total accumulated hours to match graph
+    // Calculate real total hours from manufacturing schedules without scaling plus engineering buffer
+    totalHours = baselineAccumulatedHours + totalProjectedHours + totalEngineeringHours;
+    projectedHours = totalProjectedHours + totalEngineeringHours;
     earnedHours = baselineAccumulatedHours; // This represents work completed through June 2025
 
     const remainingHours = totalHours - earnedHours;
@@ -274,6 +279,8 @@ export function Forecast() {
       earnedHours,
       projectedHours,
       remainingHours,
+      engineeringHours: totalEngineeringHours,
+      manufacturingHours: totalProjectedHours,
       lastMonth: {
         earnedHours: lastMonthHours,
         percentage: totalHours > 0 ? (lastMonthHours / totalHours) * 100 : 0,
@@ -386,6 +393,15 @@ export function Forecast() {
             >
               YTD
             </Button>
+            <Button
+              variant={showEngineeringSettings ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowEngineeringSettings(!showEngineeringSettings)}
+              className="ml-2"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
           </div>
         </div>
 
@@ -407,15 +423,101 @@ export function Forecast() {
         </div>
       </div>
 
+      {/* Engineering Hours Settings */}
+      {showEngineeringSettings && (
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Engineering Hours Settings
+              </CardTitle>
+              <CardDescription>
+                Configure engineering hours per month to adjust forecast projections
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="engineering-hours">Engineering Hours per Month</Label>
+                  <Input
+                    id="engineering-hours"
+                    type="number"
+                    value={engineeringHoursPerMonth}
+                    onChange={(e) => setEngineeringHoursPerMonth(Number(e.target.value))}
+                    className="mt-1"
+                    min="0"
+                    step="100"
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    Current setting: {engineeringHoursPerMonth.toLocaleString()} hours/month × 6 months = {(engineeringHoursPerMonth * 6).toLocaleString()} total engineering hours
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEngineeringHoursPerMonth(1500)}
+                  >
+                    Low (1,500/month)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEngineeringHoursPerMonth(2000)}
+                  >
+                    Medium (2,000/month)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEngineeringHoursPerMonth(2500)}
+                  >
+                    High (2,500/month)
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Hour Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <HoursStatusCard
-          title={`Projected Hours (${new Date().getFullYear()})`}
-          value={stats.projectedHours}
+          title="Total Hours"
+          value={stats.totalHours}
+          type="total"
+          stats={[
+            { label: "Accumulated", value: stats.earnedHours.toLocaleString() },
+            { label: "Projected", value: stats.projectedHours.toLocaleString() }
+          ]}
+        />
+        <HoursStatusCard
+          title="Manufacturing Hours"
+          value={stats.manufacturingHours}
+          type="earned"
+          stats={[
+            { label: "Scheduled Projects", value: getScheduledProjectsCount() },
+            { label: "Real Hours", value: "No Scaling" }
+          ]}
+        />
+        <HoursStatusCard
+          title="Engineering Hours"
+          value={stats.engineeringHours}
           type="projected"
           stats={[
-            { label: "All Bays", value: "All Projects" },
-            { label: "2025 Schedule", value: getScheduledProjectsCount() }
+            { label: "Per Month", value: engineeringHoursPerMonth.toLocaleString() },
+            { label: "6 Months", value: "July-December" }
+          ]}
+        />
+        <HoursStatusCard
+          title="Remaining Hours"
+          value={stats.remainingHours}
+          type="remaining"
+          stats={[
+            { label: "From Baseline", value: "86,317" },
+            { label: "Progress", value: `${Math.round((stats.earnedHours / stats.totalHours) * 100)}%` }
           ]}
         />
       </div>
