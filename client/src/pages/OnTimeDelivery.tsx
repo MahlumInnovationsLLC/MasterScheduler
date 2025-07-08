@@ -507,6 +507,10 @@ const OnTimeDeliveryPage: React.FC = () => {
         return "This month";
       case "last_month":
         return "Last month";
+      case "2024":
+        return "2024";
+      case "2025":
+        return "2025";
       case "all":
         return "All time";
       default:
@@ -550,6 +554,13 @@ const OnTimeDeliveryPage: React.FC = () => {
           const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
           const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
           if (deliveryDate < startOfLastMonth || deliveryDate > endOfLastMonth) {
+            return false;
+          }
+        } else if (selectedTimeframe === "2024" || selectedTimeframe === "2025") {
+          // Year-based filtering
+          const year = parseInt(selectedTimeframe);
+          const deliveryYear = deliveryDate.getFullYear();
+          if (deliveryYear !== year) {
             return false;
           }
         } else {
@@ -1168,6 +1179,8 @@ const OnTimeDeliveryPage: React.FC = () => {
               <SelectItem value="6">Last 6 months</SelectItem>
               <SelectItem value="12">Last 12 months</SelectItem>
               <SelectItem value="24">Last 24 months</SelectItem>
+              <SelectItem value="2024">2024</SelectItem>
+              <SelectItem value="2025">2025</SelectItem>
               <SelectItem value="all">All time</SelectItem>
             </SelectContent>
           </Select>
