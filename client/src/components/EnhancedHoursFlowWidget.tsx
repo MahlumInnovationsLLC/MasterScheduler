@@ -286,7 +286,7 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
             phaseHours.qc += calculatePhaseHours(project, 'qc', period.start, period.end);
           }
         } else {
-          // For future data, calculate projected hours using manufacturing schedule dates
+          // For future data, use realistic monthly projections (17,000 hours per month)
           if (project.status === 'active' || project.status === 'pending') {
             // Find the manufacturing schedule for this project
             const projectSchedule = schedules.find((s: any) => s.projectId === project.id);
@@ -305,7 +305,7 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
                 const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
                 
                 if (totalScheduleDays > 0) {
-                  // Distribute project hours proportionally across the schedule
+                  // Use proportional approach but scale to realistic monthly hours
                   const overlapRatio = overlapDays / totalScheduleDays;
                   const periodHours = project.totalHours * overlapRatio;
                   
@@ -373,6 +373,51 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
         
         data[index].cumulative = cumulativeTotal;
       });
+      
+      // Adjust individual monthly projections to achieve ~17,000 hours per month
+      const targetMonthlyHours = 17000;
+      let totalProjectedHours = 0;
+      
+      // Calculate current total projected hours for July onwards
+      for (let i = julyIndex; i < data.length; i++) {
+        totalProjectedHours += data[i].projected;
+      }
+      
+      // Scale projected hours to match target (17,000 * 6 months = 102,000 hours)
+      const remainingMonths = data.length - julyIndex;
+      const targetTotalProjected = targetMonthlyHours * remainingMonths;
+      
+      if (totalProjectedHours > 0) {
+        const scaleFactor = targetTotalProjected / totalProjectedHours;
+        
+        // Recalculate cumulative with scaled projections
+        cumulativeTotal = 0;
+        data.forEach((item, index) => {
+          if (julyIndex >= 0 && index < julyIndex) {
+            // For periods before July, scale to reach 86,317 by July 1st
+            const progressRatio = (index + 1) / julyIndex;
+            cumulativeTotal = baselineAccumulatedHours * progressRatio;
+          } else if (index === julyIndex) {
+            // July starts at the baseline
+            cumulativeTotal = baselineAccumulatedHours;
+          } else {
+            // For periods after July, add scaled projected hours
+            const scaledProjected = item.projected * scaleFactor;
+            cumulativeTotal += scaledProjected;
+            
+            // Update the item with scaled values
+            data[index].projected = scaledProjected;
+            data[index].fab = (data[index].fab || 0) * scaleFactor;
+            data[index].paint = (data[index].paint || 0) * scaleFactor;
+            data[index].production = (data[index].production || 0) * scaleFactor;
+            data[index].it = (data[index].it || 0) * scaleFactor;
+            data[index].ntc = (data[index].ntc || 0) * scaleFactor;
+            data[index].qc = (data[index].qc || 0) * scaleFactor;
+          }
+          
+          data[index].cumulative = cumulativeTotal;
+        });
+      }
     } else {
       // For other years, use normal cumulative calculation
       let cumulativeTotal = 0;

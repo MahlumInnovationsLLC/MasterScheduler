@@ -335,29 +335,14 @@ export function Forecast() {
       </div>
 
       {/* Hour Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
         <HoursStatusCard
-          title={`Total Hours (${new Date().getFullYear()})`}
-          value={stats.totalHours}
-          type="total"
+          title={`Projected Hours (${new Date().getFullYear()})`}
+          value={stats.projectedHours}
+          type="projected"
           stats={[
-            { label: "Active Projects", value: (() => {
-              const currentYear = new Date().getFullYear();
-              const yearStart = new Date(currentYear, 0, 1);
-              const yearEnd = new Date(currentYear, 11, 31);
-              const scheduledProjectIds = new Set();
-              schedules.forEach((schedule: any) => {
-                if (schedule.startDate && schedule.endDate) {
-                  const scheduleStart = new Date(schedule.startDate);
-                  const scheduleEnd = new Date(schedule.endDate);
-                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
-                    scheduledProjectIds.add(schedule.projectId);
-                  }
-                }
-              });
-              return projects.filter((p: any) => p.status === 'active' && scheduledProjectIds.has(p.id)).length;
-            })() },
-            { label: "All Projects", value: (() => {
+            { label: "All Bays", value: "All Projects" },
+            { label: "2025 Schedule", value: (() => {
               const currentYear = new Date().getFullYear();
               const yearStart = new Date(currentYear, 0, 1);
               const yearEnd = new Date(currentYear, 11, 31);
@@ -372,108 +357,6 @@ export function Forecast() {
                 }
               });
               return projects.filter((p: any) => scheduledProjectIds.has(p.id)).length;
-            })() }
-          ]}
-        />
-
-        <HoursStatusCard
-          title={`Earned Hours (${new Date().getFullYear()})`}
-          value={stats.earnedHours}
-          type="earned"
-          stats={[
-            { label: "% Complete", value: stats.totalHours > 0 ? `${((stats.earnedHours / stats.totalHours) * 100).toFixed(1)}%` : '0%' },
-            { label: "Delivered Projects", value: (() => {
-              const currentYear = new Date().getFullYear();
-              const yearStart = new Date(currentYear, 0, 1);
-              const yearEnd = new Date(currentYear, 11, 31);
-              const scheduledProjectIds = new Set();
-              schedules.forEach((schedule: any) => {
-                if (schedule.startDate && schedule.endDate) {
-                  const scheduleStart = new Date(schedule.startDate);
-                  const scheduleEnd = new Date(schedule.endDate);
-                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
-                    scheduledProjectIds.add(schedule.projectId);
-                  }
-                }
-              });
-              return projects.filter((p: any) => {
-                if (p.status !== 'delivered') return false;
-                if (!scheduledProjectIds.has(p.id)) return false;
-                const deliveryDate = p.deliveryDate ? new Date(p.deliveryDate) : null;
-                return deliveryDate && deliveryDate >= yearStart;
-              }).length;
-            })() }
-          ]}
-        />
-
-        <HoursStatusCard
-          title={`Projected Hours (${new Date().getFullYear()})`}
-          value={stats.projectedHours}
-          type="projected"
-          stats={[
-            { label: "In Progress", value: (() => {
-              const currentYear = new Date().getFullYear();
-              const yearStart = new Date(currentYear, 0, 1);
-              const yearEnd = new Date(currentYear, 11, 31);
-              const scheduledProjectIds = new Set();
-              schedules.forEach((schedule: any) => {
-                if (schedule.startDate && schedule.endDate) {
-                  const scheduleStart = new Date(schedule.startDate);
-                  const scheduleEnd = new Date(schedule.endDate);
-                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
-                    scheduledProjectIds.add(schedule.projectId);
-                  }
-                }
-              });
-              return projects.filter((p: any) => {
-                return p.status === 'active' && parseFloat(p.percentComplete) > 0 && scheduledProjectIds.has(p.id);
-              }).length;
-            })() },
-            { label: "Not Started", value: (() => {
-              const currentYear = new Date().getFullYear();
-              const yearStart = new Date(currentYear, 0, 1);
-              const yearEnd = new Date(currentYear, 11, 31);
-              const scheduledProjectIds = new Set();
-              schedules.forEach((schedule: any) => {
-                if (schedule.startDate && schedule.endDate) {
-                  const scheduleStart = new Date(schedule.startDate);
-                  const scheduleEnd = new Date(schedule.endDate);
-                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
-                    scheduledProjectIds.add(schedule.projectId);
-                  }
-                }
-              });
-              return projects.filter((p: any) => {
-                return p.status === 'active' && parseFloat(p.percentComplete) === 0 && scheduledProjectIds.has(p.id);
-              }).length;
-            })() }
-          ]}
-        />
-
-        <HoursStatusCard
-          title={`Remaining Hours (${new Date().getFullYear()})`}
-          value={stats.remainingHours}
-          type="remaining"
-          stats={[
-            { label: "% Remaining", value: stats.totalHours > 0 ? `${((stats.remainingHours / stats.totalHours) * 100).toFixed(1)}%` : '0%' },
-            { label: "Avg per Project", value: (() => {
-              const currentYear = new Date().getFullYear();
-              const yearStart = new Date(currentYear, 0, 1);
-              const yearEnd = new Date(currentYear, 11, 31);
-              const scheduledProjectIds = new Set();
-              schedules.forEach((schedule: any) => {
-                if (schedule.startDate && schedule.endDate) {
-                  const scheduleStart = new Date(schedule.startDate);
-                  const scheduleEnd = new Date(schedule.endDate);
-                  if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
-                    scheduledProjectIds.add(schedule.projectId);
-                  }
-                }
-              });
-              const activeScheduledProjects = projects.filter((p: any) => {
-                return p.status === 'active' && scheduledProjectIds.has(p.id);
-              }).length;
-              return Math.round(stats.remainingHours / Math.max(activeScheduledProjects, 1));
             })() }
           ]}
         />
