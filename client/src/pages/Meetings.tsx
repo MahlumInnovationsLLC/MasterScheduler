@@ -133,6 +133,11 @@ export default function Meetings() {
   const [showFabNotesDialog, setShowFabNotesDialog] = useState(false);
   const [selectedProjectForFabNotes, setSelectedProjectForFabNotes] = useState<Project | null>(null);
   const [fabNotesContent, setFabNotesContent] = useState("");
+  
+  // Additional FAB Notes Dialog state (for compatibility)
+  const [fabNotesDialogOpen, setFabNotesDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [tempFabNotes, setTempFabNotes] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
