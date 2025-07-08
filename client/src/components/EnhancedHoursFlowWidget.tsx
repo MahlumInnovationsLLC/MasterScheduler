@@ -349,23 +349,26 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
       });
     });
 
-    // Calculate cumulative hours with 86,317 baseline by July 1st, 2025
+    // Calculate cumulative hours starting at 86,317 baseline by July 1st, 2025
     if (selectedYear === 2025) {
       const july1st2025 = new Date(2025, 6, 1);
-      const targetEarnedByJuly = 86317;
+      const baselineAccumulatedHours = 86317;
       
       // Find the July index (month 6, 0-based)
       const julyIndex = data.findIndex(d => new Date(d.period) >= july1st2025);
       
       let cumulativeTotal = 0;
       data.forEach((item, index) => {
-        if (julyIndex >= 0 && index <= julyIndex) {
-          // For periods up to and including July, scale to reach 86,317
-          const progressRatio = (index + 1) / (julyIndex + 1);
-          cumulativeTotal = targetEarnedByJuly * progressRatio;
+        if (julyIndex >= 0 && index < julyIndex) {
+          // For periods before July, scale to reach 86,317 by July 1st
+          const progressRatio = (index + 1) / julyIndex;
+          cumulativeTotal = baselineAccumulatedHours * progressRatio;
+        } else if (index === julyIndex) {
+          // July starts at the baseline
+          cumulativeTotal = baselineAccumulatedHours;
         } else {
-          // For periods after July, add actual projected hours from project schedules
-          cumulativeTotal += (selectedTimeframe === 'historical' ? item.earned : item.projected);
+          // For periods after July, add projected hours to continue accumulation
+          cumulativeTotal += item.projected;
         }
         
         data[index].cumulative = cumulativeTotal;

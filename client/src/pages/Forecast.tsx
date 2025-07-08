@@ -147,9 +147,8 @@ export function Forecast() {
       }
     });
 
-    // Set earned hours to 86,317 as of July 1st, 2025
-    const targetEarnedHours = 86317;
-    earnedHours = targetEarnedHours;
+    // Set accumulated hours baseline to 86,317 as of July 1st, 2025
+    const baselineAccumulatedHours = 86317;
     
     // Calculate total project hours for 2025 based on manufacturing schedules
     let totalProjectHours = 0;
@@ -213,7 +212,8 @@ export function Forecast() {
 
     // Set total hours and calculate projected hours
     totalHours = totalProjectHours;
-    projectedHours = totalProjectHours - earnedHours;
+    projectedHours = totalProjectHours - baselineAccumulatedHours;
+    earnedHours = baselineAccumulatedHours; // This represents work completed through June 2025
 
     const remainingHours = totalHours - earnedHours;
 

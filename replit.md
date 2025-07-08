@@ -324,6 +324,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Implemented auto-scaling Y-axis based on visible chart elements for better visualization
   - Enhanced chart with conditional rendering of data series based on user toggle selections
   - Hours now accurately reflect time-proportional allocation matching the graph's cumulative totals
+- January 07, 2025: Hours Forecast Module - Accumulated Hours Baseline Implementation
+  - Updated cumulative calculation to start at 86,317 accumulated hours baseline by July 1st, 2025
+  - Removed earned hours concept in favor of accumulated hours tracking from actual production data
+  - Cumulative graph now builds from 86,317 in July to approximately 200,000 by year end
+  - Hours calculation uses actual project total hours from manufacturing schedules proportionally distributed
+  - Projected hours represent remaining work after July 1st baseline, reaching realistic year-end totals
 
 ## User Preferences
 
