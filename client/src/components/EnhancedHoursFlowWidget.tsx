@@ -462,10 +462,12 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
       });
     });
 
-    // Calculate cumulative hours starting at 86,317 baseline by July 1st, 2025
-    if (selectedYear === 2025) {
-      const july1st2025 = new Date(2025, 6, 1);
+    // Calculate cumulative hours using target-based approach for 2025
+    if (selectedYear === 2025 && selectedTimeframe === 'future') {
       const baselineAccumulatedHours = 86317;
+      const targetTotalHours = 195000;
+      const engineeringHoursPerMonth = 2000;
+      const manufacturingHoursNeeded = targetTotalHours - baselineAccumulatedHours - (engineeringHoursPerMonth * 6);
       
       // Find the July index (month 6, 0-based) - look for "Jul" in month view
       const julyIndex = data.findIndex(d => {
@@ -476,7 +478,9 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
         return periodDate.getMonth() === 6 && periodDate.getFullYear() === 2025;
       });
       
-
+      // Calculate months from July to December (6 months)
+      const monthsFromJuly = data.length - julyIndex;
+      const manufacturingHoursPerMonth = monthsFromJuly > 0 ? manufacturingHoursNeeded / monthsFromJuly : 0;
       
       let cumulativeTotal = 0;
       data.forEach((item, index) => {
@@ -484,12 +488,18 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
           // For periods before July, scale to reach 86,317 by July 1st
           const progressRatio = (index + 1) / julyIndex;
           cumulativeTotal = baselineAccumulatedHours * progressRatio;
+          // Update projected hours for pre-July periods
+          data[index].projected = index === 0 ? cumulativeTotal : cumulativeTotal - data[index - 1].cumulative;
         } else if (index === julyIndex) {
           // July starts at the baseline
           cumulativeTotal = baselineAccumulatedHours;
+          // Update projected hours for July - add manufacturing + engineering
+          data[index].projected = manufacturingHoursPerMonth + engineeringHoursPerMonth;
+          cumulativeTotal += data[index].projected;
         } else {
-          // For periods after July, add projected hours to continue accumulation
-          cumulativeTotal += item.projected;
+          // For periods after July, add manufacturing hours + engineering hours per month
+          data[index].projected = manufacturingHoursPerMonth + engineeringHoursPerMonth;
+          cumulativeTotal += data[index].projected;
         }
         
         data[index].cumulative = cumulativeTotal;
