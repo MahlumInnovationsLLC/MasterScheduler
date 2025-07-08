@@ -286,18 +286,41 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
             phaseHours.qc += calculatePhaseHours(project, 'qc', period.start, period.end);
           }
         } else {
-          // For future data, calculate projected hours
+          // For future data, calculate projected hours using manufacturing schedule dates
           if (project.status === 'active' || project.status === 'pending') {
-            // Add phase hours for future periods
-            phaseHours.fab += calculatePhaseHours(project, 'fab', period.start, period.end);
-            phaseHours.paint += calculatePhaseHours(project, 'paint', period.start, period.end);
-            phaseHours.production += calculatePhaseHours(project, 'production', period.start, period.end);
-            phaseHours.it += calculatePhaseHours(project, 'it', period.start, period.end);
-            phaseHours.ntc += calculatePhaseHours(project, 'ntc', period.start, period.end);
-            phaseHours.qc += calculatePhaseHours(project, 'qc', period.start, period.end);
-
-            totalProjected = phaseHours.fab + phaseHours.paint + phaseHours.production + 
-                           phaseHours.it + phaseHours.ntc + phaseHours.qc;
+            // Find the manufacturing schedule for this project
+            const projectSchedule = schedules.find((s: any) => s.projectId === project.id);
+            
+            if (projectSchedule) {
+              const scheduleStart = new Date(projectSchedule.startDate);
+              const scheduleEnd = new Date(projectSchedule.endDate);
+              
+              // Check if the schedule overlaps with this period
+              if (scheduleEnd >= period.start && scheduleStart <= period.end) {
+                // Calculate overlap with this period
+                const overlapStart = scheduleStart > period.start ? scheduleStart : period.start;
+                const overlapEnd = scheduleEnd < period.end ? scheduleEnd : period.end;
+                
+                const totalScheduleDays = (scheduleEnd.getTime() - scheduleStart.getTime()) / (1000 * 60 * 60 * 24);
+                const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
+                
+                if (totalScheduleDays > 0) {
+                  // Distribute project hours proportionally across the schedule
+                  const overlapRatio = overlapDays / totalScheduleDays;
+                  const periodHours = project.totalHours * overlapRatio;
+                  
+                  // Distribute across phases based on percentages
+                  phaseHours.fab += periodHours * 0.27; // 27%
+                  phaseHours.paint += periodHours * 0.07; // 7%
+                  phaseHours.production += periodHours * 0.60; // 60%
+                  phaseHours.it += periodHours * 0.07; // 7%
+                  phaseHours.ntc += periodHours * 0.07; // 7%
+                  phaseHours.qc += periodHours * 0.07; // 7%
+                  
+                  totalProjected += periodHours;
+                }
+              }
+            }
           }
         }
       });
