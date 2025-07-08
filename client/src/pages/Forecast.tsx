@@ -212,12 +212,56 @@ export function Forecast() {
       }
     });
 
-    // Calculate total accumulated hours to match EnhancedHoursFlowWidget calculation
-    // This will be the total accumulated hours by end of 2025 (baseline + projected work)
-    const totalAccumulatedHours = baselineAccumulatedHours + totalProjectHours;
+    // Calculate only the projected hours from July onwards to match EnhancedHoursFlowWidget
+    // Generate the same monthly periods as the chart (July to December 2025)
+    const periods = [];
+    for (let month = 6; month < 12; month++) { // July (6) to December (11)
+      const periodStart = new Date(2025, month, 1);
+      const periodEnd = new Date(2025, month + 1, 0); // Last day of month
+      periods.push({ start: periodStart, end: periodEnd });
+    }
+    
+    let totalProjectedHours = 0;
+    
+    // Calculate hours for each period (July through December)
+    periods.forEach(period => {
+      let periodTotal = 0;
+      
+      scheduledProjectIds.forEach((projectId: any) => {
+        const project = projects.find((p: any) => p.id === projectId);
+        if (!project || !project.totalHours) return;
+        if (project.status !== 'active' && project.status !== 'pending') return;
+        
+        const projectSchedule = schedules.find((s: any) => s.projectId === project.id);
+        if (!projectSchedule) return;
+        
+        const scheduleStart = new Date(projectSchedule.startDate);
+        const scheduleEnd = new Date(projectSchedule.endDate);
+        
+        // Check if the schedule overlaps with this period
+        if (scheduleEnd >= period.start && scheduleStart <= period.end) {
+          const overlapStart = scheduleStart > period.start ? scheduleStart : period.start;
+          const overlapEnd = scheduleEnd < period.end ? scheduleEnd : period.end;
+          
+          const totalScheduleDays = (scheduleEnd.getTime() - scheduleStart.getTime()) / (1000 * 60 * 60 * 24);
+          const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
+          
+          if (totalScheduleDays > 0 && overlapDays > 0) {
+            const overlapRatio = overlapDays / totalScheduleDays;
+            const scalingFactor = 0.55; // Same scaling factor as EnhancedHoursFlowWidget
+            const periodHours = project.totalHours * overlapRatio * scalingFactor;
+            periodTotal += periodHours;
+          }
+        }
+      });
+      
+      totalProjectedHours += periodTotal;
+    });
+    
+    // Calculate total accumulated hours (baseline + projected work from July onwards)
+    const totalAccumulatedHours = baselineAccumulatedHours + totalProjectedHours;
     
     // For display purposes, show the total accumulated hours as "projected hours"
-    // This matches what the chart shows as the cumulative total
     totalHours = totalAccumulatedHours;
     projectedHours = totalAccumulatedHours; // Show total accumulated hours
     earnedHours = baselineAccumulatedHours; // This represents work completed through June 2025
