@@ -209,9 +209,13 @@ export function Forecast() {
       totalProjectHours += projectHoursIn2025;
 
       if (project.status === 'delivered') {
-        deliveredProjectCount++;
+        // Only count as delivered in 2025 if actually delivered in 2025
         if (project.actualCompletionDate || project.deliveryDate) {
           const completionDate = new Date(project.actualCompletionDate || project.deliveryDate);
+          if (completionDate >= yearStart && completionDate <= yearEnd) {
+            deliveredProjectCount++;
+          }
+          
           if (completionDate >= lastMonthStart && completionDate <= lastMonthEnd) {
             lastMonthHours += projectHoursIn2025;
           }

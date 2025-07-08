@@ -349,34 +349,43 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
       });
     });
 
-    // Calculate cumulative hours with baseline adjustment
-    let cumulativeTotal = 0;
-    const july1st2025 = new Date(2025, 6, 1);
-    const targetEarnedByJuly = 86317;
-    
-    data.forEach((item, index) => {
-      if (selectedTimeframe === 'historical') {
-        cumulativeTotal += item.earned;
-      } else {
-        cumulativeTotal += item.projected;
-      }
+    // Calculate cumulative hours with 86,317 baseline by July 1st, 2025
+    if (selectedYear === 2025) {
+      const july1st2025 = new Date(2025, 6, 1);
+      const targetEarnedByJuly = 86317;
       
-      // Adjust cumulative to reach 86,317 by July 1st, 2025
-      if (selectedYear === 2025) {
-        const itemDate = new Date(item.period);
-        if (itemDate <= july1st2025) {
-          // For periods up to July 1st, scale to reach target
-          const periodIndex = index + 1;
-          const julyIndex = data.findIndex(d => new Date(d.period) >= july1st2025);
-          if (julyIndex > 0 && periodIndex <= julyIndex) {
-            const progressRatio = periodIndex / julyIndex;
-            cumulativeTotal = targetEarnedByJuly * progressRatio;
+      // Find the July index
+      const julyIndex = data.findIndex(d => new Date(d.period) >= july1st2025);
+      
+      let cumulativeTotal = 0;
+      data.forEach((item, index) => {
+        if (julyIndex >= 0 && index <= julyIndex) {
+          // For periods up to and including July, scale to reach 86,317
+          const progressRatio = (index + 1) / (julyIndex + 1);
+          cumulativeTotal = targetEarnedByJuly * progressRatio;
+        } else {
+          // For periods after July, add projected hours to the 86,317 baseline
+          if (index === 0) {
+            cumulativeTotal = targetEarnedByJuly;
+          } else {
+            cumulativeTotal += (selectedTimeframe === 'historical' ? item.earned : item.projected);
           }
         }
-      }
-      
-      data[index].cumulative = cumulativeTotal;
-    });
+        
+        data[index].cumulative = cumulativeTotal;
+      });
+    } else {
+      // For other years, use normal cumulative calculation
+      let cumulativeTotal = 0;
+      data.forEach((item, index) => {
+        if (selectedTimeframe === 'historical') {
+          cumulativeTotal += item.earned;
+        } else {
+          cumulativeTotal += item.projected;
+        }
+        data[index].cumulative = cumulativeTotal;
+      });
+    }
 
     setHoursFlowData(data);
     generateInsights(data);
