@@ -53,6 +53,7 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
     capacity: true,
     cumulative: true
   });
+  const [manualCapacity, setManualCapacity] = useState<number | null>(null);
 
   // Fetch user settings from database
   const { data: userSettings } = useQuery({
