@@ -1,12 +1,37 @@
 import React from 'react';
 import { useLocation, Link } from 'wouter';
-import { X, Home, FolderOpen, CheckSquare, Calendar, BarChart3, Settings, Package, Truck, Calculator, FileText, Archive, CheckCircle, Clock, DollarSign, Building2, TrendingUp, Package2, Shield } from 'lucide-react';
+import { 
+  X, 
+  LayoutDashboard, 
+  ListChecks, 
+  CheckSquare, 
+  Calendar, 
+  BarChart3, 
+  Settings, 
+  Package, 
+  Truck, 
+  FileText, 
+  Archive, 
+  CheckCircle, 
+  Clock, 
+  DollarSign, 
+  GanttChart, 
+  TrendingUp, 
+  Upload, 
+  Download, 
+  Shield,
+  MessageSquare,
+  Flag,
+  Users,
+  Wrench
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { usePermissions } from "@/components/PermissionsManager";
 import { useModuleVisibility } from "@/hooks/use-module-visibility";
+import { usePriorityAccess } from '@/hooks/use-priority-access';
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -17,42 +42,15 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const [location] = useLocation();
-  const { hasAccess } = usePermissions();
+  const { userRole } = usePermissions();
   const { isModuleVisible } = useModuleVisibility();
+  const { canViewPriorities } = usePriorityAccess();
   const { user } = useAuth();
-
-  const navigationItems = [
-    { id: "dashboard", icon: Home, label: 'Dashboard', path: '/' },
-    { id: "my-tasks", icon: CheckSquare, label: 'My Tasks', path: '/tasks' },
-    { id: "projects", icon: FolderOpen, label: 'Projects', path: '/projects' },
-    { id: "bay-scheduling", icon: Building2, label: 'Bay Scheduling', path: '/bay-scheduling' },
-    { id: "billing", icon: DollarSign, label: 'Billing', path: '/billing' },
-    { id: "forecast", icon: TrendingUp, label: 'Forecast', path: '/forecast' },
-    { id: "manufacturing", icon: Package, label: 'Manufacturing', path: '/manufacturing' },
-    { id: "on-time-delivery", icon: Clock, label: 'On-Time Delivery', path: '/on-time-delivery' },
-    { id: "calendar", icon: Calendar, label: 'Calendar', path: '/calendar' },
-    { id: "sales-forecast", icon: TrendingUp, label: 'Sales Forecast', path: '/sales-forecast' },
-    { id: "reports", icon: BarChart3, label: 'Reports', path: '/reports' },
-    { id: "export-reports", icon: FileText, label: 'Export Reports', path: '/export-reports' },
-    { id: "import", icon: Package2, label: 'Import Data', path: '/import' },
-    { id: "supply-chain", icon: Truck, label: 'Supply Chain', path: '/supply-chain' },
-    { id: "archived-projects", icon: Archive, label: 'Archived Projects', path: '/archived-projects' },
-    { id: "delivered-projects", icon: CheckCircle, label: 'Delivered Projects', path: '/delivered-projects' },
-    { id: "quality-assurance", icon: Shield, label: 'Quality Assurance', path: '/quality-assurance' },
-  ];
 
   const isActive = (path: string) => {
     if (path === '/') return location === '/';
     return location.startsWith(path);
   };
-
-  const filteredNavItems = navigationItems.filter(item => {
-    // For mobile sidebar, we'll use the module visibility check
-    // since hasAccess might not be available in this context
-    // My Tasks should always be visible as it's a core functionality
-    if (item.id === "my-tasks") return true;
-    return isModuleVisible(item.id);
-  });
 
   return (
     <>
@@ -107,43 +105,313 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
         {/* Navigation */}
         <ScrollArea className="flex-1 px-2 py-4">
-          <div className="space-y-1">
-            {filteredNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-
-              return (
-                <Link key={item.path} href={item.path}>
+          <div className="space-y-6">
+            {/* Main Navigation */}
+            <div>
+              <h6 className="text-xs font-semibold uppercase tracking-wider mb-2 px-3 text-gray-400">
+                Main Navigation
+              </h6>
+              <div className="space-y-1">
+                {isModuleVisible('dashboard') && (
+                  <Link href="/">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <LayoutDashboard size={18} />
+                      <span className="text-sm font-medium">Dashboard</span>
+                    </button>
+                  </Link>
+                )}
+                
+                <Link href="/tasks">
                   <button
                     onClick={onClose}
-                    className={`
-                      w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors
-                      ${active 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-gray-300 hover:text-white hover:bg-gray-800'
-                      }
-                    `}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                      isActive('/tasks') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                    }`}
                   >
-                    <Icon size={18} />
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <CheckSquare size={18} />
+                    <span className="text-sm font-medium">My Tasks</span>
                   </button>
                 </Link>
-              );
-            })}
+
+                {isModuleVisible('projects') && (
+                  <Link href="/projects">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/projects') || location.startsWith('/project/') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <ListChecks size={18} />
+                      <span className="text-sm font-medium">Projects</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('calendar') && (
+                  <Link href="/calendar">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/calendar') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Calendar size={18} />
+                      <span className="text-sm font-medium">Calendar</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('meetings') && (
+                  <Link href="/meetings">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/meetings') || location.startsWith('/meetings/') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <MessageSquare size={18} />
+                      <span className="text-sm font-medium">Tier</span>
+                    </button>
+                  </Link>
+                )}
+
+                {canViewPriorities && (
+                  <Link href="/priorities">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/priorities') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Flag size={18} />
+                      <span className="text-sm font-medium">Priorities</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('reports') && (
+                  <Link href="/reports">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/reports') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <BarChart3 size={18} />
+                      <span className="text-sm font-medium">Reports & Analytics</span>
+                    </button>
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Modules */}
+            <div>
+              <h6 className="text-xs font-semibold uppercase tracking-wider mb-2 px-3 text-gray-400">
+                Modules
+              </h6>
+              <div className="space-y-1">
+                {isModuleVisible('quality-assurance') && (
+                  <Link href="/quality-assurance">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/quality-assurance') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Shield size={18} />
+                      <span className="text-sm font-medium">Quality Assurance</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('bay-scheduling') && (
+                  <Link href="/bay-scheduling">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/bay-scheduling') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <GanttChart size={18} />
+                      <span className="text-sm font-medium">Bay Scheduling</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('billing-milestones') && (
+                  <Link href="/billing">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/billing') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <DollarSign size={18} />
+                      <span className="text-sm font-medium">Billing Milestones</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('forecast') && (
+                  <Link href="/forecast">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/forecast') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <TrendingUp size={18} />
+                      <span className="text-sm font-medium">Forecast</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('on-time-delivery') && (
+                  <Link href="/on-time-delivery">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/on-time-delivery') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Clock size={18} />
+                      <span className="text-sm font-medium">On Time Delivery</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('delivered-projects') && (
+                  <Link href="/delivered-projects">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/delivered-projects') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Truck size={18} />
+                      <span className="text-sm font-medium">Delivered Projects</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('supply-chain') && (
+                  <Link href="/supply-chain">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/supply-chain') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <CheckCircle size={18} />
+                      <span className="text-sm font-medium">Benchmarks</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('material-management') && (
+                  <Link href="/material-management">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/material-management') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Package size={18} />
+                      <span className="text-sm font-medium">Material Management</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('engineering') && (
+                  <Link href="/engineering">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/engineering') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Wrench size={18} />
+                      <span className="text-sm font-medium">Engineering</span>
+                    </button>
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Data Management */}
+            <div>
+              <h6 className="text-xs font-semibold uppercase tracking-wider mb-2 px-3 text-gray-400">
+                Data Management
+              </h6>
+              <div className="space-y-1">
+                {isModuleVisible('import') && userRole !== 'viewer' && (
+                  <Link href="/import">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/import') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Upload size={18} />
+                      <span className="text-sm font-medium">Import Data</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('export-reports') && (
+                  <Link href="/export-reports">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/export-reports') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Download size={18} />
+                      <span className="text-sm font-medium">Export Reports</span>
+                    </button>
+                  </Link>
+                )}
+              </div>
+            </div>
           </div>
         </ScrollArea>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-700">
+        {/* Settings Footer */}
+        <div className="p-4 border-t border-gray-700 space-y-1">
+          <h6 className="text-xs font-semibold uppercase tracking-wider mb-2 px-3 text-gray-400">
+            Settings
+          </h6>
           <Link href="/settings/user">
             <button
               onClick={onClose}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors text-gray-300 hover:text-white hover:bg-gray-800"
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                isActive('/settings/user') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+              }`}
             >
-              <Settings size={18} />
-              <span className="text-sm font-medium">Settings</span>
+              <Users size={18} />
+              <span className="text-sm font-medium">User Preferences</span>
             </button>
           </Link>
+          
+          {isModuleVisible('system-settings') && userRole !== 'viewer' && (
+            <Link href="/system-settings">
+              <button
+                onClick={onClose}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <Settings size={18} />
+                <span className="text-sm font-medium">System Settings</span>
+              </button>
+            </Link>
+          )}
         </div>
       </div>
     </>
