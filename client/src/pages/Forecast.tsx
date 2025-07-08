@@ -325,11 +325,11 @@ export function Forecast() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
               <BarChart3 className="h-8 w-8 text-blue-600" />
               Hours Forecast
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
               Track and predict manufacturing hours across all projects and phases
             </p>
           </div>
