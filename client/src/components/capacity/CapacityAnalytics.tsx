@@ -58,17 +58,53 @@ export default function CapacityAnalytics() {
       };
     });
 
-  // Department capacity breakdown
+  // Department capacity breakdown by location with project integration
   const departmentBreakdown = departments.map(dept => {
     const deptMembers = teamMembers.filter(m => m.departmentId === dept.id && m.isActive);
-    const capacity = deptMembers.reduce((sum, m) => sum + (m.hoursPerWeek || 40) * ((m.efficiencyRate || 100) / 100), 0) || dept.weeklyCapacityHours;
+    const capacity = deptMembers.reduce((sum, m) => sum + (m.hoursPerWeek || 40) * ((m.efficiencyRate || 100) / 100), 0);
+
+    // Calculate active projects in this department phase
+    const now = new Date();
+    const activeProjects = projects.filter(p => {
+      if (p.status === "Delivered" || p.status === "Cancelled") return false;
+      
+      switch (dept.departmentType) {
+        case 'fabrication':
+          return p.fabricationStartDate && new Date(p.fabricationStartDate) <= now && 
+                 p.assemblyStartDate && new Date(p.assemblyStartDate) > now;
+        case 'paint':
+          return p.paintStartDate && new Date(p.paintStartDate) <= now && 
+                 p.assemblyStartDate && new Date(p.assemblyStartDate) > now;
+        case 'it':
+          return p.itStartDate && new Date(p.itStartDate) <= now && 
+                 p.ntcTestingDate && new Date(p.ntcTestingDate) > now;
+        case 'ntc':
+          return p.ntcTestingDate && new Date(p.ntcTestingDate) <= now && 
+                 p.qcStartDate && new Date(p.qcStartDate) > now;
+        case 'qa':
+          return p.qcStartDate && new Date(p.qcStartDate) <= now && 
+                 (!p.deliveryDate || new Date(p.deliveryDate) > now);
+        default:
+          return false;
+      }
+    });
+
+    const workload = activeProjects.length * (dept.departmentType === 'fabrication' ? 300 : 
+                                              dept.departmentType === 'paint' ? 100 :
+                                              dept.departmentType === 'it' ? 150 :
+                                              dept.departmentType === 'ntc' ? 120 : 80);
+    const utilizationByLoad = capacity > 0 ? (workload / capacity) * 100 : 0;
 
     return {
-      name: dept.departmentName,
+      name: `${dept.departmentName} (${dept.location})`,
       type: dept.departmentType,
+      location: dept.location || "Columbia Falls, MT",
       capacity,
       members: deptMembers.length,
       target: dept.utilizationTarget || 85,
+      activeProjects: activeProjects.length,
+      workloadUtilization: Math.round(utilizationByLoad),
+      targetCapacity: dept.weeklyCapacityHours
     };
   });
 
@@ -176,21 +212,42 @@ export default function CapacityAnalytics() {
         {/* Department Breakdown */}
         <Card>
           <CardHeader>
-            <CardTitle>Department Capacity</CardTitle>
-            <CardDescription>Weekly capacity by department</CardDescription>
+            <CardTitle>Department Capacity Analysis</CardTitle>
+            <CardDescription>Capacity vs workload by department and location</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {departmentBreakdown.map((dept, idx) => (
-                <div key={dept.type} className="space-y-2">
+                <div key={`${dept.type}-${dept.location}`} className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">{dept.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{dept.members} members</Badge>
-                      <span className="text-sm font-medium">{dept.capacity}h/wk</span>
+                    <div>
+                      <span className="font-medium">{dept.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{dept.activeProjects} active projects</span>
+                        <span>•</span>
+                        <span>{dept.members} members</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium">{dept.capacity}h/wk</div>
+                      <div className={`text-xs ${dept.workloadUtilization > 100 ? 'text-red-600' : 'text-green-600'}`}>
+                        {dept.workloadUtilization}% load
+                      </div>
                     </div>
                   </div>
-                  <Progress value={(dept.capacity / Math.max(...departmentBreakdown.map(d => d.capacity))) * 100} className="h-2" />
+                  <div className="space-y-1">
+                    <Progress value={Math.min((dept.capacity / dept.targetCapacity) * 100, 100)} className="h-2" />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Capacity vs Target</span>
+                      <span>{Math.round((dept.capacity / dept.targetCapacity) * 100)}%</span>
+                    </div>
+                  </div>
+                  {dept.workloadUtilization > 100 && (
+                    <div className="flex items-center gap-1 text-xs text-amber-600">
+                      <AlertTriangle className="h-3 w-3" />
+                      <span>Department overloaded - consider adding staff</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -341,6 +341,16 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Integrated with project scheduling to show team utilization based on active projects
   - Module accessible to all users regardless of role (viewer, editor, admin)
   - Added capacity alerts for teams exceeding 85% utilization or lacking team members
+- January 08, 2025: Location-Based Capacity Management Enhancement
+  - Restructured Capacity Management module to organize Teams and Departments by location
+  - Added location field to department_capacity table schema for Columbia Falls, MT and Libby, MT
+  - Created separate tabs for each location with sub-tabs for Production Teams and Departments
+  - Columbia Falls teams: Chavez/Davidson, Held/Freiheit, May/LaRose, Nelson/Mondora, Kelley/Overcast, Shultz/Mengelos
+  - Libby teams: Libby MT Team and Libby Container Line Team
+  - Enhanced DepartmentCapacityCard to show active project counts and workload utilization per phase
+  - Department capacity now integrates with project scheduling phases (FAB, PAINT, IT, NTC, QA)
+  - Analytics shows department workload based on projects currently in each manufacturing phase
+  - Added capacity recommendations when departments are overloaded or upcoming projects require more resources
 
 ## User Preferences
 

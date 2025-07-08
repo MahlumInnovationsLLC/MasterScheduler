@@ -44,7 +44,7 @@ export default function CapacityPlanning() {
     queryKey: ["/api/projects"],
   });
 
-  // Team definitions based on actual data
+  // Define teams by location
   const columbiaFallsTeams = [
     { name: "Chavez / Davidson", bayIds: bays.filter(b => b.team === "Chavez / Davidson").map(b => b.id) },
     { name: "Held / Freiheit", bayIds: bays.filter(b => b.team === "Held / Freiheit").map(b => b.id) },
@@ -61,7 +61,7 @@ export default function CapacityPlanning() {
 
   // Calculate team utilization based on scheduled projects
   const calculateTeamUtilization = (teamBayIds: number[]) => {
-    const activeSchedules = schedules.filter(s => 
+    const teamSchedules = schedules.filter(s => 
       teamBayIds.includes(s.bayId) && 
       new Date(s.endDate) >= new Date()
     );
@@ -75,33 +75,35 @@ export default function CapacityPlanning() {
     );
     
     // Get unique projects scheduled in these bays
-    const uniqueProjectIds = [...new Set(activeSchedules.map(s => s.projectId))];
-    const scheduledProjects = projects.filter(p => uniqueProjectIds.includes(p.id));
+    const uniqueProjectIds = [...new Set(teamSchedules.map(s => s.projectId))];
+    const activeProjects = uniqueProjectIds.filter(projectId => {
+      const project = projects.find(p => p.id === projectId);
+      return project && project.status !== "Delivered" && project.status !== "Cancelled";
+    });
     
-    // Calculate total hours from scheduled projects
-    const totalScheduledHours = scheduledProjects.reduce((sum, project) => 
-      sum + (project.totalEstimatedHours || 0), 0
-    );
-    
-    const utilizationPercent = totalCapacityHours > 0 
-      ? Math.round((totalScheduledHours / (totalCapacityHours * 4)) * 100) // 4 weeks average
-      : 0;
+    // Calculate utilization based on active projects
+    const projectCount = activeProjects.length;
+    const utilization = projectCount === 0 ? 0 :
+                       projectCount === 1 ? 75 :
+                       projectCount === 2 ? 100 :
+                       120; // 3+ projects = overloaded
     
     return {
-      scheduledProjects: scheduledProjects.length,
-      totalCapacityHours,
-      utilizationPercent: Math.min(utilizationPercent, 120) // Cap at 120%
+      utilization,
+      projectCount,
+      memberCount: teamMembersForTeam.length,
+      totalCapacity: totalCapacityHours
     };
   };
 
   // Mutations
   const createTeamMemberMutation = useMutation({
-    mutationFn: (data: Partial<TeamMember>) => 
-      apiRequest("POST", "/api/capacity/team-members", data),
+    mutationFn: (data: any) => apiRequest("POST", "/api/capacity/team-members", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/capacity/team-members"] });
       toast({ title: "Team member added successfully" });
       setShowTeamMemberDialog(false);
+      setEditingMember(null);
     },
     onError: () => {
       toast({ title: "Failed to add team member", variant: "destructive" });
@@ -109,7 +111,7 @@ export default function CapacityPlanning() {
   });
 
   const updateTeamMemberMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<TeamMember> }) => 
+    mutationFn: ({ id, data }: { id: number; data: any }) => 
       apiRequest("PUT", `/api/capacity/team-members/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/capacity/team-members"] });
@@ -123,8 +125,7 @@ export default function CapacityPlanning() {
   });
 
   const deleteTeamMemberMutation = useMutation({
-    mutationFn: (id: number) => 
-      apiRequest("DELETE", `/api/capacity/team-members/${id}`),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/capacity/team-members/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/capacity/team-members"] });
       toast({ title: "Team member removed successfully" });
@@ -141,6 +142,7 @@ export default function CapacityPlanning() {
       queryClient.invalidateQueries({ queryKey: ["/api/capacity/departments"] });
       toast({ title: "Department created successfully" });
       setShowDepartmentDialog(false);
+      setEditingDepartment(null);
     },
     onError: () => {
       toast({ title: "Failed to create department", variant: "destructive" });
@@ -161,10 +163,184 @@ export default function CapacityPlanning() {
     }
   });
 
+  const renderTeamsSection = (teams: any[], location: string) => (
+    <>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">{location} Production Teams</h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {teams.map((team) => {
+          const members = teamMembers.filter((m) => 
+            m.teamName === team.name && m.location === location
+          );
+          const utilization = calculateTeamUtilization(team.bayIds);
+          
+          return (
+            <Card key={team.name} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>{team.name}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedTeam(team.name);
+                      setSelectedLocation(location);
+                      setEditingMember(null);
+                      setShowTeamMemberDialog(true);
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </CardTitle>
+                <CardDescription>
+                  {utilization.memberCount} members • {utilization.projectCount} active projects
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Team Capacity</span>
+                      <span>{utilization.totalCapacity} hrs/week</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Utilization</span>
+                      <span className={utilization.utilization > 100 ? "text-red-600 font-medium" : ""}>
+                        {utilization.utilization}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Team Members</h4>
+                    {members.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">{member.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {member.role} • {member.hoursPerWeek} hrs/week
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingMember(member);
+                              setSelectedTeam(team.name);
+                              setSelectedLocation(location);
+                              setShowTeamMemberDialog(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => deleteTeamMemberMutation.mutate(member.id)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {members.length === 0 && (
+                      <div className="text-sm text-muted-foreground text-center py-4">
+                        No team members assigned
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </>
+  );
+
+  const renderDepartmentsSection = (location: string) => {
+    // Filter departments by location
+    const locationDepartments = departments.filter(dept => 
+      dept.location === location && dept.isActive
+    );
+
+    return (
+      <>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">{location} Department Capacity</h3>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingDepartment({
+                id: 0,
+                departmentName: "",
+                departmentType: "fabrication",
+                location,
+                weeklyCapacityHours: 2000,
+                isActive: true,
+                notes: "",
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              setShowDepartmentDialog(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Department
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {locationDepartments.map((dept) => {
+            const deptMembers = teamMembers.filter((m) => 
+              m.departmentId === dept.id && m.isActive
+            );
+            return (
+              <DepartmentCapacityCard
+                key={dept.id}
+                department={dept}
+                members={deptMembers}
+                onAddMember={() => {
+                  setSelectedDepartment(dept.id);
+                  setEditingMember(null);
+                  setShowTeamMemberDialog(true);
+                }}
+                onEditMember={(member) => {
+                  setEditingMember(member);
+                  setSelectedDepartment(member.departmentId);
+                  setShowTeamMemberDialog(true);
+                }}
+                onDeleteMember={(id) => deleteTeamMemberMutation.mutate(id)}
+                onEditDepartment={() => {
+                  setEditingDepartment(dept);
+                  setShowDepartmentDialog(true);
+                }}
+              />
+            );
+          })}
+          {locationDepartments.length === 0 && (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              <Factory className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No departments configured for {location} yet.</p>
+              <p className="text-sm mt-2">Click "Add Department" to get started.</p>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="columbia-falls" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="columbia-falls">
             <MapPin className="h-4 w-4 mr-2" />
             Columbia Falls, MT
@@ -173,210 +349,54 @@ export default function CapacityPlanning() {
             <MapPin className="h-4 w-4 mr-2" />
             Libby, MT
           </TabsTrigger>
-          <TabsTrigger value="departments">
-            <Factory className="h-4 w-4 mr-2" />
-            Departments
-          </TabsTrigger>
         </TabsList>
 
+        {/* Columbia Falls Tab */}
         <TabsContent value="columbia-falls" className="space-y-4 mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Columbia Falls Production Teams</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {columbiaFallsTeams.map((team) => {
-              const members = teamMembers.filter((m) => 
-                m.teamName === team.name && m.location === "Columbia Falls, MT"
-              );
-              const utilization = calculateTeamUtilization(team.bayIds);
-              
-              return (
-                <Card key={team.name} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{team.name}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedTeam(team.name);
-                          setSelectedLocation("Columbia Falls, MT");
-                          setEditingMember(null);
-                          setShowTeamMemberDialog(true);
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </CardTitle>
-                    <CardDescription>
-                      {utilization.scheduledProjects} active projects • {utilization.utilizationPercent}% utilized
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="text-sm text-muted-foreground">
-                        Team Capacity: {utilization.totalCapacityHours} hrs/week
-                      </div>
-                      {members.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                          <div>
-                            <div className="font-medium">{member.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {member.role} • {member.hoursPerWeek} hrs/week
-                            </div>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingMember(member);
-                                setSelectedTeam(team.name);
-                                setSelectedLocation("Columbia Falls, MT");
-                                setShowTeamMemberDialog(true);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => deleteTeamMemberMutation.mutate(member.id)}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {members.length === 0 && (
-                        <div className="text-sm text-muted-foreground text-center py-4">
-                          No team members assigned
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          <Tabs defaultValue="teams" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="teams">
+                <Users className="h-4 w-4 mr-2" />
+                Production Teams
+              </TabsTrigger>
+              <TabsTrigger value="departments">
+                <Factory className="h-4 w-4 mr-2" />
+                Departments
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="teams" className="mt-6">
+              {renderTeamsSection(columbiaFallsTeams, "Columbia Falls, MT")}
+            </TabsContent>
+            
+            <TabsContent value="departments" className="mt-6">
+              {renderDepartmentsSection("Columbia Falls, MT")}
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
+        {/* Libby Tab */}
         <TabsContent value="libby" className="space-y-4 mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Libby Production Teams</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {libbyTeams.map((team) => {
-              const members = teamMembers.filter((m) => 
-                m.teamName === team.name && m.location === "Libby, MT"
-              );
-              const utilization = calculateTeamUtilization(team.bayIds);
-              
-              return (
-                <Card key={team.name} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{team.name}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedTeam(team.name);
-                          setSelectedLocation("Libby, MT");
-                          setEditingMember(null);
-                          setShowTeamMemberDialog(true);
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </CardTitle>
-                    <CardDescription>
-                      {utilization.scheduledProjects} active projects • {utilization.utilizationPercent}% utilized
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="text-sm text-muted-foreground">
-                        Team Capacity: {utilization.totalCapacityHours} hrs/week
-                      </div>
-                      {members.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                          <div>
-                            <div className="font-medium">{member.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {member.role} • {member.hoursPerWeek} hrs/week
-                            </div>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingMember(member);
-                                setSelectedTeam(team.name);
-                                setSelectedLocation("Libby, MT");
-                                setShowTeamMemberDialog(true);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => deleteTeamMemberMutation.mutate(member.id)}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {members.length === 0 && (
-                        <div className="text-sm text-muted-foreground text-center py-4">
-                          No team members assigned
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="departments" className="space-y-4 mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Department Capacity</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {departments.map((dept) => {
-              const deptMembers = teamMembers.filter((m) => m.departmentId === dept.id);
-              return (
-                <DepartmentCapacityCard
-                  key={dept.id}
-                  department={dept}
-                  members={deptMembers}
-                  onAddMember={() => {
-                    setSelectedDepartment(dept.id);
-                    setEditingMember(null);
-                    setShowTeamMemberDialog(true);
-                  }}
-                  onEditMember={(member) => {
-                    setEditingMember(member);
-                    setSelectedDepartment(member.departmentId);
-                    setShowTeamMemberDialog(true);
-                  }}
-                  onDeleteMember={(id) => deleteTeamMemberMutation.mutate(id)}
-                  onEditDepartment={() => {
-                    setEditingDepartment(dept);
-                    setShowDepartmentDialog(true);
-                  }}
-                />
-              );
-            })}
-          </div>
+          <Tabs defaultValue="teams" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="teams">
+                <Users className="h-4 w-4 mr-2" />
+                Production Teams
+              </TabsTrigger>
+              <TabsTrigger value="departments">
+                <Factory className="h-4 w-4 mr-2" />
+                Departments
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="teams" className="mt-6">
+              {renderTeamsSection(libbyTeams, "Libby, MT")}
+            </TabsContent>
+            
+            <TabsContent value="departments" className="mt-6">
+              {renderDepartmentsSection("Libby, MT")}
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
 
@@ -406,13 +426,13 @@ export default function CapacityPlanning() {
       )}
 
       {/* Department Dialog */}
-      {showDepartmentDialog && (
+      {showDepartmentDialog && editingDepartment && (
         <DepartmentDialog
           open={showDepartmentDialog}
           onOpenChange={setShowDepartmentDialog}
           department={editingDepartment}
           onSave={(data) => {
-            if (editingDepartment) {
+            if (editingDepartment.id) {
               updateDepartmentMutation.mutate({ id: editingDepartment.id, data });
             } else {
               createDepartmentMutation.mutate(data);
