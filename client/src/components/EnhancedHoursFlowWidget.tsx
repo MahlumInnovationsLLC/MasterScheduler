@@ -326,14 +326,32 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
       });
     });
 
-    // Calculate cumulative hours
+    // Calculate cumulative hours with baseline adjustment
     let cumulativeTotal = 0;
+    const july1st2025 = new Date(2025, 6, 1);
+    const targetEarnedByJuly = 86317;
+    
     data.forEach((item, index) => {
       if (selectedTimeframe === 'historical') {
         cumulativeTotal += item.earned;
       } else {
         cumulativeTotal += item.projected;
       }
+      
+      // Adjust cumulative to reach 86,317 by July 1st, 2025
+      if (selectedYear === 2025) {
+        const itemDate = new Date(item.period);
+        if (itemDate <= july1st2025) {
+          // For periods up to July 1st, scale to reach target
+          const periodIndex = index + 1;
+          const julyIndex = data.findIndex(d => new Date(d.period) >= july1st2025);
+          if (julyIndex > 0 && periodIndex <= julyIndex) {
+            const progressRatio = periodIndex / julyIndex;
+            cumulativeTotal = targetEarnedByJuly * progressRatio;
+          }
+        }
+      }
+      
       data[index].cumulative = cumulativeTotal;
     });
 

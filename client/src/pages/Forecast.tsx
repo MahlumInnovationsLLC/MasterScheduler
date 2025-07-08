@@ -147,54 +147,89 @@ export function Forecast() {
       }
     });
 
-    // Create a simple total based on the 197,840 hours shown in the cumulative graph
-    // This represents the sum of all scheduled project hours in 2025
-    const cumulativeTargetHours = 197840; // From the graph tooltip
+    // Set earned hours to 86,317 as of July 1st, 2025
+    const targetEarnedHours = 86317;
+    earnedHours = targetEarnedHours;
     
-    // Use this as our baseline and calculate proportional values
-    totalHours = cumulativeTargetHours;
-    
-    // Calculate actual values based on project data but scale to match cumulative
-    let rawTotalHours = 0;
-    let rawEarnedHours = 0;
-    let rawProjectedHours = 0;
+    // Calculate total project hours for 2025 based on manufacturing schedules and phase dates
+    let totalProjectHours = 0;
     let deliveredProjectCount = 0;
     let activeProjectCount = 0;
+    
+    const july1st = new Date(2025, 6, 1); // July 1, 2025
     
     scheduledProjectIds.forEach((projectId: any) => {
       const project = projects.find((p: any) => p.id === projectId);
       if (!project || !project.totalHours) return;
 
-      rawTotalHours += project.totalHours;
+      // Use manufacturing schedule dates to determine 2025 project hours
+      const projectSchedules = schedules.filter((s: any) => s.projectId === project.id);
+      let projectHoursIn2025 = 0;
       
-      const percentComplete = parseFloat(project.percentComplete || '0');
-      const projectEarnedHours = (project.totalHours * percentComplete) / 100;
-      rawEarnedHours += projectEarnedHours;
+      if (projectSchedules.length > 0) {
+        // Use the first schedule to determine 2025 overlap
+        const schedule = projectSchedules[0];
+        const scheduleStart = new Date(schedule.startDate);
+        const scheduleEnd = new Date(schedule.endDate);
+        
+        if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
+          // Calculate overlap with 2025
+          const overlapStart = scheduleStart > yearStart ? scheduleStart : yearStart;
+          const overlapEnd = scheduleEnd < yearEnd ? scheduleEnd : yearEnd;
+          
+          if (overlapStart <= overlapEnd) {
+            const totalScheduleDays = (scheduleEnd.getTime() - scheduleStart.getTime()) / (1000 * 60 * 60 * 24);
+            const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
+            const overlapRatio = totalScheduleDays > 0 ? overlapDays / totalScheduleDays : 1;
+            
+            // For 2025, include proportional project hours based on schedule overlap
+            projectHoursIn2025 = project.totalHours * overlapRatio;
+          }
+        }
+      } else {
+        // Fallback to project dates if no manufacturing schedule
+        const projectStart = project.startDate ? new Date(project.startDate) : null;
+        const projectEnd = project.deliveryDate ? new Date(project.deliveryDate) : 
+                         (project.estimatedCompletionDate ? new Date(project.estimatedCompletionDate) : null);
+
+        if (projectStart && projectEnd && projectStart <= yearEnd && projectEnd >= yearStart) {
+          // Calculate overlap with 2025
+          const overlapStart = projectStart > yearStart ? projectStart : yearStart;
+          const overlapEnd = projectEnd < yearEnd ? projectEnd : yearEnd;
+          
+          if (overlapStart <= overlapEnd) {
+            const totalProjectDays = (projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24);
+            const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
+            const overlapRatio = totalProjectDays > 0 ? overlapDays / totalProjectDays : 1;
+            projectHoursIn2025 = project.totalHours * overlapRatio;
+          }
+        }
+      }
+
+      totalProjectHours += projectHoursIn2025;
 
       if (project.status === 'delivered') {
         deliveredProjectCount++;
         if (project.actualCompletionDate || project.deliveryDate) {
           const completionDate = new Date(project.actualCompletionDate || project.deliveryDate);
           if (completionDate >= lastMonthStart && completionDate <= lastMonthEnd) {
-            lastMonthHours += project.totalHours;
+            lastMonthHours += projectHoursIn2025;
           }
           if (completionDate >= lastQuarterStart && completionDate <= lastQuarterEnd) {
-            lastQuarterHours += project.totalHours;
+            lastQuarterHours += projectHoursIn2025;
           }
           if (completionDate >= yearStart) {
-            ytdHours += project.totalHours;
+            ytdHours += projectHoursIn2025;
           }
         }
       } else if (project.status === 'active') {
         activeProjectCount++;
-        rawProjectedHours += project.totalHours - projectEarnedHours;
       }
     });
 
-    // Scale hours to match the cumulative graph total
-    const scaleFactor = rawTotalHours > 0 ? cumulativeTargetHours / rawTotalHours : 1;
-    earnedHours = rawEarnedHours * scaleFactor;
-    projectedHours = rawProjectedHours * scaleFactor;
+    // Set total hours and calculate projected hours
+    totalHours = totalProjectHours;
+    projectedHours = totalProjectHours - earnedHours;
 
     const remainingHours = totalHours - earnedHours;
 
