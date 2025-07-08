@@ -260,6 +260,7 @@ function MainContent() {
             <ProtectedRoute path="/material-management" component={MaterialManagement} />
             <ProtectedRoute path="/engineering" component={Engineering} />
             <ViewerRestrictedRoute path="/forecast" component={Forecast} />
+            <ProtectedRoute path="/capacity-management" component={CapacityManagement} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/settings/system" component={SystemSettings} />
             <AdminRoute path="/system-settings" component={SystemSettings} />
