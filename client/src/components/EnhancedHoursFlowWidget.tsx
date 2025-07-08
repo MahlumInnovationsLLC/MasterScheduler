@@ -354,8 +354,18 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
       const july1st2025 = new Date(2025, 6, 1);
       const baselineAccumulatedHours = 86317;
       
-      // Find the July index (month 6, 0-based)
-      const julyIndex = data.findIndex(d => new Date(d.period) >= july1st2025);
+      // Find the July index (month 6, 0-based) - look for "Jul" in month view
+      const julyIndex = data.findIndex(d => {
+        if (typeof d.period === 'string' && d.period.includes('Jul')) {
+          return true;
+        }
+        const periodDate = new Date(d.period);
+        return periodDate.getMonth() === 6 && periodDate.getFullYear() === 2025;
+      });
+      
+      console.log('DEBUG: July index found:', julyIndex, 'Data length:', data.length);
+      console.log('DEBUG: July 1st 2025:', july1st2025);
+      console.log('DEBUG: First few periods:', data.slice(0, 3).map(d => d.period));
       
       let cumulativeTotal = 0;
       data.forEach((item, index) => {
@@ -363,30 +373,15 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
           // For periods before July, scale to reach 86,317 by July 1st
           const progressRatio = (index + 1) / julyIndex;
           cumulativeTotal = baselineAccumulatedHours * progressRatio;
+          console.log(`DEBUG: Month ${index + 1} (before July): ${cumulativeTotal.toFixed(0)} hours`);
         } else if (index === julyIndex) {
           // July starts at the baseline
           cumulativeTotal = baselineAccumulatedHours;
+          console.log(`DEBUG: July (index ${index}): ${cumulativeTotal.toFixed(0)} hours`);
         } else {
           // For periods after July, add projected hours to continue accumulation
           cumulativeTotal += item.projected;
-        }
-        
-        data[index].cumulative = cumulativeTotal;
-      });
-      
-      // Recalculate cumulative properly without artificial scaling
-      cumulativeTotal = 0;
-      data.forEach((item, index) => {
-        if (julyIndex >= 0 && index < julyIndex) {
-          // For periods before July, scale to reach 86,317 by July 1st
-          const progressRatio = (index + 1) / julyIndex;
-          cumulativeTotal = baselineAccumulatedHours * progressRatio;
-        } else if (index === julyIndex) {
-          // July starts at the baseline
-          cumulativeTotal = baselineAccumulatedHours;
-        } else {
-          // For periods after July, add actual projected hours from manufacturing schedules
-          cumulativeTotal += item.projected;
+          console.log(`DEBUG: Month ${index + 1} (after July): +${item.projected.toFixed(0)} = ${cumulativeTotal.toFixed(0)} hours`);
         }
         
         data[index].cumulative = cumulativeTotal;
@@ -395,11 +390,7 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
       // For other years, use normal cumulative calculation
       let cumulativeTotal = 0;
       data.forEach((item, index) => {
-        if (selectedTimeframe === 'historical') {
-          cumulativeTotal += item.earned;
-        } else {
-          cumulativeTotal += item.projected;
-        }
+        cumulativeTotal += item.projected;
         data[index].cumulative = cumulativeTotal;
       });
     }
