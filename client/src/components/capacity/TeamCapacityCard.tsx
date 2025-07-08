@@ -39,15 +39,14 @@ export default function TeamCapacityCard({
     const project = projects.find(p => p.id === schedule.projectId);
     if (!project || project.status === "Delivered" || project.status === "Cancelled") return false;
     
-    // Check if project is in production-related phases (Assembly/Production, IT, NTC, QC)
-    const assemblyStart = project.assemblyStartDate ? new Date(project.assemblyStartDate) : null;
-    const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : null;
-    const deliveryDate = project.deliveryDate ? new Date(project.deliveryDate) : null;
+    // Check if project is currently active in bay (between Production Start and NTC Start)
+    const productionStart = project.productionStartDate ? new Date(project.productionStartDate) : null;
+    const ntcStart = project.ntcStartDate ? new Date(project.ntcStartDate) : null;
     
-    // Project is active if today is between assembly start and delivery (or if no delivery date, assume ongoing)
-    return assemblyStart && 
-           today >= assemblyStart && 
-           (!deliveryDate || today <= deliveryDate);
+    // Project is active if today is between production start and ntc start dates
+    return productionStart && 
+           today >= productionStart && 
+           (!ntcStart || today <= ntcStart);
   });
 
   const utilization = Math.min(100, (members.length > 0 ? (members.length / 2) * 50 : 0));

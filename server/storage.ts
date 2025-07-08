@@ -6229,26 +6229,31 @@ export class DatabaseStorage implements IStorage {
 
   // Team Members methods implementation
   async getTeamMembers(filters?: { bayId?: number; departmentId?: number; isActive?: boolean }): Promise<TeamMember[]> {
-    let query = db.select().from(teamMembers);
-    
-    const conditions = [];
-    if (filters?.bayId !== undefined) {
-      conditions.push(eq(teamMembers.bayId, filters.bayId));
+    try {
+      let query = db.select().from(teamMembers);
+      
+      const conditions = [];
+      if (filters?.bayId !== undefined) {
+        conditions.push(eq(teamMembers.bayId, filters.bayId));
+      }
+      if (filters?.departmentId !== undefined) {
+        conditions.push(eq(teamMembers.departmentId, filters.departmentId));
+      }
+      if (filters?.isActive !== undefined) {
+        conditions.push(eq(teamMembers.isActive, filters.isActive));
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+      
+      return await safeQuery<TeamMember>(() =>
+        query.orderBy(asc(teamMembers.name))
+      );
+    } catch (error) {
+      console.error("Error in getTeamMembers:", error);
+      throw error;
     }
-    if (filters?.departmentId !== undefined) {
-      conditions.push(eq(teamMembers.departmentId, filters.departmentId));
-    }
-    if (filters?.isActive !== undefined) {
-      conditions.push(eq(teamMembers.isActive, filters.isActive));
-    }
-    
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    
-    return await safeQuery<TeamMember>(() =>
-      query.orderBy(asc(teamMembers.name))
-    );
   }
 
   async getTeamMember(id: number): Promise<TeamMember | null> {

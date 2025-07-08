@@ -94,7 +94,9 @@ router.get("/team-members", async (req: AppRequest, res) => {
     if (departmentId) filters.departmentId = parseInt(departmentId as string);
     if (isActive !== undefined) filters.isActive = isActive === 'true';
     
+    console.log("Fetching team members with filters:", filters);
     const members = await req.storage.getTeamMembers(filters);
+    console.log("Found team members:", members.length);
     res.json(members);
   } catch (error) {
     console.error("Error fetching team members:", error);
