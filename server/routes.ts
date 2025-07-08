@@ -4093,6 +4093,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Authentication error" });
     }
   });
+
+  // User settings endpoints
+  app.get("/api/user-settings", async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const result = await pool.query(
+        "SELECT * FROM user_settings WHERE user_id = $1",
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        // Return default settings if none exist
+        return res.json({
+          engineering_hours: 65000,
+          capacity_hours: 130000
+        });
+      }
+
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+      res.status(500).json({ message: "Error fetching user settings" });
+    }
+  });
+
+  app.post("/api/user-settings", async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const { engineering_hours, capacity_hours } = req.body;
+
+      const result = await pool.query(
+        `INSERT INTO user_settings (user_id, engineering_hours, capacity_hours, updated_at) 
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP) 
+         ON CONFLICT (user_id) 
+         DO UPDATE SET 
+           engineering_hours = $2,
+           capacity_hours = $3,
+           updated_at = CURRENT_TIMESTAMP
+         RETURNING *`,
+        [userId, engineering_hours, capacity_hours]
+      );
+
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error saving user settings:", error);
+      res.status(500).json({ message: "Error saving user settings" });
+    }
+  });
   
   // Allowed Email patterns for auto-approval (admin only)
   app.get("/api/allowed-emails", async (req, res) => {

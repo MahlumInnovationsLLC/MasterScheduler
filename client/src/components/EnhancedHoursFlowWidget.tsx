@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Activity, TrendingUp, Calendar, Clock, AlertCircle, Lightbulb, BarChart, X } from 'lucide-react';
 import { AreaChart, Area, BarChart as RechartsBarChart, Bar, Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import { format, addWeeks, addMonths, addQuarters, addYears, startOfWeek, startOfMonth, startOfQuarter, startOfYear, endOfWeek, endOfMonth, endOfQuarter, endOfYear, subWeeks, subMonths, subQuarters, subYears, differenceInDays } from 'date-fns';
+import { apiRequest } from '@/lib/queryClient';
 
 interface HoursFlowData {
   period: string;
@@ -37,19 +39,41 @@ interface EnhancedHoursFlowWidgetProps {
 }
 
 export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFlowWidgetProps) {
+  const queryClient = useQueryClient();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   const [selectedTimeframe, setSelectedTimeframe] = useState<'historical' | 'future'>('future');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [hoursFlowData, setHoursFlowData] = useState<HoursFlowData[]>([]);
   const [insights, setInsights] = useState<HoursFlowInsight[]>([]);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
-  const [manualCapacity, setManualCapacity] = useState<number | null>(null);
+  const [editingCapacity, setEditingCapacity] = useState<number | null>(null);
   const [showCapacityEdit, setShowCapacityEdit] = useState(false);
   const [visibleLines, setVisibleLines] = useState({
     projected: true,
     capacity: true,
     cumulative: true
   });
+
+  // Fetch user settings from database
+  const { data: userSettings } = useQuery({
+    queryKey: ['/api/user-settings'],
+  });
+
+  // Mutation for saving user settings
+  const updateUserSettingsMutation = useMutation({
+    mutationFn: (settings: { engineering_hours?: number; capacity_hours?: number }) =>
+      apiRequest('POST', '/api/user-settings', settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user-settings'] });
+    },
+  });
+
+  // Update local state when user settings are loaded
+  useEffect(() => {
+    if (userSettings) {
+      setManualCapacity(userSettings.capacity_hours || null);
+    }
+  }, [userSettings]);
   const [selectedMonthData, setSelectedMonthData] = useState<{
     period: string;
     projects: Array<{
@@ -441,7 +465,7 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
                           selectedPeriod === 'month' ? 4.33 : 
                           selectedPeriod === 'quarter' ? 13 : 52;
       const defaultResourceCount = 50; // Default resource count
-      const capacity = manualCapacity || (weeksInPeriod * 40 * defaultResourceCount);
+      const capacity = (userSettings?.capacity_hours ? userSettings.capacity_hours : null) || (weeksInPeriod * 40 * defaultResourceCount);
 
 
       
@@ -466,7 +490,7 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
     if (selectedYear === 2025 && selectedTimeframe === 'future') {
       const baselineAccumulatedHours = 86317;
       const targetTotalHours = 195000;
-      const engineeringHoursPerMonth = 2000;
+      const engineeringHoursPerMonth = userSettings?.engineering_hours || 2000;
       const manufacturingHoursNeeded = targetTotalHours - baselineAccumulatedHours - (engineeringHoursPerMonth * 6);
       
       // Find the July index (month 6, 0-based) - look for "Jul" in month view
@@ -634,24 +658,33 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
               <>
                 <input
                   type="number"
-                  value={manualCapacity || ''}
-                  onChange={(e) => setManualCapacity(e.target.value ? parseInt(e.target.value) : null)}
+                  value={editingCapacity || ''}
+                  onChange={(e) => setEditingCapacity(e.target.value ? parseInt(e.target.value) : null)}
                   placeholder="Capacity hours"
                   className="w-32 px-2 py-1 text-sm border rounded"
                 />
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setShowCapacityEdit(false)}
+                  onClick={() => {
+                    updateUserSettingsMutation.mutate({
+                      capacity_hours: editingCapacity
+                    });
+                    setShowCapacityEdit(false);
+                  }}
+                  disabled={updateUserSettingsMutation.isPending}
                 >
-                  Set
+                  {updateUserSettingsMutation.isPending ? 'Saving...' : 'Set'}
                 </Button>
               </>
             ) : (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setShowCapacityEdit(true)}
+                onClick={() => {
+                  setEditingCapacity(userSettings?.capacity_hours || null);
+                  setShowCapacityEdit(true);
+                }}
               >
                 Edit Capacity
               </Button>

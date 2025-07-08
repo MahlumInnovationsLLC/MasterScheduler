@@ -53,6 +53,7 @@ import {
   engineeringBenchmarks,
   benchmarkTemplates,
   projectEngineeringAssignments,
+  userSettings,
   type User,
   type InsertUser,
   type Project,

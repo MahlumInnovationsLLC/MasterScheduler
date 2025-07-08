@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePermissions } from '@/components/PermissionsManager';
 import { Redirect } from 'wouter';
 import { Clock, TrendingUp, Calendar, Activity, ChevronRight, BarChart3, FileText, Settings, Plus } from 'lucide-react';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { format, startOfMonth, endOfMonth, subMonths, subQuarters, startOfYear } from 'date-fns';
+import { apiRequest } from '@/lib/queryClient';
 
 interface ForecastStats {
   totalHours: number;
@@ -108,6 +109,7 @@ function HoursStatusCard({ title, value, type, stats }: HoursStatusCardProps) {
 
 export function Forecast() {
   const { userRole } = usePermissions();
+  const queryClient = useQueryClient();
   const [selectedPeriod, setSelectedPeriod] = useState<'lastMonth' | 'lastQuarter' | 'ytd'>('lastMonth');
   const [engineeringHoursPerMonth, setEngineeringHoursPerMonth] = useState<number>(2000);
   const [showEngineeringSettings, setShowEngineeringSettings] = useState<boolean>(false);
@@ -116,6 +118,41 @@ export function Forecast() {
   if (userRole !== 'editor' && userRole !== 'admin') {
     return <Redirect to="/" />;
   }
+
+  // Fetch user settings from database
+  const { data: userSettings } = useQuery({
+    queryKey: ['/api/user-settings'],
+  });
+
+  // Mutation for saving user settings
+  const saveSettingsMutation = useMutation({
+    mutationFn: (settings: { engineering_hours: number; capacity_hours: number }) =>
+      apiRequest('POST', '/api/user-settings', settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user-settings'] });
+    },
+  });
+
+  // Update local state when user settings are loaded
+  useEffect(() => {
+    if (userSettings) {
+      setEngineeringHoursPerMonth(userSettings.engineering_hours || 2000);
+    }
+  }, [userSettings]);
+
+  // Update settings in database when engineering hours change
+  useEffect(() => {
+    if (userSettings && engineeringHoursPerMonth !== (userSettings.engineering_hours || 2000)) {
+      const timeoutId = setTimeout(() => {
+        saveSettingsMutation.mutate({
+          engineering_hours: engineeringHoursPerMonth,
+          capacity_hours: userSettings.capacity_hours || 130000,
+        });
+      }, 1000); // Debounce to avoid too many API calls
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [engineeringHoursPerMonth, userSettings, saveSettingsMutation]);
 
   // Fetch projects data
   const { data: projects = [], isLoading: projectsLoading } = useQuery({

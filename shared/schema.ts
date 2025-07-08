@@ -2208,6 +2208,35 @@ export type InsertPriorityActivityLog = z.infer<typeof insertPriorityActivityLog
 export type UserPriorityVisibility = typeof userPriorityVisibility.$inferSelect;
 export type InsertUserPriorityVisibility = z.infer<typeof insertUserPriorityVisibilitySchema>;
 
+// User Settings Table for forecast preferences
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  settingKey: text("setting_key").notNull(),
+  settingValue: text("setting_value").notNull(),
+  settingType: text("setting_type").notNull().default("string"), // "string", "number", "boolean", "json"
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  uniqueUserSetting: unique().on(table.userId, table.settingKey),
+}));
+
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [userSettings.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertUserSettingSchema = createInsertSchema(userSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type UserSetting = typeof userSettings.$inferSelect;
+export type InsertUserSetting = z.infer<typeof insertUserSettingSchema>;
+
 // Project Labels Schemas
 export const insertProjectLabelSchema = createInsertSchema(projectLabels).omit({
   id: true,
