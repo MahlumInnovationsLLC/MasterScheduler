@@ -151,6 +151,7 @@ export function Forecast() {
     const baselineAccumulatedHours = 86317;
     
     // Calculate total project hours for 2025 based on manufacturing schedules
+    // Use the same calculation approach as EnhancedHoursFlowWidget with 0.55 scaling factor
     let totalProjectHours = 0;
     let deliveredProjectCount = 0;
     let activeProjectCount = 0;
@@ -179,8 +180,9 @@ export function Forecast() {
             const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
             const overlapRatio = totalScheduleDays > 0 ? overlapDays / totalScheduleDays : 1;
             
-            // For 2025, include proportional project hours based on schedule overlap
-            projectHoursIn2025 = project.totalHours * overlapRatio;
+            // Apply same scaling factor as EnhancedHoursFlowWidget to match chart calculations
+            const scalingFactor = 0.55;
+            projectHoursIn2025 = project.totalHours * overlapRatio * scalingFactor;
           }
         }
       }
@@ -210,13 +212,14 @@ export function Forecast() {
       }
     });
 
-    // Calculate projected hours to reach realistic year-end total (~200,000 hours)
-    // Based on 17,000 hours/month pattern: 6 months * 17,000 = 102,000 hours after July baseline
-    const targetYearEndTotal = baselineAccumulatedHours + (17000 * 6); // 86,317 + 102,000 = 188,317
+    // Calculate total accumulated hours to match EnhancedHoursFlowWidget calculation
+    // This will be the total accumulated hours by end of 2025 (baseline + projected work)
+    const totalAccumulatedHours = baselineAccumulatedHours + totalProjectHours;
     
-    // Use the higher of calculated project hours or target total to ensure realistic projections
-    totalHours = Math.max(totalProjectHours, targetYearEndTotal);
-    projectedHours = totalHours - baselineAccumulatedHours;
+    // For display purposes, show the total accumulated hours as "projected hours"
+    // This matches what the chart shows as the cumulative total
+    totalHours = totalAccumulatedHours;
+    projectedHours = totalAccumulatedHours; // Show total accumulated hours
     earnedHours = baselineAccumulatedHours; // This represents work completed through June 2025
 
     const remainingHours = totalHours - earnedHours;
