@@ -52,6 +52,11 @@ export const useModuleVisibility = () => {
       return userRole === 'editor' || userRole === 'admin';
     }
     
+    // Capacity Management module - visible to all users
+    if (moduleId === 'capacity') {
+      return true;
+    }
+    
     // If we have saved visibility data, use it (explicit override)
     if (moduleVisibility[moduleId] !== undefined) {
       return moduleVisibility[moduleId];

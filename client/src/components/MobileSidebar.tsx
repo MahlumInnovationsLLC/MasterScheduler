@@ -271,6 +271,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                     </button>
                   </Link>
                 )}
+                {isModuleVisible('capacity') && (
+                  <Link href="/capacity-management">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/capacity-management') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Users size={18} />
+                      <span className="text-sm font-medium">Capacity Management</span>
+                    </button>
+                  </Link>
+                )}
 
                 {isModuleVisible('on-time-delivery') && (
                   <Link href="/on-time-delivery">

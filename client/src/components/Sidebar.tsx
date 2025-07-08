@@ -222,6 +222,16 @@ const Sidebar = () => {
                 </SidebarLink>
               </li>
             )}
+            {isModuleVisible('capacity') && (
+              <li>
+                <SidebarLink href="/capacity-management" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/capacity-management') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Capacity Management">
+                  <Users size={20} className={`${isActive('/capacity-management') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Capacity Management</span>}
+                </SidebarLink>
+              </li>
+            )}
             {isModuleVisible('on-time-delivery') && (
               <li>
                 <SidebarLink href="/on-time-delivery" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${

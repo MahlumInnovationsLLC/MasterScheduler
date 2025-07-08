@@ -330,6 +330,17 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Cumulative graph now builds from 86,317 in July to approximately 200,000 by year end
   - Hours calculation uses actual project total hours from manufacturing schedules proportionally distributed
   - Projected hours represent remaining work after July 1st baseline, reaching realistic year-end totals
+- January 08, 2025: Capacity Management Module Implementation
+  - Created comprehensive Capacity Management module with Planning and Analytics sub-tabs
+  - Added database schema for departments, team members, capacity profiles, and production team capacity
+  - Implemented full CRUD operations for managing team members and department capacity
+  - Created TeamCapacityCard and DepartmentCapacityCard components for visual capacity tracking
+  - Enabled tracking of Assembly and Electrical roles with configurable hours per week per person
+  - Built department capacity management for Fabrication, PAINT, IT, NTC, and QA departments
+  - Added real-time capacity analytics with utilization charts, role distribution, and efficiency trends
+  - Integrated with project scheduling to show team utilization based on active projects
+  - Module accessible to all users regardless of role (viewer, editor, admin)
+  - Added capacity alerts for teams exceeding 85% utilization or lacking team members
 
 ## User Preferences
 

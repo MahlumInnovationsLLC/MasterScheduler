@@ -163,6 +163,18 @@ import {
   type InsertCcbRequest,
   type CcbComment,
   type InsertCcbComment,
+  type DepartmentCapacity,
+  type InsertDepartmentCapacity,
+  type TeamMember,
+  type InsertTeamMember,
+  type CapacityProfile,
+  type InsertCapacityProfile,
+  type DepartmentCapacityHistory,
+  type InsertDepartmentCapacityHistory,
+  departmentCapacity,
+  teamMembers,
+  capacityProfiles,
+  departmentCapacityHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
@@ -505,6 +517,31 @@ export interface IStorage {
   approveCcbRequest(id: number, department: string, userId: string, comments?: string): Promise<CcbRequest | undefined>;
   rejectCcbRequest(id: number, userId: string, reason: string): Promise<CcbRequest | undefined>;
   implementCcbRequest(id: number, userId: string, notes?: string): Promise<CcbRequest | undefined>;
+
+  // Capacity Management methods
+  getDepartmentCapacities(): Promise<DepartmentCapacity[]>;
+  getDepartmentCapacity(id: number): Promise<DepartmentCapacity | null>;
+  createDepartmentCapacity(capacity: InsertDepartmentCapacity): Promise<DepartmentCapacity>;
+  updateDepartmentCapacity(id: number, capacity: Partial<InsertDepartmentCapacity>): Promise<DepartmentCapacity | null>;
+  deleteDepartmentCapacity(id: number): Promise<boolean>;
+
+  // Team Members methods
+  getTeamMembers(filters?: { bayId?: number; departmentId?: number; isActive?: boolean }): Promise<TeamMember[]>;
+  getTeamMember(id: number): Promise<TeamMember | null>;
+  createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  updateTeamMember(id: number, member: Partial<InsertTeamMember>): Promise<TeamMember | null>;
+  deleteTeamMember(id: number): Promise<boolean>;
+
+  // Capacity Profiles methods
+  getCapacityProfiles(): Promise<CapacityProfile[]>;
+  getCapacityProfile(id: number): Promise<CapacityProfile | null>;
+  createCapacityProfile(profile: InsertCapacityProfile): Promise<CapacityProfile>;
+  updateCapacityProfile(id: number, profile: Partial<InsertCapacityProfile>): Promise<CapacityProfile | null>;
+  deleteCapacityProfile(id: number): Promise<boolean>;
+
+  // Department Capacity History methods
+  getDepartmentCapacityHistory(departmentId: number, startDate?: Date, endDate?: Date): Promise<DepartmentCapacityHistory[]>;
+  createDepartmentCapacityHistory(history: InsertDepartmentCapacityHistory): Promise<DepartmentCapacityHistory>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -6132,6 +6169,222 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error deleting project engineering assignment:", error);
       return false;
+    }
+  }
+
+  // Capacity Management methods implementation
+  async getDepartmentCapacities(): Promise<DepartmentCapacity[]> {
+    return await safeQuery<DepartmentCapacity>(() =>
+      db.select().from(departmentCapacity).orderBy(asc(departmentCapacity.departmentName))
+    );
+  }
+
+  async getDepartmentCapacity(id: number): Promise<DepartmentCapacity | null> {
+    const result = await safeSingleQuery<DepartmentCapacity>(() =>
+      db.select().from(departmentCapacity).where(eq(departmentCapacity.id, id))
+    );
+    return result || null;
+  }
+
+  async createDepartmentCapacity(capacity: InsertDepartmentCapacity): Promise<DepartmentCapacity> {
+    try {
+      const [newCapacity] = await db.insert(departmentCapacity).values({
+        ...capacity,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newCapacity;
+    } catch (error) {
+      console.error("Error creating department capacity:", error);
+      throw error;
+    }
+  }
+
+  async updateDepartmentCapacity(id: number, capacity: Partial<InsertDepartmentCapacity>): Promise<DepartmentCapacity | null> {
+    try {
+      const [updatedCapacity] = await db
+        .update(departmentCapacity)
+        .set({
+          ...capacity,
+          updatedAt: new Date()
+        })
+        .where(eq(departmentCapacity.id, id))
+        .returning();
+      return updatedCapacity || null;
+    } catch (error) {
+      console.error("Error updating department capacity:", error);
+      return null;
+    }
+  }
+
+  async deleteDepartmentCapacity(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(departmentCapacity).where(eq(departmentCapacity.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting department capacity:", error);
+      return false;
+    }
+  }
+
+  // Team Members methods implementation
+  async getTeamMembers(filters?: { bayId?: number; departmentId?: number; isActive?: boolean }): Promise<TeamMember[]> {
+    let query = db.select().from(teamMembers);
+    
+    const conditions = [];
+    if (filters?.bayId !== undefined) {
+      conditions.push(eq(teamMembers.bayId, filters.bayId));
+    }
+    if (filters?.departmentId !== undefined) {
+      conditions.push(eq(teamMembers.departmentId, filters.departmentId));
+    }
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(teamMembers.isActive, filters.isActive));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    return await safeQuery<TeamMember>(() =>
+      query.orderBy(asc(teamMembers.name))
+    );
+  }
+
+  async getTeamMember(id: number): Promise<TeamMember | null> {
+    const result = await safeSingleQuery<TeamMember>(() =>
+      db.select().from(teamMembers).where(eq(teamMembers.id, id))
+    );
+    return result || null;
+  }
+
+  async createTeamMember(member: InsertTeamMember): Promise<TeamMember> {
+    try {
+      const [newMember] = await db.insert(teamMembers).values({
+        ...member,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newMember;
+    } catch (error) {
+      console.error("Error creating team member:", error);
+      throw error;
+    }
+  }
+
+  async updateTeamMember(id: number, member: Partial<InsertTeamMember>): Promise<TeamMember | null> {
+    try {
+      const [updatedMember] = await db
+        .update(teamMembers)
+        .set({
+          ...member,
+          updatedAt: new Date()
+        })
+        .where(eq(teamMembers.id, id))
+        .returning();
+      return updatedMember || null;
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      return null;
+    }
+  }
+
+  async deleteTeamMember(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(teamMembers).where(eq(teamMembers.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting team member:", error);
+      return false;
+    }
+  }
+
+  // Capacity Profiles methods implementation
+  async getCapacityProfiles(): Promise<CapacityProfile[]> {
+    return await safeQuery<CapacityProfile>(() =>
+      db.select().from(capacityProfiles).orderBy(asc(capacityProfiles.profileName))
+    );
+  }
+
+  async getCapacityProfile(id: number): Promise<CapacityProfile | null> {
+    const result = await safeSingleQuery<CapacityProfile>(() =>
+      db.select().from(capacityProfiles).where(eq(capacityProfiles.id, id))
+    );
+    return result || null;
+  }
+
+  async createCapacityProfile(profile: InsertCapacityProfile): Promise<CapacityProfile> {
+    try {
+      const [newProfile] = await db.insert(capacityProfiles).values({
+        ...profile,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newProfile;
+    } catch (error) {
+      console.error("Error creating capacity profile:", error);
+      throw error;
+    }
+  }
+
+  async updateCapacityProfile(id: number, profile: Partial<InsertCapacityProfile>): Promise<CapacityProfile | null> {
+    try {
+      const [updatedProfile] = await db
+        .update(capacityProfiles)
+        .set({
+          ...profile,
+          updatedAt: new Date()
+        })
+        .where(eq(capacityProfiles.id, id))
+        .returning();
+      return updatedProfile || null;
+    } catch (error) {
+      console.error("Error updating capacity profile:", error);
+      return null;
+    }
+  }
+
+  async deleteCapacityProfile(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(capacityProfiles).where(eq(capacityProfiles.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting capacity profile:", error);
+      return false;
+    }
+  }
+
+  // Department Capacity History methods implementation
+  async getDepartmentCapacityHistory(departmentId: number, startDate?: Date, endDate?: Date): Promise<DepartmentCapacityHistory[]> {
+    let query = db.select().from(departmentCapacityHistory)
+      .where(eq(departmentCapacityHistory.departmentId, departmentId));
+    
+    const conditions = [eq(departmentCapacityHistory.departmentId, departmentId)];
+    
+    if (startDate) {
+      conditions.push(gte(departmentCapacityHistory.weekStartDate, startDate.toISOString().split('T')[0]));
+    }
+    if (endDate) {
+      conditions.push(lte(departmentCapacityHistory.weekStartDate, endDate.toISOString().split('T')[0]));
+    }
+    
+    return await safeQuery<DepartmentCapacityHistory>(() =>
+      db.select().from(departmentCapacityHistory)
+        .where(and(...conditions))
+        .orderBy(desc(departmentCapacityHistory.weekStartDate))
+    );
+  }
+
+  async createDepartmentCapacityHistory(history: InsertDepartmentCapacityHistory): Promise<DepartmentCapacityHistory> {
+    try {
+      const [newHistory] = await db.insert(departmentCapacityHistory).values({
+        ...history,
+        createdAt: new Date()
+      }).returning();
+      return newHistory;
+    } catch (error) {
+      console.error("Error creating department capacity history:", error);
+      throw error;
     }
   }
 

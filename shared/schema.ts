@@ -858,6 +858,133 @@ export const manufacturingSchedulesRelations = relations(manufacturingSchedules,
   }),
 }));
 
+// Department Types Enum
+export const departmentTypeEnum = pgEnum("department_type", [
+  "fabrication",
+  "paint",
+  "production",
+  "it",
+  "ntc",
+  "qa",
+]);
+
+// Department Capacity Table
+export const departmentCapacity = pgTable("department_capacity", {
+  id: serial("id").primaryKey(),
+  departmentType: departmentTypeEnum("department_type").notNull().unique(),
+  departmentName: text("department_name").notNull(),
+  totalStaffCount: integer("total_staff_count").default(0),
+  weeklyCapacityHours: integer("weekly_capacity_hours").default(0), // Total available hours per week
+  utilizationTarget: integer("utilization_target").default(85), // Target utilization percentage
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Team Members Table (for both production teams and departments)
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  role: text("role").notNull(), // e.g., "Assembly", "Electrical", "Fabricator", "Painter", etc.
+  
+  // Association - either to a manufacturing bay team OR a department
+  bayId: integer("bay_id").references(() => manufacturingBays.id),
+  departmentId: integer("department_id").references(() => departmentCapacity.id),
+  
+  // Capacity settings
+  hoursPerWeek: integer("hours_per_week").default(40),
+  efficiencyRate: integer("efficiency_rate").default(100), // Percentage 0-100
+  startDate: date("start_date"),
+  endDate: date("end_date"), // For contractors or temporary staff
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Capacity Profiles Table (predefined capacity templates)
+export const capacityProfiles = pgTable("capacity_profiles", {
+  id: serial("id").primaryKey(),
+  profileName: text("profile_name").notNull(),
+  description: text("description"),
+  
+  // Standard hours allocation
+  standardHoursPerWeek: integer("standard_hours_per_week").default(40),
+  overtimeHoursAvailable: integer("overtime_hours_available").default(10),
+  
+  // Efficiency factors
+  experienceLevel: text("experience_level"), // "Junior", "Mid", "Senior", "Expert"
+  baseEfficiencyRate: integer("base_efficiency_rate").default(100),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Department Capacity History (for tracking changes over time)
+export const departmentCapacityHistory = pgTable("department_capacity_history", {
+  id: serial("id").primaryKey(),
+  departmentId: integer("department_id")
+    .references(() => departmentCapacity.id)
+    .notNull(),
+  weekStartDate: date("week_start_date").notNull(),
+  
+  // Capacity metrics
+  plannedCapacityHours: integer("planned_capacity_hours").notNull(),
+  actualUsedHours: integer("actual_used_hours"),
+  utilizationPercentage: integer("utilization_percentage"),
+  
+  // Staff snapshot
+  activeStaffCount: integer("active_staff_count"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations for new tables
+export const departmentCapacityRelations = relations(departmentCapacity, ({ many }) => ({
+  teamMembers: many(teamMembers),
+  capacityHistory: many(departmentCapacityHistory),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  bay: one(manufacturingBays, {
+    fields: [teamMembers.bayId],
+    references: [manufacturingBays.id],
+  }),
+  department: one(departmentCapacity, {
+    fields: [teamMembers.departmentId],
+    references: [departmentCapacity.id],
+  }),
+}));
+
+export const departmentCapacityHistoryRelations = relations(departmentCapacityHistory, ({ one }) => ({
+  department: one(departmentCapacity, {
+    fields: [departmentCapacityHistory.departmentId],
+    references: [departmentCapacity.id],
+  }),
+}));
+
+// Insert schemas for new tables
+export const insertDepartmentCapacitySchema = createInsertSchema(departmentCapacity);
+export type InsertDepartmentCapacity = z.infer<typeof insertDepartmentCapacitySchema>;
+export type DepartmentCapacity = typeof departmentCapacity.$inferSelect;
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers);
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
+export type TeamMember = typeof teamMembers.$inferSelect;
+
+export const insertCapacityProfileSchema = createInsertSchema(capacityProfiles);
+export type InsertCapacityProfile = z.infer<typeof insertCapacityProfileSchema>;
+export type CapacityProfile = typeof capacityProfiles.$inferSelect;
+
+export const insertDepartmentCapacityHistorySchema = createInsertSchema(departmentCapacityHistory);
+export type InsertDepartmentCapacityHistory = z.infer<typeof insertDepartmentCapacityHistorySchema>;
+export type DepartmentCapacityHistory = typeof departmentCapacityHistory.$inferSelect;
+
 // Allowed Emails Table (for user access control)
 export const allowedEmails = pgTable("allowed_emails", {
   id: serial("id").primaryKey(),
