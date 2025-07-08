@@ -309,6 +309,11 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
                   const overlapRatio = overlapDays / totalScheduleDays;
                   const periodHours = project.totalHours * overlapRatio;
                   
+                  // Debug log for each project's contribution
+                  if (periodHours > 0) {
+                    console.log(`DEBUG: Project ${project.projectNumber}: ${periodHours.toFixed(0)} hours for ${period.start.toISOString().substring(0, 7)} (schedule: ${scheduleStart.toISOString().substring(0, 10)} to ${scheduleEnd.toISOString().substring(0, 10)}, total: ${project.totalHours}h, ratio: ${(overlapRatio * 100).toFixed(1)}%)`);
+                  }
+                  
                   // Distribute across phases based on percentages
                   phaseHours.fab += periodHours * 0.27; // 27%
                   phaseHours.paint += periodHours * 0.07; // 7%
