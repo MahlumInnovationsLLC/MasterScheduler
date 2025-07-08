@@ -6175,7 +6175,7 @@ export class DatabaseStorage implements IStorage {
   // Capacity Management methods implementation
   async getDepartmentCapacities(): Promise<DepartmentCapacity[]> {
     return await safeQuery<DepartmentCapacity>(() =>
-      db.select().from(departmentCapacity).orderBy(asc(departmentCapacity.departmentName))
+      db.select().from(departmentCapacity).orderBy(asc(departmentCapacity.name))
     );
   }
 

@@ -2,12 +2,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Pencil, Trash2, Users, Zap } from "lucide-react";
-import type { ManufacturingBay, TeamMember } from "@shared/schema";
+import { Plus, Pencil, Trash2, Users, Zap, Calendar } from "lucide-react";
+import type { ManufacturingBay, TeamMember, Project, ManufacturingSchedule } from "@shared/schema";
 
 interface TeamCapacityCardProps {
   bay: ManufacturingBay;
   members: TeamMember[];
+  projects: Project[];
+  schedules: ManufacturingSchedule[];
   onAddMember: () => void;
   onEditMember: (member: TeamMember) => void;
   onDeleteMember: (id: number) => void;
@@ -16,6 +18,8 @@ interface TeamCapacityCardProps {
 export default function TeamCapacityCard({
   bay,
   members,
+  projects,
+  schedules,
   onAddMember,
   onEditMember,
   onDeleteMember,
@@ -27,6 +31,24 @@ export default function TeamCapacityCard({
     (sum, member) => sum + (member.hoursPerWeek || 40) * ((member.efficiencyRate || 100) / 100),
     0
   );
+
+  // Calculate active projects in production phases for this bay
+  const today = new Date();
+  const activeSchedules = schedules.filter(s => s.bayId === bay.id);
+  const activeProjects = activeSchedules.filter(schedule => {
+    const project = projects.find(p => p.id === schedule.projectId);
+    if (!project || project.status === "Delivered" || project.status === "Cancelled") return false;
+    
+    // Check if project is in production-related phases (Assembly/Production, IT, NTC, QC)
+    const assemblyStart = project.assemblyStartDate ? new Date(project.assemblyStartDate) : null;
+    const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : null;
+    const deliveryDate = project.deliveryDate ? new Date(project.deliveryDate) : null;
+    
+    // Project is active if today is between assembly start and delivery (or if no delivery date, assume ongoing)
+    return assemblyStart && 
+           today >= assemblyStart && 
+           (!deliveryDate || today <= deliveryDate);
+  });
 
   const utilization = Math.min(100, (members.length > 0 ? (members.length / 2) * 50 : 0));
 
@@ -41,6 +63,19 @@ export default function TeamCapacityCard({
           <Badge variant={utilization > 80 ? "destructive" : utilization > 60 ? "warning" : "success"}>
             {utilization}% Utilized
           </Badge>
+        </div>
+        
+        {/* Active Projects Display */}
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-blue-500" />
+            <span className="text-muted-foreground">Currently Active In Bay:</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Badge variant="outline" className="text-blue-600 border-blue-200">
+              {activeProjects.length} project{activeProjects.length !== 1 ? 's' : ''}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

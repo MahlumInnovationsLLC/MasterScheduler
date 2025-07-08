@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, Factory, MapPin } from "lucide-react";
+import { Plus, Users, Factory, MapPin, Calendar } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import TeamCapacityCard from "./TeamCapacityCard";
@@ -88,11 +88,28 @@ export default function CapacityPlanning() {
                        projectCount === 2 ? 100 :
                        120; // 3+ projects = overloaded
     
+    // Calculate projects currently in production phases (active in bay)
+    const today = new Date();
+    const activeProjectsInBay = activeProjects.filter(projectId => {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return false;
+      
+      // Check if project is in production-related phases (Assembly/Production, IT, NTC, QC)
+      const assemblyStart = project.assemblyStartDate ? new Date(project.assemblyStartDate) : null;
+      const deliveryDate = project.deliveryDate ? new Date(project.deliveryDate) : null;
+      
+      // Project is active in bay if today is between assembly start and delivery
+      return assemblyStart && 
+             today >= assemblyStart && 
+             (!deliveryDate || today <= deliveryDate);
+    });
+
     return {
       utilization,
       projectCount,
       memberCount: teamMembersForTeam.length,
-      totalCapacity: totalCapacityHours
+      totalCapacity: totalCapacityHours,
+      activeProjectsInBay: activeProjectsInBay.length
     };
   };
 
@@ -198,6 +215,19 @@ export default function CapacityPlanning() {
                 <CardDescription>
                   {utilization.memberCount} members • {utilization.projectCount} active projects
                 </CardDescription>
+                
+                {/* Active Projects Display */}
+                <div className="flex items-center justify-between text-sm pt-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-blue-500" />
+                    <span className="text-muted-foreground">Currently Active In Bay:</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium text-blue-600">
+                      {utilization.activeProjectsInBay} project{utilization.activeProjectsInBay !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

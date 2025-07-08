@@ -351,6 +351,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Department capacity now integrates with project scheduling phases (FAB, PAINT, IT, NTC, QA)
   - Analytics shows department workload based on projects currently in each manufacturing phase
   - Added capacity recommendations when departments are overloaded or upcoming projects require more resources
+- January 08, 2025: Active Projects In Bay Display Enhancement
+  - Added "Currently Active In Bay" display to all team capacity cards showing projects in production phases
+  - Enhanced team utilization calculations to distinguish between scheduled projects and active projects in production
+  - Active projects calculation filters by production-related phases (Assembly/Production, IT, NTC, QC) for current date
+  - Created sample team members for both Columbia Falls and Libby locations with proper team assignments
+  - Fixed database schema field name mismatches and API endpoint errors for team member data
+  - Team cards now show real-time count of projects currently active in manufacturing bays
 
 ## User Preferences
 
