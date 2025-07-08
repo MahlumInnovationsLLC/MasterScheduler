@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import CapacityPlanning from "@/components/capacity/CapacityPlanning";
+import CapacityPlanning from "@/components/capacity/CapacityPlanningNew";
 import CapacityAnalytics from "@/components/capacity/CapacityAnalytics";
 
 export default function CapacityManagement() {

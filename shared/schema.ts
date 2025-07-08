@@ -893,6 +893,10 @@ export const teamMembers = pgTable("team_members", {
   bayId: integer("bay_id").references(() => manufacturingBays.id),
   departmentId: integer("department_id").references(() => departmentCapacity.id),
   
+  // Team and location info
+  teamName: text("team_name"), // 'Chavez/Davidson', 'Broden/Hartley', 'Libby Team', etc.
+  location: text("location"), // 'Columbia Falls, MT' or 'Libby, MT'
+  
   // Capacity settings
   hoursPerWeek: integer("hours_per_week").default(40),
   efficiencyRate: integer("efficiency_rate").default(100), // Percentage 0-100

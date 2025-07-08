@@ -48,6 +48,8 @@ interface TeamMemberDialogProps {
   member?: TeamMember | null;
   bayId?: number | null;
   departmentId?: number | null;
+  teamName?: string | null;
+  location?: string | null;
   onSave: (data: Partial<TeamMember>) => void;
 }
 
