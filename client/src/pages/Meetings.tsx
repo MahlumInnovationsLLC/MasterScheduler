@@ -272,7 +272,7 @@ export default function Meetings() {
 
   // Fetch PTN production metrics for Tier II dashboard
   const { data: ptnMetrics, isLoading: ptnMetricsLoading } = useQuery({
-    queryKey: ['/api/ptn-production-metrics'],
+    queryKey: ['/api/ptn-enhanced-summary'],
     retry: false,
     refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
   });
@@ -892,7 +892,7 @@ export default function Meetings() {
                   {ptnMetricsLoading ? (
                     <div className="animate-pulse bg-muted h-8 w-16 rounded"></div>
                   ) : (
-                    ptnMetrics?.totalProjects || 0
+                    ptnMetrics?.summary?.active_projects || ptnMetrics?.activeProjects || 0
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -910,7 +910,7 @@ export default function Meetings() {
                   {ptnMetricsLoading ? (
                     <div className="animate-pulse bg-muted h-8 w-16 rounded"></div>
                   ) : (
-                    ptnMetrics?.totalHours || 0
+                    ptnMetrics?.summary?.total_hours || ptnMetrics?.totalHours || 0
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -928,7 +928,7 @@ export default function Meetings() {
                   {ptnMetricsLoading ? (
                     <div className="animate-pulse bg-muted h-8 w-16 rounded"></div>
                   ) : (
-                    ptnMetrics?.completedTasks || 0
+                    ptnMetrics?.summary?.completed_tasks || ptnMetrics?.completedTasks || 0
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -946,7 +946,7 @@ export default function Meetings() {
                   {ptnMetricsLoading ? (
                     <div className="animate-pulse bg-muted h-8 w-16 rounded"></div>
                   ) : (
-                    `${ptnMetrics?.efficiency || 0}%`
+                    `${Math.round(ptnMetrics?.summary?.efficiency_percentage || ptnMetrics?.efficiency || 0)}%`
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
