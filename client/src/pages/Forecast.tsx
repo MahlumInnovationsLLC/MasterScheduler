@@ -219,6 +219,7 @@ export function Forecast() {
 
     // Calculate total manufacturing hours from all scheduled projects
     let totalManufacturingHours = 0;
+    let debugProjectCount = 0;
     
     scheduledProjectIds.forEach((projectId: any) => {
       const project = projects.find((p: any) => p.id === projectId);
@@ -227,19 +228,26 @@ export function Forecast() {
       
       // Add the full project hours without any scaling
       totalManufacturingHours += project.totalHours;
+      debugProjectCount++;
     });
+    
+    console.log('=== MANUFACTURING HOURS DEBUG ===');
+    console.log('Scheduled project IDs count:', scheduledProjectIds.size);
+    console.log('Projects with hours count:', debugProjectCount);
+    console.log('Total manufacturing hours:', totalManufacturingHours);
+    console.log('Expected around 199,058 hours');
     
     // Calculate engineering hours for remaining months of 2025 (July - December = 6 months)
     const remainingMonths = 6;
     const totalEngineeringHours = engineeringHoursPerMonth * remainingMonths;
     
-    // Calculate total hours: baseline + manufacturing + engineering
-    totalHours = baselineAccumulatedHours + totalManufacturingHours + totalEngineeringHours;
-    projectedHours = totalManufacturingHours + totalEngineeringHours;
+    // Calculate total hours: baseline + engineering + manufacturing (remaining work)
+    totalHours = baselineAccumulatedHours + totalEngineeringHours + totalManufacturingHours;
+    projectedHours = totalEngineeringHours + totalManufacturingHours;
     earnedHours = baselineAccumulatedHours; // This represents work completed through June 2025
 
-    // Remaining hours is baseline minus the manufacturing hours (86K - manufacturing hours)
-    const remainingHours = baselineAccumulatedHours - totalManufacturingHours;
+    // Remaining hours is what's left after accounting for manufacturing work
+    const remainingHours = totalHours - earnedHours;
 
     return {
       totalHours,
