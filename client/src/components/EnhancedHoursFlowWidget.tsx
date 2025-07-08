@@ -3,7 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Activity, TrendingUp, Calendar, Clock, AlertCircle, Lightbulb, BarChart } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Activity, TrendingUp, Calendar, Clock, AlertCircle, Lightbulb, BarChart, X } from 'lucide-react';
 import { AreaChart, Area, BarChart as RechartsBarChart, Bar, Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import { format, addWeeks, addMonths, addQuarters, addYears, startOfWeek, startOfMonth, startOfQuarter, startOfYear, endOfWeek, endOfMonth, endOfQuarter, endOfYear, subWeeks, subMonths, subQuarters, subYears, differenceInDays } from 'date-fns';
 
@@ -48,6 +50,107 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
     capacity: true,
     cumulative: true
   });
+  const [selectedMonthData, setSelectedMonthData] = useState<{
+    period: string;
+    projects: Array<{
+      id: number;
+      name: string;
+      number: string;
+      phases: {
+        fab: number;
+        paint: number;
+        production: number;
+        it: number;
+        ntc: number;
+        qc: number;
+      };
+      totalHours: number;
+      status: string;
+    }>;
+    totalHours: number;
+  } | null>(null);
+  const [showMonthDialog, setShowMonthDialog] = useState(false);
+
+  // Handle chart click to show month details
+  const handleChartClick = (data: any) => {
+    if (!data || !data.activeLabel) return;
+    
+    const clickedPeriod = data.activeLabel;
+    const periodData = hoursFlowData.find(d => d.period === clickedPeriod);
+    
+    if (!periodData) return;
+    
+    // Find the period start and end dates
+    const periodIndex = hoursFlowData.findIndex(d => d.period === clickedPeriod);
+    const periods = selectedTimeframe === 'historical' ? 
+      generateHistoricalPeriods(selectedYear, selectedPeriod) : 
+      generateFuturePeriods(selectedYear, selectedPeriod);
+    
+    if (periodIndex < 0 || periodIndex >= periods.length) return;
+    
+    const period = periods[periodIndex];
+    
+    // Get all project IDs that are scheduled in manufacturing bays
+    const scheduledProjectIds = new Set();
+    schedules.forEach((schedule: any) => {
+      if (schedule.startDate && schedule.endDate && schedule.projectId) {
+        scheduledProjectIds.add(schedule.projectId);
+      }
+    });
+    
+    // Collect project details for this period
+    const projectDetails: any[] = [];
+    
+    projects.forEach(project => {
+      if (!project.totalHours) return;
+      if (!scheduledProjectIds.has(project.id)) return;
+      
+      const projectPhases = {
+        fab: 0,
+        paint: 0,
+        production: 0,
+        it: 0,
+        ntc: 0,
+        qc: 0
+      };
+      
+      let hasHoursInPeriod = false;
+      
+      // Calculate phase hours for this project in this period
+      ['fab', 'paint', 'production', 'it', 'ntc', 'qc'].forEach(phase => {
+        const hours = calculatePhaseHours(project, phase as any, period.start, period.end);
+        if (hours > 0) {
+          projectPhases[phase as keyof typeof projectPhases] = hours;
+          hasHoursInPeriod = true;
+        }
+      });
+      
+      if (hasHoursInPeriod) {
+        const totalProjectHours = Object.values(projectPhases).reduce((sum, hours) => sum + hours, 0);
+        projectDetails.push({
+          id: project.id,
+          name: project.name || 'Unnamed Project',
+          number: project.projectNumber || 'N/A',
+          phases: projectPhases,
+          totalHours: totalProjectHours,
+          status: project.status || 'Unknown'
+        });
+      }
+    });
+    
+    // Sort projects by total hours (descending)
+    projectDetails.sort((a, b) => b.totalHours - a.totalHours);
+    
+    const totalHours = projectDetails.reduce((sum, p) => sum + p.totalHours, 0);
+    
+    setSelectedMonthData({
+      period: clickedPeriod,
+      projects: projectDetails,
+      totalHours
+    });
+    
+    setShowMonthDialog(true);
+  };
 
   // Generate periods based on timeframe and selected year
   const generateHistoricalPeriods = (year: number, period: 'week' | 'month' | 'quarter' | 'year') => {
@@ -576,9 +679,12 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
         </div>
 
         {/* Hours Flow Chart */}
-        <div className="w-full h-[400px]">
+        <div className="w-full h-[400px] relative">
+          <div className="absolute top-2 right-2 z-10 text-xs text-gray-500 bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded">
+            Click on months for details
+          </div>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={hoursFlowData}>
+            <ComposedChart data={hoursFlowData} onClick={handleChartClick} className="cursor-pointer">
               <defs>
                 <linearGradient id="colorEarned" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
@@ -747,6 +853,118 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
           </div>
         </div>
       </CardContent>
+      
+      {/* Month Details Dialog */}
+      <Dialog open={showMonthDialog} onOpenChange={setShowMonthDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Project Details for {selectedMonthData?.period}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMonthDialog(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedMonthData && (
+            <div className="space-y-6">
+              {/* Summary */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {selectedMonthData.projects.length}
+                    </div>
+                    <div className="text-sm text-gray-600">Active Projects</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {selectedMonthData.totalHours.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Hours</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {(selectedMonthData.totalHours / selectedMonthData.projects.length).toFixed(0)}
+                    </div>
+                    <div className="text-sm text-gray-600">Avg Hours/Project</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project List */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Projects by Hours</h3>
+                <div className="grid gap-4">
+                  {selectedMonthData.projects.map((project) => (
+                    <div
+                      key={project.id}
+                      className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="font-medium text-lg">{project.number}</div>
+                          <Badge variant="outline">{project.status}</Badge>
+                        </div>
+                        <div className="text-lg font-bold text-blue-600">
+                          {project.totalHours.toLocaleString()} hours
+                        </div>
+                      </div>
+                      
+                      <div className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {project.name}
+                      </div>
+                      
+                      {/* Phase Breakdown */}
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-sm">
+                        {Object.entries(project.phases).map(([phase, hours]) => (
+                          <div key={phase} className="text-center">
+                            <div className={`font-medium ${
+                              hours > 0 
+                                ? phase === 'fab' ? 'text-purple-600' :
+                                  phase === 'paint' ? 'text-pink-600' :
+                                  phase === 'production' ? 'text-blue-600' :
+                                  phase === 'it' ? 'text-green-600' :
+                                  phase === 'ntc' ? 'text-yellow-600' :
+                                  'text-red-600'
+                                : 'text-gray-400'
+                            }`}>
+                              {(hours as number).toLocaleString()}
+                            </div>
+                            <div className="text-gray-500 uppercase text-xs">
+                              {phase}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div className="text-sm text-gray-600 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Calendar className="h-4 w-4 mt-0.5 text-blue-600" />
+                  <div>
+                    <strong>Period:</strong> {selectedMonthData.period} | 
+                    <strong> Total Hours:</strong> {selectedMonthData.totalHours.toLocaleString()} | 
+                    <strong> Projects:</strong> {selectedMonthData.projects.length}
+                    <br />
+                    <span className="text-xs">
+                      Click on any month in the chart to see detailed project breakdowns for that period.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
