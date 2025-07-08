@@ -128,7 +128,7 @@ export default function Meetings() {
   const [tierIIILocationFilter, setTierIIILocationFilter] = useState<string>("all");
   const [showCCBDialog, setShowCCBDialog] = useState(false);
   const [selectedProjectForCCB, setSelectedProjectForCCB] = useState<Project | null>(null);
-  
+
   // State for FAB notes editing
   const [showFabNotesDialog, setShowFabNotesDialog] = useState(false);
   const [selectedProjectForFabNotes, setSelectedProjectForFabNotes] = useState<Project | null>(null);
@@ -485,7 +485,7 @@ export default function Meetings() {
   // Handler for submitting task edits
   const handleSubmitEditTask = () => {
     if (!editingTask) return;
-    
+
     // Send only the core fields needed for update, avoiding timestamp conversion issues
     const updateData = {
       name: editTaskForm.name,
@@ -494,7 +494,7 @@ export default function Meetings() {
       assignedToUserId: editTaskForm.assignedToUserId || null,
       department: editTaskForm.department || null
     };
-    
+
     editTaskMutation.mutate({ taskId: editingTask.id, data: updateData });
   };
 
@@ -556,7 +556,7 @@ export default function Meetings() {
   // Helper function to calculate the default FAB progress based on dates
   const calculateDefaultFabProgress = (project: any) => {
     if (!project.fabricationStart || !project.assemblyStart) return 0;
-    
+
     const today = new Date();
     const fabStart = new Date(project.fabricationStart + 'T00:00:00');
     const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
@@ -658,14 +658,14 @@ export default function Meetings() {
 
   const handleSubmitCloseConcern = async () => {
     if (!concernToClose) return;
-    
+
     try {
       // First create the task
       await createTaskMutation.mutateAsync({
         projectId: concernToClose.projectId,
         ...closeTaskForm
       });
-      
+
       // Then close the concern
       await closeConcernMutation.mutateAsync(concernToClose.id);
     } catch (error) {
@@ -692,7 +692,7 @@ export default function Meetings() {
     const progress = calculateProgress(project);
     const riskLevel = getRiskLevel(project);
     const projectLabels = getProjectLabels(project.id);
-    
+
     const getRiskColor = (risk: string) => {
       switch (risk) {
         case 'high': return 'text-red-600 bg-red-50';
@@ -708,7 +708,7 @@ export default function Meetings() {
         default: return 'default';
       }
     };
-    
+
     return (
       <Card className={`w-full ${compact ? 'h-32' : ''}`}>
         <CardHeader className={compact ? 'pb-2' : ''}>
@@ -781,7 +781,7 @@ export default function Meetings() {
               </div>
             )}
           </div>
-          
+
           {!compact && project.notes && (
             <div className="text-sm">
               <span className="font-medium">Notes:</span>
@@ -864,7 +864,7 @@ export default function Meetings() {
         <TabsContent value="tier-ii" className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-semibold">Tier II (GEMBA) Dashboard</h2>
+              <h2 className="text-xl font-semibold">Tier Dashboard</h2>
               <p className="text-muted-foreground">
                 Production floor metrics and operational performance tracking
               </p>
@@ -882,775 +882,90 @@ export default function Meetings() {
 
           {/* PTN Production Overview - Authentic Data */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {ptnMetricsLoading ? (
-              <div className="col-span-4 flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading PTN production data...</span>
-              </div>
-            ) : (ptnMetrics as any)?.error ? (
-              <div className="col-span-4">
-                <Card className="border-red-200 bg-red-50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center text-red-700">
-                      <WifiOff className="h-5 w-5 mr-2" />
-                      <div>
-                        <p className="font-medium">PTN Authentication Required</p>
-                        <p className="text-sm">
-                          PTN API key authentication required - configure API key in connection settings
-                        </p>
-                        <p className="text-xs mt-1">
-                          PTN server is responding with JSON but requires valid API key
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">In Progress Needs</CardTitle>
-                    <BarChart className="h-4 w-4 text-blue-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-orange-600">
-                      {(ptnProjects as any)?.summary?.pendingNeeds || 16}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Awaiting fulfillment
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Team Needs</CardTitle>
-                    <Users className="h-4 w-4 text-green-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {ptnMetrics?.summary?.teamNeeds?.totalNeeds || 'N/A'}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      All team requirements tracked
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Pending Needs</CardTitle>
-                    <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {ptnMetrics?.summary?.teamNeeds?.pending || 'N/A'}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Awaiting fulfillment
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Parts Tracked</CardTitle>
-                    <Building className="h-4 w-4 text-purple-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {ptnMetrics?.summary?.parts?.total || 'N/A'}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Total inventory items
-                    </p>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </div>
-
-          {/* Production Status Cards */}
-          <div className="grid gap-6 md:grid-cols-2">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-blue-600" />
-                  Live Production Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {ptnStatusLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading production status...</span>
-                  </div>
-                ) : (ptnProductionStatus as any)?.error ? (
-                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div className="flex items-center text-yellow-700">
-                      <WifiOff className="h-4 w-4 mr-2" />
-                      <div>
-                        <p className="text-sm font-medium">PTN Connection Issue</p>
-                        <p className="text-xs">{ptnProductionStatus.error}</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : ptnProductionStatus?.status === 'connected' ? (
-                  <div className="space-y-4">
-                    {/* Active Alerts Summary */}
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-center">
-                        <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                        <div>
-                          <p className="text-sm font-medium text-green-800">
-                            {ptnProductionStatus.activeAlerts === 0 ? 'No Active Alerts' : `${ptnProductionStatus.activeAlerts} Active Alerts`}
-                          </p>
-                          <p className="text-xs text-green-600">
-                            {ptnProductionStatus.criticalIssues === 0 ? 'All teams operating normally' : `${ptnProductionStatus.criticalIssues} critical issues`}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant={ptnProductionStatus.activeAlerts === 0 ? "default" : "destructive"}>
-                        {ptnProductionStatus.activeAlerts === 0 ? 'NORMAL' : 'ALERTS'}
-                      </Badge>
-                    </div>
-
-                    {/* Active Projects Summary */}
-                    {ptnProductionStatus.projects && ptnProductionStatus.projects.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-muted-foreground">Active PTN Projects</h4>
-                        <div className="space-y-2 max-h-32 overflow-y-auto">
-                            {(ptnProductionStatus as any).projects.slice(0, 5).map((project: any, index: number) => (
-                            <div key={project.id || index} className="flex items-center justify-between p-2 bg-white rounded border">
-                              <div className="flex items-center space-x-2">
-                                <div className={`w-2 h-2 rounded-full ${project.status === 'active' ? 'bg-green-500' : project.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
-                                <div>
-                                  <p className="text-sm font-medium">{String(project.name || project.project_name || project.displayName || `Project ${index + 1}`)}</p>
-                                  <p className="text-xs text-muted-foreground">{String(project.team || project.team_name || 'No team assigned')}</p>
-                                </div>
-                              </div>
-                              <Badge variant={project.status === 'active' ? 'default' : project.status === 'warning' ? 'secondary' : 'destructive'}>
-                                {String(project.status || 'UNKNOWN').toUpperCase()}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Teams Status Summary */}
-                    {ptnProductionStatus.teams && ptnProductionStatus.teams.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-muted-foreground">Team Status</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {ptnProductionStatus.teams.slice(0, 4).map((team: any, index: number) => (
-                            <div key={team.id || index} className="flex items-center space-x-2 p-2 bg-white rounded border">
-                              <div className={`w-2 h-2 rounded-full ${team.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">{team.name || `Team ${index + 1}`}</p>
-                                <p className="text-xs text-muted-foreground">{team.members || 0} members</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <WifiOff className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">PTN connection unavailable</p>
-                    <p className="text-xs text-muted-foreground">Unable to fetch live production data</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  Floor Alerts & Issues
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {ptnTeamNeedsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading alerts...</span>
-                  </div>
-                ) : ptnTeamNeeds?.error ? (
-                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div className="flex items-center text-yellow-700">
-                      <WifiOff className="h-4 w-4 mr-2" />
-                      <div>
-                        <p className="text-sm font-medium">PTN Connection Issue</p>
-                        <p className="text-xs">{ptnTeamNeeds.error}</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : ptnTeamNeeds?.pendingNeeds && ptnTeamNeeds.pendingNeeds.length > 0 ? (
-                  <div className="space-y-3">
-                    {ptnTeamNeeds.pendingNeeds.map((need: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-3 rounded-lg border bg-orange-50 border-orange-200">
-                        <div>
-                          <div className="font-medium text-orange-900">
-                            {need.title || need.type || 'Production Alert'}
-                          </div>
-                          <div className="text-sm text-orange-700">
-                            {need.description || 'Pending team need requires attention'}
-                          </div>
-                        </div>
-                        <Badge className="bg-orange-100 text-orange-800 text-xs">
-                          PENDING
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-center text-green-700">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      <p className="text-sm">No active alerts - All teams operating normally</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Overall Production Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart className="h-5 w-5 text-blue-600" />
-                Overall Production Summary
-              </CardTitle>
-              <CardDescription>
-                System-wide metrics from Production Tracking Network
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {ptnEnhancedSummaryLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                  <span className="ml-2 text-sm text-muted-foreground">Loading production summary...</span>
-                </div>
-              ) : ptnEnhancedSummary?.error ? (
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="flex items-center text-red-700">
-                    <WifiOff className="h-5 w-5 mr-2" />
-                    <div>
-                      <p className="font-medium">PTN Connection Error</p>
-                      <p className="text-sm">
-                        {ptnEnhancedSummary.error.includes('Unexpected token') 
-                          ? 'PTN enhanced summary endpoint is not available or authentication failed' 
-                          : ptnEnhancedSummary.error}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {ptnEnhancedSummary?.summary?.projects?.active || 'N/A'}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Active Projects</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">
-                      {ptnEnhancedSummary?.summary?.teamNeeds?.fulfilled || 'N/A'}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Fulfilled Needs</div>
-                  </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600">
-                      {ptnEnhancedSummary?.summary?.teamNeeds?.pending || 'N/A'}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Pending Needs</div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {ptnEnhancedSummary?.summary?.teams?.count || 'N/A'}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Active Teams</div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Individual Team Widgets */}
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Team Status & Needs</h3>
-              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Refresh Teams
-              </Button>
-            </div>
-            
-            {ptnTeamsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading team data...</span>
-              </div>
-            ) : ptnTeams?.error ? (
-              <div className="p-6 bg-red-50 rounded-lg border border-red-200">
-                <div className="flex items-center text-red-700">
-                  <WifiOff className="h-5 w-5 mr-2" />
-                  <div>
-                    <p className="font-medium">Team Data Connection Error</p>
-                    <p className="text-sm">
-                      {ptnTeams.error.includes('Unexpected token') 
-                        ? 'PTN team endpoints are not available or authentication failed' 
-                        : ptnTeams.error}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : ptnTeams?.teams && ptnTeams.teams.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {ptnTeams.teams.map((team: any, index: number) => (
-                  <Card key={team.id || index} className="border-l-4 border-l-blue-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span className="truncate">{team.name || `Team ${index + 1}`}</span>
-                        <Badge variant={team.status === 'active' ? 'default' : 'secondary'}>
-                          {team.status || 'ACTIVE'}
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        {team.description || 'Production team'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Team Leads */}
-                      {(team.electricalLead || team.assemblyLead) && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground">Team Leads</h4>
-                          <div className="space-y-1 text-sm">
-                            {team.electricalLead && (
-                              <div className="flex items-center gap-2">
-                                <Zap className="h-3 w-3 text-yellow-600" />
-                                <span>Electrical: {team.electricalLead}</span>
-                              </div>
-                            )}
-                            {team.assemblyLead && (
-                              <div className="flex items-center gap-2">
-                                <Users className="h-3 w-3 text-blue-600" />
-                                <span>Assembly: {team.assemblyLead}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Team Members */}
-                      {team.members && team.members.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground">Team Members</h4>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-gray-600" />
-                            <span className="text-sm">{team.members.length} members</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Current Needs */}
-                      {team.needs && team.needs.length > 0 ? (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground">Current Needs</h4>
-                          <div className="space-y-2">
-                            {team.needs.slice(0, 3).map((need: any, needIndex: number) => (
-                              <div key={needIndex} className="flex items-start gap-2 p-2 bg-yellow-50 rounded border-l-2 border-l-yellow-400">
-                                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium text-yellow-900 truncate">
-                                    {need.title || need.type || 'Need'}
-                                  </div>
-                                  {need.description && (
-                                    <div className="text-xs text-yellow-800 truncate">
-                                      {need.description}
-                                    </div>
-                                  )}
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-800">
-                                      {need.priority || 'Medium'}
-                                    </Badge>
-                                    {need.department && (
-                                      <span className="text-xs text-yellow-700">{need.department}</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                            {team.needs.length > 3 && (
-                              <div className="text-xs text-muted-foreground text-center pt-1">
-                                +{team.needs.length - 3} more needs
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                          <div className="flex items-center text-green-700">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            <span className="text-sm">No active needs</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Team Analytics */}
-                      {team.analytics && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground">Performance</h4>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            {team.analytics.projectsAssigned && (
-                              <div className="text-center p-2 bg-blue-50 rounded">
-                                <div className="font-bold text-blue-600">{team.analytics.projectsAssigned}</div>
-                                <div className="text-xs text-muted-foreground">Projects</div>
-                              </div>
-                            )}
-                            {team.analytics.efficiency && (
-                              <div className="text-center p-2 bg-green-50 rounded">
-                                <div className="font-bold text-green-600">{team.analytics.efficiency}%</div>
-                                <div className="text-xs text-muted-foreground">Efficiency</div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Last Activity */}
-                      {team.lastActivity && (
-                        <div className="text-xs text-muted-foreground border-t pt-2">
-                          Last activity: {new Date(team.lastActivity).toLocaleString()}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No team data available</p>
-              </div>
-            )}
-          </div>
-
-          {/* Enhanced PTN Projects and Issues Section */}
-          <div className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart className="h-5 w-5 text-blue-600" />
-                  PTN Projects & Issues Tracking
-                </CardTitle>
-                <CardDescription>
-                  Live production data from PTN system showing active projects, teams, and critical issues
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {ptnProjectsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading PTN project data...</span>
-                  </div>
-                ) : (ptnProjects as any)?.error ? (
-                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div className="flex items-center text-yellow-700">
-                      <WifiOff className="h-5 w-5 mr-2" />
-                      <div>
-                        <p className="font-medium">PTN Projects Connection Issue</p>
-                        <p className="text-sm">{(ptnProjects as any).error}</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Projects Grid */}
-                    {(ptnProjects as any)?.projects && (ptnProjects as any).projects.length > 0 ? (
-                      <div className="space-y-4">
-                        <h4 className="text-lg font-semibold">Active Projects ({(ptnProjects as any).projects.length})</h4>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                          {(ptnProjects as any).projects.map((project: any, index: number) => (
-                            <Card key={project.id || index} className="border-l-4 border-l-blue-500">
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className="text-base truncate">
-                                    {String(project.displayName || project.project_name || project.name || project.title || project.project_number || `Project ${project.id || 'Unknown'}`)}
-                                  </CardTitle>
-                                  <Badge variant={project.status === 'active' ? 'default' : project.status === 'warning' ? 'secondary' : 'destructive'}>
-                                    {String(project.status || 'UNKNOWN').toUpperCase()}
-                                  </Badge>
-                                </div>
-                                <CardDescription className="text-sm">
-                                  Team: {String(project.team || project.team_name || 'Unassigned')} • Status: {String(project.status || 'Active')}
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent className="space-y-3">
-                                {/* Project Details */}
-                                <div className="space-y-2 text-sm">
-                                  {project.teamInfo && (
-                                    <div className="space-y-1">
-                                      <div className="flex items-center gap-2">
-                                        <Users className="h-4 w-4 text-blue-600" />
-                                        <span>Team: {String(project.teamInfo.name || project.teamInfo.team_name || 'Unassigned')}</span>
-                                      </div>
-                                      {(project.teamInfo.needs && project.teamInfo.needs.length > 0) && (
-                                        <div className="flex items-center gap-2 text-xs">
-                                          <AlertCircle className="h-3 w-3 text-orange-500" />
-                                          <span className="text-orange-600">Active Needs: {String(project.teamInfo.needs.length)}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                  {project.progress !== undefined && (
-                                    <div className="flex items-center gap-2">
-                                      <TrendingUp className="h-4 w-4 text-green-600" />
-                                      <span>Progress: {String(project.progress)}%</span>
-                                    </div>
-                                  )}
-                                  {project.priority && (
-                                    <div className="flex items-center gap-2">
-                                      <AlertTriangle className="h-4 w-4 text-orange-600" />
-                                      <span>Priority: {String(project.priority)}</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Active Issues */}
-                                {project.activeIssues && project.activeIssues.length > 0 && (
-                                  <div className="border-t pt-3">
-                                    <h5 className="text-sm font-medium text-red-600 mb-2">Active Issues ({String(project.activeIssues.length)})</h5>
-                                    <div className="space-y-1">
-                                      {project.activeIssues
-                                        .filter((issue: any, index: number, arr: any[]) => 
-                                          // Remove duplicates based on title, name, or description
-                                          arr.findIndex(i => 
-                                            (i.title || i.name || i.description) === 
-                                            (issue.title || issue.name || issue.description)
-                                          ) === index
-                                        )
-                                        .slice(0, 3)
-                                        .map((issue: any, issueIndex: number) => (
-                                        <div key={`${project.id}-issue-${issueIndex}`} className="flex items-center gap-2 text-xs p-2 bg-red-50 dark:bg-red-900/30 rounded">
-                                          <AlertCircle className="h-3 w-3 text-red-500" />
-                                          <span className="flex-1 text-red-800 dark:text-red-200">{String(issue.title || issue.description || 'Issue reported')}</span>
-                                          <Badge variant="destructive" className="text-xs">
-                                            {String(issue.severity || 'HIGH')}
-                                          </Badge>
-                                        </div>
-                                      ))}
-                                      {(() => {
-                                        const uniqueIssues = project.activeIssues.filter((issue: any, index: number, arr: any[]) => 
-                                          arr.findIndex(i => 
-                                            (i.title || i.name || i.description) === 
-                                            (issue.title || issue.name || issue.description)
-                                          ) === index
-                                        );
-                                        return uniqueIssues.length > 3 && (
-                                          <p className="text-xs text-muted-foreground">+ {String(uniqueIssues.length - 3)} more issues</p>
-                                        );
-                                      })()}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Alerts */}
-                                {project.alerts && project.alerts.length > 0 && (
-                                  <div className="border-t pt-3">
-                                    <h5 className="text-sm font-medium text-yellow-600 mb-2">Alerts ({String(project.alerts.length)})</h5>
-                                    <div className="space-y-1">
-                                      {project.alerts.slice(0, 2).map((alert: any, alertIndex: number) => (
-                                        <div key={alertIndex} className="flex items-center gap-2 text-xs p-2 bg-yellow-50 rounded">
-                                          <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                                          <span className="flex-1">{String(alert.message || 'Alert triggered')}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <BarChart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-lg font-medium text-muted-foreground">No Active PTN Projects</p>
-                        <p className="text-sm text-muted-foreground">No projects currently tracked in PTN system</p>
-                      </div>
-                    )}
-
-                    {/* Teams Overview */}
-                    {ptnProjects?.teams && ptnProjects.teams.length > 0 && (
-                      <div className="space-y-4">
-                        <h4 className="text-lg font-semibold">Team Status ({(ptnProjects as any).teams.length})</h4>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                          {(ptnProjects as any).teams.map((team: any, index: number) => (
-                            <Card key={team.id || index} className="border-l-4 border-l-green-500">
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className="text-base">{String(team.name || `Team ${index + 1}`)}</CardTitle>
-                                  <Badge variant={team.status === 'active' ? 'default' : 'secondary'}>
-                                    {String(team.status || 'INACTIVE').toUpperCase()}
-                                  </Badge>
-                                </div>
-                              </CardHeader>
-                              <CardContent className="space-y-3">
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Users className="h-4 w-4 text-blue-600" />
-                                  <span>{String(team.members || 0)} members</span>
-                                </div>
-                                
-                                {/* Team Projects */}
-                                {team.projects && team.projects.length > 0 && (
-                                  <div className="space-y-2">
-                                    <h6 className="text-sm font-medium text-gray-700">Assigned Projects</h6>
-                                    {team.projects.map((project: any, projectIndex: number) => (
-                                      <div key={projectIndex} className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-700">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <p className="text-sm font-medium text-blue-800 dark:text-blue-200 truncate">
-                                            {String(project.project_name || project.name || project.project_number || `Project ${projectIndex + 1}`)}
-                                          </p>
-                                          <Badge variant="outline" className="text-xs border-blue-300 dark:border-blue-600 text-blue-800 dark:text-blue-200">
-                                            {String(project.status || 'ACTIVE').toUpperCase()}
-                                          </Badge>
-                                        </div>
-                                        
-                                        {/* Project Needs */}
-                                        {project.needs && project.needs.length > 0 && (
-                                          <div className="mt-2 space-y-1">
-                                            <p className="text-xs font-medium text-orange-600 dark:text-orange-400">Active Needs:</p>
-                                            {project.needs.slice(0, 3).map((need: any, needIndex: number) => (
-                                              <div key={needIndex} className="flex items-center gap-2 text-xs">
-                                                <AlertCircle className="h-3 w-3 text-orange-500" />
-                                                <span className="text-orange-700 dark:text-orange-300 truncate">
-                                                  {String(need.description || need.title || need.need || `Need ${needIndex + 1}`)}
-                                                </span>
-                                                {need.priority && (
-                                                  <Badge variant="secondary" className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                                    {String(need.priority).toUpperCase()}
-                                                  </Badge>
-                                                )}
-                                              </div>
-                                            ))}
-                                            {project.needs.length > 3 && (
-                                              <p className="text-xs text-gray-500">+ {project.needs.length - 3} more needs</p>
-                                            )}
-                                          </div>
-                                        )}
-                                        
-                                        {(!project.needs || project.needs.length === 0) && (
-                                          <div className="mt-2 flex items-center gap-2 text-xs">
-                                            <CheckCircle className="h-3 w-3 text-green-500" />
-                                            <span className="text-green-600 dark:text-green-400">No active needs</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                
-                                {/* Fallback for teams without projects */}
-                                {(!team.projects || team.projects.length === 0) && team.currentProject && (
-                                  <div className="space-y-2">
-                                    <h6 className="text-sm font-medium text-gray-700 dark:text-gray-300">Current Project</h6>
-                                    <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <Briefcase className="h-4 w-4 text-green-600" />
-                                        <span className="truncate text-gray-900 dark:text-gray-100">{String(team.currentProject)}</span>
-                                      </div>
-                                      <div className="mt-1 flex items-center gap-2 text-xs">
-                                        <CheckCircle className="h-3 w-3 text-green-500" />
-                                        <span className="text-green-600 dark:text-green-400">No active needs</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* No projects message */}
-                                {(!team.projects || team.projects.length === 0) && !team.currentProject && (
-                                  <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-center">
-                                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                      <CheckCircle className="h-4 w-4 text-green-500" />
-                                      <span>No active projects</span>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {team.efficiency && (
-                                  <div className="flex items-center gap-2 text-sm pt-2 border-t">
-                                    <TrendingUp className="h-4 w-4 text-orange-600" />
-                                    <span>Efficiency: {String(team.efficiency)}%</span>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Global Issues */}
-                    {ptnProjects?.issues && ptnProjects.issues.length > 0 && (
-                      <div className="space-y-4">
-                        <h4 className="text-lg font-semibold text-red-600">System-Wide Issues ({(ptnProjects as any).issues.length})</h4>
-                        <div className="space-y-3">
-                          {ptnProjects.issues.map((issue: any, index: number) => (
-                            <Card key={index} className="border-l-4 border-l-red-500">
-                              <CardContent className="pt-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <AlertCircle className="h-5 w-5 text-red-500" />
-                                    <p className="font-medium">{String(issue.title || 'System Issue')}</p>
-                                  </div>
-                                  <Badge variant="destructive">
-                                    {String(issue.severity || 'HIGH')}
-                                  </Badge>
-                                </div>
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  {String(issue.description || 'No description available')}
-                                </p>
-                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  <span>Reported: {String(issue.reportedAt || 'Unknown')}</span>
-                                  {issue.affectedTeams && (
-                                    <span>Affects: {String(issue.affectedTeams)} teams</span>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="text-2xl font-bold">
+                  {ptnMetricsLoading ? (
+                    <div className="animate-pulse bg-muted h-8 w-16 rounded"></div>
+                  ) : (
+                    ptnMetrics?.totalProjects || 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Currently in production
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {ptnMetricsLoading ? (
+                    <div className="animate-pulse bg-muted h-8 w-16 rounded"></div>
+                  ) : (
+                    ptnMetrics?.totalHours || 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Across all projects
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {ptnMetricsLoading ? (
+                    <div className="animate-pulse bg-muted h-8 w-16 rounded"></div>
+                  ) : (
+                    ptnMetrics?.completedTasks || 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Tasks finished
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Efficiency</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {ptnMetricsLoading ? (
+                    <div className="animate-pulse bg-muted h-8 w-16 rounded"></div>
+                  ) : (
+                    `${ptnMetrics?.efficiency || 0}%`
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Overall efficiency
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* PTN System Info */}
-          <div className="mt-6 pt-4 border-t">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">
-                Live data from Production Tracking Network at ptn.nomadgcsai.com
-              </span>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => window.open('https://ptn.nomadgcsai.com/', '_blank')}
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View Full PTN Dashboard
-              </Button>
-            </div>
+          {/* Large PTN Dashboard Button */}
+          <div className="flex justify-center py-12">
+            <Button 
+              onClick={() => window.open('https://ptn.nomadgcsai.com/', '_blank')}
+              size="lg"
+              className="h-24 px-12 text-xl font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <ExternalLink className="mr-4 h-8 w-8" />
+              View Full PTN Dashboard
+            </Button>
           </div>
         </TabsContent>
 
@@ -1734,7 +1049,7 @@ export default function Meetings() {
                       const fabStart = new Date(project.fabricationStart + 'T00:00:00');
                       const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
                       const isInFabPhase = today >= fabStart && today < assemblyStart;
-                      
+
                       // Apply location filter
                       if (tierIIILocationFilter !== 'all') {
                         if (tierIIILocationFilter === 'CFALLS') {
@@ -1755,7 +1070,7 @@ export default function Meetings() {
                           return isInFabPhase && project.location === tierIIILocationFilter;
                         }
                       }
-                      
+
                       return isInFabPhase;
                     });
                     return projectsInFab.length;
@@ -1772,7 +1087,7 @@ export default function Meetings() {
                   const fabStart = new Date(project.fabricationStart + 'T00:00:00');
                   const assemblyStart = new Date(project.assemblyStart + 'T00:00:00');
                   const isInFabPhase = today >= fabStart && today < assemblyStart;
-                  
+
                   // Apply location filter
                   if (tierIIILocationFilter !== 'all') {
                     if (tierIIILocationFilter === 'CFALLS') {
@@ -1793,10 +1108,10 @@ export default function Meetings() {
                       return isInFabPhase && project.location === tierIIILocationFilter;
                     }
                   }
-                  
+
                   return isInFabPhase;
                 });
-                
+
                 if (projectsInFab.length === 0) {
                   return (
                     <div className="text-center py-8 text-muted-foreground">
@@ -1806,7 +1121,7 @@ export default function Meetings() {
                     </div>
                   );
                 }
-                
+
                 return (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {projectsInFab.map((project: any) => (
@@ -1844,7 +1159,7 @@ export default function Meetings() {
                               <span className="font-medium">{project.pmOwner || 'Unassigned'}</span>
                             </div>
                           </div>
-                          
+
                           {/* Progress toward Assembly - Draggable */}
                           <div className="space-y-2">
                             <div className="flex justify-between text-xs">
@@ -1881,37 +1196,37 @@ export default function Meetings() {
                                   onMouseDown={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    
+
                                     const progressBar = e.currentTarget.parentElement?.parentElement;
                                     if (!progressBar) return;
-                                    
+
                                     const handleMouseMove = (moveEvent: MouseEvent) => {
                                       const rect = progressBar.getBoundingClientRect();
                                       const mouseX = moveEvent.clientX - rect.left;
                                       const width = rect.width;
                                       const newProgress = Math.round((mouseX / width) * 100);
                                       const clampedProgress = Math.min(100, Math.max(0, newProgress));
-                                      
+
                                       // Update the visual immediately
                                       const progressFill = progressBar.querySelector('.bg-blue-600') as HTMLElement;
                                       if (progressFill) {
                                         progressFill.style.width = `${clampedProgress}%`;
                                       }
                                     };
-                                    
+
                                     const handleMouseUp = (upEvent: MouseEvent) => {
                                       const rect = progressBar.getBoundingClientRect();
                                       const mouseX = upEvent.clientX - rect.left;
                                       const width = rect.width;
                                       const newProgress = Math.round((mouseX / width) * 100);
                                       const clampedProgress = Math.min(100, Math.max(0, newProgress));
-                                      
+
                                       handleFabProgressUpdate(project, clampedProgress);
-                                      
+
                                       document.removeEventListener('mousemove', handleMouseMove);
                                       document.removeEventListener('mouseup', handleMouseUp);
                                     };
-                                    
+
                                     document.addEventListener('mousemove', handleMouseMove);
                                     document.addEventListener('mouseup', handleMouseUp);
                                   }}
@@ -1936,7 +1251,7 @@ export default function Meetings() {
                               </div>
                             )}
                           </div>
-                          
+
                           {/* FAB Notes Section */}
                           <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-between">
@@ -2193,7 +1508,7 @@ export default function Meetings() {
                       )}
                     </div>
                   </div>
-                  
+
                   {project.notes && (
                     <div className="text-sm">
                       <span className="font-medium">Notes:</span> {project.notes}
@@ -2262,7 +1577,7 @@ export default function Meetings() {
                         const projectTasks = (allTasks as any[]).filter((task: any) => {
                           return task.projectId === project.id && !task.isCompleted;
                         });
-                        
+
                         return projectTasks.length > 0 ? (
                           <>
                             <div className="flex items-center justify-between">
@@ -2275,8 +1590,7 @@ export default function Meetings() {
                               <div key={task.id} className="text-xs border-b border-gray-200 dark:border-gray-700 pb-2 mb-2 last:border-b-0">
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex-1">
-                                    <div className="font-medium text-gray-900 dark:text-gray-100">{task.name}</div>
-                                    {task.description && (
+                                    <div className="font-medium text-gray-900 dark:text-gray-100">{task.name}</div>                                    {task.description && (
                                       <div className="text-gray-700 dark:text-gray-300 mt-1">{task.description}</div>
                                     )}
                                     {task.dueDate && (
@@ -2719,7 +2033,7 @@ export default function Meetings() {
                         )}
                       </div>
                     </div>
-                    
+
                     {project.notes && (
                       <div className="text-sm">
                         <span className="font-medium">Notes:</span>
@@ -2750,7 +2064,7 @@ export default function Meetings() {
                             const projectTasks = (allTasks as any[]).filter((task: any) => {
                               return task.projectId === project.id && !task.isCompleted;
                             });
-                            
+
                             return projectTasks.length > 0 ? (
                               <>
                                 <div className="flex items-center justify-between">
@@ -2858,7 +2172,7 @@ export default function Meetings() {
                       </Badge>
                     </div>
                   </div>
-                  
+
                   {tierIVConcerns.length === 0 ? (
                     <Card className="border-green-200">
                       <CardContent className="pt-6">
@@ -2916,7 +2230,7 @@ export default function Meetings() {
                   const closedConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => 
                     c.isEscalatedToTierIV && c.status === 'completed'
                   ).slice(0, 5); // Show last 5 closed concerns
-                  
+
                   if (closedConcerns.length > 0) {
                     return (
                       <div className="space-y-4">
@@ -2979,8 +2293,7 @@ export default function Meetings() {
             <DialogDescription>
               Create a new elevated concern for a project
             </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
+          </DialogHeader          <div className="space-y-4">
             <div>
               <Label htmlFor="project">Project</Label>
               <Select value={concernForm.projectId} onValueChange={(value) => setConcernForm({...concernForm, projectId: value})}>
@@ -3285,7 +2598,7 @@ export default function Meetings() {
                 <h4 className="font-medium">{concernToClose.title}</h4>
                 <p className="text-sm text-muted-foreground">{concernToClose.description}</p>
               </div>
-              
+
               <div className="grid gap-4">
                 <div>
                   <Label htmlFor="close-task-name">Task Name</Label>
