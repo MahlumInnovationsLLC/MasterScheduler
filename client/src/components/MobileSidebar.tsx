@@ -63,9 +63,9 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       )}
 
       {/* Sidebar Drawer */}
-      <div className={`mobile-sidebar-drawer ${isOpen ? 'open' : ''}`}>
+      <div className={`mobile-sidebar-drawer ${isOpen ? 'open' : ''} flex flex-col`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Package className="w-5 h-5 text-white" />
@@ -84,7 +84,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
         {/* User Info */}
         {user && (
-          <div className="p-4 border-b border-gray-700">
+          <div className="p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
                 <span className="text-sm font-medium text-white">
@@ -103,8 +103,8 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </div>
         )}
 
-        {/* Navigation */}
-        <ScrollArea className="flex-1 px-2 py-4">
+        {/* Navigation - Scrollable Content */}
+        <ScrollArea className="flex-1 px-2 py-4 overflow-y-auto">
           <div className="space-y-6">
             {/* Main Navigation */}
             <div>
@@ -383,7 +383,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
         </ScrollArea>
 
         {/* Settings Footer */}
-        <div className="p-4 border-t border-gray-700 space-y-1">
+        <div className="p-4 border-t border-gray-700 space-y-1 flex-shrink-0">
           <h6 className="text-xs font-semibold uppercase tracking-wider mb-2 px-3 text-gray-400">
             Settings
           </h6>
