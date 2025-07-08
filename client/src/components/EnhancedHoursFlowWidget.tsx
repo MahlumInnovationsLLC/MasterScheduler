@@ -118,9 +118,11 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
       
       // Calculate phase hours for this project in this period
       ['fab', 'paint', 'production', 'it', 'ntc', 'qc'].forEach(phase => {
-        const hours = calculatePhaseHours(project, phase as any, period.start, period.end);
-        if (hours > 0) {
-          projectPhases[phase as keyof typeof projectPhases] = hours;
+        const rawHours = calculatePhaseHours(project, phase as any, period.start, period.end);
+        if (rawHours > 0) {
+          // Apply the same 0.55 scaling factor used in the main chart
+          const scaledHours = rawHours * 0.55;
+          projectPhases[phase as keyof typeof projectPhases] = scaledHours;
           hasHoursInPeriod = true;
         }
       });
@@ -915,7 +917,7 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
                         </div>
                       </div>
                       
-                      <div className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      <div className="text-sm text-gray-600 mb-3">
                         {project.name}
                       </div>
                       
