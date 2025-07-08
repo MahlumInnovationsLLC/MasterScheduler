@@ -348,6 +348,7 @@ export function Forecast() {
               variant={selectedPeriod === 'lastMonth' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedPeriod('lastMonth')}
+              className={selectedPeriod !== 'lastMonth' ? 'dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700' : ''}
             >
               Last Month
             </Button>
@@ -355,6 +356,7 @@ export function Forecast() {
               variant={selectedPeriod === 'lastQuarter' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedPeriod('lastQuarter')}
+              className={selectedPeriod !== 'lastQuarter' ? 'dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700' : ''}
             >
               Last Quarter
             </Button>
@@ -362,6 +364,7 @@ export function Forecast() {
               variant={selectedPeriod === 'ytd' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedPeriod('ytd')}
+              className={selectedPeriod !== 'ytd' ? 'dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700' : ''}
             >
               YTD
             </Button>
