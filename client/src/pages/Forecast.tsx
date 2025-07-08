@@ -217,62 +217,29 @@ export function Forecast() {
       }
     });
 
-    // Calculate only the projected hours from July onwards to match EnhancedHoursFlowWidget
-    // Generate the same monthly periods as the chart (July to December 2025)
-    const periods = [];
-    for (let month = 6; month < 12; month++) { // July (6) to December (11)
-      const periodStart = new Date(2025, month, 1);
-      const periodEnd = new Date(2025, month + 1, 0); // Last day of month
-      periods.push({ start: periodStart, end: periodEnd });
-    }
+    // Calculate total manufacturing hours from all scheduled projects
+    let totalManufacturingHours = 0;
     
-    let totalProjectedHours = 0;
-    
-    // Calculate hours for each period (July through December)
-    periods.forEach(period => {
-      let periodTotal = 0;
+    scheduledProjectIds.forEach((projectId: any) => {
+      const project = projects.find((p: any) => p.id === projectId);
+      if (!project || !project.totalHours) return;
+      if (project.status !== 'active' && project.status !== 'pending') return;
       
-      scheduledProjectIds.forEach((projectId: any) => {
-        const project = projects.find((p: any) => p.id === projectId);
-        if (!project || !project.totalHours) return;
-        if (project.status !== 'active' && project.status !== 'pending') return;
-        
-        const projectSchedule = schedules.find((s: any) => s.projectId === project.id);
-        if (!projectSchedule) return;
-        
-        const scheduleStart = new Date(projectSchedule.startDate);
-        const scheduleEnd = new Date(projectSchedule.endDate);
-        
-        // Check if the schedule overlaps with this period
-        if (scheduleEnd >= period.start && scheduleStart <= period.end) {
-          const overlapStart = scheduleStart > period.start ? scheduleStart : period.start;
-          const overlapEnd = scheduleEnd < period.end ? scheduleEnd : period.end;
-          
-          const totalScheduleDays = (scheduleEnd.getTime() - scheduleStart.getTime()) / (1000 * 60 * 60 * 24);
-          const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
-          
-          if (totalScheduleDays > 0 && overlapDays > 0) {
-            const overlapRatio = overlapDays / totalScheduleDays;
-            // Use actual hours without scaling factor for real hours calculation
-            const periodHours = project.totalHours * overlapRatio;
-            periodTotal += periodHours;
-          }
-        }
-      });
-      
-      totalProjectedHours += periodTotal;
+      // Add the full project hours without any scaling
+      totalManufacturingHours += project.totalHours;
     });
     
     // Calculate engineering hours for remaining months of 2025 (July - December = 6 months)
     const remainingMonths = 6;
     const totalEngineeringHours = engineeringHoursPerMonth * remainingMonths;
     
-    // Calculate real total hours from manufacturing schedules without scaling plus engineering buffer
-    totalHours = baselineAccumulatedHours + totalProjectedHours + totalEngineeringHours;
-    projectedHours = totalProjectedHours + totalEngineeringHours;
+    // Calculate total hours: baseline + manufacturing + engineering
+    totalHours = baselineAccumulatedHours + totalManufacturingHours + totalEngineeringHours;
+    projectedHours = totalManufacturingHours + totalEngineeringHours;
     earnedHours = baselineAccumulatedHours; // This represents work completed through June 2025
 
-    const remainingHours = totalHours - earnedHours;
+    // Remaining hours is baseline minus the manufacturing hours (86K - manufacturing hours)
+    const remainingHours = baselineAccumulatedHours - totalManufacturingHours;
 
     return {
       totalHours,
@@ -280,7 +247,7 @@ export function Forecast() {
       projectedHours,
       remainingHours,
       engineeringHours: totalEngineeringHours,
-      manufacturingHours: totalProjectedHours,
+      manufacturingHours: totalManufacturingHours,
       lastMonth: {
         earnedHours: lastMonthHours,
         percentage: totalHours > 0 ? (lastMonthHours / totalHours) * 100 : 0,
@@ -499,7 +466,7 @@ export function Forecast() {
           type="earned"
           stats={[
             { label: "Scheduled Projects", value: getScheduledProjectsCount() },
-            { label: "Real Hours", value: "No Scaling" }
+            { label: "All Project Hours", value: "Full Schedule" }
           ]}
         />
         <HoursStatusCard
