@@ -787,36 +787,14 @@ const ProjectDetails = () => {
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-5 gap-6">
-          <div className="col-span-1">
-            <div className="text-sm text-gray-400 mb-1">Project Health</div>
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold">{projectHealth.score}<span className="text-sm">/100</span></div>
-              <div className={`text-white rounded px-1.5 text-xs flex items-center ${
-                projectHealth.change > 0 ? 'bg-green-600' : projectHealth.change < 0 ? 'bg-red-600' : 'bg-gray-600'
-              }`}>
-                <ArrowLeft className={`h-3 w-3 ${projectHealth.change > 0 ? '-rotate-90' : projectHealth.change < 0 ? 'rotate-90' : 'rotate-0'}`} /> 
-                {projectHealth.change > 0 ? '+' : ''}{projectHealth.change}
-              </div>
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Risk: <span className={`font-medium ${
-                projectHealth.breakdown.overallRisk === 'Critical' ? 'text-red-400' :
-                projectHealth.breakdown.overallRisk === 'High' ? 'text-orange-400' :
-                projectHealth.breakdown.overallRisk === 'Medium' ? 'text-yellow-400' : 'text-green-400'
-              }`}>
-                {projectHealth.breakdown.overallRisk}
-              </span>
-            </div>
-          </div>
-
+        <div className="mt-5 grid grid-cols-3 gap-6">
           <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Progress</div>
             <div className="flex items-center gap-3">
               <InteractiveProgressSlider 
                 value={parseFloat((project as any)?.percentComplete || '0')}
                 onChange={updateProjectProgress}
-                className="w-32"
+                className="w-64"
               />
               <span className="text-lg font-bold">{parseFloat(project?.percentComplete || '0').toFixed(0)}%</span>
             </div>
@@ -861,29 +839,8 @@ const ProjectDetails = () => {
             </div>
           </div>
 
-          <div className="col-span-1">
-            <div className="text-sm text-gray-400 mb-1">Manufacturing</div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">
-                {activeBay ? `Bay ${activeBay.bayNumber}` : 'None'}
-              </span>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${
-                activeSchedule ? 'bg-blue-600 bg-opacity-20 text-blue-400' : 
-                manufacturingSchedules?.some(s => s.projectId === parseInt(projectId) && new Date(s.startDate) > new Date()) ? 
-                'bg-yellow-600 bg-opacity-20 text-yellow-400' : 'bg-gray-600 bg-opacity-20 text-gray-400'
-              }`}>
-                {activeSchedule ? 'In Progress' : 
-                 manufacturingSchedules?.some(s => s.projectId === parseInt(projectId) && new Date(s.startDate) > new Date()) ? 
-                 'Scheduled' : 'Not Scheduled'}
-              </span>
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Status: {projectHealth.breakdown.manufacturingStatus}%
-            </div>
-          </div>
-
           {/* Timeline Information - Full width row */}
-          <div className="col-span-5 -mt-2">
+          <div className="col-span-3 -mt-2">
             <ProjectPhaseInfo project={project} />
           </div>
         </div>
