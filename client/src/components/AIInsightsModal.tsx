@@ -32,7 +32,6 @@ export function AIInsightsModal({ projectId }: AIInsightsModalProps) {
       if (!projectId) return [];
       const response = await apiRequest('GET', `/api/ai/project-insights/${projectId}`);
       const data = await response.json();
-      console.log('API Response:', data);
       return data || [];
     },
     enabled: open && !!projectId,
@@ -117,15 +116,6 @@ export function AIInsightsModal({ projectId }: AIInsightsModalProps) {
   ];
 
   const insights = projectId ? (Array.isArray(aiInsights) ? aiInsights : []) : defaultInsights;
-  
-  // Debug logging
-  console.log('AI Insights Debug:', {
-    projectId,
-    aiInsights,
-    isArray: Array.isArray(aiInsights),
-    insightsLength: insights.length,
-    insights
-  });
   
   const getSeverityIcon = (severity: string) => {
     switch(severity) {
@@ -290,9 +280,6 @@ export function AIInsightsModal({ projectId }: AIInsightsModalProps) {
                 <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
                   <X className="h-4 w-4 mr-2" />
                   Close
-                </Button>
-                <Button size="sm">
-                  Apply Recommendations <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </TabsContent>

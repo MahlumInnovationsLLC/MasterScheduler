@@ -50,44 +50,55 @@ export function setupAIInsightsRoutes(app: Express, simpleAuth: any) {
 
 async function generateProjectInsights(project: any) {
   try {
-    // Prepare project data for AI analysis
+    // Format dates properly for AI analysis
+    const formatDate = (date: any) => {
+      if (!date) return 'Not set';
+      if (date instanceof Date) return date.toISOString().split('T')[0];
+      if (typeof date === 'string') return date.split('T')[0];
+      return 'Not set';
+    };
+
+    // Prepare project data for AI analysis with properly formatted dates
     const projectData = {
       id: project.id,
       name: project.name,
       projectNumber: project.projectNumber,
       status: project.status,
-      priority: project.priority,
-      fabricationStart: project.fabricationStart,
-      paintStart: project.paintStart,
-      productionStart: project.productionStart,
-      itStart: project.itStart,
-      wrapDate: project.wrapDate,
-      ntcTesting: project.ntcTesting,
-      qcStart: project.qcStart,
-      executiveReview: project.executiveReview,
-      shipDate: project.shipDate,
-      deliveryDate: project.deliveryDate,
-      totalHours: project.totalHours,
-      fabPercentage: project.fabPercentage,
-      paintPercentage: project.paintPercentage,
-      productionPercentage: project.productionPercentage,
-      itPercentage: project.itPercentage,
-      ntcPercentage: project.ntcPercentage,
-      qcPercentage: project.qcPercentage,
-      manufacturingSchedules: project.manufacturingSchedules,
-      billingMilestones: project.billingMilestones,
-      tasks: project.tasks
+      priority: project.priority || 'Not set',
+      fabricationStart: formatDate(project.fabricationStart),
+      paintStart: formatDate(project.paintStart),
+      productionStart: formatDate(project.productionStart),
+      itStart: formatDate(project.itStart),
+      wrapDate: formatDate(project.wrapDate),
+      ntcTesting: formatDate(project.ntcTesting),
+      qcStart: formatDate(project.qcStart),
+      executiveReview: formatDate(project.executiveReview),
+      shipDate: formatDate(project.shipDate),
+      deliveryDate: formatDate(project.deliveryDate),
+      totalHours: project.totalHours || 0,
+      fabPercentage: project.fabPercentage || 0,
+      paintPercentage: project.paintPercentage || 0,
+      productionPercentage: project.productionPercentage || 0,
+      itPercentage: project.itPercentage || 0,
+      ntcPercentage: project.ntcPercentage || 0,
+      qcPercentage: project.qcPercentage || 0,
+      manufacturingSchedules: project.manufacturingSchedules || [],
+      billingMilestones: project.billingMilestones || [],
+      tasks: project.tasks || []
     };
 
+    const currentDate = new Date().toISOString().split('T')[0];
+    
     const prompt = `
     Analyze the following manufacturing project data and provide specific insights and recommendations:
 
+    Current Date: ${currentDate}
     Project: ${projectData.name} (${projectData.projectNumber})
     Status: ${projectData.status}
     Priority: ${projectData.priority}
     Total Hours: ${projectData.totalHours}
 
-    Timeline:
+    Project Timeline (use these exact dates for analysis):
     - Fabrication Start: ${projectData.fabricationStart}
     - PAINT Start: ${projectData.paintStart}
     - Production Start: ${projectData.productionStart}
@@ -111,9 +122,15 @@ async function generateProjectInsights(project: any) {
     Billing Milestones: ${JSON.stringify(projectData.billingMilestones, null, 2)}
     Tasks: ${JSON.stringify(projectData.tasks, null, 2)}
 
-    Please provide insights in the following categories:
+    IMPORTANT: Use only the timeline dates provided above. Analyze these dates relative to the current date (${currentDate}) to determine:
+    - Which phases are overdue, current, or upcoming
+    - Timeline gaps or overlaps between phases
+    - Critical path issues
+    - Resource allocation concerns
+
+    Provide insights in these categories:
     1. Overview - General project health and key insights
-    2. Schedule - Timeline analysis and recommendations
+    2. Schedule - Timeline analysis and recommendations (use exact dates provided)
     3. Timeline - Critical path analysis and potential delays
     4. Risks - Potential issues and mitigation strategies
 
@@ -159,7 +176,7 @@ async function generateProjectInsights(project: any) {
       }
     }
 
-    Focus on actionable insights specific to this project. Consider current date context and manufacturing best practices.
+    Focus on actionable insights specific to this project using the exact timeline dates provided.
     `;
 
     const response = await openai.chat.completions.create({
