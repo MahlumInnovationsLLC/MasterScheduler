@@ -98,6 +98,7 @@ import {
 import { countWorkingDays } from "@shared/utils/date-utils";
 import { format, differenceInDays, addDays } from "date-fns";
 import { setupPTNRoutes } from "./routes/ptnApi";
+import { setupAIInsightsRoutes } from "./routes/aiInsights";
 import {
   analyzeProjectHealth,
   generateBillingInsights,
@@ -122,7 +123,7 @@ import {
   generateBillingNotifications,
   generateManufacturingNotifications
 } from "./notifications";
-import { getAIInsights } from "./routes/aiInsights";
+
 import supplyChainRoutes from "./routes/supply-chain";
 import systemRoutes from "./routes/system";
 import engineeringRoutes from "./routes/engineering";
@@ -4817,7 +4818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/reports/export', simpleAuth, exportReport);
   
   // AI Insights API
-  app.post('/api/ai/insights', simpleAuth, getAIInsights);
+
   
   // AI Delay Analysis API - bypassing all middleware
   app.post('/analyze-delays', async (req, res) => {
@@ -6506,6 +6507,9 @@ Response format:
   
   // Setup enhanced PTN API routes
   setupPTNRoutes(app);
+  
+  // Setup AI insights routes
+  setupAIInsightsRoutes(app, simpleAuth);
 
   const httpServer = createServer(app);
   // Quality Assurance API routes

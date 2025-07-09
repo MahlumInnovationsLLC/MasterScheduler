@@ -293,6 +293,16 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Removed phantom vertical height from Manufacturing Assignment that was blocking expansion
   - Project Timeline and Project Notes now extend beyond Manufacturing Assignment section
   - Improved visual flow with full-width utilization of available space
+- January 09, 2025: Project-Specific AI Insights Implementation
+  - Created dedicated AI insights functionality for individual project analysis instead of company-wide insights
+  - Integrated OpenAI GPT-4o model for project-specific manufacturing analysis and recommendations
+  - Added new /api/ai/project-insights/:projectId endpoint with authentication middleware
+  - AI insights now provide project-specific analysis in four categories: Overview, Schedule, Timeline, and Risks
+  - Modal interface adapted to show project-specific insights with project ID badge and refresh functionality
+  - Comprehensive project data analysis including timeline, phases, manufacturing schedules, billing milestones, and tasks
+  - AI provides actionable insights tailored to individual project status, priority, and manufacturing timeline
+  - Fallback error handling for cases where OpenAI service is unavailable
+  - Project-specific insights accessible from AI Insights button on project details page
 - July 07, 2025: Engineering Benchmarks Module Complete Implementation
   - Removed all mock benchmarks and replaced with authentic project-based benchmark system
   - Created two standard benchmark templates: "Section X CAD Complete" (30 days before fabrication start) and "CAD COMPLETE" (90 days before production start)
