@@ -516,7 +516,7 @@ const ProjectDetails = () => {
   ) : { status: 'Unknown' };
 
   // Find the active manufacturing schedule if any
-  const activeSchedule = manufacturingSchedules?.find(s => s.status === 'in_progress');
+  const activeSchedule = manufacturingSchedules?.find(s => s.projectId === projectId) || manufacturingSchedules?.[0];
   const activeBay = activeSchedule ? manufacturingBays?.find(b => b.id === activeSchedule.bayId) : null;
 
   // Group tasks by milestone

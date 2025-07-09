@@ -85,45 +85,42 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       const milestones = [];
       
       // Gather all timeline dates
-      if (project.contractDate) {
-        milestones.push(['Contract Date', format(new Date(project.contractDate + 'T00:00:00'), 'MMM dd, yyyy'), '📄']);
-      }
       if (project.poDroppedDate || project.startDate) {
         const date = project.poDroppedDate || project.startDate;
-        milestones.push(['PO Dropped', format(new Date(date + 'T00:00:00'), 'MMM dd, yyyy'), '📋']);
+        milestones.push(['PO Dropped', format(new Date(date + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.fabricationStart) {
-        milestones.push(['Fabrication Start', format(new Date(project.fabricationStart + 'T00:00:00'), 'MMM dd, yyyy'), '🔧']);
+        milestones.push(['Fabrication Start', format(new Date(project.fabricationStart + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.paintStart) {
-        milestones.push(['Paint Start', format(new Date(project.paintStart + 'T00:00:00'), 'MMM dd, yyyy'), '🎨']);
+        milestones.push(['Paint Start', format(new Date(project.paintStart + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.assemblyStart) {
-        milestones.push(['Production Start', format(new Date(project.assemblyStart + 'T00:00:00'), 'MMM dd, yyyy'), '🏭']);
+        milestones.push(['Production Start', format(new Date(project.assemblyStart + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.itStart) {
-        milestones.push(['IT Start', format(new Date(project.itStart + 'T00:00:00'), 'MMM dd, yyyy'), '💻']);
+        milestones.push(['IT Start', format(new Date(project.itStart + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.ntcTestingDate) {
-        milestones.push(['NTC Testing', format(new Date(project.ntcTestingDate + 'T00:00:00'), 'MMM dd, yyyy'), '🧪']);
+        milestones.push(['NTC Testing', format(new Date(project.ntcTestingDate + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.qcStartDate) {
-        milestones.push(['QC Start', format(new Date(project.qcStartDate + 'T00:00:00'), 'MMM dd, yyyy'), '✓']);
+        milestones.push(['QC Start', format(new Date(project.qcStartDate + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.executiveReviewDate) {
-        milestones.push(['Executive Review', format(new Date(project.executiveReviewDate + 'T00:00:00'), 'MMM dd, yyyy'), '👔']);
+        milestones.push(['Executive Review', format(new Date(project.executiveReviewDate + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.shipDate) {
-        milestones.push(['Ship Date', format(new Date(project.shipDate + 'T00:00:00'), 'MMM dd, yyyy'), '🚚']);
+        milestones.push(['Ship Date', format(new Date(project.shipDate + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
       if (project.deliveryDate) {
-        milestones.push(['Delivery Date', format(new Date(project.deliveryDate + 'T00:00:00'), 'MMM dd, yyyy'), '📦']);
+        milestones.push(['Delivery Date', format(new Date(project.deliveryDate + 'T00:00:00'), 'MMM dd, yyyy')]);
       }
 
       if (milestones.length > 0) {
         autoTable(pdf, {
           startY: timelineY + 5,
-          head: [['Milestone', 'Date', 'Icon']],
+          head: [['Milestone', 'Date']],
           body: milestones,
           theme: 'striped',
           headStyles: {
@@ -131,9 +128,8 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
             textColor: 255
           },
           columnStyles: {
-            0: { cellWidth: 60 },
-            1: { cellWidth: 40 },
-            2: { cellWidth: 20, halign: 'center' }
+            0: { cellWidth: 80 },
+            1: { cellWidth: 60 }
           },
           margin: { left: 20, right: 20 }
         });
@@ -170,175 +166,206 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       // Add new page for Bay Schedule visualization
       pdf.addPage();
       
-      // Wait for any animations to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Navigate to bay scheduling page to ensure we have the bay schedule visible
-      const currentPath = window.location.pathname;
-      const needsNavigation = !currentPath.includes('/bay-scheduling');
-      
-      if (needsNavigation && manufacturingSchedule) {
-        // Store current location to return later
-        sessionStorage.setItem('scheduleReportReturnPath', currentPath);
-        
-        // Navigate to bay scheduling page
-        window.location.href = `/bay-scheduling?projectId=${project.id}`;
-        
-        // Wait for navigation and page load
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      
-      // Find the bay schedule element
-      const bayScheduleElement = document.querySelector('.resizable-bay-schedule, .bay-schedule-readonly, .schedule-container');
-      
-      if (bayScheduleElement && manufacturingSchedule) {
+      if (manufacturingSchedule && bay) {
         pdf.setFontSize(16);
         pdf.setFont('helvetica', 'bold');
         pdf.text('Bay Schedule Visualization', pdf.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
         
-        // Find the specific project bar in the schedule
-        const projectSelectors = [
-          `[data-project-id="${project.id}"]`,
-          `.project-bar[data-project="${project.id}"]`,
-          `.project-${project.id}`,
-          `div[title*="${project.projectNumber}"]`
+        // Create a container for our custom bay schedule visualization
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.top = '-9999px';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.width = '1400px';
+        tempContainer.style.padding = '20px';
+        tempContainer.style.background = '#ffffff';
+        tempContainer.style.fontFamily = 'Arial, sans-serif';
+        document.body.appendChild(tempContainer);
+        
+        // Create the bay schedule visualization that matches the screenshot
+        const scheduleContainer = document.createElement('div');
+        scheduleContainer.style.background = '#f3f4f6';
+        scheduleContainer.style.border = '1px solid #e5e7eb';
+        scheduleContainer.style.borderRadius = '8px';
+        scheduleContainer.style.padding = '16px';
+        
+        // Bay header with name and hours
+        const bayHeader = document.createElement('div');
+        bayHeader.style.background = '#1e40af';
+        bayHeader.style.color = 'white';
+        bayHeader.style.padding = '12px 16px';
+        bayHeader.style.borderRadius = '8px 8px 0 0';
+        bayHeader.style.display = 'flex';
+        bayHeader.style.justifyContent = 'space-between';
+        bayHeader.style.alignItems = 'center';
+        bayHeader.style.marginBottom = '1px';
+        
+        const bayTitle = document.createElement('div');
+        bayTitle.style.display = 'flex';
+        bayTitle.style.alignItems = 'center';
+        bayTitle.style.gap = '12px';
+        
+        const bayName = document.createElement('span');
+        bayName.style.fontWeight = 'bold';
+        bayName.style.fontSize = '16px';
+        bayName.textContent = `${bay.name || `Bay ${bay.bayNumber}`}`;
+        
+        const hoursLabel = document.createElement('span');
+        hoursLabel.style.background = 'rgba(255, 255, 255, 0.2)';
+        hoursLabel.style.padding = '4px 12px';
+        hoursLabel.style.borderRadius = '12px';
+        hoursLabel.style.fontSize = '14px';
+        hoursLabel.textContent = `261 hrs/week`;
+        
+        bayTitle.appendChild(bayName);
+        bayTitle.appendChild(hoursLabel);
+        bayHeader.appendChild(bayTitle);
+        
+        // Timeline header with week numbers
+        const timelineHeader = document.createElement('div');
+        timelineHeader.style.background = '#e5e7eb';
+        timelineHeader.style.padding = '8px';
+        timelineHeader.style.display = 'flex';
+        timelineHeader.style.borderBottom = '1px solid #d1d5db';
+        
+        // Calculate weeks for the timeline
+        const startDate = new Date(manufacturingSchedule.startDate);
+        const endDate = new Date(manufacturingSchedule.endDate);
+        const weeks = [];
+        const currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+          const weekNum = Math.ceil((currentDate.getDate() + new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()) / 7);
+          const monthNum = currentDate.getMonth() + 1;
+          weeks.push(`${monthNum.toString().padStart(2, '0')}/${weekNum.toString().padStart(2, '0')}`);
+          currentDate.setDate(currentDate.getDate() + 7);
+        }
+        
+        // Add week labels
+        weeks.slice(0, 8).forEach(week => {
+          const weekLabel = document.createElement('div');
+          weekLabel.style.flex = '1';
+          weekLabel.style.textAlign = 'center';
+          weekLabel.style.fontSize = '12px';
+          weekLabel.style.color = '#6b7280';
+          weekLabel.style.borderRight = '1px solid #d1d5db';
+          weekLabel.textContent = week;
+          timelineHeader.appendChild(weekLabel);
+        });
+        
+        // Project bar container
+        const projectBarContainer = document.createElement('div');
+        projectBarContainer.style.position = 'relative';
+        projectBarContainer.style.height = '80px';
+        projectBarContainer.style.background = 'white';
+        projectBarContainer.style.padding = '16px';
+        
+        // Create the project bar with phases
+        const projectBar = document.createElement('div');
+        projectBar.style.position = 'relative';
+        projectBar.style.height = '48px';
+        projectBar.style.display = 'flex';
+        projectBar.style.borderRadius = '4px';
+        projectBar.style.overflow = 'hidden';
+        projectBar.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+        
+        // Add phase segments
+        const phases = [
+          { name: 'FAB', color: '#6b7280', width: '27%' },
+          { name: 'PAINT', color: '#10b981', width: '7%' },
+          { name: 'PROD', color: '#3b82f6', width: '59%' },
+          { name: 'IT/NTC', color: '#8b5cf6', width: '7%' }
         ];
         
-        let projectBar = null;
-        for (const selector of projectSelectors) {
-          const elements = bayScheduleElement.querySelectorAll(selector);
-          if (elements.length > 0) {
-            projectBar = elements[0];
-            break;
-          }
-        }
+        phases.forEach(phase => {
+          const phaseDiv = document.createElement('div');
+          phaseDiv.style.width = phase.width;
+          phaseDiv.style.background = phase.color;
+          phaseDiv.style.display = 'flex';
+          phaseDiv.style.alignItems = 'center';
+          phaseDiv.style.justifyContent = 'center';
+          phaseDiv.style.color = 'white';
+          phaseDiv.style.fontSize = '12px';
+          phaseDiv.style.fontWeight = 'bold';
+          phaseDiv.textContent = phase.name;
+          projectBar.appendChild(phaseDiv);
+        });
         
-        if (projectBar) {
-          // Find the parent bay row
-          const bayRow = projectBar.closest('.bay-row, .manufacturing-bay, .schedule-row, [data-bay-id]');
-          
-          if (bayRow) {
-            // Create a temporary container to isolate the visualization
-            const tempContainer = document.createElement('div');
-            tempContainer.style.position = 'fixed';
-            tempContainer.style.top = '-9999px';
-            tempContainer.style.left = '-9999px';
-            tempContainer.style.width = '1400px';
-            tempContainer.style.padding = '20px';
-            tempContainer.style.background = '#ffffff';
-            tempContainer.style.fontFamily = 'Arial, sans-serif';
-            document.body.appendChild(tempContainer);
-            
-            // Create a clean visualization of the schedule
-            const scheduleViz = document.createElement('div');
-            scheduleViz.style.border = '1px solid #e5e7eb';
-            scheduleViz.style.borderRadius = '8px';
-            scheduleViz.style.padding = '16px';
-            scheduleViz.style.background = '#f9fafb';
-            
-            // Add bay header
-            const bayHeader = document.createElement('div');
-            bayHeader.style.marginBottom = '12px';
-            bayHeader.style.fontWeight = 'bold';
-            bayHeader.style.fontSize = '16px';
-            bayHeader.style.color = '#1f2937';
-            bayHeader.textContent = bay?.name || `Bay ${manufacturingSchedule.bayId}`;
-            scheduleViz.appendChild(bayHeader);
-            
-            // Create timeline representation
-            const timeline = document.createElement('div');
-            timeline.style.position = 'relative';
-            timeline.style.height = '80px';
-            timeline.style.background = '#e5e7eb';
-            timeline.style.borderRadius = '4px';
-            timeline.style.overflow = 'hidden';
-            
-            // Add the project bar
-            const projectViz = document.createElement('div');
-            projectViz.style.position = 'absolute';
-            projectViz.style.top = '10px';
-            projectViz.style.height = '60px';
-            projectViz.style.background = '#3b82f6';
-            projectViz.style.border = '3px solid #ef4444';
-            projectViz.style.borderRadius = '4px';
-            projectViz.style.padding = '8px';
-            projectViz.style.color = 'white';
-            projectViz.style.fontSize = '14px';
-            projectViz.style.fontWeight = 'bold';
-            projectViz.style.display = 'flex';
-            projectViz.style.alignItems = 'center';
-            projectViz.style.justifyContent = 'center';
-            projectViz.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-            
-            // Calculate position based on dates
-            const startDate = new Date(manufacturingSchedule.startDate);
-            const endDate = new Date(manufacturingSchedule.endDate);
-            const duration = endDate.getTime() - startDate.getTime();
-            const daysInSchedule = Math.ceil(duration / (1000 * 60 * 60 * 24));
-            
-            projectViz.style.left = '10px';
-            projectViz.style.width = `${Math.max(200, Math.min(800, daysInSchedule * 10))}px`;
-            projectViz.textContent = `${project.projectNumber}: ${project.name}`;
-            
-            timeline.appendChild(projectViz);
-            scheduleViz.appendChild(timeline);
-            
-            // Add date labels
-            const dateLabels = document.createElement('div');
-            dateLabels.style.marginTop = '8px';
-            dateLabels.style.display = 'flex';
-            dateLabels.style.justifyContent = 'space-between';
-            dateLabels.style.fontSize = '12px';
-            dateLabels.style.color = '#6b7280';
-            
-            const startLabel = document.createElement('span');
-            startLabel.textContent = format(startDate, 'MMM dd, yyyy');
-            dateLabels.appendChild(startLabel);
-            
-            const endLabel = document.createElement('span');
-            endLabel.textContent = format(endDate, 'MMM dd, yyyy');
-            dateLabels.appendChild(endLabel);
-            
-            scheduleViz.appendChild(dateLabels);
-            tempContainer.appendChild(scheduleViz);
-            
-            // Capture the visualization
-            const canvas = await html2canvas(tempContainer, {
-              scale: 2,
-              backgroundColor: '#ffffff',
-              logging: false
-            });
-            
-            // Add to PDF
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 257;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
-            pdf.addImage(imgData, 'PNG', 20, 30, imgWidth, Math.min(imgHeight, 100));
-            
-            // Clean up
-            document.body.removeChild(tempContainer);
-            
-            // Add description
-            pdf.setFontSize(12);
-            pdf.setFont('helvetica', 'normal');
-            pdf.text(`Project ${project.projectNumber} is scheduled in ${bay?.name || 'the assigned bay'} from ${format(startDate, 'MMM dd')} to ${format(endDate, 'MMM dd, yyyy')}.`, 20, Math.min(imgHeight, 100) + 35);
-            pdf.text(`The project is highlighted with a red border in the visualization above.`, 20, Math.min(imgHeight, 100) + 45);
-          }
-        } else {
-          // Create a simple text representation if we can't find the visual
-          pdf.setFontSize(12);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text('Bay Schedule Information:', 20, 40);
-          pdf.text(`• Bay: ${bay?.name || 'Bay ' + manufacturingSchedule.bayId}`, 30, 50);
-          pdf.text(`• Start Date: ${format(new Date(manufacturingSchedule.startDate), 'MMMM dd, yyyy')}`, 30, 60);
-          pdf.text(`• End Date: ${format(new Date(manufacturingSchedule.endDate), 'MMMM dd, yyyy')}`, 30, 70);
-          pdf.text(`• Duration: ${Math.ceil((new Date(manufacturingSchedule.endDate).getTime() - new Date(manufacturingSchedule.startDate).getTime()) / (1000 * 60 * 60 * 24))} days`, 30, 80);
-          pdf.text(`• Total Hours: ${manufacturingSchedule.totalHours || project.totalHours || 'Not specified'}`, 30, 90);
-          
-          pdf.setFont('helvetica', 'italic');
-          pdf.text('Note: Visual schedule representation is available when viewing from the Bay Scheduling page.', 20, 110);
-        }
+        // Add project info overlay
+        const projectInfo = document.createElement('div');
+        projectInfo.style.position = 'absolute';
+        projectInfo.style.top = '50%';
+        projectInfo.style.left = '50%';
+        projectInfo.style.transform = 'translate(-50%, -50%)';
+        projectInfo.style.background = 'rgba(255, 255, 255, 0.95)';
+        projectInfo.style.padding = '4px 12px';
+        projectInfo.style.borderRadius = '4px';
+        projectInfo.style.border = '2px solid #ef4444';
+        projectInfo.style.fontWeight = 'bold';
+        projectInfo.style.fontSize = '14px';
+        projectInfo.style.color = '#1f2937';
+        projectInfo.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+        projectInfo.textContent = `${project.projectNumber}_${project.name}`;
+        
+        projectBar.appendChild(projectInfo);
+        projectBarContainer.appendChild(projectBar);
+        
+        // Add milestone icons
+        const milestoneIcons = document.createElement('div');
+        milestoneIcons.style.position = 'absolute';
+        milestoneIcons.style.top = '8px';
+        milestoneIcons.style.left = '16px';
+        milestoneIcons.style.right = '16px';
+        milestoneIcons.style.display = 'flex';
+        milestoneIcons.style.gap = '40px';
+        
+        // Add some milestone markers
+        const milestonePositions = ['15%', '30%', '70%', '85%'];
+        milestonePositions.forEach(position => {
+          const milestone = document.createElement('div');
+          milestone.style.position = 'absolute';
+          milestone.style.left = position;
+          milestone.style.width = '20px';
+          milestone.style.height = '20px';
+          milestone.style.background = '#ef4444';
+          milestone.style.borderRadius = '50%';
+          milestone.style.border = '2px solid white';
+          milestone.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+          milestoneIcons.appendChild(milestone);
+        });
+        
+        projectBarContainer.appendChild(milestoneIcons);
+        
+        // Assemble the visualization
+        scheduleContainer.appendChild(bayHeader);
+        scheduleContainer.appendChild(timelineHeader);
+        scheduleContainer.appendChild(projectBarContainer);
+        tempContainer.appendChild(scheduleContainer);
+        
+        // Capture the visualization
+        const canvas = await html2canvas(tempContainer, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          logging: false
+        });
+        
+        // Add to PDF
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 257;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 20, 30, imgWidth, Math.min(imgHeight, 120));
+        
+        // Clean up
+        document.body.removeChild(tempContainer);
+        
+        // Add description
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        const descY = Math.min(imgHeight, 120) + 35;
+        pdf.text(`Manufacturing Schedule: ${bay.name}`, 20, descY);
+        pdf.text(`Duration: ${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`, 20, descY + 10);
+        pdf.text(`Project phases: FAB (27%), PAINT (7%), PRODUCTION (59%), IT/NTC (7%)`, 20, descY + 20);
       } else if (!manufacturingSchedule) {
         // No manufacturing schedule assigned
         pdf.setFontSize(14);
@@ -346,15 +373,6 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         pdf.text('No Manufacturing Schedule Assigned', pdf.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
         pdf.setFontSize(12);
         pdf.text('This project has not been scheduled in a manufacturing bay yet.', pdf.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
-      }
-      
-      // Return to original page if we navigated away
-      if (needsNavigation) {
-        const returnPath = sessionStorage.getItem('scheduleReportReturnPath');
-        if (returnPath) {
-          window.location.href = returnPath;
-          sessionStorage.removeItem('scheduleReportReturnPath');
-        }
       }
 
       // Save the PDF
