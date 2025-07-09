@@ -234,8 +234,10 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         const manufacturingEnd = new Date(manufacturingSchedule.endDate);
         
         // Extend timeline to include QC phase which goes beyond manufacturing schedule
+        // Use the earliest phase start date and latest phase end date for full project timeline
         const projectShipDate = project.shipDate ? new Date(project.shipDate) : manufacturingEnd;
-        const startDate = manufacturingStart;
+        const actualStartDate = project.fabricationStart ? new Date(project.fabricationStart) : manufacturingStart;
+        const startDate = actualStartDate;
         const endDate = projectShipDate;
         const weeks = [];
         
@@ -297,6 +299,8 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         const itStart = project.itStart ? new Date(project.itStart) : productionStart;
         const ntcStart = project.ntcTestingDate ? new Date(project.ntcTestingDate) : itStart;
         const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : ntcStart;
+        
+        // Use ship date as the project end, ensuring QC extends to ship date
         const projectEnd = project.shipDate ? new Date(project.shipDate) : endDate;
         
         // Calculate each phase duration in days
@@ -305,15 +309,20 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         const productionDays = Math.max(1, Math.ceil((itStart.getTime() - productionStart.getTime()) / (1000 * 60 * 60 * 24)));
         const itDays = Math.max(1, Math.ceil((ntcStart.getTime() - itStart.getTime()) / (1000 * 60 * 60 * 24)));
         const ntcDays = Math.max(1, Math.ceil((qcStart.getTime() - ntcStart.getTime()) / (1000 * 60 * 60 * 24)));
+        
+        // QC should extend from QC start to ship date - this is the key fix
         const qcDays = Math.max(1, Math.ceil((projectEnd.getTime() - qcStart.getTime()) / (1000 * 60 * 60 * 24)));
         
-        // Calculate widths as percentages of total timeline
-        const fabWidth = (fabDays / totalDays) * 100;
-        const paintWidth = (paintDays / totalDays) * 100;
-        const productionWidth = (productionDays / totalDays) * 100;
-        const itWidth = (itDays / totalDays) * 100;
-        const ntcWidth = (ntcDays / totalDays) * 100;
-        const qcWidth = (qcDays / totalDays) * 100;
+        // Recalculate total days to ensure phases add up properly
+        const actualTotalDays = fabDays + paintDays + productionDays + itDays + ntcDays + qcDays;
+        
+        // Calculate widths as percentages of actual total timeline
+        const fabWidth = (fabDays / actualTotalDays) * 100;
+        const paintWidth = (paintDays / actualTotalDays) * 100;
+        const productionWidth = (productionDays / actualTotalDays) * 100;
+        const itWidth = (itDays / actualTotalDays) * 100;
+        const ntcWidth = (ntcDays / actualTotalDays) * 100;
+        const qcWidth = (qcDays / actualTotalDays) * 100;
         
         // Create all 6 phases with actual calculated widths based on database dates
         const phases = [
@@ -327,9 +336,12 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         
         // Log the phase calculations for debugging
         console.log('Phase calculations for project:', project.projectNumber);
-        console.log('Total timeline:', format(startDate, 'MM/dd/yyyy'), 'to', format(endDate, 'MM/dd/yyyy'));
-        console.log('Total days:', totalDays);
-        console.log('QC Start:', project.qcStartDate, 'QC Days:', qcDays, 'QC Width:', qcWidth + '%');
+        console.log('Total timeline:', format(startDate, 'MM/dd/yyyy'), 'to', format(projectEnd, 'MM/dd/yyyy'));
+        console.log('Original total days:', totalDays, 'Actual total days:', actualTotalDays);
+        console.log('Phase breakdown:', {
+          fabDays, paintDays, productionDays, itDays, ntcDays, qcDays
+        });
+        console.log('QC Start:', project.qcStartDate, 'QC Days:', qcDays, 'QC Width:', qcWidth.toFixed(1) + '%');
         console.log('Ship Date:', project.shipDate);
         
         phases.forEach(phase => {
