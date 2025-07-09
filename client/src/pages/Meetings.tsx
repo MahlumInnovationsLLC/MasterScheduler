@@ -1342,15 +1342,15 @@ export default function Meetings() {
                   </div>
 
                   {/* Timeline Dates - Horizontal Layout with Icons */}
-                  <div className="mt-3 bg-gray-900 border border-gray-700 rounded-lg p-3 overflow-x-auto">
-                    <div className="text-xs text-gray-300 mb-3 font-medium">Project Timeline</div>
+                  <div className="mt-3 bg-slate-100 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-3 overflow-x-auto">
+                    <div className="text-xs text-slate-700 dark:text-gray-300 mb-3 font-medium">Project Timeline</div>
                     <div className="flex gap-3 min-w-max">
                       {(project as any).contractDate && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <Clock className="h-3 w-3 text-blue-400" />
+                        <div className="flex items-center gap-1 bg-blue-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">CONTRACT DATE</div>
-                            <div className="text-xs text-white">{(() => {
+                            <div className="text-xs text-blue-700 dark:text-gray-400 font-medium">CONTRACT DATE</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(() => {
                               try {
                                 const date = new Date((project as any).contractDate + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1362,11 +1362,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {(project as any).poDroppedDate && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <Calendar className="h-3 w-3 text-green-400" />
+                        <div className="flex items-center gap-1 bg-green-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <Calendar className="h-3 w-3 text-green-600 dark:text-green-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">TIMELINE START</div>
-                            <div className="text-xs text-white">{(() => {
+                            <div className="text-xs text-green-700 dark:text-gray-400 font-medium">TIMELINE START</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(() => {
                               try {
                                 const date = new Date((project as any).poDroppedDate + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1378,11 +1378,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {(project as any).fabricationStart && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <Settings className="h-3 w-3 text-blue-400" />
+                        <div className="flex items-center gap-1 bg-orange-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <Settings className="h-3 w-3 text-orange-600 dark:text-blue-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">FAB START</div>
-                            <div className="text-xs text-white">{(project as any).fabricationStartText || (() => {
+                            <div className="text-xs text-orange-700 dark:text-gray-400 font-medium">FAB START</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(project as any).fabricationStartText || (() => {
                               try {
                                 const date = new Date((project as any).fabricationStart + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1394,11 +1394,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {(project as any).assemblyStart && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <Building className="h-3 w-3 text-indigo-400" />
+                        <div className="flex items-center gap-1 bg-purple-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <Building className="h-3 w-3 text-purple-600 dark:text-indigo-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">ASSEMBLY START</div>
-                            <div className="text-xs text-white">{(() => {
+                            <div className="text-xs text-purple-700 dark:text-gray-400 font-medium">ASSEMBLY START</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(() => {
                               try {
                                 const date = new Date((project as any).assemblyStart + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1410,11 +1410,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {(project as any).wrapDate && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <Copy className="h-3 w-3 text-cyan-400" />
+                        <div className="flex items-center gap-1 bg-teal-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <Copy className="h-3 w-3 text-teal-600 dark:text-cyan-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">WRAP DATE</div>
-                            <div className="text-xs text-white">{(project as any).wrapDateText || (() => {
+                            <div className="text-xs text-teal-700 dark:text-gray-400 font-medium">WRAP DATE</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(project as any).wrapDateText || (() => {
                               try {
                                 const date = new Date((project as any).wrapDate + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1426,11 +1426,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {(project as any).ntcTestingDate && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <Zap className="h-3 w-3 text-purple-400" />
+                        <div className="flex items-center gap-1 bg-yellow-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <Zap className="h-3 w-3 text-yellow-600 dark:text-purple-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">NTC TESTING</div>
-                            <div className="text-xs text-white">{(project as any).ntcTestingDateText || (() => {
+                            <div className="text-xs text-yellow-700 dark:text-gray-400 font-medium">NTC TESTING</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(project as any).ntcTestingDateText || (() => {
                               try {
                                 const date = new Date((project as any).ntcTestingDate + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1442,11 +1442,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {(project as any).qcStartDate && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <CheckCircle className="h-3 w-3 text-green-400" />
+                        <div className="flex items-center gap-1 bg-emerald-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-green-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">QC START</div>
-                            <div className="text-xs text-white">{(() => {
+                            <div className="text-xs text-emerald-700 dark:text-gray-400 font-medium">QC START</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(() => {
                               try {
                                 const date = new Date((project as any).qcStartDate + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1458,11 +1458,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {(project as any).executiveReviewDate && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <Users className="h-3 w-3 text-yellow-400" />
+                        <div className="flex items-center gap-1 bg-indigo-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <Users className="h-3 w-3 text-indigo-600 dark:text-yellow-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">EXECUTIVE REVIEW</div>
-                            <div className="text-xs text-white">{(() => {
+                            <div className="text-xs text-indigo-700 dark:text-gray-400 font-medium">EXECUTIVE REVIEW</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(() => {
                               try {
                                 const date = new Date((project as any).executiveReviewDate + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1474,11 +1474,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {project.shipDate && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <MapPin className="h-3 w-3 text-orange-400" />
+                        <div className="flex items-center gap-1 bg-rose-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <MapPin className="h-3 w-3 text-rose-600 dark:text-orange-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">SHIP</div>
-                            <div className="text-xs text-white">{(() => {
+                            <div className="text-xs text-rose-700 dark:text-gray-400 font-medium">SHIP</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(() => {
                               try {
                                 const date = new Date(project.shipDate + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
@@ -1490,11 +1490,11 @@ export default function Meetings() {
                         </div>
                       )}
                       {project.deliveryDate && (
-                        <div className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
-                          <Download className="h-3 w-3 text-red-400" />
+                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                          <Download className="h-3 w-3 text-gray-600 dark:text-red-400" />
                           <div>
-                            <div className="text-xs text-gray-400 font-medium">DELIVERY</div>
-                            <div className="text-xs text-white">{(() => {
+                            <div className="text-xs text-gray-700 dark:text-gray-400 font-medium">DELIVERY</div>
+                            <div className="text-xs text-slate-800 dark:text-white">{(() => {
                               try {
                                 const date = new Date(project.deliveryDate + 'T00:00:00');
                                 return format(date, 'MMM d, yyyy');
