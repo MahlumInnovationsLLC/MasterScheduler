@@ -54,31 +54,52 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       pdf.setFont('helvetica', 'bold');
       pdf.text('Project Information', 20, 70);
       
-      const projectInfo = [
-        ['Project Number', project.projectNumber],
-        ['Project Name', project.name],
-        ['Customer', project.customer || '-'],
-        ['Status', project.status || '-'],
-        ['Progress', `${project.percentComplete || 0}%`],
-        ['Total Hours', project.totalHours?.toString() || '-'],
-        ['Bay Assignment', bay?.name || 'Unassigned']
-      ];
-
-      autoTable(pdf, {
-        startY: 75,
-        head: [],
-        body: projectInfo,
-        theme: 'grid',
-        columnStyles: {
-          0: { cellWidth: 50, fontStyle: 'bold' },
-          1: { cellWidth: 150 }
-        },
-        tableWidth: 'auto',
-        margin: { left: 20, right: 20 }
-      });
+      // Project Information (using simple text instead of table)
+      let yPos = 75;
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Project Number:', 20, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(project.projectNumber, 90, yPos);
+      
+      yPos += 10;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Project Name:', 20, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(project.name, 90, yPos);
+      
+      yPos += 10;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Customer:', 20, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(project.customer || '-', 90, yPos);
+      
+      yPos += 10;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Status:', 20, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(project.status || '-', 90, yPos);
+      
+      yPos += 10;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Progress:', 20, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`${project.percentComplete || 0}%`, 90, yPos);
+      
+      yPos += 10;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Total Hours:', 20, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(project.totalHours?.toString() || '-', 90, yPos);
+      
+      yPos += 10;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Bay Assignment:', 20, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(bay?.name || 'Unassigned', 90, yPos);
 
       // Timeline Milestones Section
-      const timelineY = (pdf as any).lastAutoTable.finalY + 15;
+      const timelineY = yPos + 20;
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
       pdf.text('Timeline Milestones', 20, timelineY);
@@ -119,51 +140,55 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       }
 
       if (milestones.length > 0) {
-        autoTable(pdf, {
-          startY: timelineY + 5,
-          head: [['Milestone', 'Date']],
-          body: milestones,
-          theme: 'striped',
-          headStyles: {
-            fillColor: [66, 139, 202],
-            textColor: 255
-          },
-          columnStyles: {
-            0: { cellWidth: 80 },
-            1: { cellWidth: 60 }
-          },
-          tableWidth: 'auto',
-          margin: { left: 20, right: 20 }
+        let milestoneY = timelineY + 10;
+        pdf.setFontSize(12);
+        milestones.forEach(([milestone, date]) => {
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(milestone + ':', 20, milestoneY);
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(date, 90, milestoneY);
+          milestoneY += 10;
         });
       }
 
       // Manufacturing Schedule Details
       if (manufacturingSchedule) {
-        const scheduleY = (pdf as any).lastAutoTable?.finalY + 15 || timelineY + 20;
+        const scheduleY = timelineY + (milestones.length * 10) + 25;
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.text('Manufacturing Schedule Details', 20, scheduleY);
 
-        const scheduleInfo = [
-          ['Bay Assignment', bay?.name || 'Unassigned'],
-          ['Start Date', format(new Date(manufacturingSchedule.startDate), 'MMM dd, yyyy')],
-          ['End Date', format(new Date(manufacturingSchedule.endDate), 'MMM dd, yyyy')],
-          ['Total Hours', manufacturingSchedule.totalHours?.toString() || '-'],
-          ['Row Position', `Row ${(manufacturingSchedule.rowIndex || 0) + 1}`]
-        ];
-
-        autoTable(pdf, {
-          startY: scheduleY + 5,
-          head: [],
-          body: scheduleInfo,
-          theme: 'grid',
-          columnStyles: {
-            0: { cellWidth: 50, fontStyle: 'bold' },
-            1: { cellWidth: 150 }
-          },
-          tableWidth: 'auto',
-          margin: { left: 20, right: 20 }
-        });
+        let scheduleInfoY = scheduleY + 10;
+        pdf.setFontSize(12);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Bay Assignment:', 20, scheduleInfoY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(bay?.name || 'Unassigned', 90, scheduleInfoY);
+        
+        scheduleInfoY += 10;
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Start Date:', 20, scheduleInfoY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(format(new Date(manufacturingSchedule.startDate), 'MMM dd, yyyy'), 90, scheduleInfoY);
+        
+        scheduleInfoY += 10;
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('End Date:', 20, scheduleInfoY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(format(new Date(manufacturingSchedule.endDate), 'MMM dd, yyyy'), 90, scheduleInfoY);
+        
+        scheduleInfoY += 10;
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Total Hours:', 20, scheduleInfoY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(manufacturingSchedule.totalHours?.toString() || '-', 90, scheduleInfoY);
+        
+        scheduleInfoY += 10;
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Row Position:', 20, scheduleInfoY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Row ${(manufacturingSchedule.rowIndex || 0) + 1}`, 90, scheduleInfoY);
       }
 
       // Add new page for Bay Schedule visualization
