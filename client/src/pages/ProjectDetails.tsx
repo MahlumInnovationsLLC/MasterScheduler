@@ -56,6 +56,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { addDays } from 'date-fns';
 import { Loader2 } from 'lucide-react';
+import { ScheduleReport } from '@/components/ScheduleReport';
 
 // Interactive Progress Slider Component
 interface InteractiveProgressSliderProps {
@@ -673,6 +674,11 @@ const ProjectDetails = () => {
               <Edit className="h-4 w-4 mr-2" />
               Edit Project
             </Button>
+            <ScheduleReport 
+              project={project} 
+              manufacturingSchedule={activeSchedule}
+              bay={activeBay}
+            />
             <Button 
               size="sm"
               onClick={() => {
