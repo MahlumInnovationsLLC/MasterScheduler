@@ -233,17 +233,16 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         const startDate = new Date(manufacturingSchedule.startDate);
         const endDate = new Date(manufacturingSchedule.endDate);
         const weeks = [];
-        const currentDate = new Date(startDate);
+        let currentDate = new Date(startDate);
         
-        // Generate week labels for the timeline matching the bay schedule format
+        // Generate week labels exactly as shown in ResizableBaySchedule
+        // This matches the MM/dd format used in the actual bay schedule
         while (currentDate <= endDate) {
-          const monthNum = currentDate.getMonth() + 1;
-          const day = currentDate.getDate();
-          weeks.push(`${monthNum.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`);
-          currentDate.setDate(currentDate.getDate() + 7);
+          weeks.push(format(currentDate, 'MM/dd'));
+          currentDate = addDays(currentDate, 7); // Move to next week
         }
         
-        // Add week labels
+        // Add week labels with proper spacing
         weeks.slice(0, 8).forEach(week => {
           const weekLabel = document.createElement('div');
           weekLabel.style.flex = '1';
@@ -251,6 +250,7 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
           weekLabel.style.fontSize = '12px';
           weekLabel.style.color = '#6b7280';
           weekLabel.style.borderRight = '1px solid #d1d5db';
+          weekLabel.style.padding = '4px';
           weekLabel.textContent = week;
           timelineHeader.appendChild(weekLabel);
         });
