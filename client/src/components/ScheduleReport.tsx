@@ -135,32 +135,12 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         });
       }
 
-      // Manufacturing Schedule Details
+      // Estimate Manufacturing Schedule section (title only)
       if (manufacturingSchedule) {
         const scheduleY = (pdf as any).lastAutoTable?.finalY + 15 || timelineY + 20;
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Manufacturing Schedule Details', 20, scheduleY);
-
-        const scheduleInfo = [
-          ['Bay Assignment', bay?.name || 'Unassigned'],
-          ['Start Date', format(new Date(manufacturingSchedule.startDate), 'MMM dd, yyyy')],
-          ['End Date', format(new Date(manufacturingSchedule.endDate), 'MMM dd, yyyy')],
-          ['Total Hours', manufacturingSchedule.totalHours?.toString() || '-'],
-          ['Row Position', `Row ${(manufacturingSchedule.rowIndex || 0) + 1}`]
-        ];
-
-        autoTable(pdf, {
-          startY: scheduleY + 5,
-          head: [],
-          body: scheduleInfo,
-          theme: 'grid',
-          columnStyles: {
-            0: { cellWidth: 50, fontStyle: 'bold' },
-            1: { cellWidth: 'auto' }
-          },
-          margin: { left: 20, right: 20 }
-        });
+        pdf.text('Estimate Manufacturing Schedule', 20, scheduleY);
       }
 
       // Add new page for Bay Schedule visualization

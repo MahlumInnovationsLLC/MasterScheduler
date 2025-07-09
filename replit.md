@@ -365,6 +365,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Enhanced timeline to show both actual dates and OP dates below each milestone
   - Updated both regular Project Timeline and Critical Project Timeline sections with same functionality
   - Timeline styling now matches project-specific page behavior with uniform color scheme
+- January 09, 2025: Schedule Report QC Phase and PDF Enhancement
+  - Fixed QC phase calculation in Generate Schedule Report to properly extend from QC start date to ship date
+  - Recalculated total project timeline using actual sum of all phase durations for accurate percentage calculations
+  - Updated phase percentage calculations to use actual total timeline instead of manufacturing schedule duration
+  - Enhanced timeline visualization to show complete project span from fabrication start to ship date
+  - Removed Manufacturing Schedule Details table from PDF report while keeping title changed to "Estimate Manufacturing Schedule"
+  - QC phase now correctly displays 7 days (March 25 to April 1) with 6.7% width extending close to ship date
 
 
 ## User Preferences
