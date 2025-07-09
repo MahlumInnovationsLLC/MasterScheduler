@@ -783,60 +783,60 @@ const ProjectDetails = () => {
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-6">
-          <div className="col-span-1 space-y-4">
-            {/* Progress */}
-            <div>
-              <div className="text-sm text-gray-400 mb-1">Progress</div>
-              <div className="flex items-center gap-3">
-                <InteractiveProgressSlider 
-                  value={parseFloat((project as any)?.percentComplete || '0')}
-                  onChange={updateProjectProgress}
-                  className="w-64"
-                />
-                <span className="text-lg font-bold">{parseFloat(project?.percentComplete || '0').toFixed(0)}%</span>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Timeline: {projectHealth.breakdown.timelineAdherence}%
-              </div>
+        <div className="mt-5 grid grid-cols-3 gap-4">
+          {/* Progress - Extended to cover more space */}
+          <div className="col-span-2">
+            <div className="text-sm text-gray-400 mb-1">Progress</div>
+            <div className="flex items-center gap-3">
+              <InteractiveProgressSlider 
+                value={parseFloat((project as any)?.percentComplete || '0')}
+                onChange={updateProjectProgress}
+                className="flex-1"
+              />
+              <span className="text-lg font-bold">{parseFloat(project?.percentComplete || '0').toFixed(0)}%</span>
             </div>
-
-            {/* Billing */}
-            <div>
-              <div className="text-sm text-gray-400 mb-1">Billing</div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">
-                  {formatCurrency(billingMilestones
-                    .filter(m => m.status === 'paid')
-                    .reduce((sum, m) => sum + parseFloat(m.amount), 0)
-                  )}
-                </span>
-                <span className="text-sm text-gray-400">/ 
-                  {formatCurrency(billingMilestones
-                    .reduce((sum, m) => sum + parseFloat(m.amount), 0)
-                  )}
-                </span>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Progress: {projectHealth.breakdown.billingProgress}%
-              </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Timeline: {projectHealth.breakdown.timelineAdherence}%
             </div>
+          </div>
 
-            {/* Tasks */}
-            <div>
-              <div className="text-sm text-gray-400 mb-1">Tasks</div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">
-                  {tasks.filter(t => t.isCompleted).length}/{tasks.length}
-                </span>
-                <span className="text-sm text-gray-400">completed</span>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                ```text
-{tasks.length === 0 ? 'No tasks defined' : 
-                 tasks.filter(t => t.isCompleted).length === tasks.length ? 'All complete' :
-                 `${tasks.length - tasks.filter(t => t.isCompleted).length} remaining`}
-              </div>
+          {/* Empty cell for spacing */}
+          <div></div>
+
+          {/* Billing */}
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Billing</div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">
+                {formatCurrency(billingMilestones
+                  .filter(m => m.status === 'paid')
+                  .reduce((sum, m) => sum + parseFloat(m.amount), 0)
+                )}
+              </span>
+              <span className="text-sm text-gray-400">/ 
+                {formatCurrency(billingMilestones
+                  .reduce((sum, m) => sum + parseFloat(m.amount), 0)
+                )}
+              </span>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Progress: {projectHealth.breakdown.billingProgress}%
+            </div>
+          </div>
+
+          {/* Tasks */}
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Tasks</div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">
+                {tasks.filter(t => t.isCompleted).length}/{tasks.length}
+              </span>
+              <span className="text-sm text-gray-400">completed</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {tasks.length === 0 ? 'No tasks defined' : 
+               tasks.filter(t => t.isCompleted).length === tasks.length ? 'All complete' :
+               `${tasks.length - tasks.filter(t => t.isCompleted).length} remaining`}
             </div>
           </div>
 

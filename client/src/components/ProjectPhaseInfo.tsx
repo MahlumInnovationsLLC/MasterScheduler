@@ -145,7 +145,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
   // Get the correct dates to display in timeline
   const contractDate = project.contractDate || null;
   const poDroppedDate = project.poDroppedDate || project.startDate || null; // Timeline Start
-  const mechShopDate = project.mechShopDate || null;
+  const mechShopDate = project.mechShop || null;
   const fabricationStart = getPhaseDate('fabricationStart');
   const assemblyStart = getPhaseDate('assemblyStart');
   const ntcTestingDate = getPhaseDate('ntcTestingDate');
@@ -192,13 +192,13 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
         )}
 
         {mechShopDate && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(mechShopDate, project.opMechShopDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(mechShopDate, project.opMechShop) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
             <Cog className="h-4 w-4 text-yellow-400" />
             <div>
               <div className="text-xs text-gray-400">MECH SHOP</div>
               <div className="text-sm font-medium">{formatDateOrText(mechShopDate)}</div>
-              {project.opMechShopDate && (
-                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opMechShopDate)}</div>
+              {project.opMechShop && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opMechShop)}</div>
               )}
             </div>
           </div>
