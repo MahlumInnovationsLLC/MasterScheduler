@@ -31,8 +31,9 @@ export function AIInsightsModal({ projectId }: AIInsightsModalProps) {
     queryFn: async () => {
       if (!projectId) return [];
       const response = await apiRequest('GET', `/api/ai/project-insights/${projectId}`);
-      console.log('API Response:', response);
-      return response || [];
+      const data = await response.json();
+      console.log('API Response:', data);
+      return data || [];
     },
     enabled: open && !!projectId,
     staleTime: 0, // No caching to ensure fresh data
