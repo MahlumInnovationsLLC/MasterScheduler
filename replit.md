@@ -273,6 +273,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Widget displays bay number, team information, duration in days, and status badge
   - Includes Edit Assignment and View Schedule buttons for quick access
   - Removed duplicate Manufacturing Assignment widget from sidebar to avoid redundancy
+- January 09, 2025: Project Details Layout Reorganization and MECH SHOP Timeline Integration
+  - Reorganized layout to create vertical column with Progress, Billing, and Tasks stacked vertically
+  - Removed MECH SHOP percentage card from department percentages section
+  - Added MECH SHOP as timeline milestone in Project Timeline section with yellow gear icon
+  - Removed Duration and Date Range from Manufacturing Assignment section for cleaner display
+  - Manufacturing Assignment now shows only bay number, team, and status with action buttons
+  - Updated grid layout to properly accommodate vertical stacking of Progress, Billing, and Tasks
 - July 07, 2025: Engineering Benchmarks Module Complete Implementation
   - Removed all mock benchmarks and replaced with authentic project-based benchmark system
   - Created two standard benchmark templates: "Section X CAD Complete" (30 days before fabrication start) and "CAD COMPLETE" (90 days before production start)

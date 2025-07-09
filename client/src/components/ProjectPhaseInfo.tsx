@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatDate } from '@/lib/utils';
-import { Clock, Calendar, Hammer, Wrench, TestTube, CheckSquare, CheckCircle, Truck, Navigation, Package } from 'lucide-react';
+import { Clock, Calendar, Hammer, Wrench, TestTube, CheckSquare, CheckCircle, Truck, Navigation, Package, Cog } from 'lucide-react';
 
 interface ProjectPhaseInfoProps {
   project: any;
@@ -145,6 +145,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
   // Get the correct dates to display in timeline
   const contractDate = project.contractDate || null;
   const poDroppedDate = project.poDroppedDate || project.startDate || null; // Timeline Start
+  const mechShopDate = project.mechShopDate || null;
   const fabricationStart = getPhaseDate('fabricationStart');
   const assemblyStart = getPhaseDate('assemblyStart');
   const ntcTestingDate = getPhaseDate('ntcTestingDate');
@@ -155,7 +156,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
   const wrapDate = getPhaseDate('wrapDate');
 
   // Only display if we have at least one phase date (including text values from localStorage)
-  if (!contractDate && !poDroppedDate && !fabricationStart && !assemblyStart && !ntcTestingDate && 
+  if (!contractDate && !poDroppedDate && !mechShopDate && !fabricationStart && !assemblyStart && !ntcTestingDate && 
       !qcStartDate && !executiveReviewDate && !shipDate && !deliveryDate && !wrapDate) {
     return null;
   }
@@ -185,6 +186,19 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
               <div className="text-sm font-medium">{formatDateOrText(poDroppedDate)}</div>
               {project.opStartDate && (
                 <div className="text-xs text-gray-500">OP: {formatOPDate(project.opStartDate)}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {mechShopDate && (
+          <div className={`flex items-center gap-1 px-2 py-1 rounded ${isCurrentDatePastOP(mechShopDate, project.opMechShopDate) ? 'bg-orange-300/30 dark:bg-orange-500/20 border-l-4 border-l-orange-500' : 'bg-dark'}`}>
+            <Cog className="h-4 w-4 text-yellow-400" />
+            <div>
+              <div className="text-xs text-gray-400">MECH SHOP</div>
+              <div className="text-sm font-medium">{formatDateOrText(mechShopDate)}</div>
+              {project.opMechShopDate && (
+                <div className="text-xs text-gray-500">OP: {formatOPDate(project.opMechShopDate)}</div>
               )}
             </div>
           </div>

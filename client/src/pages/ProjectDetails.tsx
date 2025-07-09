@@ -779,27 +779,64 @@ const ProjectDetails = () => {
           );
         })()}
 
-        {/* MECH Shop Progress */}
-        <div className="bg-dark rounded border border-gray-800 p-2">
-          <div className="text-xs text-gray-400 mb-1">MECH SHOP</div>
-          <div className="text-lg font-bold">{project.mechShop || 0}%</div>
-        </div>
+
           </div>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-6">
-          <div className="col-span-1">
-            <div className="text-sm text-gray-400 mb-1">Progress</div>
-            <div className="flex items-center gap-3">
-              <InteractiveProgressSlider 
-                value={parseFloat((project as any)?.percentComplete || '0')}
-                onChange={updateProjectProgress}
-                className="w-64"
-              />
-              <span className="text-lg font-bold">{parseFloat(project?.percentComplete || '0').toFixed(0)}%</span>
+          <div className="col-span-1 space-y-4">
+            {/* Progress */}
+            <div>
+              <div className="text-sm text-gray-400 mb-1">Progress</div>
+              <div className="flex items-center gap-3">
+                <InteractiveProgressSlider 
+                  value={parseFloat((project as any)?.percentComplete || '0')}
+                  onChange={updateProjectProgress}
+                  className="w-64"
+                />
+                <span className="text-lg font-bold">{parseFloat(project?.percentComplete || '0').toFixed(0)}%</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Timeline: {projectHealth.breakdown.timelineAdherence}%
+              </div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Timeline: {projectHealth.breakdown.timelineAdherence}%
+
+            {/* Billing */}
+            <div>
+              <div className="text-sm text-gray-400 mb-1">Billing</div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">
+                  {formatCurrency(billingMilestones
+                    .filter(m => m.status === 'paid')
+                    .reduce((sum, m) => sum + parseFloat(m.amount), 0)
+                  )}
+                </span>
+                <span className="text-sm text-gray-400">/ 
+                  {formatCurrency(billingMilestones
+                    .reduce((sum, m) => sum + parseFloat(m.amount), 0)
+                  )}
+                </span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Progress: {projectHealth.breakdown.billingProgress}%
+              </div>
+            </div>
+
+            {/* Tasks */}
+            <div>
+              <div className="text-sm text-gray-400 mb-1">Tasks</div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">
+                  {tasks.filter(t => t.isCompleted).length}/{tasks.length}
+                </span>
+                <span className="text-sm text-gray-400">completed</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                ```text
+{tasks.length === 0 ? 'No tasks defined' : 
+                 tasks.filter(t => t.isCompleted).length === tasks.length ? 'All complete' :
+                 `${tasks.length - tasks.filter(t => t.isCompleted).length} remaining`}
+              </div>
             </div>
           </div>
 
@@ -811,9 +848,6 @@ const ProjectDetails = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-lg font-bold">Bay {activeBay?.bayNumber || activeSchedule.bayId}</div>
-                      <div className="text-sm text-gray-400">
-                        {formatDate(activeSchedule.startDate)} - {formatDate(activeSchedule.endDate)}
-                      </div>
                       {activeBay?.team && (
                         <div className="text-xs text-blue-400 mt-1">
                           Team: {activeBay.team}
@@ -826,33 +860,25 @@ const ProjectDetails = () => {
                       size="sm" 
                     />
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-700 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Duration:</span>
-                      <span>
-                        {Math.ceil((new Date(activeSchedule.endDate).getTime() - new Date(activeSchedule.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
-                      </span>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setIsAssignBayDialogOpen(true)}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Assignment
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => navigate('/bay-scheduling')}
-                      >
-                        <Calendar className="h-4 w-4 mr-2" />
-                        View Schedule
-                      </Button>
-                    </div>
+                  <div className="flex gap-2 mt-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setIsAssignBayDialogOpen(true)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Assignment
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => navigate('/bay-scheduling')}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      View Schedule
+                    </Button>
                   </div>
                 </div>
               ) : manufacturingSchedules?.some(s => s.projectId === parseInt(projectId) && s.status === 'scheduled') ? (
@@ -865,9 +891,6 @@ const ProjectDetails = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-lg font-bold text-yellow-400">Bay {scheduledBay?.bayNumber || scheduledAssignment.bayId}</div>
-                          <div className="text-sm text-gray-400">
-                            Scheduled: {formatDate(scheduledAssignment.startDate)} - {formatDate(scheduledAssignment.endDate)}
-                          </div>
                           {scheduledBay?.team && (
                             <div className="text-xs text-blue-400 mt-1">
                               Team: {scheduledBay.team}
@@ -875,18 +898,6 @@ const ProjectDetails = () => {
                           )}
                         </div>
                         <ProgressBadge status="Scheduled" size="sm" />
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-yellow-600/30 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Starts in:</span>
-                          <span className="text-yellow-400">
-                            {Math.ceil((new Date(scheduledAssignment.startDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
-                          </span>
-                        </div>
-                        <div className="flex justify-between mt-1">
-                          <span className="text-gray-400">Duration:</span>
-                          <span>{Math.ceil((new Date(scheduledAssignment.endDate).getTime() - new Date(scheduledAssignment.startDate).getTime()) / (1000 * 60 * 60 * 24))} days</span>
-                        </div>
                       </div>
                     </div>
                   ) : null;
@@ -909,43 +920,6 @@ const ProjectDetails = () => {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Second Row */}
-          <div className="col-span-1">
-            <div className="text-sm text-gray-400 mb-1">Tasks</div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">
-                {tasks.filter(t => t.isCompleted).length}/{tasks.length}
-              </span>
-              <span className="text-sm text-gray-400">completed</span>
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              ```text
-{tasks.length === 0 ? 'No tasks defined' : 
-               tasks.filter(t => t.isCompleted).length === tasks.length ? 'All complete' :
-               `${tasks.length - tasks.filter(t => t.isCompleted).length} remaining`}
-            </div>
-          </div>
-
-          <div className="col-span-1">
-            <div className="text-sm text-gray-400 mb-1">Billing</div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">
-                {formatCurrency(billingMilestones
-                  .filter(m => m.status === 'paid')
-                  .reduce((sum, m) => sum + parseFloat(m.amount), 0)
-                )}
-              </span>
-              <span className="text-sm text-gray-400">/ 
-                {formatCurrency(billingMilestones
-                  .reduce((sum, m) => sum + parseFloat(m.amount), 0)
-                )}
-              </span>
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Progress: {projectHealth.breakdown.billingProgress}%
             </div>
           </div>
 
