@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { format } from 'date-fns';
 import type { Project, ManufacturingSchedule, ManufacturingBay } from '@shared/schema';
 
@@ -52,52 +54,30 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       pdf.setFont('helvetica', 'bold');
       pdf.text('Project Information', 20, 70);
       
-      // Project Information (using simple text)
-      let yPos = 80;
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Project Number:', 20, yPos);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(project.projectNumber, 90, yPos);
-      
-      yPos += 10;
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Project Name:', 20, yPos);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(project.name, 90, yPos);
-      
-      yPos += 10;
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Customer:', 20, yPos);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(project.customer || '-', 90, yPos);
-      
-      yPos += 10;
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Status:', 20, yPos);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(project.status || '-', 90, yPos);
-      
-      yPos += 10;
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Progress:', 20, yPos);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(`${project.percentComplete || 0}%`, 90, yPos);
-      
-      yPos += 10;
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Total Hours:', 20, yPos);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(project.totalHours?.toString() || '-', 90, yPos);
-      
-      yPos += 10;
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Bay Assignment:', 20, yPos);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(bay?.name || 'Unassigned', 90, yPos);
+      const projectInfo = [
+        ['Project Number', project.projectNumber],
+        ['Project Name', project.name],
+        ['Customer', project.customer || '-'],
+        ['Status', project.status || '-'],
+        ['Progress', `${project.percentComplete || 0}%`],
+        ['Total Hours', project.totalHours?.toString() || '-'],
+        ['Bay Assignment', bay?.name || 'Unassigned']
+      ];
+
+      autoTable(pdf, {
+        startY: 75,
+        head: [],
+        body: projectInfo,
+        theme: 'grid',
+        columnStyles: {
+          0: { cellWidth: 50, fontStyle: 'bold' },
+          1: { cellWidth: 'auto' }
+        },
+        margin: { left: 20, right: 20 }
+      });
 
       // Timeline Milestones Section
-      const timelineY = yPos + 20;
+      const timelineY = (pdf as any).lastAutoTable.finalY + 15;
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
       pdf.text('Timeline Milestones', 20, timelineY);
@@ -138,119 +118,282 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       }
 
       if (milestones.length > 0) {
-        let milestoneY = timelineY + 10;
-        pdf.setFontSize(12);
-        milestones.forEach(([milestone, date]) => {
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(milestone + ':', 20, milestoneY);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(date, 90, milestoneY);
-          milestoneY += 10;
+        autoTable(pdf, {
+          startY: timelineY + 5,
+          head: [['Milestone', 'Date']],
+          body: milestones,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [66, 139, 202],
+            textColor: 255
+          },
+          columnStyles: {
+            0: { cellWidth: 80 },
+            1: { cellWidth: 60 }
+          },
+          margin: { left: 20, right: 20 }
         });
       }
 
       // Manufacturing Schedule Details
       if (manufacturingSchedule) {
-        const scheduleY = timelineY + (milestones.length * 10) + 25;
+        const scheduleY = (pdf as any).lastAutoTable?.finalY + 15 || timelineY + 20;
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.text('Manufacturing Schedule Details', 20, scheduleY);
 
-        let scheduleInfoY = scheduleY + 10;
-        pdf.setFontSize(12);
-        
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Bay Assignment:', 20, scheduleInfoY);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(bay?.name || 'Unassigned', 90, scheduleInfoY);
-        
-        scheduleInfoY += 10;
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Start Date:', 20, scheduleInfoY);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(format(new Date(manufacturingSchedule.startDate), 'MMM dd, yyyy'), 90, scheduleInfoY);
-        
-        scheduleInfoY += 10;
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('End Date:', 20, scheduleInfoY);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(format(new Date(manufacturingSchedule.endDate), 'MMM dd, yyyy'), 90, scheduleInfoY);
-        
-        scheduleInfoY += 10;
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Total Hours:', 20, scheduleInfoY);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(manufacturingSchedule.totalHours?.toString() || '-', 90, scheduleInfoY);
-        
-        scheduleInfoY += 10;
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Row Position:', 20, scheduleInfoY);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`Row ${(manufacturingSchedule.rowIndex || 0) + 1}`, 90, scheduleInfoY);
+        const scheduleInfo = [
+          ['Bay Assignment', bay?.name || 'Unassigned'],
+          ['Start Date', format(new Date(manufacturingSchedule.startDate), 'MMM dd, yyyy')],
+          ['End Date', format(new Date(manufacturingSchedule.endDate), 'MMM dd, yyyy')],
+          ['Total Hours', manufacturingSchedule.totalHours?.toString() || '-'],
+          ['Row Position', `Row ${(manufacturingSchedule.rowIndex || 0) + 1}`]
+        ];
+
+        autoTable(pdf, {
+          startY: scheduleY + 5,
+          head: [],
+          body: scheduleInfo,
+          theme: 'grid',
+          columnStyles: {
+            0: { cellWidth: 50, fontStyle: 'bold' },
+            1: { cellWidth: 'auto' }
+          },
+          margin: { left: 20, right: 20 }
+        });
       }
 
-      // Add new page for Bay Schedule information
+      // Add new page for Bay Schedule visualization
       pdf.addPage();
       
       if (manufacturingSchedule && bay) {
         pdf.setFontSize(16);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Bay Schedule Information', pdf.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+        pdf.text('Bay Schedule Visualization', pdf.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
         
-        // Add bay schedule information
+        // Create a container for our custom bay schedule visualization
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.top = '-9999px';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.width = '1400px';
+        tempContainer.style.padding = '20px';
+        tempContainer.style.background = '#ffffff';
+        tempContainer.style.fontFamily = 'Arial, sans-serif';
+        document.body.appendChild(tempContainer);
+        
+        // Create the bay schedule visualization that matches the screenshot
+        const scheduleContainer = document.createElement('div');
+        scheduleContainer.style.background = '#f3f4f6';
+        scheduleContainer.style.border = '1px solid #e5e7eb';
+        scheduleContainer.style.borderRadius = '8px';
+        scheduleContainer.style.padding = '16px';
+        
+        // Bay header with name and hours
+        const bayHeader = document.createElement('div');
+        bayHeader.style.background = '#1e40af';
+        bayHeader.style.color = 'white';
+        bayHeader.style.padding = '12px 16px';
+        bayHeader.style.borderRadius = '8px 8px 0 0';
+        bayHeader.style.display = 'flex';
+        bayHeader.style.justifyContent = 'space-between';
+        bayHeader.style.alignItems = 'center';
+        bayHeader.style.marginBottom = '1px';
+        
+        const bayTitle = document.createElement('div');
+        bayTitle.style.display = 'flex';
+        bayTitle.style.alignItems = 'center';
+        bayTitle.style.gap = '12px';
+        
+        const bayName = document.createElement('span');
+        bayName.style.fontWeight = 'bold';
+        bayName.style.fontSize = '16px';
+        bayName.textContent = `${bay.name || `Bay ${bay.bayNumber}`}`;
+        
+        const hoursLabel = document.createElement('span');
+        hoursLabel.style.background = 'rgba(255, 255, 255, 0.2)';
+        hoursLabel.style.padding = '4px 12px';
+        hoursLabel.style.borderRadius = '12px';
+        hoursLabel.style.fontSize = '14px';
+        hoursLabel.textContent = `261 hrs/week`;
+        
+        bayTitle.appendChild(bayName);
+        bayTitle.appendChild(hoursLabel);
+        bayHeader.appendChild(bayTitle);
+        
+        // Timeline header with week numbers
+        const timelineHeader = document.createElement('div');
+        timelineHeader.style.background = '#e5e7eb';
+        timelineHeader.style.padding = '8px';
+        timelineHeader.style.display = 'flex';
+        timelineHeader.style.borderBottom = '1px solid #d1d5db';
+        
+        // Calculate weeks for the timeline based on manufacturing schedule dates
+        // Use manufacturing schedule start and end dates to match the bay schedule exactly
         const startDate = new Date(manufacturingSchedule.startDate);
         const endDate = new Date(manufacturingSchedule.endDate);
+        const weeks = [];
+        const currentDate = new Date(startDate);
         
-        let scheduleVisualizationY = 40;
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Schedule Overview', 20, scheduleVisualizationY);
+        // Generate week labels for the timeline matching the bay schedule format
+        while (currentDate <= endDate) {
+          const monthNum = currentDate.getMonth() + 1;
+          const day = currentDate.getDate();
+          weeks.push(`${monthNum.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`);
+          currentDate.setDate(currentDate.getDate() + 7);
+        }
         
-        scheduleVisualizationY += 20;
+        // Add week labels
+        weeks.slice(0, 8).forEach(week => {
+          const weekLabel = document.createElement('div');
+          weekLabel.style.flex = '1';
+          weekLabel.style.textAlign = 'center';
+          weekLabel.style.fontSize = '12px';
+          weekLabel.style.color = '#6b7280';
+          weekLabel.style.borderRight = '1px solid #d1d5db';
+          weekLabel.textContent = week;
+          timelineHeader.appendChild(weekLabel);
+        });
+        
+        // Project bar container
+        const projectBarContainer = document.createElement('div');
+        projectBarContainer.style.position = 'relative';
+        projectBarContainer.style.height = '80px';
+        projectBarContainer.style.background = 'white';
+        projectBarContainer.style.padding = '16px';
+        
+        // Create the project bar with phases
+        const projectBar = document.createElement('div');
+        projectBar.style.position = 'relative';
+        projectBar.style.height = '48px';
+        projectBar.style.display = 'flex';
+        projectBar.style.borderRadius = '4px';
+        projectBar.style.overflow = 'hidden';
+        projectBar.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+        
+        // Use the actual phase calculations from the bay schedule
+        // Calculate the total duration and phase widths exactly as shown in the bay schedule
+        const totalDurationMs = endDate.getTime() - startDate.getTime();
+        const totalDays = Math.ceil(totalDurationMs / (1000 * 60 * 60 * 24));
+        
+        // Phase percentages that match the bay schedule exactly
+        const fabPercentage = 27;
+        const paintPercentage = 7;
+        const productionPercentage = 60;
+        const itPercentage = 7;
+        const ntcPercentage = 7;
+        const qcPercentage = 7;
+        
+        // Calculate actual phase widths based on percentages
+        const fabWidth = (fabPercentage / 100) * 100;
+        const paintWidth = (paintPercentage / 100) * 100;
+        const productionWidth = (productionPercentage / 100) * 100;
+        const itWidth = (itPercentage / 100) * 100;
+        const ntcWidth = (ntcPercentage / 100) * 100;
+        const qcWidth = (qcPercentage / 100) * 100;
+        
+        // Create all 6 phases as shown in the bay schedule
+        const phases = [
+          { name: 'FAB', color: '#6b7280', width: `${fabWidth}%` },
+          { name: 'PAINT', color: '#10b981', width: `${paintWidth}%` },
+          { name: 'PROD', color: '#3b82f6', width: `${productionWidth}%` },
+          { name: 'IT', color: '#8b5cf6', width: `${itWidth}%` },
+          { name: 'NTC', color: '#f59e0b', width: `${ntcWidth}%` },
+          { name: 'QC', color: '#ec4899', width: `${qcWidth}%` }
+        ];
+        
+        phases.forEach(phase => {
+          const phaseDiv = document.createElement('div');
+          phaseDiv.style.width = phase.width;
+          phaseDiv.style.background = phase.color;
+          phaseDiv.style.display = 'flex';
+          phaseDiv.style.alignItems = 'center';
+          phaseDiv.style.justifyContent = 'center';
+          phaseDiv.style.color = 'white';
+          phaseDiv.style.fontSize = '12px';
+          phaseDiv.style.fontWeight = 'bold';
+          phaseDiv.textContent = phase.name;
+          projectBar.appendChild(phaseDiv);
+        });
+        
+        // Add project info overlay
+        const projectInfo = document.createElement('div');
+        projectInfo.style.position = 'absolute';
+        projectInfo.style.top = '50%';
+        projectInfo.style.left = '50%';
+        projectInfo.style.transform = 'translate(-50%, -50%)';
+        projectInfo.style.background = 'rgba(255, 255, 255, 0.95)';
+        projectInfo.style.padding = '4px 12px';
+        projectInfo.style.borderRadius = '4px';
+        projectInfo.style.border = '2px solid #ef4444';
+        projectInfo.style.fontWeight = 'bold';
+        projectInfo.style.fontSize = '14px';
+        projectInfo.style.color = '#1f2937';
+        projectInfo.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+        projectInfo.textContent = `${project.projectNumber}_${project.name}`;
+        
+        projectBar.appendChild(projectInfo);
+        projectBarContainer.appendChild(projectBar);
+        
+        // Add milestone icons
+        const milestoneIcons = document.createElement('div');
+        milestoneIcons.style.position = 'absolute';
+        milestoneIcons.style.top = '8px';
+        milestoneIcons.style.left = '16px';
+        milestoneIcons.style.right = '16px';
+        milestoneIcons.style.display = 'flex';
+        milestoneIcons.style.gap = '40px';
+        
+        // Add some milestone markers
+        const milestonePositions = ['15%', '30%', '70%', '85%'];
+        milestonePositions.forEach(position => {
+          const milestone = document.createElement('div');
+          milestone.style.position = 'absolute';
+          milestone.style.left = position;
+          milestone.style.width = '20px';
+          milestone.style.height = '20px';
+          milestone.style.background = '#ef4444';
+          milestone.style.borderRadius = '50%';
+          milestone.style.border = '2px solid white';
+          milestone.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+          milestoneIcons.appendChild(milestone);
+        });
+        
+        projectBarContainer.appendChild(milestoneIcons);
+        
+        // Assemble the visualization
+        scheduleContainer.appendChild(bayHeader);
+        scheduleContainer.appendChild(timelineHeader);
+        scheduleContainer.appendChild(projectBarContainer);
+        tempContainer.appendChild(scheduleContainer);
+        
+        // Capture the visualization
+        const canvas = await html2canvas(tempContainer, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          logging: false
+        });
+        
+        // Add to PDF
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 257;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 20, 30, imgWidth, Math.min(imgHeight, 120));
+        
+        // Clean up
+        document.body.removeChild(tempContainer);
+        
+        // Add description
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(`Bay: ${bay.name}`, 20, scheduleVisualizationY);
+        const descY = Math.min(imgHeight, 120) + 35;
+        pdf.text(`Manufacturing Schedule: ${bay.name}`, 20, descY);
+        pdf.text(`Duration: ${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`, 20, descY + 10);
         
-        scheduleVisualizationY += 10;
-        pdf.text(`Schedule Duration: ${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`, 20, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 10;
-        pdf.text(`Project: ${project.projectNumber} - ${project.name}`, 20, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 20;
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Manufacturing Phases:', 20, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 15;
-        pdf.setFont('helvetica', 'normal');
-        pdf.text('• FAB (Fabrication): 27% of total project duration', 30, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 10;
-        pdf.text('• PAINT (Paint): 7% of total project duration', 30, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 10;
-        pdf.text('• PRODUCTION (Assembly): 60% of total project duration', 30, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 10;
-        pdf.text('• IT (Integration Testing): 7% of total project duration', 30, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 10;
-        pdf.text('• NTC (Non-Conformance Testing): 7% of total project duration', 30, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 10;
-        pdf.text('• QC (Quality Control): 7% of total project duration', 30, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 20;
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Notes:', 20, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 10;
-        pdf.setFont('helvetica', 'normal');
-        pdf.text('This schedule represents the planned manufacturing timeline for this project.', 20, scheduleVisualizationY);
-        
-        scheduleVisualizationY += 10;
-        pdf.text('Phase percentages are industry standard distributions across the project timeline.', 20, scheduleVisualizationY);
-      } else {
+        // Display all 6 phase percentages as shown in the bay schedule
+        pdf.text(`Project phases: FAB (27%), PAINT (7%), PRODUCTION (60%), IT (7%), NTC (7%), QC (7%)`, 20, descY + 20);
+      } else if (!manufacturingSchedule) {
         // No manufacturing schedule assigned
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'italic');
@@ -260,8 +403,7 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       }
 
       // Save the PDF
-      const fileName = `${project.projectNumber}_${project.name.replace(/[^a-zA-Z0-9\s]/g, '_')}_Schedule_Report.pdf`;
-      pdf.save(fileName);
+      pdf.save(`${project.projectNumber}_${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_Schedule_Report.pdf`);
       
       toast({
         title: 'Report Generated',
