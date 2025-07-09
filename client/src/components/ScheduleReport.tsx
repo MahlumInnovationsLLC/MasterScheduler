@@ -233,24 +233,34 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         const startDate = new Date(manufacturingSchedule.startDate);
         const endDate = new Date(manufacturingSchedule.endDate);
         const weeks = [];
-        const currentDate = new Date(startDate);
         
-        // Generate week labels for the timeline matching the bay schedule format
-        while (currentDate <= endDate) {
-          const monthNum = currentDate.getMonth() + 1;
-          const day = currentDate.getDate();
-          weeks.push(`${monthNum.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`);
+        // Generate week labels using the exact same logic as ResizableBaySchedule
+        // Use the time slot generation logic from ResizableBaySchedule
+        let currentDate = new Date(startDate);
+        currentDate.setHours(0, 0, 0, 0);
+        
+        // If viewing by week, adjust to start on Monday (same as ResizableBaySchedule)
+        if (currentDate.getDay() !== 1) {
+          const daysToSubtract = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
+          currentDate.setDate(currentDate.getDate() - daysToSubtract);
+        }
+        
+        // Generate weeks up to the end date using the same logic
+        while (currentDate <= endDate && weeks.length < 20) {
+          // Use the same format as ResizableBaySchedule: MM/dd
+          weeks.push(format(currentDate, 'MM/dd'));
           currentDate.setDate(currentDate.getDate() + 7);
         }
         
-        // Add week labels
-        weeks.slice(0, 8).forEach(week => {
+        // Add week labels with proper spacing
+        weeks.forEach(week => {
           const weekLabel = document.createElement('div');
           weekLabel.style.flex = '1';
           weekLabel.style.textAlign = 'center';
           weekLabel.style.fontSize = '12px';
           weekLabel.style.color = '#6b7280';
           weekLabel.style.borderRight = '1px solid #d1d5db';
+          weekLabel.style.padding = '4px';
           weekLabel.textContent = week;
           timelineHeader.appendChild(weekLabel);
         });
