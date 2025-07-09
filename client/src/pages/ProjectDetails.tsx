@@ -923,39 +923,37 @@ const ProjectDetails = () => {
             </div>
           </div>
 
-          {/* Timeline Information and Project Notes - Two column layout */}
-          <div className="col-span-2 -mt-2 grid grid-cols-2 gap-4">
-            <div>
-              <ProjectPhaseInfo project={project} />
+        </div>
+
+        {/* Timeline Information and Project Notes - Full width stacked layout */}
+        <div className="space-y-4">
+          <ProjectPhaseInfo project={project} />
+          
+          {/* Project Notes */}
+          <Card className="bg-darkCard rounded-xl border border-gray-800">
+            <div className="p-4 border-b border-gray-800">
+              <h3 className="font-bold">Project Notes</h3>
             </div>
-            <div>
-              {/* Project Notes */}
-              <Card className="bg-darkCard rounded-xl border border-gray-800">
-                <div className="p-4 border-b border-gray-800">
-                  <h3 className="font-bold">Project Notes</h3>
-                </div>
-                <div className="p-4">
-                  <div className="bg-darkInput rounded-lg p-3 text-sm">
-                    <p>{project.notes || 'No notes available for this project.'}</p>
-                    {!project.notes && (
-                      <p className="mt-3">Click 'Edit Notes' to add project notes and important details.</p>
-                    )}
-                  </div>
-                  <div className="mt-4 flex justify-between">
-                    <span className="text-xs text-gray-400">Last updated: {formatDate(project.updatedAt)}</span>
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="text-primary h-auto p-0"
-                      onClick={() => setIsEditNotesDialogOpen(true)}
-                    >
-                      Edit Notes
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+            <div className="p-4">
+              <div className="bg-darkInput rounded-lg p-3 text-sm">
+                <p>{project.notes || 'No notes available for this project.'}</p>
+                {!project.notes && (
+                  <p className="mt-3">Click 'Edit Notes' to add project notes and important details.</p>
+                )}
+              </div>
+              <div className="mt-4 flex justify-between">
+                <span className="text-xs text-gray-400">Last updated: {formatDate(project.updatedAt)}</span>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="text-primary h-auto p-0"
+                  onClick={() => setIsEditNotesDialogOpen(true)}
+                >
+                  Edit Notes
+                </Button>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
