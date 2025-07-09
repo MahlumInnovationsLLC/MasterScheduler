@@ -113,7 +113,7 @@ export function AIInsightsModal({ projectId }: AIInsightsModalProps) {
     }
   ];
 
-  const insights = projectId ? (aiInsights || []) : defaultInsights;
+  const insights = projectId ? (Array.isArray(aiInsights) ? aiInsights : []) : defaultInsights;
   
   const getSeverityIcon = (severity: string) => {
     switch(severity) {
