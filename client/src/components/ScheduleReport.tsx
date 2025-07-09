@@ -235,7 +235,7 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         const weeks = [];
         const currentDate = new Date(startDate);
         
-        // Generate week labels for the timeline
+        // Generate week labels for the timeline matching the bay schedule format
         while (currentDate <= endDate) {
           const monthNum = currentDate.getMonth() + 1;
           const day = currentDate.getDate();
@@ -271,31 +271,18 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         projectBar.style.overflow = 'hidden';
         projectBar.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
         
-        // Calculate phase durations based on actual project dates
-        const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : startDate;
-        const paintStart = project.paintStart ? new Date(project.paintStart) : new Date(fabStart.getTime() + 14 * 24 * 60 * 60 * 1000);
-        const prodStart = project.assemblyStart ? new Date(project.assemblyStart) : new Date(paintStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const itStart = project.itStart ? new Date(project.itStart) : new Date(prodStart.getTime() + 45 * 24 * 60 * 60 * 1000);
-        const ntcStart = project.ntcTestingDate ? new Date(project.ntcTestingDate) : new Date(itStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : new Date(ntcStart.getTime() + 5 * 24 * 60 * 60 * 1000);
-        const shipDate = project.shipDate ? new Date(project.shipDate) : endDate;
-        
-        const totalDuration = shipDate.getTime() - fabStart.getTime();
-        
-        // Calculate phase widths based on actual durations
-        const fabDuration = paintStart.getTime() - fabStart.getTime();
-        const paintDuration = prodStart.getTime() - paintStart.getTime();
-        const prodDuration = itStart.getTime() - prodStart.getTime();
-        const itNtcDuration = qcStart.getTime() - itStart.getTime();
-        const qcDuration = shipDate.getTime() - qcStart.getTime();
-        
+        // Use the standard phase percentages as shown in the bay schedule
+        // These are the default percentages used throughout the system
         const phases = [
-          { name: 'FAB', color: '#6b7280', width: `${(fabDuration / totalDuration * 100).toFixed(1)}%` },
-          { name: 'PAINT', color: '#10b981', width: `${(paintDuration / totalDuration * 100).toFixed(1)}%` },
-          { name: 'PROD', color: '#3b82f6', width: `${(prodDuration / totalDuration * 100).toFixed(1)}%` },
-          { name: 'IT/NTC', color: '#8b5cf6', width: `${(itNtcDuration / totalDuration * 100).toFixed(1)}%` },
-          { name: 'QC', color: '#ec4899', width: `${(qcDuration / totalDuration * 100).toFixed(1)}%` }
+          { name: 'FAB', color: '#6b7280', width: '27%' },
+          { name: 'PAINT', color: '#10b981', width: '7%' },
+          { name: 'PROD', color: '#3b82f6', width: '59%' },
+          { name: 'IT/NTC', color: '#8b5cf6', width: '7%' }
         ];
+        
+        // For the date calculations, still use the actual project dates
+        const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : startDate;
+        const shipDate = project.shipDate ? new Date(project.shipDate) : endDate;
         
         phases.forEach(phase => {
           const phaseDiv = document.createElement('div');
@@ -386,9 +373,8 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         pdf.text(`Manufacturing Schedule: ${bay.name}`, 20, descY);
         pdf.text(`Duration: ${format(fabStart, 'MMM dd, yyyy')} - ${format(shipDate, 'MMM dd, yyyy')}`, 20, descY + 10);
         
-        // Calculate phase percentages for display
-        const phasePercentages = phases.map(p => `${p.name} (${p.width})`).join(', ');
-        pdf.text(`Project phases: ${phasePercentages}`, 20, descY + 20);
+        // Display the standard phase percentages
+        pdf.text(`Project phases: FAB (27%), PAINT (7%), PRODUCTION (59%), IT/NTC (7%)`, 20, descY + 20);
       } else if (!manufacturingSchedule) {
         // No manufacturing schedule assigned
         pdf.setFontSize(14);
