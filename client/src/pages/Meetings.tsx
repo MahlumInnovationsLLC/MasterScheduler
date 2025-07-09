@@ -582,9 +582,9 @@ export default function Meetings() {
     });
   };
 
-  // Filter projects for Tier III (top 30 ready to ship, earliest first) with location filter
+  // Filter projects for Tier III (all non-delivered projects, sorted by ship date)
   const tierIIIProjects = (projects as Project[])
-    .filter((p: Project) => p.shipDate && new Date(p.shipDate) > new Date())
+    .filter((p: Project) => p.status !== "delivered" && p.shipDate) // Include all non-delivered projects with ship dates
     .filter((p: Project) => {
       if (tierIIILocationFilter === "all") return true;
       if (tierIIILocationFilter === 'CFALLS') {
@@ -597,8 +597,7 @@ export default function Meetings() {
         return p.location === tierIIILocationFilter;
       }
     })
-    .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime())
-    .slice(0, 30);
+    .sort((a: Project, b: Project) => new Date(a.shipDate!).getTime() - new Date(b.shipDate!).getTime());
 
 
 
@@ -975,7 +974,7 @@ export default function Meetings() {
             <div>
               <h2 className="text-xl font-semibold">Tier III - Project Readiness</h2>
               <p className="text-muted-foreground">
-                Top 30 projects ready to ship, sorted by earliest ship date first
+                All non-delivered projects sorted by ship date (including past due projects)
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -1609,7 +1608,10 @@ export default function Meetings() {
                                       <div className="flex items-center gap-1 mt-1">
                                         <span className="font-medium text-gray-600 dark:text-gray-400">Assigned:</span>
                                         <span className="text-gray-700 dark:text-gray-300">
-                                          {(users as any[]).find(u => u.id === task.assignedToUserId)?.firstName || 'Unknown'}
+                                          {(() => {
+                                            const assignedUser = (users as any[]).find(u => u.id === task.assignedToUserId);
+                                            return assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Unknown';
+                                          })()}
                                         </span>
                                       </div>
                                     )}
@@ -2095,7 +2097,10 @@ export default function Meetings() {
                                       <div className="flex items-center gap-1 mt-1">
                                         <span className="font-medium text-gray-600 dark:text-gray-400">Assigned:</span>
                                         <span className="text-gray-700 dark:text-gray-300">
-                                          {(users as any[]).find(u => u.id === task.assignedToUserId)?.firstName || 'Unknown'}
+                                          {(() => {
+                                            const assignedUser = (users as any[]).find(u => u.id === task.assignedToUserId);
+                                            return assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Unknown';
+                                          })()}
                                         </span>
                                       </div>
                                     )}
