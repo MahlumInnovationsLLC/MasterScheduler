@@ -265,6 +265,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Extended Progress bar width from w-32 to w-64 (double the width) for better visual prominence
   - Updated grid layout from 5 columns to 3 columns to accommodate removed sections
   - Timeline Information section now spans full 3 columns instead of 5 for better layout proportion
+- January 09, 2025: Manufacturing Assignment Widget Header Integration
+  - Moved Manufacturing Assignment widget from sidebar to header area where removed sections were located
+  - Removed the "Total Hours: 40h" display from the widget as requested
+  - Updated grid layout to 2 columns to accommodate Manufacturing Assignment widget in header
+  - Manufacturing Assignment widget now shows actual start/finish dates from manufacturing schedules
+  - Widget displays bay number, team information, duration in days, and status badge
+  - Includes Edit Assignment and View Schedule buttons for quick access
+  - Removed duplicate Manufacturing Assignment widget from sidebar to avoid redundancy
 - July 07, 2025: Engineering Benchmarks Module Complete Implementation
   - Removed all mock benchmarks and replaced with authentic project-based benchmark system
   - Created two standard benchmark templates: "Section X CAD Complete" (30 days before fabrication start) and "CAD COMPLETE" (90 days before production start)
