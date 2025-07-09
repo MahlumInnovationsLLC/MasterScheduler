@@ -135,21 +135,15 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         });
       }
 
-      // Estimate Manufacturing Schedule section (title only)
-      if (manufacturingSchedule) {
-        const scheduleY = (pdf as any).lastAutoTable?.finalY + 15 || timelineY + 20;
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Estimate Manufacturing Schedule', 20, scheduleY);
-      }
-
-      // Add new page for Bay Schedule visualization
-      pdf.addPage();
+      // Move Bay Schedule visualization to current page without adding new page
+      // This brings the visualization up to where the Manufacturing Schedule section was
       
       if (manufacturingSchedule && bay) {
+        // Position the Bay Schedule visualization right after the Timeline Milestones section
+        const visualizationY = (pdf as any).lastAutoTable?.finalY + 25 || timelineY + 30;
         pdf.setFontSize(16);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Bay Schedule Visualization', pdf.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+        pdf.text('Bay Schedule Visualization', pdf.internal.pageSize.getWidth() / 2, visualizationY, { align: 'center' });
         
         // Create a container for our custom bay schedule visualization
         const tempContainer = document.createElement('div');
@@ -401,7 +395,9 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         const imgWidth = 257;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         
-        pdf.addImage(imgData, 'PNG', 20, 30, imgWidth, Math.min(imgHeight, 120));
+        // Position the image right after the Bay Schedule Visualization title
+        const imgY = visualizationY + 10;
+        pdf.addImage(imgData, 'PNG', 20, imgY, imgWidth, Math.min(imgHeight, 120));
         
         // Clean up
         document.body.removeChild(tempContainer);
@@ -409,7 +405,7 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         // Add description
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'normal');
-        const descY = Math.min(imgHeight, 120) + 35;
+        const descY = imgY + Math.min(imgHeight, 120) + 5;
         pdf.text(`Manufacturing Schedule: ${bay.name}`, 20, descY);
         pdf.text(`Duration: ${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`, 20, descY + 10);
         
