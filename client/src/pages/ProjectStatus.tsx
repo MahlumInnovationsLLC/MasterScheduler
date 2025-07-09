@@ -81,6 +81,7 @@ import { DeliveryDialog } from '../components/DeliveryDialog';
 import { exportProjectsToExcel } from '@/lib/excel-export';
 import { ModuleHelpButton } from "@/components/ModuleHelpButton";
 import { projectsHelpContent } from "@/data/moduleHelpContent";
+import { useRolePermissions } from '@/hooks/use-role-permissions';
 
 // Extend Project type to ensure rawData is included
 interface ProjectWithRawData extends Project {
@@ -177,6 +178,7 @@ const ProjectCell = ({ project }: { project: ProjectWithRawData }) => {
 const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isViewOnly, canEdit } = useRolePermissions();
 
   // Fetch project labels
   const { data: labels = [] } = useQuery({
@@ -269,22 +271,38 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
         <Badge 
           key={currentLabel.id}
           variant="secondary" 
-          className="px-2 py-1 text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity"
+          className={`px-2 py-1 text-xs font-medium border ${canEdit ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-70'} transition-opacity`}
           style={{ 
             backgroundColor: currentLabel.backgroundColor || '#6b7280', 
             color: currentLabel.textColor || '#ffffff',
             borderColor: currentLabel.backgroundColor || '#6b7280'
           }}
-          onClick={() => handleRemoveLabel(currentLabel.labelId)}
-          title="Click to remove"
+          onClick={() => canEdit && handleRemoveLabel(currentLabel.labelId)}
+          title={canEdit ? "Click to remove" : "View only - cannot edit status"}
         >
           {currentLabel.labelName}
-          <X className="w-3 h-3 ml-1" />
+          {canEdit && <X className="w-3 h-3 ml-1" />}
         </Badge>
       )}
 
-      {/* Add/Change label button */}
-      {(showAddButton || currentLabel) && (
+      {/* Show read-only indicator for Viewer role when no label is assigned */}
+      {!currentLabel && isViewOnly && (
+        <Badge 
+          variant="secondary" 
+          className="px-2 py-1 text-xs font-medium border cursor-not-allowed opacity-70"
+          style={{ 
+            backgroundColor: '#6b7280', 
+            color: '#ffffff',
+            borderColor: '#6b7280'
+          }}
+          title="View only - cannot edit status"
+        >
+          No Status
+        </Badge>
+      )}
+
+      {/* Add/Change label button - only for Editor and Admin */}
+      {canEdit && (showAddButton || currentLabel) && (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button

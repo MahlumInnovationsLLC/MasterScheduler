@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Check, Plus, X, Palette } from 'lucide-react';
+import { useRolePermissions } from '@/hooks/use-role-permissions';
 
 interface EditableStatusFieldProps {
   projectId: number;
@@ -48,6 +49,7 @@ export function EditableStatusField({ projectId, value, field, onStatusChange }:
   const [customColor, setCustomColor] = useState(colorOptions[0].value);
   const [customStatuses, setCustomStatuses] = useState<Array<{value: string, label: string, color: string}>>([]);
   const { toast } = useToast();
+  const { isViewOnly, canEdit } = useRolePermissions();
 
   // Load custom statuses from localStorage on component mount
   React.useEffect(() => {
@@ -201,10 +203,11 @@ export function EditableStatusField({ projectId, value, field, onStatusChange }:
             key={status}
             className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 ${
               statusOption?.color || 'bg-gray-500 text-white border-gray-600'
-            }`}
+            } ${isViewOnly ? 'opacity-70' : ''}`}
+            title={isViewOnly ? 'View only - cannot edit status' : ''}
           >
             {statusOption?.label || status}
-            {currentStatuses.length > 1 && (
+            {currentStatuses.length > 1 && canEdit && (
               <button
                 onClick={() => removeStatus(status)}
                 className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors"
@@ -216,18 +219,29 @@ export function EditableStatusField({ projectId, value, field, onStatusChange }:
         );
       })}
 
-      {/* Add status button */}
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-2 text-xs border-dashed hover:border-solid transition-all"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            Add
-          </Button>
-        </PopoverTrigger>
+      {/* Show read-only indicator when no status is assigned and user is view-only */}
+      {currentStatuses.length === 0 && isViewOnly && (
+        <div
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 bg-gray-500 text-white border-gray-600 opacity-70"
+          title="View only - cannot edit status"
+        >
+          No Status
+        </div>
+      )}
+
+      {/* Add status button - only for Editor and Admin */}
+      {canEdit && (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs border-dashed hover:border-solid transition-all"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Add
+            </Button>
+          </PopoverTrigger>
         <PopoverContent className="w-64 p-3" align="start">
           <div className="space-y-2">
             {!showCustomForm ? (
@@ -319,7 +333,8 @@ export function EditableStatusField({ projectId, value, field, onStatusChange }:
             )}
           </div>
         </PopoverContent>
-      </Popover>
+        </Popover>
+      )}
     </div>
   );
 }
