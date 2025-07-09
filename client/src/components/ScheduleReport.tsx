@@ -71,8 +71,9 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         theme: 'grid',
         columnStyles: {
           0: { cellWidth: 50, fontStyle: 'bold' },
-          1: { cellWidth: 'auto' }
+          1: { cellWidth: 150 }
         },
+        tableWidth: 'auto',
         margin: { left: 20, right: 20 }
       });
 
@@ -131,6 +132,7 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
             0: { cellWidth: 80 },
             1: { cellWidth: 60 }
           },
+          tableWidth: 'auto',
           margin: { left: 20, right: 20 }
         });
       }
@@ -157,8 +159,9 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
           theme: 'grid',
           columnStyles: {
             0: { cellWidth: 50, fontStyle: 'bold' },
-            1: { cellWidth: 'auto' }
+            1: { cellWidth: 150 }
           },
+          tableWidth: 'auto',
           margin: { left: 20, right: 20 }
         });
       }
@@ -368,21 +371,30 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         tempContainer.appendChild(scheduleContainer);
         
         // Capture the visualization
-        const canvas = await html2canvas(tempContainer, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          logging: false
-        });
-        
-        // Add to PDF
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 257;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        pdf.addImage(imgData, 'PNG', 20, 30, imgWidth, Math.min(imgHeight, 120));
-        
-        // Clean up
-        document.body.removeChild(tempContainer);
+        try {
+          const canvas = await html2canvas(tempContainer, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false,
+            allowTaint: true,
+            useCORS: true
+          });
+          
+          // Add to PDF
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = 257;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          pdf.addImage(imgData, 'PNG', 20, 30, imgWidth, Math.min(imgHeight, 120));
+          
+          // Clean up
+          document.body.removeChild(tempContainer);
+        } catch (canvasError) {
+          console.error('Error capturing canvas:', canvasError);
+          // Clean up even if there's an error
+          document.body.removeChild(tempContainer);
+          throw new Error('Failed to capture bay schedule visualization');
+        }
         
         // Add description
         pdf.setFontSize(12);
@@ -403,12 +415,18 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       }
 
       // Save the PDF
-      pdf.save(`${project.projectNumber}_${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_Schedule_Report.pdf`);
-      
-      toast({
-        title: 'Report Generated',
-        description: 'The schedule report has been downloaded successfully.'
-      });
+      try {
+        const fileName = `${project.projectNumber}_${project.name.replace(/[^a-zA-Z0-9\s]/g, '_')}_Schedule_Report.pdf`;
+        pdf.save(fileName);
+        
+        toast({
+          title: 'Report Generated',
+          description: 'The schedule report has been downloaded successfully.'
+        });
+      } catch (saveError) {
+        console.error('Error saving PDF:', saveError);
+        throw new Error('Failed to save PDF file');
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({
