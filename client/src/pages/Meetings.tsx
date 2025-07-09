@@ -1373,7 +1373,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP((project as any).contractDate, (project as any).opContractDate) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-blue-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                           <div>
@@ -1419,7 +1419,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP((project as any).fabricationStart, (project as any).opFabricationStart) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-orange-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <Settings className="h-3 w-3 text-orange-600 dark:text-blue-400" />
                           <div>
@@ -1442,7 +1442,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP((project as any).assemblyStart, (project as any).opProductionStart) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-purple-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <Building className="h-3 w-3 text-purple-600 dark:text-indigo-400" />
                           <div>
@@ -1465,7 +1465,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP((project as any).wrapDate, (project as any).opWrapDate) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-teal-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <Copy className="h-3 w-3 text-teal-600 dark:text-cyan-400" />
                           <div>
@@ -1488,7 +1488,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP((project as any).ntcTestingDate, (project as any).opNtcTestingDate) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-yellow-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <Zap className="h-3 w-3 text-yellow-600 dark:text-purple-400" />
                           <div>
@@ -1511,7 +1511,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP((project as any).qcStartDate, (project as any).opQcStartDate) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-emerald-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-green-400" />
                           <div>
@@ -1534,7 +1534,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP((project as any).executiveReviewDate, (project as any).opExecutiveReviewDate) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-indigo-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <Users className="h-3 w-3 text-indigo-600 dark:text-yellow-400" />
                           <div>
@@ -1557,7 +1557,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP(project.shipDate, (project as any).opShipDate) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-rose-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <MapPin className="h-3 w-3 text-rose-600 dark:text-orange-400" />
                           <div>
@@ -1580,7 +1580,7 @@ export default function Meetings() {
                         <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
                           isCurrentDatePastOP(project.deliveryDate, (project as any).opDeliveryDate) 
                             ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
-                            : 'bg-gray-100 dark:bg-gray-800'
+                            : 'bg-green-100 dark:bg-gray-800'
                         }`}>
                           <Download className="h-3 w-3 text-gray-600 dark:text-red-400" />
                           <div>
