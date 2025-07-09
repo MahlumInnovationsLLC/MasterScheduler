@@ -13,26 +13,32 @@ export function setupAIInsightsRoutes(app: Express, simpleAuth: any) {
     try {
       const { projectId } = req.params;
       
-      // Get project data
+      // Get project data with separate queries to avoid relation issues
       const project = await db.query.projects.findFirst({
-        where: eq(projects.id, parseInt(projectId)),
-        with: {
-          manufacturingSchedules: {
-            with: {
-              bay: true
-            }
-          },
-          billingMilestones: true,
-          tasks: true
-        }
+        where: eq(projects.id, parseInt(projectId))
       });
 
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
 
+      // Get related data separately to avoid relation issues
+      const [projectSchedules, projectMilestones, projectTasks] = await Promise.all([
+        db.select().from(manufacturingSchedules).where(eq(manufacturingSchedules.projectId, parseInt(projectId))),
+        db.select().from(billingMilestones).where(eq(billingMilestones.projectId, parseInt(projectId))),
+        db.select().from(tasks).where(eq(tasks.projectId, parseInt(projectId)))
+      ]);
+
+      // Combine the data
+      const projectWithRelations = {
+        ...project,
+        manufacturingSchedules: projectSchedules,
+        billingMilestones: projectMilestones,
+        tasks: projectTasks
+      };
+
       // Generate AI insights for this specific project
-      const insights = await generateProjectInsights(project);
+      const insights = await generateProjectInsights(projectWithRelations);
       
       res.json(insights);
     } catch (error) {
