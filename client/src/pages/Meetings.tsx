@@ -531,6 +531,30 @@ export default function Meetings() {
     return 'low';
   };
 
+  // Helper function to check if current date is past OP date
+  const isCurrentDatePastOP = (currentDate: string | null, opDate: string | null): boolean => {
+    if (!currentDate || !opDate) return false;
+    
+    try {
+      const current = new Date(currentDate);
+      const op = new Date(opDate);
+      return current > op;
+    } catch {
+      return false;
+    }
+  };
+
+  // Helper function to format OP date
+  const formatOPDate = (opValue: string | null | undefined): string => {
+    if (!opValue) return '';
+    try {
+      const date = new Date(opValue + 'T00:00:00');
+      return format(date, 'MMM d, yyyy');
+    } catch {
+      return opValue || '';
+    }
+  };
+
   // Handler functions for FAB notes
   const handleOpenFabNotes = (project: Project) => {
     setSelectedProjectForFabNotes(project);
@@ -1346,7 +1370,11 @@ export default function Meetings() {
                     <div className="text-xs text-slate-700 dark:text-gray-300 mb-3 font-medium">Project Timeline</div>
                     <div className="flex gap-3 min-w-max">
                       {(project as any).contractDate && (
-                        <div className="flex items-center gap-1 bg-blue-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP((project as any).contractDate, (project as any).opContractDate) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-blue-100 dark:bg-gray-800'
+                        }`}>
                           <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                           <div>
                             <div className="text-xs text-blue-700 dark:text-gray-400 font-medium">CONTRACT DATE</div>
@@ -1358,11 +1386,18 @@ export default function Meetings() {
                                 return (project as any).contractDate;
                               }
                             })()}</div>
+                            {(project as any).opContractDate && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opContractDate)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {(project as any).poDroppedDate && (
-                        <div className="flex items-center gap-1 bg-green-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP((project as any).poDroppedDate, (project as any).opStartDate) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-green-100 dark:bg-gray-800'
+                        }`}>
                           <Calendar className="h-3 w-3 text-green-600 dark:text-green-400" />
                           <div>
                             <div className="text-xs text-green-700 dark:text-gray-400 font-medium">TIMELINE START</div>
@@ -1374,11 +1409,18 @@ export default function Meetings() {
                                 return (project as any).poDroppedDate;
                               }
                             })()}</div>
+                            {(project as any).opStartDate && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opStartDate)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {(project as any).fabricationStart && (
-                        <div className="flex items-center gap-1 bg-orange-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP((project as any).fabricationStart, (project as any).opFabricationStart) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-orange-100 dark:bg-gray-800'
+                        }`}>
                           <Settings className="h-3 w-3 text-orange-600 dark:text-blue-400" />
                           <div>
                             <div className="text-xs text-orange-700 dark:text-gray-400 font-medium">FAB START</div>
@@ -1390,11 +1432,18 @@ export default function Meetings() {
                                 return (project as any).fabricationStart;
                               }
                             })()}</div>
+                            {(project as any).opFabricationStart && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opFabricationStart)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {(project as any).assemblyStart && (
-                        <div className="flex items-center gap-1 bg-purple-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP((project as any).assemblyStart, (project as any).opProductionStart) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-purple-100 dark:bg-gray-800'
+                        }`}>
                           <Building className="h-3 w-3 text-purple-600 dark:text-indigo-400" />
                           <div>
                             <div className="text-xs text-purple-700 dark:text-gray-400 font-medium">ASSEMBLY START</div>
@@ -1406,11 +1455,18 @@ export default function Meetings() {
                                 return (project as any).assemblyStart;
                               }
                             })()}</div>
+                            {(project as any).opProductionStart && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opProductionStart)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {(project as any).wrapDate && (
-                        <div className="flex items-center gap-1 bg-teal-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP((project as any).wrapDate, (project as any).opWrapDate) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-teal-100 dark:bg-gray-800'
+                        }`}>
                           <Copy className="h-3 w-3 text-teal-600 dark:text-cyan-400" />
                           <div>
                             <div className="text-xs text-teal-700 dark:text-gray-400 font-medium">WRAP DATE</div>
@@ -1422,11 +1478,18 @@ export default function Meetings() {
                                 return (project as any).wrapDate;
                               }
                             })()}</div>
+                            {(project as any).opWrapDate && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opWrapDate)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {(project as any).ntcTestingDate && (
-                        <div className="flex items-center gap-1 bg-yellow-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP((project as any).ntcTestingDate, (project as any).opNtcTestingDate) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-yellow-100 dark:bg-gray-800'
+                        }`}>
                           <Zap className="h-3 w-3 text-yellow-600 dark:text-purple-400" />
                           <div>
                             <div className="text-xs text-yellow-700 dark:text-gray-400 font-medium">NTC TESTING</div>
@@ -1438,11 +1501,18 @@ export default function Meetings() {
                                 return (project as any).ntcTestingDate;
                               }
                             })()}</div>
+                            {(project as any).opNtcTestingDate && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opNtcTestingDate)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {(project as any).qcStartDate && (
-                        <div className="flex items-center gap-1 bg-emerald-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP((project as any).qcStartDate, (project as any).opQcStartDate) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-emerald-100 dark:bg-gray-800'
+                        }`}>
                           <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-green-400" />
                           <div>
                             <div className="text-xs text-emerald-700 dark:text-gray-400 font-medium">QC START</div>
@@ -1454,11 +1524,18 @@ export default function Meetings() {
                                 return (project as any).qcStartDate;
                               }
                             })()}</div>
+                            {(project as any).opQcStartDate && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opQcStartDate)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {(project as any).executiveReviewDate && (
-                        <div className="flex items-center gap-1 bg-indigo-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP((project as any).executiveReviewDate, (project as any).opExecutiveReviewDate) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-indigo-100 dark:bg-gray-800'
+                        }`}>
                           <Users className="h-3 w-3 text-indigo-600 dark:text-yellow-400" />
                           <div>
                             <div className="text-xs text-indigo-700 dark:text-gray-400 font-medium">EXECUTIVE REVIEW</div>
@@ -1470,11 +1547,18 @@ export default function Meetings() {
                                 return (project as any).executiveReviewDate;
                               }
                             })()}</div>
+                            {(project as any).opExecutiveReviewDate && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opExecutiveReviewDate)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {project.shipDate && (
-                        <div className="flex items-center gap-1 bg-rose-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP(project.shipDate, (project as any).opShipDate) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-rose-100 dark:bg-gray-800'
+                        }`}>
                           <MapPin className="h-3 w-3 text-rose-600 dark:text-orange-400" />
                           <div>
                             <div className="text-xs text-rose-700 dark:text-gray-400 font-medium">SHIP</div>
@@ -1486,11 +1570,18 @@ export default function Meetings() {
                                 return project.shipDate;
                               }
                             })()}</div>
+                            {(project as any).opShipDate && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opShipDate)}</div>
+                            )}
                           </div>
                         </div>
                       )}
                       {project.deliveryDate && (
-                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                          isCurrentDatePastOP(project.deliveryDate, (project as any).opDeliveryDate) 
+                            ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                            : 'bg-gray-100 dark:bg-gray-800'
+                        }`}>
                           <Download className="h-3 w-3 text-gray-600 dark:text-red-400" />
                           <div>
                             <div className="text-xs text-gray-700 dark:text-gray-400 font-medium">DELIVERY</div>
@@ -1502,6 +1593,9 @@ export default function Meetings() {
                                 return project.deliveryDate;
                               }
                             })()}</div>
+                            {(project as any).opDeliveryDate && (
+                              <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opDeliveryDate)}</div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1874,7 +1968,11 @@ export default function Meetings() {
                       <div className="text-xs text-slate-700 dark:text-red-400 mb-3 font-medium">Critical Project Timeline</div>
                       <div className="flex gap-3 min-w-max">
                         {(project as any).contractDate && (
-                          <div className="flex items-center gap-1 bg-blue-100 dark:bg-red-900/30 border border-blue-300 dark:border-red-700 px-2 py-1 rounded whitespace-nowrap">
+                          <div className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap ${
+                            isCurrentDatePastOP((project as any).contractDate, (project as any).opContractDate) 
+                              ? 'bg-orange-100 dark:bg-orange-500/20 border-l-4 border-l-orange-500' 
+                              : 'bg-blue-100 dark:bg-red-900/30 border border-blue-300 dark:border-red-700'
+                          }`}>
                             <Clock className="h-3 w-3 text-blue-600 dark:text-red-400" />
                             <div>
                               <div className="text-xs text-blue-700 dark:text-red-300 font-medium">CONTRACT DATE</div>
@@ -1886,6 +1984,9 @@ export default function Meetings() {
                                   return (project as any).contractDate;
                                 }
                               })()}</div>
+                              {(project as any).opContractDate && (
+                                <div className="text-xs text-slate-600 dark:text-gray-500">OP: {formatOPDate((project as any).opContractDate)}</div>
+                              )}
                             </div>
                           </div>
                         )}
