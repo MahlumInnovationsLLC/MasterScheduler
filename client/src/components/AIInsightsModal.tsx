@@ -29,11 +29,13 @@ export function AIInsightsModal({ projectId }: AIInsightsModalProps) {
   const { data: aiInsights, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/ai/project-insights', projectId],
     queryFn: async () => {
-      if (!projectId) return null;
-      return await apiRequest('GET', `/api/ai/project-insights/${projectId}`);
+      if (!projectId) return [];
+      const response = await apiRequest('GET', `/api/ai/project-insights/${projectId}`);
+      console.log('API Response:', response);
+      return response || [];
     },
     enabled: open && !!projectId,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // No caching to ensure fresh data
     refetchOnWindowFocus: false,
   });
 
@@ -114,6 +116,15 @@ export function AIInsightsModal({ projectId }: AIInsightsModalProps) {
   ];
 
   const insights = projectId ? (Array.isArray(aiInsights) ? aiInsights : []) : defaultInsights;
+  
+  // Debug logging
+  console.log('AI Insights Debug:', {
+    projectId,
+    aiInsights,
+    isArray: Array.isArray(aiInsights),
+    insightsLength: insights.length,
+    insights
+  });
   
   const getSeverityIcon = (severity: string) => {
     switch(severity) {
