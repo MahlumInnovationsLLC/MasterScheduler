@@ -228,10 +228,10 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         timelineHeader.style.display = 'flex';
         timelineHeader.style.borderBottom = '1px solid #d1d5db';
         
-        // Calculate weeks for the timeline based on project dates
-        // Use fabrication start as the start date and ship date as the end date
-        const startDate = project.fabricationStart ? new Date(project.fabricationStart) : new Date(manufacturingSchedule.startDate);
-        const endDate = project.shipDate ? new Date(project.shipDate) : new Date(manufacturingSchedule.endDate);
+        // Calculate weeks for the timeline based on manufacturing schedule dates
+        // Use manufacturing schedule start and end dates to match the bay schedule exactly
+        const startDate = new Date(manufacturingSchedule.startDate);
+        const endDate = new Date(manufacturingSchedule.endDate);
         const weeks = [];
         const currentDate = new Date(startDate);
         
@@ -271,18 +271,36 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         projectBar.style.overflow = 'hidden';
         projectBar.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
         
-        // Use the standard phase percentages as shown in the bay schedule
-        // These are the default percentages used throughout the system
-        const phases = [
-          { name: 'FAB', color: '#6b7280', width: '27%' },
-          { name: 'PAINT', color: '#10b981', width: '7%' },
-          { name: 'PROD', color: '#3b82f6', width: '59%' },
-          { name: 'IT/NTC', color: '#8b5cf6', width: '7%' }
-        ];
+        // Use the actual phase calculations from the bay schedule
+        // Calculate the total duration and phase widths exactly as shown in the bay schedule
+        const totalDurationMs = endDate.getTime() - startDate.getTime();
+        const totalDays = Math.ceil(totalDurationMs / (1000 * 60 * 60 * 24));
         
-        // For the date calculations, still use the actual project dates
-        const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : startDate;
-        const shipDate = project.shipDate ? new Date(project.shipDate) : endDate;
+        // Phase percentages that match the bay schedule exactly
+        const fabPercentage = 27;
+        const paintPercentage = 7;
+        const productionPercentage = 60;
+        const itPercentage = 7;
+        const ntcPercentage = 7;
+        const qcPercentage = 7;
+        
+        // Calculate actual phase widths based on percentages
+        const fabWidth = (fabPercentage / 100) * 100;
+        const paintWidth = (paintPercentage / 100) * 100;
+        const productionWidth = (productionPercentage / 100) * 100;
+        const itWidth = (itPercentage / 100) * 100;
+        const ntcWidth = (ntcPercentage / 100) * 100;
+        const qcWidth = (qcPercentage / 100) * 100;
+        
+        // Create all 6 phases as shown in the bay schedule
+        const phases = [
+          { name: 'FAB', color: '#6b7280', width: `${fabWidth}%` },
+          { name: 'PAINT', color: '#10b981', width: `${paintWidth}%` },
+          { name: 'PROD', color: '#3b82f6', width: `${productionWidth}%` },
+          { name: 'IT', color: '#8b5cf6', width: `${itWidth}%` },
+          { name: 'NTC', color: '#f59e0b', width: `${ntcWidth}%` },
+          { name: 'QC', color: '#ec4899', width: `${qcWidth}%` }
+        ];
         
         phases.forEach(phase => {
           const phaseDiv = document.createElement('div');
@@ -371,10 +389,10 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         pdf.setFont('helvetica', 'normal');
         const descY = Math.min(imgHeight, 120) + 35;
         pdf.text(`Manufacturing Schedule: ${bay.name}`, 20, descY);
-        pdf.text(`Duration: ${format(fabStart, 'MMM dd, yyyy')} - ${format(shipDate, 'MMM dd, yyyy')}`, 20, descY + 10);
+        pdf.text(`Duration: ${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`, 20, descY + 10);
         
-        // Display the standard phase percentages
-        pdf.text(`Project phases: FAB (27%), PAINT (7%), PRODUCTION (59%), IT/NTC (7%)`, 20, descY + 20);
+        // Display all 6 phase percentages as shown in the bay schedule
+        pdf.text(`Project phases: FAB (27%), PAINT (7%), PRODUCTION (60%), IT (7%), NTC (7%), QC (7%)`, 20, descY + 20);
       } else if (!manufacturingSchedule) {
         // No manufacturing schedule assigned
         pdf.setFontSize(14);
