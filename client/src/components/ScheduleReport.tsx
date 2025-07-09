@@ -228,10 +228,15 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         timelineHeader.style.display = 'flex';
         timelineHeader.style.borderBottom = '1px solid #d1d5db';
         
-        // Calculate weeks for the timeline based on manufacturing schedule dates
-        // Use manufacturing schedule start and end dates to match the bay schedule exactly
-        const startDate = new Date(manufacturingSchedule.startDate);
-        const endDate = new Date(manufacturingSchedule.endDate);
+        // Calculate weeks for the timeline based on actual project timeline
+        // Use the project's actual start date and ship date to show the complete timeline
+        const manufacturingStart = new Date(manufacturingSchedule.startDate);
+        const manufacturingEnd = new Date(manufacturingSchedule.endDate);
+        
+        // Extend timeline to include QC phase which goes beyond manufacturing schedule
+        const projectShipDate = project.shipDate ? new Date(project.shipDate) : manufacturingEnd;
+        const startDate = manufacturingStart;
+        const endDate = projectShipDate;
         const weeks = [];
         
         // Generate week labels using the exact same logic as ResizableBaySchedule
@@ -281,28 +286,36 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         projectBar.style.overflow = 'hidden';
         projectBar.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
         
-        // Use the actual phase calculations from the bay schedule
-        // Calculate the total duration and phase widths exactly as shown in the bay schedule
+        // Calculate phase widths based on actual project dates from database
         const totalDurationMs = endDate.getTime() - startDate.getTime();
         const totalDays = Math.ceil(totalDurationMs / (1000 * 60 * 60 * 24));
         
-        // Phase percentages that match the bay schedule exactly
-        const fabPercentage = 27;
-        const paintPercentage = 7;
-        const productionPercentage = 60;
-        const itPercentage = 7;
-        const ntcPercentage = 7;
-        const qcPercentage = 7;
+        // Calculate actual phase dates and widths
+        const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : startDate;
+        const paintStart = project.paintStart ? new Date(project.paintStart) : fabStart;
+        const productionStart = project.assemblyStart ? new Date(project.assemblyStart) : paintStart;
+        const itStart = project.itStart ? new Date(project.itStart) : productionStart;
+        const ntcStart = project.ntcTestingDate ? new Date(project.ntcTestingDate) : itStart;
+        const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : ntcStart;
+        const projectEnd = project.shipDate ? new Date(project.shipDate) : endDate;
         
-        // Calculate actual phase widths based on percentages
-        const fabWidth = (fabPercentage / 100) * 100;
-        const paintWidth = (paintPercentage / 100) * 100;
-        const productionWidth = (productionPercentage / 100) * 100;
-        const itWidth = (itPercentage / 100) * 100;
-        const ntcWidth = (ntcPercentage / 100) * 100;
-        const qcWidth = (qcPercentage / 100) * 100;
+        // Calculate each phase duration in days
+        const fabDays = Math.max(1, Math.ceil((paintStart.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24)));
+        const paintDays = Math.max(1, Math.ceil((productionStart.getTime() - paintStart.getTime()) / (1000 * 60 * 60 * 24)));
+        const productionDays = Math.max(1, Math.ceil((itStart.getTime() - productionStart.getTime()) / (1000 * 60 * 60 * 24)));
+        const itDays = Math.max(1, Math.ceil((ntcStart.getTime() - itStart.getTime()) / (1000 * 60 * 60 * 24)));
+        const ntcDays = Math.max(1, Math.ceil((qcStart.getTime() - ntcStart.getTime()) / (1000 * 60 * 60 * 24)));
+        const qcDays = Math.max(1, Math.ceil((projectEnd.getTime() - qcStart.getTime()) / (1000 * 60 * 60 * 24)));
         
-        // Create all 6 phases as shown in the bay schedule
+        // Calculate widths as percentages of total timeline
+        const fabWidth = (fabDays / totalDays) * 100;
+        const paintWidth = (paintDays / totalDays) * 100;
+        const productionWidth = (productionDays / totalDays) * 100;
+        const itWidth = (itDays / totalDays) * 100;
+        const ntcWidth = (ntcDays / totalDays) * 100;
+        const qcWidth = (qcDays / totalDays) * 100;
+        
+        // Create all 6 phases with actual calculated widths based on database dates
         const phases = [
           { name: 'FAB', color: '#6b7280', width: `${fabWidth}%` },
           { name: 'PAINT', color: '#10b981', width: `${paintWidth}%` },
@@ -311,6 +324,13 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
           { name: 'NTC', color: '#f59e0b', width: `${ntcWidth}%` },
           { name: 'QC', color: '#ec4899', width: `${qcWidth}%` }
         ];
+        
+        // Log the phase calculations for debugging
+        console.log('Phase calculations for project:', project.projectNumber);
+        console.log('Total timeline:', format(startDate, 'MM/dd/yyyy'), 'to', format(endDate, 'MM/dd/yyyy'));
+        console.log('Total days:', totalDays);
+        console.log('QC Start:', project.qcStartDate, 'QC Days:', qcDays, 'QC Width:', qcWidth + '%');
+        console.log('Ship Date:', project.shipDate);
         
         phases.forEach(phase => {
           const phaseDiv = document.createElement('div');
