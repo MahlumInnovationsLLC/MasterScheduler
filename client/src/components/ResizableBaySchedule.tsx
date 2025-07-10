@@ -1539,13 +1539,14 @@ export default function ResizableBaySchedule({
         color: phaseColor,
         row: schedule.row !== undefined ? schedule.row : 0, // Use the explicit row from database
         
-        // For department schedules, set all percentages to 0 except the active phase
-        fabPercentage: departmentPhaseFilter === 'fab' ? 100 : 0,
-        paintPercentage: departmentPhaseFilter === 'paint' ? 100 : 0,
-        productionPercentage: departmentPhaseFilter === 'mech' ? 100 : 0,
-        itPercentage: 0,
-        ntcPercentage: 0,
-        qcPercentage: 0,
+        // For department schedules, set percentages based on the actual project data
+        // Don't filter out phases - show all phases for all projects
+        fabPercentage: project.fabPercentage || 27,
+        paintPercentage: project.paintPercentage || 7,
+        productionPercentage: project.productionPercentage || 60,
+        itPercentage: project.itPercentage || 7,
+        ntcPercentage: project.ntcPercentage || 7,
+        qcPercentage: project.qcPercentage || 7,
         
         // Default fab weeks
         fabWeeks: 4
@@ -4369,7 +4370,7 @@ export default function ResizableBaySchedule({
                                   {/* Top row of phases (production through QC) */}
                                   <div className="top-phases w-full h-[52px] absolute left-0" style={{ top: '50px' }}>
                                     {/* Production phase (positioned after FAB and PAINT) */}
-                                    {bar.productionWidth && bar.productionWidth > 0 && (
+                                    {bar.productionWidth && bar.productionWidth > 0 && (!departmentPhaseFilter || departmentPhaseFilter === 'mech') && (
                                       <div className="production-phase bg-yellow-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.productionWidth}px`,
@@ -4381,7 +4382,7 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* IT phase */}
-                                    {bar.itWidth && bar.itWidth > 0 && (
+                                    {bar.itWidth && bar.itWidth > 0 && !departmentPhaseFilter && (
                                       <div className="it-phase bg-purple-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.itWidth}px`,
@@ -4393,7 +4394,7 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* NTC phase */}
-                                    {bar.ntcWidth && bar.ntcWidth > 0 && (
+                                    {bar.ntcWidth && bar.ntcWidth > 0 && !departmentPhaseFilter && (
                                       <div className="ntc-phase bg-cyan-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.ntcWidth}px`,
@@ -4405,7 +4406,7 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* QC phase */}
-                                    {bar.qcWidth && bar.qcWidth > 0 && (
+                                    {bar.qcWidth && bar.qcWidth > 0 && !departmentPhaseFilter && (
                                       <div className="qc-phase bg-pink-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.qcWidth}px`,
@@ -4420,7 +4421,7 @@ export default function ResizableBaySchedule({
                                   {/* Bottom row of phases (FAB and PAINT) */}
                                   <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ top: '102px' }}>
                                     {/* FAB phase (starts from left) */}
-                                    {bar.fabWidth && bar.fabWidth > 0 && (
+                                    {bar.fabWidth && bar.fabWidth > 0 && (!departmentPhaseFilter || departmentPhaseFilter === 'fab') && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
                                            style={{ width: `${bar.fabWidth}px`, zIndex: 10 }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
@@ -4428,7 +4429,7 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* PAINT phase (follows FAB) */}
-                                    {bar.paintWidth && bar.paintWidth > 0 && (
+                                    {bar.paintWidth && bar.paintWidth > 0 && (!departmentPhaseFilter || departmentPhaseFilter === 'paint') && (
                                       <div className="paint-phase bg-green-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.paintWidth}px`,
@@ -4436,6 +4437,18 @@ export default function ResizableBaySchedule({
                                              zIndex: 10
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* WRAP phase (special case for wrap department) */}
+                                    {departmentPhaseFilter === 'wrap' && (
+                                      <div className="wrap-phase bg-purple-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.width}px`,
+                                             left: '0px',
+                                             zIndex: 10
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">WRAP</span>
                                       </div>
                                     )}
                                   </div>

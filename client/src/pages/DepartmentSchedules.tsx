@@ -122,11 +122,18 @@ const DepartmentSchedules = () => {
     const maxRows = selectedLocation === 'columbia-falls' ? 30 : 20;
 
     // Map all schedules to the virtual bay and distribute across rows
-    return locationSchedules.map((schedule, index) => ({
-      ...schedule,
-      bayId: virtualBay.id, // Map to virtual bay
-      row: index % maxRows // Distribute evenly across all available rows
-    }));
+    // Sort schedules by project ID to ensure consistent ordering
+    const sortedSchedules = [...locationSchedules].sort((a, b) => a.projectId - b.projectId);
+    
+    return sortedSchedules.map((schedule, index) => {
+      const newRow = index % maxRows;
+      console.log(`Distributing schedule ${schedule.id} (project ${schedule.projectId}) to row ${newRow} of ${maxRows}`);
+      return {
+        ...schedule,
+        bayId: virtualBay.id, // Map to virtual bay
+        row: newRow // Distribute evenly across all available rows
+      };
+    });
   }, [schedules, bays, selectedLocation, virtualBay.id]);
 
   // Count projects that have the specific phase we're viewing
