@@ -3,6 +3,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Department Gantt Chart Styles */
+.gantt-chart-container {
+  @apply relative;
+}
+
+.gantt-chart-container .today-marker {
+  @apply absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none;
+}
+
+.gantt-chart-container .gantt-bar {
+  @apply absolute rounded shadow-sm flex items-center justify-center text-white text-xs font-semibold hover:shadow-md transition-shadow cursor-pointer;
+  height: 24px;
+  top: 8px;
+}
+
+.gantt-chart-container .gantt-row {
+  @apply flex border-b hover:bg-gray-50 dark:hover:bg-gray-800;
+  height: 40px;
+}
+
+.gantt-chart-container .project-info {
+  @apply w-64 flex-shrink-0 px-4 py-2 border-r;
+}
+
+.gantt-chart-container .timeline-area {
+  @apply flex-1 relative;
+  height: 40px;
+}
+
+.gantt-chart-container .grid-line {
+  @apply absolute top-0 bottom-0 border-r border-gray-200 dark:border-gray-700;
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 240 10% 3.9%;

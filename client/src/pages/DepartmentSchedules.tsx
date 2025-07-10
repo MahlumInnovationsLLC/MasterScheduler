@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Factory, PaintBucket, Package, Wrench } from 'lucide-react';
-import ResizableBaySchedule from '@/components/ResizableBaySchedule';
+import DepartmentGanttChart from '@/components/DepartmentGanttChart';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 // Removed unused import
 
@@ -81,41 +81,8 @@ const DepartmentSchedules = () => {
     return { start, end };
   }, [currentWeek]);
 
-  // Create multiple virtual bays (rows) for the department/location combination
-  const virtualBays = useMemo(() => {
-    const deptName = selectedDepartment.toUpperCase();
-    const locationName = selectedLocation === 'columbia-falls' ? 'Columbia Falls' : 'Libby';
-    const rowCount = selectedLocation === 'columbia-falls' ? 30 : 20;
-    
-    const bays: ManufacturingBay[] = [];
-    for (let row = 0; row < rowCount; row++) {
-      bays.push({
-        id: 10000 + selectedDepartment.charCodeAt(0) * 100 + (selectedLocation === 'libby' ? 1000 : 0) + row,
-        bayNumber: row + 1,
-        name: `${deptName} Row ${row + 1}`,
-        status: 'active' as const,
-        location: selectedLocation,
-        team: `${deptName} Team - ${locationName}`,
-        description: null,
-        capacityTonn: null,
-        maxWidth: null,
-        maxHeight: null,
-        maxLength: null,
-        teamId: null,
-        createdAt: null,
-        updatedAt: null,
-        // Only show capacity on first row to avoid confusion
-        assemblyStaffCount: row === 0 ? 4 : null,
-        electricalStaffCount: row === 0 ? 2 : null,
-        hoursPerPersonPerWeek: row === 0 ? 40 : null
-      } as ManufacturingBay);
-    }
-    
-    return bays;
-  }, [selectedDepartment, selectedLocation]);
-
-  // Get all schedules for the selected location's bays
-  const departmentSchedules = useMemo(() => {
+  // Filter projects by location
+  const locationProjects = useMemo(() => {
     // Get all bays for the selected location
     const locationBays = bays.filter(bay => {
       const bayTeam = bay.team?.toLowerCase() || '';
@@ -135,66 +102,32 @@ const DepartmentSchedules = () => {
     const locationSchedules = schedules.filter(schedule => 
       locationBayIds.includes(schedule.bayId)
     );
-
-    // Determine row count based on location
-    const maxRows = selectedLocation === 'columbia-falls' ? 30 : 20;
-
-    // Get projects with their FAB start dates for sorting
-    const schedulesWithFabDates = locationSchedules.map(schedule => {
-      const project = projects.find(p => p.id === schedule.projectId);
-      return {
-        schedule,
-        project,
-        fabStartDate: project?.fabricationStart ? new Date(project.fabricationStart) : null
-      };
-    });
     
-    // Sort by FAB start date (earliest first)
-    const sortedByFab = schedulesWithFabDates.sort((a, b) => {
-      if (!a.fabStartDate && !b.fabStartDate) return 0;
-      if (!a.fabStartDate) return 1;
-      if (!b.fabStartDate) return -1;
-      return a.fabStartDate.getTime() - b.fabStartDate.getTime();
-    });
+    // Get unique project IDs
+    const projectIds = new Set(locationSchedules.map(s => s.projectId));
     
-    // Distribute schedules across the virtual bays in sorted order
-    return sortedByFab.map((item, index) => {
-      // Make sure we don't exceed available rows
-      if (index >= virtualBays.length) {
-        console.warn(`Not enough rows for project ${item.project?.projectNumber}. Need ${index + 1} rows but only have ${virtualBays.length}`);
-        return null;
-      }
-      const targetBay = virtualBays[index]; // Each project gets its own row
-      console.log(`Assigning project ${item.project?.projectNumber} (FAB: ${item.fabStartDate?.toISOString()}) to row ${index + 1}`);
-      return {
-        ...item.schedule,
-        bayId: targetBay.id, // Map to the specific row's bay
-        row: 0 // Always row 0 since each bay is now a single row
-      };
-    }).filter(Boolean); // Remove any null entries
-  }, [schedules, bays, selectedLocation, virtualBays]);
+    // Return projects that are scheduled in this location
+    return projects.filter(p => projectIds.has(p.id));
+  }, [projects, schedules, bays, selectedLocation]);
 
   // Count projects that have the specific phase we're viewing
   const activeProjectCount = useMemo(() => {
-    const projectIds = new Set(departmentSchedules.map(s => s.projectId));
-    const scheduledProjects = projects.filter(p => projectIds.has(p.id));
-    
     // Count projects that have dates for the selected phase
-    return scheduledProjects.filter(project => {
+    return locationProjects.filter(project => {
       switch (selectedDepartment) {
         case 'mech':
           return project.mechShop && project.productionStart; // MECH is 30 days before production
         case 'fab':
-          return project.fabricationStart;
+          return project.fabricationStart && project.productionStart;
         case 'paint':
-          return project.paintStart;
+          return project.paintStart && project.productionStart;
         case 'wrap':
-          return project.wrapDate;
+          return project.wrapDate && project.qcStartDate;
         default:
           return false;
       }
     }).length;
-  }, [departmentSchedules, projects, selectedDepartment]);
+  }, [locationProjects, selectedDepartment]);
 
   const handlePreviousWeek = () => {
     setCurrentWeek(prev => subWeeks(prev, 1));
@@ -294,25 +227,14 @@ const DepartmentSchedules = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <div className="border rounded-lg overflow-auto department-schedule-container" style={{ 
-                        maxHeight: '80vh', 
-                        minHeight: location === 'columbia-falls' ? '600px' : '400px' 
-                      }}>
-                        <ResizableBaySchedule
-                          schedules={departmentSchedules}
-                          projects={projects}
-                          bays={virtualBays} // Multiple virtual bays for rows
-                          onScheduleChange={async () => {}} // Read-only
-                          onScheduleCreate={async () => {}} // Read-only
-                          onScheduleDelete={async () => {}} // Read-only
+                      {location === selectedLocation && dept === selectedDepartment && (
+                        <DepartmentGanttChart
+                          projects={locationProjects}
+                          department={selectedDepartment}
                           dateRange={dateRange}
                           viewMode={viewMode}
-                          enableFinancialImpact={false}
-                          isSandboxMode={true} // Read-only mode
-                          departmentPhaseFilter={selectedDepartment} // Filter to show only this phase
-                          hideUnassignedProjects={true} // Hide sidebar in Department view
                         />
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
