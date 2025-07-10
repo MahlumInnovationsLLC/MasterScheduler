@@ -1503,30 +1503,10 @@ export default function ResizableBaySchedule({
       // This ensures the dates in UI match the database dates exactly
       
       // DIRECT DATE POSITIONING: Use actual dates with no offset
-      // Calculate position from the current view's start date
-      const daysFromStart = differenceInDays(startDate, dateRange.start);
-      
-      // No offsets, no adjustments - use the actual date position
-      const left = daysFromStart * pixelsPerDay;
-      
-      console.log(`Schedule ${schedule.id} position:`, {
-        date: format(startDate, 'yyyy-MM-dd'),
-        daysFromStart: daysFromStart,
-        pixelPosition: left
-      });
-      
-      // Calculate width based on duration
-      const durationDays = differenceInDays(endDate, startDate) + 1; // +1 to include the end date
-      const width = durationDays * pixelsPerDay;
-      
-      // Determine a color based on project ID
-      const colorIndex = schedule.projectId % PROJECT_COLORS.length;
-      const color = PROJECT_COLORS[colorIndex];
-      
       // For department schedules, adjust dates and colors based on phase
       let phaseStartDate = startDate;
       let phaseEndDate = endDate;
-      let phaseColor = color;
+      let phaseColor: string;
       
       if (departmentPhaseFilter) {
         switch (departmentPhaseFilter) {
@@ -1566,15 +1546,32 @@ export default function ResizableBaySchedule({
               phaseEndDate = addDays(phaseStartDate, 2);
             }
             break;
+          default:
+            // Determine a color based on project ID
+            const colorIndex = schedule.projectId % PROJECT_COLORS.length;
+            phaseColor = PROJECT_COLORS[colorIndex];
         }
-        
-        // Recalculate position and width for phase-specific dates
-        const phaseDaysFromStart = differenceInDays(phaseStartDate, dateRange.start);
-        left = phaseDaysFromStart * pixelsPerDay;
-        
-        const phaseDurationDays = differenceInDays(phaseEndDate, phaseStartDate) + 1;
-        width = phaseDurationDays * pixelsPerDay;
+      } else {
+        // Determine a color based on project ID
+        const colorIndex = schedule.projectId % PROJECT_COLORS.length;
+        phaseColor = PROJECT_COLORS[colorIndex];
       }
+      
+      // Calculate position from the current view's start date
+      const daysFromStart = differenceInDays(phaseStartDate, dateRange.start);
+      
+      // No offsets, no adjustments - use the actual date position
+      const left = daysFromStart * pixelsPerDay;
+      
+      console.log(`Schedule ${schedule.id} position:`, {
+        date: format(phaseStartDate, 'yyyy-MM-dd'),
+        daysFromStart: daysFromStart,
+        pixelPosition: left
+      });
+      
+      // Calculate width based on duration
+      const durationDays = differenceInDays(phaseEndDate, phaseStartDate) + 1; // +1 to include the end date
+      const width = durationDays * pixelsPerDay;
 
       const bar: ScheduleBar = {
         id: schedule.id,
