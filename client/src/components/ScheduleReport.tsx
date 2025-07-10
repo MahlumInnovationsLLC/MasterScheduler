@@ -132,10 +132,6 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
 
       // Timeline Milestones Section (if enabled)
       if (reportConfig.timeline) {
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Timeline Milestones', 20, currentY);
-
         const milestones = [];
         
         // Gather all timeline dates
@@ -172,6 +168,17 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         }
 
         if (milestones.length > 0) {
+          // Check if we need a new page for the timeline section
+          const estimatedHeight = 20 + (milestones.length * 15) + 30; // Header + rows + padding
+          if (currentY + estimatedHeight > 250) { // 250 is near bottom of page
+            pdf.addPage();
+            currentY = 30;
+          }
+
+          pdf.setFontSize(14);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Timeline Milestones', 20, currentY);
+
           autoTable(pdf, {
             startY: currentY + 5,
             head: [['Milestone', 'Date']],
@@ -195,6 +202,13 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
 
       // Billing Milestones Section (if enabled)
       if (reportConfig.billingMilestones && billingMilestones.length > 0) {
+        // Check if we need a new page for the billing milestones section
+        const estimatedHeight = 20 + (billingMilestones.length * 15) + 30; // Header + rows + padding
+        if (currentY + estimatedHeight > 250) { // 250 is near bottom of page
+          pdf.addPage();
+          currentY = 30;
+        }
+
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.text('Billing Milestones', 20, currentY);
@@ -228,6 +242,13 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
 
       // Department Breakdown Section (if enabled)
       if (reportConfig.departmentBreakdown) {
+        // Check if we need a new page for the department breakdown section
+        const estimatedHeight = 20 + (6 * 15) + 30; // Header + 6 rows + padding
+        if (currentY + estimatedHeight > 250) { // 250 is near bottom of page
+          pdf.addPage();
+          currentY = 30;
+        }
+
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.text('Department Breakdown', 20, currentY);
@@ -261,6 +282,13 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
 
       // Bay Schedule Chart Section (if enabled)
       if (reportConfig.bayScheduleChart && manufacturingSchedule && bay) {
+        // Check if we need a new page for the bay schedule visualization
+        const estimatedHeight = 150; // Height for visualization + description
+        if (currentY + estimatedHeight > 200) { // Earlier check since visualization is larger
+          pdf.addPage();
+          currentY = 30;
+        }
+
         // Add the visual bay schedule chart
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
