@@ -118,11 +118,14 @@ const DepartmentSchedules = () => {
       locationBayIds.includes(schedule.bayId)
     );
 
+    // Determine row count based on location
+    const maxRows = selectedLocation === 'columbia-falls' ? 30 : 20;
+
     // Map all schedules to the virtual bay and distribute across rows
     return locationSchedules.map((schedule, index) => ({
       ...schedule,
       bayId: virtualBay.id, // Map to virtual bay
-      row: index % 4 // Distribute across 4 rows (0, 1, 2, 3)
+      row: index % maxRows // Distribute evenly across all available rows
     }));
   }, [schedules, bays, selectedLocation, virtualBay.id]);
 

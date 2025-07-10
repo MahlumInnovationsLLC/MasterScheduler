@@ -270,8 +270,11 @@ const iconMap = {
 const getBayRowCount = (bayId: number, bayName: string) => {
   // Special case for department schedules - virtual bays have IDs >= 999
   if (bayId >= 999) {
-    console.log(`Department schedule configuration for virtual bay ${bayId} (${bayName}) - 4 rows`);
-    return 4; // Department schedules use 4 rows for better visibility
+    // Determine row count based on location in the virtual bay name
+    const isLibby = bayName.toLowerCase().includes('libby');
+    const rowCount = isLibby ? 20 : 30; // 20 rows for Libby, 30 for Columbia Falls
+    console.log(`Department schedule configuration for virtual bay ${bayId} (${bayName}) - ${rowCount} rows`);
+    return rowCount;
   }
   
   console.log(`Single row configuration for bay ${bayId} (${bayName}) - new team-based layout`);
@@ -1431,6 +1434,25 @@ export default function ResizableBaySchedule({
         return null;
       }
       
+      // Filter by department phase if specified
+      if (departmentPhaseFilter) {
+        // Check if project has the required phase date
+        switch (departmentPhaseFilter) {
+          case 'mech':
+            if (!project.mechShop || !project.productionStart) return null;
+            break;
+          case 'fab':
+            if (!project.fabricationStart) return null;
+            break;
+          case 'paint':
+            if (!project.paintStart) return null;
+            break;
+          case 'wrap':
+            if (!project.wrapDate) return null;
+            break;
+        }
+      }
+      
       // Log delivered projects to ensure they're processed
       if (project.status === 'delivered') {
         console.log(`✅ DELIVERED PROJECT FOUND: ${project.projectNumber} - Will show with green glow`);
@@ -1501,27 +1523,80 @@ export default function ResizableBaySchedule({
       const colorIndex = schedule.projectId % PROJECT_COLORS.length;
       const color = PROJECT_COLORS[colorIndex];
       
+      // For department schedules, adjust dates and colors based on phase
+      let phaseStartDate = startDate;
+      let phaseEndDate = endDate;
+      let phaseColor = color;
+      
+      if (departmentPhaseFilter) {
+        switch (departmentPhaseFilter) {
+          case 'mech':
+            // MECH phase: Orange bars, 30 working days before production
+            phaseColor = '#f97316'; // Orange
+            if (project.mechShop && project.productionStart) {
+              phaseStartDate = parseISO(project.mechShop.split('T')[0]);
+              phaseEndDate = parseISO(project.productionStart.split('T')[0]);
+            }
+            break;
+          case 'fab':
+            // FAB phase uses fabrication start date
+            phaseColor = '#2563eb'; // Blue
+            if (project.fabricationStart) {
+              phaseStartDate = parseISO(project.fabricationStart.split('T')[0]);
+              // Calculate FAB end based on percentage (27% of total duration)
+              const totalDays = differenceInDays(endDate, startDate);
+              const fabDays = Math.round(totalDays * 0.27);
+              phaseEndDate = addDays(phaseStartDate, fabDays);
+            }
+            break;
+          case 'paint':
+            // PAINT phase
+            phaseColor = '#dc2626'; // Red
+            if (project.paintStart && project.productionStart) {
+              phaseStartDate = parseISO(project.paintStart.split('T')[0]);
+              phaseEndDate = parseISO(project.productionStart.split('T')[0]);
+            }
+            break;
+          case 'wrap':
+            // WRAP phase
+            phaseColor = '#7c3aed'; // Purple
+            if (project.wrapDate) {
+              phaseStartDate = parseISO(project.wrapDate.split('T')[0]);
+              // Wrap is typically a single day or short period
+              phaseEndDate = addDays(phaseStartDate, 2);
+            }
+            break;
+        }
+        
+        // Recalculate position and width for phase-specific dates
+        const phaseDaysFromStart = differenceInDays(phaseStartDate, dateRange.start);
+        left = phaseDaysFromStart * pixelsPerDay;
+        
+        const phaseDurationDays = differenceInDays(phaseEndDate, phaseStartDate) + 1;
+        width = phaseDurationDays * pixelsPerDay;
+      }
+
       const bar: ScheduleBar = {
         id: schedule.id,
         projectId: schedule.projectId,
         bayId: schedule.bayId,
-        startDate,
-        endDate,
+        startDate: phaseStartDate,
+        endDate: phaseEndDate,
         totalHours: schedule.totalHours,
         projectName: project.name,
         projectNumber: project.projectNumber,
         width,
         left,
-        color,
+        color: phaseColor,
         row: schedule.row !== undefined ? schedule.row : 0, // Use the explicit row from database
         
-        // Use project's actual phase percentages from the project data, but only if the phase is visible
-        fabPercentage: (project as any).showFabPhase ? (Number((project as any).fabPercentage) || 27) : 0,
-        paintPercentage: (project as any).showPaintPhase ? (Number((project as any).paintPercentage) || 7) : 0,
-        productionPercentage: (project as any).showProductionPhase ? (Number((project as any).productionPercentage) || 60) : 0,
-        itPercentage: (project as any).showItPhase ? (Number((project as any).itPercentage) || 7) : 0,
-        ntcPercentage: (project as any).showNtcPhase ? (Number((project as any).ntcPercentage) || 7) : 0,
-        qcPercentage: (project as any).showQcPhase ? (Number((project as any).qcPercentage) || 7) : 0,
+        // For department schedules, set all percentages to 0 except the active phase
+        fabPercentage: departmentPhaseFilter === 'fab' ? 100 : 0,
+        paintPercentage: departmentPhaseFilter === 'paint' ? 100 : 0,
+        productionPercentage: departmentPhaseFilter === 'mech' ? 100 : 0,
+        itPercentage: 0,
+        ntcPercentage: 0,
+        qcPercentage: 0,
         
         // Default fab weeks
         fabWeeks: 4
@@ -1548,7 +1623,7 @@ export default function ResizableBaySchedule({
     console.log('Applied capacity-based calculations for production phase widths');
     
     setScheduleBars(barsWithCapacityCalculation);
-  }, [schedules, projects, dateRange, viewMode, slotWidth]);
+  }, [schedules, projects, dateRange, viewMode, slotWidth, departmentPhaseFilter]);
   
   // Filter projects when search term changes
   useEffect(() => {
