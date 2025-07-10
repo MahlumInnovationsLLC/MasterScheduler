@@ -3366,15 +3366,14 @@ export default function ResizableBaySchedule({
           
           {/* Manufacturing Bays */}
           <div className="manufacturing-bays mt-2">
-            {/* Normal Bay Schedule view */}
             {bayTeams
-                .filter(team => {
-                  // Only show teams with a valid name (not auto-generated "Team X:" names)
-                  const teamName = team[0]?.team;
-                  if (!teamName) return false;
-                  return !teamName.match(/^Team \d+:?/);
-                })
-                .map((team, teamIndex) => (
+              .filter(team => {
+                // Only show teams with a valid name (not auto-generated "Team X:" names)
+                const teamName = team[0]?.team;
+                if (!teamName) return false;
+                return !teamName.match(/^Team \d+:?/);
+              })
+              .map((team, teamIndex) => (
               <div 
                 key={`team-${teamIndex}`} 
                 className="team-container mb-5 relative"
@@ -4671,8 +4670,7 @@ export default function ResizableBaySchedule({
                   );
                 })}
               </div>
-                ))
-            }
+            ))}
           </div>
         </div>
       </div>
@@ -5341,6 +5339,7 @@ export default function ResizableBaySchedule({
           onCancel={handleFinancialImpactCancel}
         />
       )}
+      </div>
     </div>
   );
 }
