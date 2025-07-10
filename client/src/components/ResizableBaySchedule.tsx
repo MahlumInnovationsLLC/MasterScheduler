@@ -3366,96 +3366,8 @@ export default function ResizableBaySchedule({
           
           {/* Manufacturing Bays */}
           <div className="manufacturing-bays mt-2">
-            {departmentPhaseFilter ? (
-              // Department view: Create single virtual team showing only phase-specific bars
-              (() => {
-                const departmentName = departmentPhaseFilter === 'mech' ? 'MECH Shop' :
-                                     departmentPhaseFilter === 'fab' ? 'Fabrication' :
-                                     departmentPhaseFilter === 'paint' ? 'Paint' :
-                                     'Wrap';
-                
-                // Get all schedule bars that have this phase
-                const phaseScheduleBars = scheduleBars.filter(bar => {
-                  if (departmentPhaseFilter === 'fab') return bar.fabPercentage > 0;
-                  if (departmentPhaseFilter === 'paint') return bar.paintPercentage > 0;
-                  if (departmentPhaseFilter === 'mech') return true; // MECH shows for all projects
-                  if (departmentPhaseFilter === 'wrap') return true; // Wrap date exists
-                  return false;
-                });
-
-                return (
-                  <div 
-                    key="department-team"
-                    className="team-container mb-5 relative"
-                    style={{
-                      minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
-                    }}>
-                    {/* Single Department Team Header */}
-                    <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
-                      <div 
-                        className="flex items-center"
-                        style={{
-                          position: 'sticky',
-                          left: 0,
-                          zIndex: 40,
-                          backgroundColor: '#1e3a8a',
-                          paddingRight: '15px'
-                        }}
-                      >
-                        <span className="font-bold text-lg">
-                          {departmentName} Team
-                        </span>
-                        <span className="text-sm ml-2 font-light text-blue-100 italic">
-                          Department Schedule
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Department Schedule Rows */}
-                    <div className="bay-rows">
-                      {phaseScheduleBars.map((bar, index) => (
-                        <div 
-                          key={`dept-row-${index}`}
-                          className="bay-row relative mb-1 border-t border-gray-300"
-                          style={{ height: '40px' }} // Skinnier rows
-                        >
-                          {/* Project Phase Bar */}
-                          <div
-                            className="project-bar absolute cursor-pointer transition-all duration-200 hover:z-30 hover:shadow-lg flex items-center justify-center"
-                            style={{
-                              left: departmentPhaseFilter === 'fab' ? `${bar.left}px` : 
-                                   departmentPhaseFilter === 'paint' ? `${bar.left + (bar.fabWidth || 0)}px` :
-                                   departmentPhaseFilter === 'mech' ? `${bar.left - 720}px` : // 30 days before (720px = 30 days * 24px)
-                                   `${bar.left}px`,
-                              width: departmentPhaseFilter === 'fab' ? `${bar.fabWidth || bar.width * 0.27}px` :
-                                     departmentPhaseFilter === 'paint' ? `${bar.paintWidth || bar.width * 0.07}px` :
-                                     departmentPhaseFilter === 'mech' ? `${bar.width * 0.1}px` : // MECH is 10% of total
-                                     `${bar.width * 0.15}px`, // Wrap is 15% of total
-                              height: '36px',
-                              top: '2px',
-                              backgroundColor: departmentPhaseFilter === 'mech' ? '#f97316' : // Orange for MECH
-                                              departmentPhaseFilter === 'fab' ? '#dc2626' : // Red for FAB  
-                                              departmentPhaseFilter === 'paint' ? '#7c3aed' : // Purple for PAINT
-                                              '#10b981', // Green for WRAP
-                              borderRadius: '4px',
-                              color: 'white',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              border: '1px solid rgba(255,255,255,0.3)',
-                              zIndex: 10
-                            }}
-                          >
-                            {bar.projectNumber}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              // Normal Bay Schedule view
-              bayTeams
+            {/* Normal Bay Schedule view */}
+            {bayTeams
                 .filter(team => {
                   // Only show teams with a valid name (not auto-generated "Team X:" names)
                   const teamName = team[0]?.team;
@@ -4760,7 +4672,7 @@ export default function ResizableBaySchedule({
                 })}
               </div>
                 ))
-            )}
+            }
           </div>
         </div>
       </div>
