@@ -430,6 +430,17 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - All existing sections (Project Overview, Timeline, Department Breakdown, Bay Schedule Chart) default to ON
   - Custom text field allows users to add personalized content under report title
   - Fixed data field mapping issues that were showing "-" and "TBD" instead of actual milestone data
+- January 10, 2025: Department Schedules Module Implementation
+  - Created new Department Schedules module accessible from sidebar with Factory icon
+  - Implemented department-specific views: MECH Shop, Fabrication, Paint, and Wrap
+  - Added location-based filtering with sub-tabs for Columbia Falls and Libby
+  - Integrated with existing Bay Schedule data as read-only snapshot views
+  - Uses ResizableBaySchedule component to maintain consistent UI with Bay Scheduling
+  - Filters projects based on current manufacturing phase using calculatePhaseDates utility
+  - Virtual bay created for each department/location combination showing only relevant projects
+  - Projects displayed as single team with multiple rows (4 projects per row)
+  - Week navigation controls with 12-week view range for department planning
+  - Real-time filtering based on project phase dates and schedule data
 
 
 ## User Preferences

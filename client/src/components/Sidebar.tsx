@@ -23,7 +23,8 @@ import {
   Flag,
   CheckCircle,
   Package,
-  Wrench
+  Wrench,
+  Factory
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
@@ -232,6 +233,14 @@ const Sidebar = () => {
                 </SidebarLink>
               </li>
             )}
+            <li>
+              <SidebarLink href="/department-schedules" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                locationStartsWith('/department-schedules') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Department Schedules">
+                <Factory size={20} className={`${locationStartsWith('/department-schedules') ? 'text-primary' : ''}`} />
+                {!isCollapsed && <span>Department Schedules</span>}
+              </SidebarLink>
+            </li>
             {isModuleVisible('on-time-delivery') && (
               <li>
                 <SidebarLink href="/on-time-delivery" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${

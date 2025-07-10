@@ -42,6 +42,7 @@ import MaterialManagement from "@/pages/MaterialManagement";
 import Engineering from "@/pages/Engineering";
 import Forecast from "@/pages/Forecast";
 import CapacityManagement from "@/pages/CapacityManagement";
+import DepartmentSchedules from "@/pages/DepartmentSchedules";
 import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -160,6 +161,7 @@ function MainContent() {
     if (location === '/supply-chain') return 'Supply Chain';
     if (location === '/material-management') return 'Material Management';
     if (location === '/engineering') return 'Engineering Resource Planner';
+    if (location === '/department-schedules') return 'Department Schedules';
     if (location === '/archived-projects') return 'Archived Projects';
     if (location === '/delivered-projects') return 'Delivered Projects';
     if (location === '/system-settings') return 'System Settings';
@@ -211,6 +213,7 @@ function MainContent() {
             <ProtectedRoute path="/engineering" component={Engineering} />
             <ViewerRestrictedRoute path="/forecast" component={Forecast} />
             <ProtectedRoute path="/capacity-management" component={CapacityManagement} />
+            <ProtectedRoute path="/department-schedules" component={DepartmentSchedules} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/system-settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
@@ -263,6 +266,7 @@ function MainContent() {
             <ProtectedRoute path="/engineering" component={Engineering} />
             <ViewerRestrictedRoute path="/forecast" component={Forecast} />
             <ProtectedRoute path="/capacity-management" component={CapacityManagement} />
+            <ProtectedRoute path="/department-schedules" component={DepartmentSchedules} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/settings/system" component={SystemSettings} />
             <AdminRoute path="/system-settings" component={SystemSettings} />

@@ -23,7 +23,8 @@ import {
   MessageSquare,
   Flag,
   Users,
-  Wrench
+  Wrench,
+  Factory
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -281,6 +282,20 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                     >
                       <Users size={18} />
                       <span className="text-sm font-medium">Capacity Management</span>
+                    </button>
+                  </Link>
+                )}
+
+                {isModuleVisible('department-schedules') && (
+                  <Link href="/department-schedules">
+                    <button
+                      onClick={onClose}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive('/department-schedules') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      <Factory size={18} />
+                      <span className="text-sm font-medium">Department Schedules</span>
                     </button>
                   </Link>
                 )}
