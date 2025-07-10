@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileText, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { FileText, Loader2, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
@@ -14,9 +19,46 @@ interface ScheduleReportProps {
   bay?: ManufacturingBay;
 }
 
+interface ReportConfig {
+  // Existing sections (default ON)
+  projectOverview: boolean;
+  timeline: boolean;
+  manufacturingPhases: boolean;
+  departmentBreakdown: boolean;
+  
+  // New sections
+  billingMilestones: boolean;
+  customText: string;
+}
+
 export function ScheduleReport({ project, manufacturingSchedule, bay }: ScheduleReportProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  // Report configuration state with defaults
+  const [reportConfig, setReportConfig] = useState<ReportConfig>({
+    // All existing sections default to ON
+    projectOverview: true,
+    timeline: true,
+    manufacturingPhases: true,
+    departmentBreakdown: true,
+    
+    // New sections
+    billingMilestones: false,
+    customText: ''
+  });
+
+  // Fetch billing milestones for this project
+  const { data: billingMilestones = [] } = useQuery({
+    queryKey: ['/api/billing-milestones', project.id],
+    queryFn: async () => {
+      const response = await fetch('/api/billing-milestones');
+      const allMilestones = await response.json();
+      return allMilestones.filter((m: any) => m.projectId === project.id);
+    },
+    enabled: reportConfig.billingMilestones
+  });
 
   const generatePDF = async () => {
     setIsGenerating(true);
@@ -49,375 +91,199 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
       pdf.setFontSize(12);
       pdf.text(`Generated: ${format(new Date(), 'MMMM dd, yyyy')}`, pdf.internal.pageSize.getWidth() / 2, 50, { align: 'center' });
 
-      // Project Information Section
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Project Information', 20, 70);
-      
-      const projectInfo = [
-        ['Project Number', project.projectNumber],
-        ['Project Name', project.name],
-        ['Customer', project.customer || '-'],
-        ['Status', project.status || '-'],
-        ['Progress', `${project.percentComplete || 0}%`],
-        ['Total Hours', project.totalHours?.toString() || '-'],
-        ['Bay Assignment', bay?.name || 'Unassigned']
-      ];
-
-      autoTable(pdf, {
-        startY: 75,
-        head: [],
-        body: projectInfo,
-        theme: 'grid',
-        columnStyles: {
-          0: { cellWidth: 50, fontStyle: 'bold' },
-          1: { cellWidth: 'auto' }
-        },
-        margin: { left: 20, right: 20 }
-      });
-
-      // Timeline Milestones Section
-      const timelineY = (pdf as any).lastAutoTable.finalY + 15;
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Timeline Milestones', 20, timelineY);
-
-      const milestones = [];
-      
-      // Gather all timeline dates
-      if (project.poDroppedDate || project.startDate) {
-        const date = project.poDroppedDate || project.startDate;
-        milestones.push(['PO Dropped', format(new Date(date + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.fabricationStart) {
-        milestones.push(['Fabrication Start', format(new Date(project.fabricationStart + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.paintStart) {
-        milestones.push(['Paint Start', format(new Date(project.paintStart + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.assemblyStart) {
-        milestones.push(['Production Start', format(new Date(project.assemblyStart + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.itStart) {
-        milestones.push(['IT Start', format(new Date(project.itStart + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.ntcTestingDate) {
-        milestones.push(['NTC Testing', format(new Date(project.ntcTestingDate + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.qcStartDate) {
-        milestones.push(['QC Start', format(new Date(project.qcStartDate + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.executiveReviewDate) {
-        milestones.push(['Executive Review', format(new Date(project.executiveReviewDate + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.shipDate) {
-        milestones.push(['Ship Date', format(new Date(project.shipDate + 'T00:00:00'), 'MMM dd, yyyy')]);
-      }
-      if (project.deliveryDate) {
-        milestones.push(['Delivery Date', format(new Date(project.deliveryDate + 'T00:00:00'), 'MMM dd, yyyy')]);
+      // Add custom text if provided
+      let currentY = 60;
+      if (reportConfig.customText.trim()) {
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        const customTextLines = pdf.splitTextToSize(reportConfig.customText, pdf.internal.pageSize.getWidth() - 40);
+        pdf.text(customTextLines, pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+        currentY += customTextLines.length * 5 + 10;
       }
 
-      if (milestones.length > 0) {
+      // Project Information Section (if enabled)
+      if (reportConfig.projectOverview) {
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Project Information', 20, currentY + 10);
+        
+        const projectInfo = [
+          ['Project Number', project.projectNumber],
+          ['Project Name', project.name],
+          ['Customer', project.customer || '-'],
+          ['Status', project.status || '-'],
+          ['Progress', `${project.percentComplete || 0}%`],
+          ['Total Hours', project.totalHours?.toString() || '-'],
+          ['Bay Assignment', bay?.name || 'Unassigned']
+        ];
+
         autoTable(pdf, {
-          startY: timelineY + 5,
-          head: [['Milestone', 'Date']],
-          body: milestones,
-          theme: 'striped',
-          headStyles: {
-            fillColor: [66, 139, 202],
-            textColor: 255
-          },
+          startY: currentY + 15,
+          head: [],
+          body: projectInfo,
+          theme: 'grid',
           columnStyles: {
-            0: { cellWidth: 80 },
-            1: { cellWidth: 60 }
+            0: { cellWidth: 50, fontStyle: 'bold' },
+            1: { cellWidth: 'auto' }
           },
           margin: { left: 20, right: 20 }
         });
+        currentY = (pdf as any).lastAutoTable.finalY + 15;
       }
 
-      // Move Bay Schedule visualization to current page without adding new page
-      // This brings the visualization up to where the Manufacturing Schedule section was
-      
-      if (manufacturingSchedule && bay) {
-        // Position the Bay Schedule visualization right after the Timeline Milestones section
-        const visualizationY = (pdf as any).lastAutoTable?.finalY + 25 || timelineY + 30;
-        pdf.setFontSize(16);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Bay Schedule Visualization', pdf.internal.pageSize.getWidth() / 2, visualizationY, { align: 'center' });
-        
-        // Create a container for our custom bay schedule visualization
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'fixed';
-        tempContainer.style.top = '-9999px';
-        tempContainer.style.left = '-9999px';
-        tempContainer.style.width = '1400px';
-        tempContainer.style.padding = '20px';
-        tempContainer.style.background = '#ffffff';
-        tempContainer.style.fontFamily = 'Arial, sans-serif';
-        document.body.appendChild(tempContainer);
-        
-        // Create the bay schedule visualization that matches the screenshot
-        const scheduleContainer = document.createElement('div');
-        scheduleContainer.style.background = '#f3f4f6';
-        scheduleContainer.style.border = '1px solid #e5e7eb';
-        scheduleContainer.style.borderRadius = '8px';
-        scheduleContainer.style.padding = '16px';
-        
-        // Bay header with name and hours
-        const bayHeader = document.createElement('div');
-        bayHeader.style.background = '#1e40af';
-        bayHeader.style.color = 'white';
-        bayHeader.style.padding = '12px 16px';
-        bayHeader.style.borderRadius = '8px 8px 0 0';
-        bayHeader.style.display = 'flex';
-        bayHeader.style.justifyContent = 'space-between';
-        bayHeader.style.alignItems = 'center';
-        bayHeader.style.marginBottom = '1px';
-        
-        const bayTitle = document.createElement('div');
-        bayTitle.style.display = 'flex';
-        bayTitle.style.alignItems = 'center';
-        bayTitle.style.gap = '12px';
-        
-        const bayName = document.createElement('span');
-        bayName.style.fontWeight = 'bold';
-        bayName.style.fontSize = '16px';
-        bayName.textContent = `${bay.name || `Bay ${bay.bayNumber}`}`;
-        
-        const hoursLabel = document.createElement('span');
-        hoursLabel.style.background = 'rgba(255, 255, 255, 0.2)';
-        hoursLabel.style.padding = '4px 12px';
-        hoursLabel.style.borderRadius = '12px';
-        hoursLabel.style.fontSize = '14px';
-        hoursLabel.textContent = `261 hrs/week`;
-        
-        bayTitle.appendChild(bayName);
-        bayTitle.appendChild(hoursLabel);
-        bayHeader.appendChild(bayTitle);
-        
-        // Timeline header with week numbers
-        const timelineHeader = document.createElement('div');
-        timelineHeader.style.background = '#e5e7eb';
-        timelineHeader.style.padding = '8px';
-        timelineHeader.style.display = 'flex';
-        timelineHeader.style.borderBottom = '1px solid #d1d5db';
-        
-        // Calculate weeks for the timeline based on actual project timeline
-        // Use the project's actual start date and ship date to show the complete timeline
-        const manufacturingStart = new Date(manufacturingSchedule.startDate);
-        const manufacturingEnd = new Date(manufacturingSchedule.endDate);
-        
-        // Extend timeline to include QC phase which goes beyond manufacturing schedule
-        // Use the earliest phase start date and latest phase end date for full project timeline
-        const projectShipDate = project.shipDate ? new Date(project.shipDate) : manufacturingEnd;
-        const actualStartDate = project.fabricationStart ? new Date(project.fabricationStart) : manufacturingStart;
-        const startDate = actualStartDate;
-        const endDate = projectShipDate;
-        const weeks = [];
-        
-        // Generate week labels using the exact same logic as ResizableBaySchedule
-        // Use the time slot generation logic from ResizableBaySchedule
-        let currentDate = new Date(startDate);
-        currentDate.setHours(0, 0, 0, 0);
-        
-        // If viewing by week, adjust to start on Monday (same as ResizableBaySchedule)
-        if (currentDate.getDay() !== 1) {
-          const daysToSubtract = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
-          currentDate.setDate(currentDate.getDate() - daysToSubtract);
-        }
-        
-        // Generate weeks up to the end date using the same logic
-        while (currentDate <= endDate && weeks.length < 20) {
-          // Use the same format as ResizableBaySchedule: MM/dd
-          weeks.push(format(currentDate, 'MM/dd'));
-          currentDate.setDate(currentDate.getDate() + 7);
-        }
-        
-        // Add week labels with proper spacing
-        weeks.forEach(week => {
-          const weekLabel = document.createElement('div');
-          weekLabel.style.flex = '1';
-          weekLabel.style.textAlign = 'center';
-          weekLabel.style.fontSize = '12px';
-          weekLabel.style.color = '#6b7280';
-          weekLabel.style.borderRight = '1px solid #d1d5db';
-          weekLabel.style.padding = '4px';
-          weekLabel.textContent = week;
-          timelineHeader.appendChild(weekLabel);
-        });
-        
-        // Project bar container
-        const projectBarContainer = document.createElement('div');
-        projectBarContainer.style.position = 'relative';
-        projectBarContainer.style.height = '80px';
-        projectBarContainer.style.background = 'white';
-        projectBarContainer.style.padding = '16px';
-        
-        // Create the project bar with phases
-        const projectBar = document.createElement('div');
-        projectBar.style.position = 'relative';
-        projectBar.style.height = '48px';
-        projectBar.style.display = 'flex';
-        projectBar.style.borderRadius = '4px';
-        projectBar.style.overflow = 'hidden';
-        projectBar.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-        
-        // Calculate phase widths based on actual project dates from database
-        const totalDurationMs = endDate.getTime() - startDate.getTime();
-        const totalDays = Math.ceil(totalDurationMs / (1000 * 60 * 60 * 24));
-        
-        // Calculate actual phase dates and widths
-        const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : startDate;
-        const paintStart = project.paintStart ? new Date(project.paintStart) : fabStart;
-        const productionStart = project.assemblyStart ? new Date(project.assemblyStart) : paintStart;
-        const itStart = project.itStart ? new Date(project.itStart) : productionStart;
-        const ntcStart = project.ntcTestingDate ? new Date(project.ntcTestingDate) : itStart;
-        const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : ntcStart;
-        
-        // Use ship date as the project end, ensuring QC extends to ship date
-        const projectEnd = project.shipDate ? new Date(project.shipDate) : endDate;
-        
-        // Calculate each phase duration in days
-        const fabDays = Math.max(1, Math.ceil((paintStart.getTime() - fabStart.getTime()) / (1000 * 60 * 60 * 24)));
-        const paintDays = Math.max(1, Math.ceil((productionStart.getTime() - paintStart.getTime()) / (1000 * 60 * 60 * 24)));
-        const productionDays = Math.max(1, Math.ceil((itStart.getTime() - productionStart.getTime()) / (1000 * 60 * 60 * 24)));
-        const itDays = Math.max(1, Math.ceil((ntcStart.getTime() - itStart.getTime()) / (1000 * 60 * 60 * 24)));
-        const ntcDays = Math.max(1, Math.ceil((qcStart.getTime() - ntcStart.getTime()) / (1000 * 60 * 60 * 24)));
-        
-        // QC should extend from QC start to ship date - this is the key fix
-        const qcDays = Math.max(1, Math.ceil((projectEnd.getTime() - qcStart.getTime()) / (1000 * 60 * 60 * 24)));
-        
-        // Recalculate total days to ensure phases add up properly
-        const actualTotalDays = fabDays + paintDays + productionDays + itDays + ntcDays + qcDays;
-        
-        // Calculate widths as percentages of actual total timeline
-        const fabWidth = (fabDays / actualTotalDays) * 100;
-        const paintWidth = (paintDays / actualTotalDays) * 100;
-        const productionWidth = (productionDays / actualTotalDays) * 100;
-        const itWidth = (itDays / actualTotalDays) * 100;
-        const ntcWidth = (ntcDays / actualTotalDays) * 100;
-        const qcWidth = (qcDays / actualTotalDays) * 100;
-        
-        // Create all 6 phases with actual calculated widths based on database dates
-        const phases = [
-          { name: 'FAB', color: '#6b7280', width: `${fabWidth}%` },
-          { name: 'PAINT', color: '#10b981', width: `${paintWidth}%` },
-          { name: 'PROD', color: '#3b82f6', width: `${productionWidth}%` },
-          { name: 'IT', color: '#8b5cf6', width: `${itWidth}%` },
-          { name: 'NTC', color: '#f59e0b', width: `${ntcWidth}%` },
-          { name: 'QC', color: '#ec4899', width: `${qcWidth}%` }
-        ];
-        
-        // Log the phase calculations for debugging
-        console.log('Phase calculations for project:', project.projectNumber);
-        console.log('Total timeline:', format(startDate, 'MM/dd/yyyy'), 'to', format(projectEnd, 'MM/dd/yyyy'));
-        console.log('Original total days:', totalDays, 'Actual total days:', actualTotalDays);
-        console.log('Phase breakdown:', {
-          fabDays, paintDays, productionDays, itDays, ntcDays, qcDays
-        });
-        console.log('QC Start:', project.qcStartDate, 'QC Days:', qcDays, 'QC Width:', qcWidth.toFixed(1) + '%');
-        console.log('Ship Date:', project.shipDate);
-        
-        phases.forEach(phase => {
-          const phaseDiv = document.createElement('div');
-          phaseDiv.style.width = phase.width;
-          phaseDiv.style.background = phase.color;
-          phaseDiv.style.display = 'flex';
-          phaseDiv.style.alignItems = 'center';
-          phaseDiv.style.justifyContent = 'center';
-          phaseDiv.style.color = 'white';
-          phaseDiv.style.fontSize = '12px';
-          phaseDiv.style.fontWeight = 'bold';
-          phaseDiv.textContent = phase.name;
-          projectBar.appendChild(phaseDiv);
-        });
-        
-        // Add project info overlay
-        const projectInfo = document.createElement('div');
-        projectInfo.style.position = 'absolute';
-        projectInfo.style.top = '50%';
-        projectInfo.style.left = '50%';
-        projectInfo.style.transform = 'translate(-50%, -50%)';
-        projectInfo.style.background = 'rgba(255, 255, 255, 0.95)';
-        projectInfo.style.padding = '4px 12px';
-        projectInfo.style.borderRadius = '4px';
-        projectInfo.style.border = '2px solid #ef4444';
-        projectInfo.style.fontWeight = 'bold';
-        projectInfo.style.fontSize = '14px';
-        projectInfo.style.color = '#1f2937';
-        projectInfo.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
-        projectInfo.textContent = `${project.projectNumber}_${project.name}`;
-        
-        projectBar.appendChild(projectInfo);
-        projectBarContainer.appendChild(projectBar);
-        
-        // Add milestone icons
-        const milestoneIcons = document.createElement('div');
-        milestoneIcons.style.position = 'absolute';
-        milestoneIcons.style.top = '8px';
-        milestoneIcons.style.left = '16px';
-        milestoneIcons.style.right = '16px';
-        milestoneIcons.style.display = 'flex';
-        milestoneIcons.style.gap = '40px';
-        
-        // Add some milestone markers
-        const milestonePositions = ['15%', '30%', '70%', '85%'];
-        milestonePositions.forEach(position => {
-          const milestone = document.createElement('div');
-          milestone.style.position = 'absolute';
-          milestone.style.left = position;
-          milestone.style.width = '20px';
-          milestone.style.height = '20px';
-          milestone.style.background = '#ef4444';
-          milestone.style.borderRadius = '50%';
-          milestone.style.border = '2px solid white';
-          milestone.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
-          milestoneIcons.appendChild(milestone);
-        });
-        
-        projectBarContainer.appendChild(milestoneIcons);
-        
-        // Assemble the visualization
-        scheduleContainer.appendChild(bayHeader);
-        scheduleContainer.appendChild(timelineHeader);
-        scheduleContainer.appendChild(projectBarContainer);
-        tempContainer.appendChild(scheduleContainer);
-        
-        // Capture the visualization
-        const canvas = await html2canvas(tempContainer, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          logging: false
-        });
-        
-        // Add to PDF
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 257;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        // Position the image right after the Bay Schedule Visualization title
-        const imgY = visualizationY + 10;
-        pdf.addImage(imgData, 'PNG', 20, imgY, imgWidth, Math.min(imgHeight, 120));
-        
-        // Clean up
-        document.body.removeChild(tempContainer);
-        
-        // Add description
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'normal');
-        const descY = imgY + Math.min(imgHeight, 120) + 5;
-        pdf.text(`Manufacturing Schedule: ${bay.name}`, 20, descY);
-        pdf.text(`Duration: ${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`, 20, descY + 10);
-        
-        // Display all 6 phase percentages as shown in the bay schedule
-        pdf.text(`Project phases: FAB (27%), PAINT (7%), PRODUCTION (60%), IT (7%), NTC (7%), QC (7%)`, 20, descY + 20);
-      } else if (!manufacturingSchedule) {
-        // No manufacturing schedule assigned
+      // Timeline Milestones Section (if enabled)
+      if (reportConfig.timeline) {
         pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'italic');
-        pdf.text('No Manufacturing Schedule Assigned', pdf.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
-        pdf.setFontSize(12);
-        pdf.text('This project has not been scheduled in a manufacturing bay yet.', pdf.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Timeline Milestones', 20, currentY);
+
+        const milestones = [];
+        
+        // Gather all timeline dates
+        if (project.poDroppedDate || project.startDate) {
+          const date = project.poDroppedDate || project.startDate;
+          milestones.push(['PO Dropped', format(new Date(date + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.fabricationStart) {
+          milestones.push(['Fabrication Start', format(new Date(project.fabricationStart + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.paintStart) {
+          milestones.push(['Paint Start', format(new Date(project.paintStart + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.assemblyStart) {
+          milestones.push(['Production Start', format(new Date(project.assemblyStart + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.itStart) {
+          milestones.push(['IT Start', format(new Date(project.itStart + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.ntcTestingDate) {
+          milestones.push(['NTC Testing', format(new Date(project.ntcTestingDate + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.qcStartDate) {
+          milestones.push(['QC Start', format(new Date(project.qcStartDate + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.executiveReviewDate) {
+          milestones.push(['Executive Review', format(new Date(project.executiveReviewDate + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.shipDate) {
+          milestones.push(['Ship Date', format(new Date(project.shipDate + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+        if (project.deliveryDate) {
+          milestones.push(['Delivery Date', format(new Date(project.deliveryDate + 'T00:00:00'), 'MMM dd, yyyy')]);
+        }
+
+        if (milestones.length > 0) {
+          autoTable(pdf, {
+            startY: currentY + 5,
+            head: [['Milestone', 'Date']],
+            body: milestones,
+            theme: 'striped',
+            headStyles: {
+              fillColor: [66, 139, 202],
+              textColor: 255
+            },
+            columnStyles: {
+              0: { cellWidth: 80 },
+              1: { cellWidth: 60 }
+            },
+            margin: { left: 20, right: 20 }
+          });
+          currentY = (pdf as any).lastAutoTable.finalY + 15;
+        }
+      }
+
+      // Manufacturing Schedule Section (if enabled)
+      if (reportConfig.manufacturingPhases && manufacturingSchedule && bay) {
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Manufacturing Schedule', 20, currentY);
+        
+        const scheduleInfo = [
+          ['Bay Assignment', bay.name || `Bay ${bay.bayNumber}`],
+          ['Start Date', format(new Date(manufacturingSchedule.startDate), 'MMM dd, yyyy')],
+          ['End Date', format(new Date(manufacturingSchedule.endDate), 'MMM dd, yyyy')],
+          ['Total Hours', manufacturingSchedule.totalHours?.toString() || '-'],
+          ['Status', 'Scheduled']
+        ];
+
+        autoTable(pdf, {
+          startY: currentY + 5,
+          head: [],
+          body: scheduleInfo,
+          theme: 'grid',
+          columnStyles: {
+            0: { cellWidth: 50, fontStyle: 'bold' },
+            1: { cellWidth: 'auto' }
+          },
+          margin: { left: 20, right: 20 }
+        });
+        currentY = (pdf as any).lastAutoTable.finalY + 15;
+      }
+
+      // Billing Milestones Section (if enabled)
+      if (reportConfig.billingMilestones && billingMilestones.length > 0) {
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Billing Milestones', 20, currentY);
+
+        const milestoneRows = billingMilestones.map((milestone: any) => [
+          milestone.milestoneName || '-',
+          milestone.scheduledDate ? format(new Date(milestone.scheduledDate), 'MMM dd, yyyy') : 'TBD',
+          milestone.amount ? `$${milestone.amount.toLocaleString()}` : '-',
+          milestone.status || 'Pending'
+        ]);
+
+        autoTable(pdf, {
+          startY: currentY + 5,
+          head: [['Milestone', 'Date', 'Amount', 'Status']],
+          body: milestoneRows,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [46, 125, 50],
+            textColor: 255
+          },
+          columnStyles: {
+            0: { cellWidth: 60 },
+            1: { cellWidth: 40 },
+            2: { cellWidth: 40 },
+            3: { cellWidth: 30 }
+          },
+          margin: { left: 20, right: 20 }
+        });
+        currentY = (pdf as any).lastAutoTable.finalY + 15;
+      }
+
+      // Department Breakdown Section (if enabled)
+      if (reportConfig.departmentBreakdown) {
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Department Breakdown', 20, currentY);
+
+        const departmentInfo = [
+          ['Fabrication', `${project.fabPercentage || 27}%`],
+          ['Paint', `${project.paintPercentage || 7}%`],
+          ['Production', `${project.productionPercentage || 60}%`],
+          ['IT', `${project.itPercentage || 7}%`],
+          ['NTC', `${project.ntcPercentage || 7}%`],
+          ['QC', `${project.qcPercentage || 7}%`]
+        ];
+
+        autoTable(pdf, {
+          startY: currentY + 5,
+          head: [['Department', 'Percentage']],
+          body: departmentInfo,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [156, 163, 175],
+            textColor: 255
+          },
+          columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 30 }
+          },
+          margin: { left: 20, right: 20 }
+        });
+        currentY = (pdf as any).lastAutoTable.finalY + 15;
       }
 
       // Save the PDF
@@ -439,24 +305,118 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
     }
   };
 
+  const handleConfigurationSubmit = () => {
+    setDialogOpen(false);
+    generatePDF();
+  };
+
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={generatePDF}
-      disabled={isGenerating}
-    >
-      {isGenerating ? (
-        <>
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Generating...
-        </>
-      ) : (
-        <>
-          <FileText className="h-4 w-4 mr-2" />
-          Schedule Report
-        </>
-      )}
-    </Button>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" disabled={isGenerating}>
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Settings2 className="h-4 w-4 mr-2" />
+              Configure Report
+            </>
+          )}
+        </Button>
+      </DialogTrigger>
+      
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Configure Schedule Report</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium">Report Sections</h4>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="project-overview" className="text-sm">Project Overview</Label>
+              <Switch
+                id="project-overview"
+                checked={reportConfig.projectOverview}
+                onCheckedChange={(checked) => 
+                  setReportConfig(prev => ({ ...prev, projectOverview: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="timeline" className="text-sm">Timeline Milestones</Label>
+              <Switch
+                id="timeline"
+                checked={reportConfig.timeline}
+                onCheckedChange={(checked) => 
+                  setReportConfig(prev => ({ ...prev, timeline: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="manufacturing-phases" className="text-sm">Manufacturing Schedule</Label>
+              <Switch
+                id="manufacturing-phases"
+                checked={reportConfig.manufacturingPhases}
+                onCheckedChange={(checked) => 
+                  setReportConfig(prev => ({ ...prev, manufacturingPhases: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="department-breakdown" className="text-sm">Department Breakdown</Label>
+              <Switch
+                id="department-breakdown"
+                checked={reportConfig.departmentBreakdown}
+                onCheckedChange={(checked) => 
+                  setReportConfig(prev => ({ ...prev, departmentBreakdown: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="billing-milestones" className="text-sm">Billing Milestones</Label>
+              <Switch
+                id="billing-milestones"
+                checked={reportConfig.billingMilestones}
+                onCheckedChange={(checked) => 
+                  setReportConfig(prev => ({ ...prev, billingMilestones: checked }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="custom-text" className="text-sm font-medium">Custom Text (appears under page title)</Label>
+            <Textarea
+              id="custom-text"
+              placeholder="Add custom text to appear under the report title..."
+              value={reportConfig.customText}
+              onChange={(e) => 
+                setReportConfig(prev => ({ ...prev, customText: e.target.value }))
+              }
+              className="min-h-[80px]"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfigurationSubmit}>
+            <FileText className="h-4 w-4 mr-2" />
+            Generate Report
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
