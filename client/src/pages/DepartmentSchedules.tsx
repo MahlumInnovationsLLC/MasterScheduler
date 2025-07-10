@@ -81,19 +81,37 @@ const DepartmentSchedules = () => {
     return { start, end };
   }, [currentWeek]);
 
-  // Create a virtual bay for the department/location combination
-  const virtualBay = useMemo(() => {
+  // Create multiple virtual bays (rows) for the department/location combination
+  const virtualBays = useMemo(() => {
     const deptName = selectedDepartment.toUpperCase();
     const locationName = selectedLocation === 'columbia-falls' ? 'Columbia Falls' : 'Libby';
+    const rowCount = selectedLocation === 'columbia-falls' ? 30 : 20;
     
-    return {
-      id: 999 + selectedDepartment.charCodeAt(0) + (selectedLocation === 'libby' ? 100 : 0), // Unique virtual ID
-      bayNumber: 1,
-      name: `${deptName} Team - ${locationName}`,
-      status: 'active' as const,
-      location: selectedLocation,
-      team: `${deptName} Team`
-    };
+    const bays: ManufacturingBay[] = [];
+    for (let row = 0; row < rowCount; row++) {
+      bays.push({
+        id: 10000 + selectedDepartment.charCodeAt(0) * 100 + (selectedLocation === 'libby' ? 1000 : 0) + row,
+        bayNumber: row + 1,
+        name: `${deptName} Row ${row + 1}`,
+        status: 'active' as const,
+        location: selectedLocation,
+        team: `${deptName} Team - ${locationName}`,
+        description: null,
+        capacityTonn: null,
+        maxWidth: null,
+        maxHeight: null,
+        maxLength: null,
+        teamId: null,
+        createdAt: null,
+        updatedAt: null,
+        // Only show capacity on first row to avoid confusion
+        assemblyStaffCount: row === 0 ? 4 : null,
+        electricalStaffCount: row === 0 ? 2 : null,
+        hoursPerPersonPerWeek: row === 0 ? 40 : null
+      } as ManufacturingBay);
+    }
+    
+    return bays;
   }, [selectedDepartment, selectedLocation]);
 
   // Get all schedules for the selected location's bays
@@ -125,16 +143,18 @@ const DepartmentSchedules = () => {
     // Sort schedules by project ID to ensure consistent ordering
     const sortedSchedules = [...locationSchedules].sort((a, b) => a.projectId - b.projectId);
     
+    // Distribute schedules across the virtual bays
     return sortedSchedules.map((schedule, index) => {
-      const newRow = index % maxRows;
-      console.log(`Distributing schedule ${schedule.id} (project ${schedule.projectId}) to row ${newRow} of ${maxRows}`);
+      const targetRow = index % maxRows;
+      const targetBay = virtualBays[targetRow];
+      console.log(`Distributing schedule ${schedule.id} (project ${schedule.projectId}) to row ${targetRow} bay ${targetBay.id}`);
       return {
         ...schedule,
-        bayId: virtualBay.id, // Map to virtual bay
-        row: newRow // Distribute evenly across all available rows
+        bayId: targetBay.id, // Map to the specific row's bay
+        row: 0 // Always row 0 since each bay is now a single row
       };
     });
-  }, [schedules, bays, selectedLocation, virtualBay.id]);
+  }, [schedules, bays, selectedLocation, virtualBays]);
 
   // Count projects that have the specific phase we're viewing
   const activeProjectCount = useMemo(() => {
@@ -256,11 +276,14 @@ const DepartmentSchedules = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <div className="border rounded-lg overflow-hidden department-schedule-container">
+                      <div className="border rounded-lg overflow-auto department-schedule-container" style={{ 
+                        maxHeight: '80vh', 
+                        minHeight: location === 'columbia-falls' ? '600px' : '400px' 
+                      }}>
                         <ResizableBaySchedule
                           schedules={departmentSchedules}
                           projects={projects}
-                          bays={[virtualBay] as any} // Single virtual bay for department
+                          bays={virtualBays} // Multiple virtual bays for rows
                           onScheduleChange={async () => {}} // Read-only
                           onScheduleCreate={async () => {}} // Read-only
                           onScheduleDelete={async () => {}} // Read-only

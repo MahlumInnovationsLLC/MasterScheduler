@@ -268,22 +268,15 @@ const iconMap = {
 // Multi-bay teams now have a single row per bay (simplified layout)
 // This makes bays work like horizontal tracks with NO multi-row complexity
 const getBayRowCount = (bayId: number, bayName: string) => {
-  // Special case for department schedules - virtual bays have IDs >= 999
-  if (bayId >= 999) {
-    // Determine row count based on location in the virtual bay name
-    const isLibby = bayName.toLowerCase().includes('libby');
-    const rowCount = isLibby ? 20 : 30; // 20 rows for Libby, 30 for Columbia Falls
-    console.log(`Department schedule configuration for virtual bay ${bayId} (${bayName}) - ${rowCount} rows`);
-    return rowCount;
-  }
+  // ALL bays now use single-row layout, including department schedules
+  // Each bay is a single horizontal track with no multi-row subdivisions
+  console.log(`Single row configuration for bay ${bayId} (${bayName})`);
   
-  console.log(`Single row configuration for bay ${bayId} (${bayName}) - new team-based layout`);
-  
-  // NEW SIMPLIFIED MODEL:
-  // - Each bay has exactly ONE row
-  // - Team-based organization now groups 2 bays = 1 team
-  // - Simplified row calculation guarantees pixel-perfect placement
-  return 1; // Always return 1 row for the simplified single-row layout
+  // SIMPLIFIED MODEL:
+  // - Every bay has exactly ONE row
+  // - Department schedules create multiple bays (30 for Columbia Falls, 20 for Libby)
+  // - Each project gets its own bay/row for clean separation
+  return 1; // Always return 1 row - no exceptions
 };
 
 // REAL-TIME DATE DISPLAY: No offsets or calibrations
@@ -3954,10 +3947,9 @@ export default function ResizableBaySchedule({
                   const baySchedules = scheduleBars.filter(bar => bar.bayId === bay.id);
                   
                   // Log row count for this bay
-                  // In our simplified single-row model, we still maintain special treatment for TCV line
-                  // BUT all bays use the single-row standard layout
-                  // Exception: Department schedules (virtual bays with ID >= 999) use 4-row layout
-                  const isMultiRowBay = bay.id >= 999; // Department schedules use 4-row layout
+                  // All bays now use single-row layout - no exceptions
+                  // Department schedules create multiple separate bays instead of multi-row bays
+                  const isMultiRowBay = false; // No multi-row bays anymore
                   const rowCount = getBayRowCount(bay.id, bay.name);
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
                   
@@ -4255,7 +4247,7 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
-                                height: (isSalesEstimate || isDelivered) ? '190px' : '72px', // Extended height for sales estimates and delivered projects
+                                height: departmentPhaseFilter ? '20px' : (isSalesEstimate || isDelivered) ? '190px' : '72px', // Skinny bars for department schedules
                                 backgroundColor: isSalesEstimate ? '#fbbf2460' : isDelivered ? '#22c55e50' : `${bar.color}25`, // Increased opacity for delivered projects
                                 boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : isDelivered ? '0 0 12px rgba(34, 197, 94, 0.8), 0 0 24px rgba(34, 197, 94, 0.4)' : 'none', // Enhanced green glow for delivered
                                 border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : isDelivered ? '3px solid rgba(34, 197, 94, 1.0)' : 'none', // Stronger green border for delivered
@@ -4457,9 +4449,9 @@ export default function ResizableBaySchedule({
                                 {/* Project information display positioned ABOVE the PROD phase */}
                                 <div className="project-info absolute flex items-center justify-center"
                                      style={{
-                                       left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 150}px`, /* Center above PROD phase with wider area */
-                                       top: '5px', /* Position it ABOVE the top phases (moved up significantly) */
-                                       width: '300px', /* Increased width to accommodate longer names */
+                                       left: departmentPhaseFilter ? '4px' : `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 150}px`, /* Left align for dept schedules */
+                                       top: departmentPhaseFilter ? '0px' : '5px', /* Centered vertically for dept schedules */
+                                       width: departmentPhaseFilter ? 'auto' : '300px', /* Auto width for dept schedules */
                                        pointerEvents: 'auto', /* Enable clicks */
                                        zIndex: 9999 /* Much higher z-index so it appears above all project bars but below popups */
                                      }}>
@@ -4509,6 +4501,15 @@ export default function ResizableBaySchedule({
                                     
 
 
+                                    // For department schedules, show simplified project number display
+                                    if (departmentPhaseFilter) {
+                                      return (
+                                        <div className="text-[10px] font-bold text-white" style={{ height: '20px', lineHeight: '20px' }}>
+                                          {bar.projectNumber}
+                                        </div>
+                                      );
+                                    }
+                                    
                                     return (
                                       <div className="relative">
                                         <div 

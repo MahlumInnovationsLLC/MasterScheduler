@@ -303,7 +303,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
           <div 
             key={`bay-row-${bay.id}-${rowIndex}`}
             className={`${rowIndex < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative`}
-            style={{ height: `${100/rowCount}%`, minHeight: '30px' }}
+            style={{ height: `${100/rowCount}%`, minHeight: '20px' }} // Reduced minHeight for department schedules
             data-row-index={rowIndex}
           >
             {/* Row number indicator */}
