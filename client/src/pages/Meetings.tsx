@@ -126,6 +126,8 @@ export default function Meetings() {
 
   // State for Tier III location filter
   const [tierIIILocationFilter, setTierIIILocationFilter] = useState<string>("all");
+  // State for Tier IV location filter
+  const [tierIVLocationFilter, setTierIVLocationFilter] = useState<string>("all");
   const [showCCBDialog, setShowCCBDialog] = useState(false);
   const [selectedProjectForCCB, setSelectedProjectForCCB] = useState<Project | null>(null);
 
@@ -626,24 +628,49 @@ export default function Meetings() {
 
 
   // Filter projects for Tier IV (MAJOR and MINOR issues only) - sorted by ship date
-  const tierIVProjects = (projects as Project[]).filter((p: Project) => 
-    hasLabel(p.id, 'MAJOR ISSUE') || hasLabel(p.id, 'MINOR ISSUE')
-  ).sort((a: Project, b: Project) => {
-    if (!a.shipDate && !b.shipDate) return 0;
-    if (!a.shipDate) return 1;
-    if (!b.shipDate) return -1;
-    return new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime();
-  });
+  const tierIVProjects = (projects as Project[])
+    .filter((p: Project) => hasLabel(p.id, 'MAJOR ISSUE') || hasLabel(p.id, 'MINOR ISSUE'))
+    .filter((p: Project) => {
+      if (tierIVLocationFilter === "all") return true;
+      if (tierIVLocationFilter === 'CFALLS') {
+        // Handle all Columbia Falls variants
+        return p.location === 'CFALLS' || p.location === 'CFalls' || p.location === 'Columbia Falls, MT';
+      } else if (tierIVLocationFilter === 'LIBBY') {
+        // Handle all Libby variants
+        return p.location === 'LIBBY' || p.location === 'Libby' || p.location === 'Libby, MT';
+      } else {
+        return p.location === tierIVLocationFilter;
+      }
+    })
+    .sort((a: Project, b: Project) => {
+      if (!a.shipDate && !b.shipDate) return 0;
+      if (!a.shipDate) return 1;
+      if (!b.shipDate) return -1;
+      return new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime();
+    });
 
   // Get top 10 GOOD projects for Tier IV - sorted by ship date
-  const goodProjects = (projects as Project[]).filter((p: Project) => 
-    hasLabel(p.id, 'GOOD')
-  ).sort((a: Project, b: Project) => {
-    if (!a.shipDate && !b.shipDate) return 0;
-    if (!a.shipDate) return 1;
-    if (!b.shipDate) return -1;
-    return new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime();
-  }).slice(0, 10);
+  const goodProjects = (projects as Project[])
+    .filter((p: Project) => hasLabel(p.id, 'GOOD'))
+    .filter((p: Project) => {
+      if (tierIVLocationFilter === "all") return true;
+      if (tierIVLocationFilter === 'CFALLS') {
+        // Handle all Columbia Falls variants
+        return p.location === 'CFALLS' || p.location === 'CFalls' || p.location === 'Columbia Falls, MT';
+      } else if (tierIVLocationFilter === 'LIBBY') {
+        // Handle all Libby variants
+        return p.location === 'LIBBY' || p.location === 'Libby' || p.location === 'Libby, MT';
+      } else {
+        return p.location === tierIVLocationFilter;
+      }
+    })
+    .sort((a: Project, b: Project) => {
+      if (!a.shipDate && !b.shipDate) return 0;
+      if (!a.shipDate) return 1;
+      if (!b.shipDate) return -1;
+      return new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime();
+    })
+    .slice(0, 10);
 
   // Get concerns escalated to Tier IV (exclude completed concerns)
   const tierIVConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => 
@@ -1806,11 +1833,27 @@ export default function Meetings() {
 
         {/* Tier IV Tab Content */}
         <TabsContent value="tier-iv" className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold">Tier IV - Critical Issues</h2>
-            <p className="text-muted-foreground">
-              MAJOR and MINOR issue projects with escalated concerns from Tier III
-            </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold">Tier IV - Critical Issues</h2>
+              <p className="text-muted-foreground">
+                MAJOR and MINOR issue projects with escalated concerns from Tier III
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Location Filter Dropdown */}
+              <Select value={tierIVLocationFilter} onValueChange={setTierIVLocationFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="LIBBY">LIBBY</SelectItem>
+                  <SelectItem value="CFALLS">CFALLS</SelectItem>
+                  <SelectItem value="FSW">FSW</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Tier IV Nested Tabs */}
