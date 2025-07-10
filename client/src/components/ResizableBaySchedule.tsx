@@ -268,6 +268,12 @@ const iconMap = {
 // Multi-bay teams now have a single row per bay (simplified layout)
 // This makes bays work like horizontal tracks with NO multi-row complexity
 const getBayRowCount = (bayId: number, bayName: string) => {
+  // Special case for department schedules - virtual bays have IDs >= 999
+  if (bayId >= 999) {
+    console.log(`Department schedule configuration for virtual bay ${bayId} (${bayName}) - 4 rows`);
+    return 4; // Department schedules use 4 rows for better visibility
+  }
+  
   console.log(`Single row configuration for bay ${bayId} (${bayName}) - new team-based layout`);
   
   // NEW SIMPLIFIED MODEL:
@@ -1182,6 +1188,9 @@ export default function ResizableBaySchedule({
       projectNumber: string;
     }[];
   } | null>(null);
+  
+  // Alias for MultiRowBayContent compatibility
+  const setRowToDelete = setConfirmRowDelete;
   const [currentProject, setCurrentProject] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true); // For collapsible sidebar
   const [targetBay, setTargetBay] = useState<number | null>(null);
@@ -3922,7 +3931,8 @@ export default function ResizableBaySchedule({
                   // Log row count for this bay
                   // In our simplified single-row model, we still maintain special treatment for TCV line
                   // BUT all bays use the single-row standard layout
-                  const isMultiRowBay = false; // Always use single-row layout regardless of bay type
+                  // Exception: Department schedules (virtual bays with ID >= 999) use 4-row layout
+                  const isMultiRowBay = bay.id >= 999; // Department schedules use 4-row layout
                   const rowCount = getBayRowCount(bay.id, bay.name);
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
                   
@@ -3980,13 +3990,13 @@ export default function ResizableBaySchedule({
                         }}>
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
-                            timeSlots={slots} 
-                            slotWidth={slotWidth}
+                            weekSlots={slots} 
+                            scheduleBars={baySchedules}
+                            projects={projects}
                             bay={bay}
                             handleDragOver={handleDragOver}
                             handleDrop={handleDrop}
-                            handleSlotDragOver={handleSlotDragOver}
-                            handleSlotDrop={handleSlotDrop}
+                            setRowToDelete={setRowToDelete}
                             setDeleteRowDialogOpen={setDeleteRowDialogOpen}
                             handleRowDelete={handleDeleteRow}
                             handleRowAdd={handleRowAdd}

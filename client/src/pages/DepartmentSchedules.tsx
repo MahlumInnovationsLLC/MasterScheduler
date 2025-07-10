@@ -118,10 +118,11 @@ const DepartmentSchedules = () => {
       locationBayIds.includes(schedule.bayId)
     );
 
-    // Map all schedules to the virtual bay
-    return locationSchedules.map(schedule => ({
+    // Map all schedules to the virtual bay and distribute across rows
+    return locationSchedules.map((schedule, index) => ({
       ...schedule,
-      bayId: virtualBay.id // Map to virtual bay
+      bayId: virtualBay.id, // Map to virtual bay
+      row: index % 4 // Distribute across 4 rows (0, 1, 2, 3)
     }));
   }, [schedules, bays, selectedLocation, virtualBay.id]);
 
