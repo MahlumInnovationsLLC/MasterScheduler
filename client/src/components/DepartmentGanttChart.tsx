@@ -19,7 +19,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const slotWidth = 60; // Width per week
-  const rowHeight = 50; // Increased height for better text spacing
+  const rowHeight = 65; // Increased height for project name visibility
   
   // Filter and prepare projects for the specific department
   const ganttRows = useMemo(() => {
@@ -180,7 +180,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
       </div>
       
       {/* Scrollable content area */}
-      <div className="relative flex flex-1 overflow-hidden">
+      <div className="relative flex overflow-hidden" style={{ height: 'calc(100vh - 350px - 58px)' }}>
         {/* Sticky project column */}
         <div className="w-64 flex-shrink-0 bg-white dark:bg-gray-900 border-r sticky left-0 z-10 overflow-y-auto">
           {ganttRows.map((row, index) => {
@@ -214,7 +214,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
             }
           }}
         >
-          <div className="relative" style={{ width: `${timeSlots.length * slotWidth}px` }}>
+          <div className="relative" style={{ width: `${timeSlots.length * slotWidth}px`, height: `${ganttRows.length * rowHeight}px` }}>
             {/* Today line */}
             <div
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none today-marker"
