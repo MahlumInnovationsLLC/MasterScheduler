@@ -421,6 +421,15 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added AdminRoute for /system-settings path in mobile layout matching desktop functionality
   - Updated mobile page title function to include "System Settings" title
   - Mobile users can now properly access System Settings module without 404 errors
+- January 10, 2025: Schedule Report Configuration Dialog Enhancement
+  - Implemented user-configurable Schedule Report with dialog interface for section selection
+  - Added billing milestones section with proper API data fetching and field mapping
+  - Completely removed Manufacturing Schedule section from report generation
+  - Added Bay Schedule Chart visualization with interactive toggle option
+  - Enhanced billing milestones data mapping to show actual milestone names and due dates
+  - All existing sections (Project Overview, Timeline, Department Breakdown, Bay Schedule Chart) default to ON
+  - Custom text field allows users to add personalized content under report title
+  - Fixed data field mapping issues that were showing "-" and "TBD" instead of actual milestone data
 
 
 ## User Preferences

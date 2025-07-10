@@ -23,8 +23,8 @@ interface ReportConfig {
   // Existing sections (default ON)
   projectOverview: boolean;
   timeline: boolean;
-  manufacturingPhases: boolean;
   departmentBreakdown: boolean;
+  bayScheduleChart: boolean;
   
   // New sections
   billingMilestones: boolean;
@@ -41,8 +41,8 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
     // All existing sections default to ON
     projectOverview: true,
     timeline: true,
-    manufacturingPhases: true,
     departmentBreakdown: true,
+    bayScheduleChart: true,
     
     // New sections
     billingMilestones: false,
@@ -51,11 +51,10 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
 
   // Fetch billing milestones for this project
   const { data: billingMilestones = [] } = useQuery({
-    queryKey: ['/api/billing-milestones', project.id],
+    queryKey: ['/api/projects', project.id, 'billing-milestones'],
     queryFn: async () => {
-      const response = await fetch('/api/billing-milestones');
-      const allMilestones = await response.json();
-      return allMilestones.filter((m: any) => m.projectId === project.id);
+      const response = await fetch(`/api/projects/${project.id}/billing-milestones`);
+      return await response.json();
     },
     enabled: reportConfig.billingMilestones
   });
@@ -192,33 +191,7 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         }
       }
 
-      // Manufacturing Schedule Section (if enabled)
-      if (reportConfig.manufacturingPhases && manufacturingSchedule && bay) {
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Manufacturing Schedule', 20, currentY);
-        
-        const scheduleInfo = [
-          ['Bay Assignment', bay.name || `Bay ${bay.bayNumber}`],
-          ['Start Date', format(new Date(manufacturingSchedule.startDate), 'MMM dd, yyyy')],
-          ['End Date', format(new Date(manufacturingSchedule.endDate), 'MMM dd, yyyy')],
-          ['Total Hours', manufacturingSchedule.totalHours?.toString() || '-'],
-          ['Status', 'Scheduled']
-        ];
 
-        autoTable(pdf, {
-          startY: currentY + 5,
-          head: [],
-          body: scheduleInfo,
-          theme: 'grid',
-          columnStyles: {
-            0: { cellWidth: 50, fontStyle: 'bold' },
-            1: { cellWidth: 'auto' }
-          },
-          margin: { left: 20, right: 20 }
-        });
-        currentY = (pdf as any).lastAutoTable.finalY + 15;
-      }
 
       // Billing Milestones Section (if enabled)
       if (reportConfig.billingMilestones && billingMilestones.length > 0) {
@@ -227,8 +200,8 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         pdf.text('Billing Milestones', 20, currentY);
 
         const milestoneRows = billingMilestones.map((milestone: any) => [
-          milestone.milestoneName || '-',
-          milestone.scheduledDate ? format(new Date(milestone.scheduledDate), 'MMM dd, yyyy') : 'TBD',
+          milestone.name || milestone.milestoneName || '-',
+          milestone.dueDate ? format(new Date(milestone.dueDate), 'MMM dd, yyyy') : (milestone.scheduledDate ? format(new Date(milestone.scheduledDate), 'MMM dd, yyyy') : 'TBD'),
           milestone.amount ? `$${milestone.amount.toLocaleString()}` : '-',
           milestone.status || 'Pending'
         ]);
@@ -284,6 +257,179 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
           margin: { left: 20, right: 20 }
         });
         currentY = (pdf as any).lastAutoTable.finalY + 15;
+      }
+
+      // Bay Schedule Chart Section (if enabled)
+      if (reportConfig.bayScheduleChart && manufacturingSchedule && bay) {
+        // Add the visual bay schedule chart
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        const visualizationY = currentY;
+        pdf.text('Bay Schedule Visualization', 20, visualizationY);
+        
+        // Create a temporary container for the visualization
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '-9999px';
+        tempContainer.style.width = '800px';
+        tempContainer.style.background = 'white';
+        document.body.appendChild(tempContainer);
+        
+        // Create the schedule container
+        const scheduleContainer = document.createElement('div');
+        scheduleContainer.style.width = '100%';
+        scheduleContainer.style.background = 'white';
+        scheduleContainer.style.border = '1px solid #d1d5db';
+        scheduleContainer.style.borderRadius = '8px';
+        scheduleContainer.style.overflow = 'hidden';
+        
+        // Bay header
+        const bayHeader = document.createElement('div');
+        bayHeader.style.background = '#f3f4f6';
+        bayHeader.style.padding = '12px 16px';
+        bayHeader.style.borderBottom = '1px solid #d1d5db';
+        bayHeader.style.fontWeight = 'bold';
+        bayHeader.style.fontSize = '16px';
+        bayHeader.style.color = '#1f2937';
+        bayHeader.textContent = bay.name || `Bay ${bay.bayNumber}`;
+        
+        // Timeline header
+        const timelineHeader = document.createElement('div');
+        timelineHeader.style.display = 'flex';
+        timelineHeader.style.background = '#f9fafb';
+        timelineHeader.style.borderBottom = '1px solid #d1d5db';
+        timelineHeader.style.fontSize = '12px';
+        timelineHeader.style.color = '#6b7280';
+        
+        const startDate = new Date(manufacturingSchedule.startDate);
+        const endDate = new Date(manufacturingSchedule.endDate);
+        const weeks = [];
+        
+        // Generate week labels
+        let currentDate = new Date(startDate);
+        currentDate.setHours(0, 0, 0, 0);
+        
+        if (currentDate.getDay() !== 1) {
+          const daysToSubtract = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
+          currentDate.setDate(currentDate.getDate() - daysToSubtract);
+        }
+        
+        while (currentDate <= endDate && weeks.length < 20) {
+          weeks.push(format(currentDate, 'MM/dd'));
+          currentDate.setDate(currentDate.getDate() + 7);
+        }
+        
+        weeks.forEach(week => {
+          const weekLabel = document.createElement('div');
+          weekLabel.style.flex = '1';
+          weekLabel.style.textAlign = 'center';
+          weekLabel.style.fontSize = '12px';
+          weekLabel.style.color = '#6b7280';
+          weekLabel.style.borderRight = '1px solid #d1d5db';
+          weekLabel.style.padding = '4px';
+          weekLabel.textContent = week;
+          timelineHeader.appendChild(weekLabel);
+        });
+        
+        // Project bar container
+        const projectBarContainer = document.createElement('div');
+        projectBarContainer.style.position = 'relative';
+        projectBarContainer.style.height = '80px';
+        projectBarContainer.style.background = 'white';
+        projectBarContainer.style.padding = '16px';
+        
+        // Create the project bar with phases
+        const projectBar = document.createElement('div');
+        projectBar.style.position = 'relative';
+        projectBar.style.height = '48px';
+        projectBar.style.display = 'flex';
+        projectBar.style.borderRadius = '4px';
+        projectBar.style.overflow = 'hidden';
+        projectBar.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+        
+        // Create phases with proper colors and proportions
+        const phases = [
+          { name: 'FAB', color: '#6b7280', width: '27%' },
+          { name: 'PAINT', color: '#10b981', width: '7%' },
+          { name: 'PROD', color: '#3b82f6', width: '60%' },
+          { name: 'IT', color: '#8b5cf6', width: '7%' },
+          { name: 'NTC', color: '#f59e0b', width: '7%' },
+          { name: 'QC', color: '#ec4899', width: '7%' }
+        ];
+        
+        phases.forEach(phase => {
+          const phaseDiv = document.createElement('div');
+          phaseDiv.style.width = phase.width;
+          phaseDiv.style.background = phase.color;
+          phaseDiv.style.display = 'flex';
+          phaseDiv.style.alignItems = 'center';
+          phaseDiv.style.justifyContent = 'center';
+          phaseDiv.style.color = 'white';
+          phaseDiv.style.fontSize = '12px';
+          phaseDiv.style.fontWeight = 'bold';
+          phaseDiv.textContent = phase.name;
+          projectBar.appendChild(phaseDiv);
+        });
+        
+        // Add project info overlay
+        const projectInfo = document.createElement('div');
+        projectInfo.style.position = 'absolute';
+        projectInfo.style.top = '50%';
+        projectInfo.style.left = '50%';
+        projectInfo.style.transform = 'translate(-50%, -50%)';
+        projectInfo.style.background = 'rgba(255, 255, 255, 0.95)';
+        projectInfo.style.padding = '4px 12px';
+        projectInfo.style.borderRadius = '4px';
+        projectInfo.style.border = '2px solid #ef4444';
+        projectInfo.style.fontWeight = 'bold';
+        projectInfo.style.fontSize = '14px';
+        projectInfo.style.color = '#1f2937';
+        projectInfo.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+        projectInfo.textContent = `${project.projectNumber}_${project.name}`;
+        
+        projectBar.appendChild(projectInfo);
+        projectBarContainer.appendChild(projectBar);
+        
+        // Assemble the visualization
+        scheduleContainer.appendChild(bayHeader);
+        scheduleContainer.appendChild(timelineHeader);
+        scheduleContainer.appendChild(projectBarContainer);
+        tempContainer.appendChild(scheduleContainer);
+        
+        try {
+          // Capture the visualization
+          const canvas = await html2canvas(tempContainer, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false
+          });
+          
+          // Add to PDF
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = 257;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          const imgY = visualizationY + 10;
+          pdf.addImage(imgData, 'PNG', 20, imgY, imgWidth, Math.min(imgHeight, 120));
+          
+          // Clean up
+          document.body.removeChild(tempContainer);
+          
+          // Add description
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'normal');
+          const descY = imgY + Math.min(imgHeight, 120) + 5;
+          pdf.text(`Manufacturing Schedule: ${bay.name}`, 20, descY);
+          pdf.text(`Duration: ${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`, 20, descY + 10);
+          pdf.text(`Project phases: FAB (27%), PAINT (7%), PRODUCTION (60%), IT (7%), NTC (7%), QC (7%)`, 20, descY + 20);
+          
+          currentY = descY + 30;
+        } catch (error) {
+          // Clean up on error
+          document.body.removeChild(tempContainer);
+          console.error('Error generating bay schedule chart:', error);
+        }
       }
 
       // Save the PDF
@@ -360,12 +506,12 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
             </div>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="manufacturing-phases" className="text-sm">Manufacturing Schedule</Label>
+              <Label htmlFor="bay-schedule-chart" className="text-sm">Bay Schedule Chart</Label>
               <Switch
-                id="manufacturing-phases"
-                checked={reportConfig.manufacturingPhases}
+                id="bay-schedule-chart"
+                checked={reportConfig.bayScheduleChart}
                 onCheckedChange={(checked) => 
-                  setReportConfig(prev => ({ ...prev, manufacturingPhases: checked }))
+                  setReportConfig(prev => ({ ...prev, bayScheduleChart: checked }))
                 }
               />
             </div>
