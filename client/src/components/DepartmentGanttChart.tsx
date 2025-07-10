@@ -181,40 +181,40 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
       
       {/* Scrollable content area */}
       <div className="relative flex overflow-hidden" style={{ height: 'calc(100vh - 350px - 58px)' }}>
-        {/* Sticky project column */}
-        <div className="w-64 flex-shrink-0 bg-white dark:bg-gray-900 border-r sticky left-0 z-10 overflow-y-auto">
-          {ganttRows.map((row, index) => {
-            if (!row) return null;
-            const { project } = row;
-            
-            return (
-              <div key={project.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-3 flex flex-col justify-center" style={{ height: `${rowHeight}px` }}>
-                <a 
-                  href={`/project/${project.id}`}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  {project.projectNumber}
-                </a>
-                <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                  {project.name}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Scrollable timeline area */}
-        <div 
-          ref={containerRef}
-          className="flex-1 overflow-auto"
-          onScroll={(e) => {
-            // Sync scroll with header
-            if (headerRef.current) {
-              headerRef.current.scrollLeft = e.currentTarget.scrollLeft;
-            }
-          }}
+        {/* Container for synchronized scrolling */}
+        <div className="flex flex-1 overflow-auto" 
+             ref={containerRef}
+             onScroll={(e) => {
+               // Sync horizontal scroll with header
+               if (headerRef.current) {
+                 headerRef.current.scrollLeft = e.currentTarget.scrollLeft;
+               }
+             }}
         >
-          <div className="relative" style={{ width: `${timeSlots.length * slotWidth}px`, height: `${ganttRows.length * rowHeight}px` }}>
+          {/* Sticky project column */}
+          <div className="w-64 flex-shrink-0 bg-white dark:bg-gray-900 border-r sticky left-0 z-10">
+            {ganttRows.map((row, index) => {
+              if (!row) return null;
+              const { project } = row;
+              
+              return (
+                <div key={project.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-3 flex flex-col justify-center" style={{ height: `${rowHeight}px` }}>
+                  <a 
+                    href={`/project/${project.id}`}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {project.projectNumber}
+                  </a>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    {project.name}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Scrollable timeline area */}
+          <div className="flex-1 relative" style={{ width: `${timeSlots.length * slotWidth}px`, height: `${ganttRows.length * rowHeight}px` }}>
             {/* Today line */}
             <div
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none today-marker"
