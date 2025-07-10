@@ -139,21 +139,39 @@ const DepartmentSchedules = () => {
     // Determine row count based on location
     const maxRows = selectedLocation === 'columbia-falls' ? 30 : 20;
 
-    // Map all schedules to the virtual bay and distribute across rows
-    // Sort schedules by project ID to ensure consistent ordering
-    const sortedSchedules = [...locationSchedules].sort((a, b) => a.projectId - b.projectId);
-    
-    // Distribute schedules across the virtual bays
-    return sortedSchedules.map((schedule, index) => {
-      const targetRow = index % maxRows;
-      const targetBay = virtualBays[targetRow];
-      console.log(`Distributing schedule ${schedule.id} (project ${schedule.projectId}) to row ${targetRow} bay ${targetBay.id}`);
+    // Get projects with their FAB start dates for sorting
+    const schedulesWithFabDates = locationSchedules.map(schedule => {
+      const project = projects.find(p => p.id === schedule.projectId);
       return {
-        ...schedule,
+        schedule,
+        project,
+        fabStartDate: project?.fabricationStart ? new Date(project.fabricationStart) : null
+      };
+    });
+    
+    // Sort by FAB start date (earliest first)
+    const sortedByFab = schedulesWithFabDates.sort((a, b) => {
+      if (!a.fabStartDate && !b.fabStartDate) return 0;
+      if (!a.fabStartDate) return 1;
+      if (!b.fabStartDate) return -1;
+      return a.fabStartDate.getTime() - b.fabStartDate.getTime();
+    });
+    
+    // Distribute schedules across the virtual bays in sorted order
+    return sortedByFab.map((item, index) => {
+      // Make sure we don't exceed available rows
+      if (index >= virtualBays.length) {
+        console.warn(`Not enough rows for project ${item.project?.projectNumber}. Need ${index + 1} rows but only have ${virtualBays.length}`);
+        return null;
+      }
+      const targetBay = virtualBays[index]; // Each project gets its own row
+      console.log(`Assigning project ${item.project?.projectNumber} (FAB: ${item.fabStartDate?.toISOString()}) to row ${index + 1}`);
+      return {
+        ...item.schedule,
         bayId: targetBay.id, // Map to the specific row's bay
         row: 0 // Always row 0 since each bay is now a single row
       };
-    });
+    }).filter(Boolean); // Remove any null entries
   }, [schedules, bays, selectedLocation, virtualBays]);
 
   // Count projects that have the specific phase we're viewing

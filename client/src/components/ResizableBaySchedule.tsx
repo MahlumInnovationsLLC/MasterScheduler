@@ -4501,11 +4501,30 @@ export default function ResizableBaySchedule({
                                     
 
 
-                                    // For department schedules, show simplified project number display
+                                    // For department schedules, show white project info card
                                     if (departmentPhaseFilter) {
                                       return (
-                                        <div className="text-[10px] font-bold text-white" style={{ height: '20px', lineHeight: '20px' }}>
-                                          {bar.projectNumber}
+                                        <div 
+                                          className="bg-white rounded px-2 py-0.5 shadow-sm border border-gray-300 inline-block"
+                                          style={{ 
+                                            position: 'absolute',
+                                            left: '4px',
+                                            top: '0px',
+                                            height: '18px',
+                                            lineHeight: '16px',
+                                            zIndex: 20
+                                          }}
+                                        >
+                                          <a 
+                                            href={`/project/${bar.projectId}`}
+                                            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.location.href = `/project/${bar.projectId}`;
+                                            }}
+                                          >
+                                            {bar.projectNumber}
+                                          </a>
                                         </div>
                                       );
                                     }
