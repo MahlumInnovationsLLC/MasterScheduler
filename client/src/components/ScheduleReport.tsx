@@ -200,15 +200,15 @@ export function ScheduleReport({ project, manufacturingSchedule, bay }: Schedule
         pdf.text('Billing Milestones', 20, currentY);
 
         const milestoneRows = billingMilestones.map((milestone: any) => [
-          milestone.name || milestone.milestoneName || '-',
-          milestone.dueDate ? format(new Date(milestone.dueDate), 'MMM dd, yyyy') : (milestone.scheduledDate ? format(new Date(milestone.scheduledDate), 'MMM dd, yyyy') : 'TBD'),
-          milestone.amount ? `$${milestone.amount.toLocaleString()}` : '-',
+          milestone.name || '-',
+          milestone.targetInvoiceDate ? format(new Date(milestone.targetInvoiceDate), 'MMM dd, yyyy') : 'TBD',
+          milestone.amount ? `$${parseFloat(milestone.amount).toLocaleString()}` : '-',
           milestone.status || 'Pending'
         ]);
 
         autoTable(pdf, {
           startY: currentY + 5,
-          head: [['Milestone', 'Date', 'Amount', 'Status']],
+          head: [['Milestone', 'Due Date', 'Amount', 'Status']],
           body: milestoneRows,
           theme: 'striped',
           headStyles: {
