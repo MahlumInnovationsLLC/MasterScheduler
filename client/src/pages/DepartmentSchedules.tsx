@@ -71,7 +71,7 @@ const DepartmentSchedules = () => {
   });
 
   const { data: bays = [] } = useQuery<ManufacturingBay[]>({
-    queryKey: ['/api/bays']
+    queryKey: ['/api/manufacturing-bays']
   });
 
   // Calculate date range for current view (include past weeks)
@@ -81,19 +81,21 @@ const DepartmentSchedules = () => {
     return { start, end };
   }, [currentWeek]);
 
-  // Get actual bays for the selected location instead of creating virtual ones
+  // Get actual bays for the selected location
   const locationBays = useMemo(() => {
-    // Since bay locations are null, let's use team names and bay names for filtering
+    console.log('Available bays:', bays.map(b => ({ id: b.id, name: b.name, team: b.team })));
+    
     return bays.filter(bay => {
       const bayTeam = bay.team?.toLowerCase() || '';
       const bayName = bay.name?.toLowerCase() || '';
       
       if (selectedLocation === 'columbia-falls') {
         // Columbia Falls: exclude teams/bays with 'libby' in the name, include everything else
-        return !bayTeam.includes('libby') && !bayName.includes('libby') && !bayName.includes('container') && !bayName.includes('libby mt');
+        const isLibbyRelated = bayTeam.includes('libby') || bayName.includes('libby') || bayName.includes('container');
+        return !isLibbyRelated;
       } else {
         // Libby: include only teams/bays with 'libby' in the name
-        return bayTeam.includes('libby') || bayName.includes('libby') || bayName.includes('libby mt');
+        return bayTeam.includes('libby') || bayName.includes('libby') || bayName.includes('container');
       }
     });
   }, [bays, selectedLocation]);
@@ -211,7 +213,7 @@ const DepartmentSchedules = () => {
                           {dept.toUpperCase()} Schedule - {location === 'columbia-falls' ? 'Columbia Falls' : 'Libby'}
                         </span>
                         <Badge variant="secondary">
-                          {departmentSchedules.length} Active Projects
+                          {location === selectedLocation ? departmentSchedules.length : 0} Active Projects
                         </Badge>
                       </CardTitle>
                     </CardHeader>
