@@ -161,6 +161,8 @@ interface ResizableBayScheduleProps {
   viewMode: 'day' | 'week' | 'month' | 'quarter';
   enableFinancialImpact?: boolean;
   isSandboxMode?: boolean;
+  departmentPhaseFilter?: 'mech' | 'fab' | 'paint' | 'wrap';
+  hideUnassignedProjects?: boolean;
 }
 
 interface ScheduleBar {
@@ -483,7 +485,9 @@ export default function ResizableBaySchedule({
   onBayDelete,
   dateRange,
   viewMode,
-  enableFinancialImpact = true
+  enableFinancialImpact = true,
+  departmentPhaseFilter,
+  hideUnassignedProjects = false
 }: ResizableBayScheduleProps) {
   const { toast } = useToast();
   const apiRequest = useApiRequest();
@@ -586,6 +590,61 @@ export default function ResizableBaySchedule({
       };
     }
   }, [isDragging, handleDragMove, handleDragEndGlobal, stopAutoScroll]);
+
+  // Department phase filter effect - hide non-matching phases via CSS
+  useEffect(() => {
+    if (departmentPhaseFilter) {
+      console.log(`🎯 DEPARTMENT FILTER ACTIVE: Showing only ${departmentPhaseFilter.toUpperCase()} phase`);
+      
+      // Add CSS classes to hide all phases except the selected one
+      const styleElement = document.createElement('style');
+      styleElement.id = 'department-phase-filter';
+      
+      let css = '';
+      const phases = ['fab', 'paint', 'production', 'it', 'ntc', 'qc'];
+      
+      // For MECH department, we want to show bars with orange color and special position
+      if (departmentPhaseFilter === 'mech') {
+        css = `
+          .project-bar {
+            background-color: #f97316 !important; /* Orange for MECH */
+          }
+        `;
+      } else {
+        // For other departments, hide all phases except the selected one
+        phases.forEach(phase => {
+          if (phase !== departmentPhaseFilter) {
+            css += `
+              .project-bar .${phase}-phase,
+              .project-bar .${phase}-section {
+                display: none !important;
+              }
+            `;
+          }
+        });
+        
+        // Show only the selected phase and make it full width
+        css += `
+          .project-bar .${departmentPhaseFilter}-phase,
+          .project-bar .${departmentPhaseFilter}-section {
+            width: 100% !important;
+            left: 0 !important;
+          }
+        `;
+      }
+      
+      styleElement.textContent = css;
+      document.head.appendChild(styleElement);
+      
+      return () => {
+        // Clean up the style element when filter changes or component unmounts
+        const existingStyle = document.getElementById('department-phase-filter');
+        if (existingStyle) {
+          document.head.removeChild(existingStyle);
+        }
+      };
+    }
+  }, [departmentPhaseFilter]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBayDialog, setNewBayDialog] = useState(false);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
@@ -2994,18 +3053,19 @@ export default function ResizableBaySchedule({
           </button>
         )}
 
-        {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
-        <div 
-          className={`unassigned-projects-sidebar border-r border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
-          style={{ 
-            transitionProperty: 'width, padding', 
-            height: '100%', // Changed from fixed height to 100% to fill parent container
-            position: 'sticky', // Make it sticky so it stays in view while scrolling
-            top: '0',
-            left: '0',
-            zIndex: 30 // Ensure it stays above other elements
-          }}
-        >
+        {/* Unassigned Projects Sidebar - Collapsible with Drop Zone - Hidden in Department view */}
+        {!hideUnassignedProjects && (
+          <div 
+            className={`unassigned-projects-sidebar border-r border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
+            style={{ 
+              transitionProperty: 'width, padding', 
+              height: '100%', // Changed from fixed height to 100% to fill parent container
+              position: 'sticky', // Make it sticky so it stays in view while scrolling
+              top: '0',
+              left: '0',
+              zIndex: 30 // Ensure it stays above other elements
+            }}
+          >
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h3 className={`font-bold text-gray-900 dark:text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
             <button 
@@ -3166,7 +3226,8 @@ export default function ResizableBaySchedule({
               </div>
             </div>
           )}
-        </div>
+          </div>
+        )}
         
         <div className="bay-schedule-viewport flex-grow overflow-auto relative" ref={viewportRef}>
           <div className="bay-schedule-container relative" ref={timelineRef}>

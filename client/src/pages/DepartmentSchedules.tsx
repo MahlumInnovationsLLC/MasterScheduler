@@ -98,11 +98,11 @@ const DepartmentSchedules = () => {
     });
   }, [bays, selectedLocation]);
 
-  // Transform schedules to show only the selected department phase
+  // Use existing bay schedules and let ResizableBaySchedule handle phase filtering  
   const departmentSchedules = useMemo(() => {
     const locationBayIds = locationBays.map(b => b.id);
 
-    // Filter schedules by location
+    // Filter schedules by location only - ResizableBaySchedule will handle phase display
     const locationSchedules = schedules.filter(schedule => 
       locationBayIds.includes(schedule.bayId)
     );
@@ -115,73 +115,8 @@ const DepartmentSchedules = () => {
       totalSchedules: schedules.length
     });
 
-    // Transform schedules to show only the selected phase
-    const transformedSchedules: ManufacturingSchedule[] = [];
-    
-    locationSchedules.forEach((schedule) => {
-      const project = projects.find(p => p.id === schedule.projectId);
-      if (!project) return;
-
-      // Calculate phase dates using the schedule
-      const phaseDates = calculatePhaseDates(schedule as any, project as any);
-
-      let phaseStart: Date | null = null;
-      let phaseEnd: Date | null = null;
-
-      switch (selectedDepartment) {
-        case 'mech':
-          // MECH shop: 30 working days before production start
-          if (project.productionStart || phaseDates.production.start) {
-            const prodStart = project.productionStart ? new Date(project.productionStart) : phaseDates.production.start;
-            // Calculate 30 working days before production (approx 42 calendar days)
-            phaseStart = new Date(prodStart);
-            phaseStart.setDate(phaseStart.getDate() - 42);
-            phaseEnd = new Date(phaseStart);
-            phaseEnd.setDate(phaseEnd.getDate() + 30); // MECH phase lasts 30 days
-          }
-          break;
-
-        case 'fab':
-          phaseStart = phaseDates.fab.start;
-          phaseEnd = phaseDates.fab.end;
-          break;
-
-        case 'paint':
-          phaseStart = phaseDates.paint.start;
-          phaseEnd = phaseDates.paint.end;
-          break;
-
-        case 'wrap':
-          // Wrap is during paint phase
-          phaseStart = phaseDates.paint.start;
-          phaseEnd = phaseDates.paint.end;
-          break;
-      }
-
-      if (phaseStart && phaseEnd) {
-        // Create a schedule object that preserves the original bay and row information
-        const transformedSchedule: any = {
-          ...schedule,
-          id: schedule.id + 10000 * (selectedDepartment === 'mech' ? 1 : selectedDepartment === 'fab' ? 2 : selectedDepartment === 'paint' ? 3 : 4),
-          startDate: phaseStart.toISOString(),
-          endDate: phaseEnd.toISOString(),
-          // Keep original bay ID and row to maintain positioning
-          bayId: schedule.bayId,
-          row: schedule.row || 0
-        };
-
-        // Override color for MECH shop to be orange
-        if (selectedDepartment === 'mech') {
-          transformedSchedule.color = '#f97316'; // Orange color for MECH shop
-        }
-
-        transformedSchedules.push(transformedSchedule);
-      }
-    });
-
-    console.log(`Transformed ${transformedSchedules.length} schedules for ${selectedDepartment} department`);
-    return transformedSchedules;
-  }, [schedules, projects, locationBays, selectedDepartment, selectedLocation]);
+    return locationSchedules;
+  }, [schedules, locationBays, selectedLocation]);
 
   const handlePreviousWeek = () => {
     setCurrentWeek(prev => subWeeks(prev, 1));
@@ -293,6 +228,8 @@ const DepartmentSchedules = () => {
                           viewMode={viewMode}
                           enableFinancialImpact={false}
                           isSandboxMode={true} // Read-only mode
+                          departmentPhaseFilter={selectedDepartment as any} // Filter to show only this phase
+                          hideUnassignedProjects={true} // Hide sidebar in Department view
                         />
                       </div>
                     </CardContent>
