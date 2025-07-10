@@ -198,7 +198,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
               const { project } = row;
               
               return (
-                <div key={project.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-3 flex flex-col justify-center" style={{ height: `${rowHeight}px` }}>
+                <div key={project.id} className="border-b border-gray-400 dark:border-gray-600 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-3 flex flex-col justify-center" style={{ height: `${rowHeight}px` }}>
                   <a 
                     href={`/project/${project.id}`}
                     className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
@@ -231,12 +231,12 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
               const { left, width } = calculateBarPosition(startDate, endDate);
               
               return (
-                <div key={project.id} className="relative border-b hover:bg-gray-50 dark:hover:bg-gray-800" style={{ height: `${rowHeight}px` }}>
+                <div key={project.id} className="relative border-b border-gray-400 dark:border-gray-600" style={{ height: `${rowHeight}px` }}>
                   {/* Grid lines */}
                   {timeSlots.map((_, idx) => (
                     <div
                       key={idx}
-                      className="absolute top-0 bottom-0 border-r border-gray-200 dark:border-gray-700"
+                      className="absolute top-0 bottom-0 border-r border-gray-400 dark:border-gray-600"
                       style={{ left: `${idx * slotWidth}px` }}
                     />
                   ))}
