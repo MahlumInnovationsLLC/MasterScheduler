@@ -162,6 +162,7 @@ function MainContent() {
     if (location === '/engineering') return 'Engineering Resource Planner';
     if (location === '/archived-projects') return 'Archived Projects';
     if (location === '/delivered-projects') return 'Delivered Projects';
+    if (location === '/system-settings') return 'System Settings';
     if (location === '/settings/user') return 'Settings';
     return 'Manufacturing';
   };
@@ -211,6 +212,7 @@ function MainContent() {
             <ViewerRestrictedRoute path="/forecast" component={Forecast} />
             <ProtectedRoute path="/capacity-management" component={CapacityManagement} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
+            <AdminRoute path="/system-settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <ProtectedRoute path="/settings" component={Settings} />
             <Route path="/auth" component={AuthPage} />

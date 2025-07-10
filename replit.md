@@ -416,6 +416,11 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Enhanced timeline visualization to show complete project span from fabrication start to ship date
   - Removed Manufacturing Schedule Details table from PDF report while keeping title changed to "Estimate Manufacturing Schedule"
   - QC phase now correctly displays 7 days (March 25 to April 1) with 6.7% width extending close to ship date
+- January 09, 2025: Mobile App System Settings 404 Fix
+  - Fixed missing System Settings route in mobile app routing causing 404 error
+  - Added AdminRoute for /system-settings path in mobile layout matching desktop functionality
+  - Updated mobile page title function to include "System Settings" title
+  - Mobile users can now properly access System Settings module without 404 errors
 
 
 ## User Preferences
