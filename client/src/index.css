@@ -1314,4 +1314,20 @@ button[role="switch"] input[type="checkbox"] {
 .department-schedule-container .project-bar {
   height: 20px !important;
   min-height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+}
+
+/* Hide project name in department schedules, show only project number */
+.department-schedule-container .project-bar > span:first-child {
+  display: none !important;
+}
+
+/* Style the project number to be centered */
+.department-schedule-container .project-bar > span:last-child {
+  margin: 0 !important;
+  padding: 0 4px !important;
 }

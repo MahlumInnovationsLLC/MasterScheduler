@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Factory, PaintBucket, Package, Wrench } from 'lucide-react';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
-import { calculatePhaseDates } from '@shared/utils/bay-utilization';
+// Removed unused import
 
 interface Project {
   id: number;
@@ -81,44 +81,71 @@ const DepartmentSchedules = () => {
     return { start, end };
   }, [currentWeek]);
 
-  // Get actual bays for the selected location
-  const locationBays = useMemo(() => {
-    console.log('Available bays:', bays.map(b => ({ id: b.id, name: b.name, team: b.team })));
+  // Create a virtual bay for the department/location combination
+  const virtualBay = useMemo(() => {
+    const deptName = selectedDepartment.toUpperCase();
+    const locationName = selectedLocation === 'columbia-falls' ? 'Columbia Falls' : 'Libby';
     
-    return bays.filter(bay => {
+    return {
+      id: 999 + selectedDepartment.charCodeAt(0) + (selectedLocation === 'libby' ? 100 : 0), // Unique virtual ID
+      bayNumber: 1,
+      name: `${deptName} Team - ${locationName}`,
+      status: 'active' as const,
+      location: selectedLocation,
+      team: `${deptName} Team`
+    };
+  }, [selectedDepartment, selectedLocation]);
+
+  // Get all schedules for the selected location's bays
+  const departmentSchedules = useMemo(() => {
+    // Get all bays for the selected location
+    const locationBays = bays.filter(bay => {
       const bayTeam = bay.team?.toLowerCase() || '';
       const bayName = bay.name?.toLowerCase() || '';
       
       if (selectedLocation === 'columbia-falls') {
-        // Columbia Falls: exclude teams/bays with 'libby' in the name, include everything else
         const isLibbyRelated = bayTeam.includes('libby') || bayName.includes('libby') || bayName.includes('container');
         return !isLibbyRelated;
       } else {
-        // Libby: include only teams/bays with 'libby' in the name
         return bayTeam.includes('libby') || bayName.includes('libby') || bayName.includes('container');
       }
     });
-  }, [bays, selectedLocation]);
 
-  // Use existing bay schedules and let ResizableBaySchedule handle phase filtering  
-  const departmentSchedules = useMemo(() => {
     const locationBayIds = locationBays.map(b => b.id);
-
-    // Filter schedules by location only - ResizableBaySchedule will handle phase display
+    
+    // Get all schedules for these bays
     const locationSchedules = schedules.filter(schedule => 
       locationBayIds.includes(schedule.bayId)
     );
 
-    console.log(`Department Schedules Debug:`, {
-      selectedDepartment,
-      selectedLocation,
-      locationBays: locationBays.length,
-      locationSchedules: locationSchedules.length,
-      totalSchedules: schedules.length
-    });
+    // Map all schedules to the virtual bay
+    return locationSchedules.map(schedule => ({
+      ...schedule,
+      bayId: virtualBay.id // Map to virtual bay
+    }));
+  }, [schedules, bays, selectedLocation, virtualBay.id]);
 
-    return locationSchedules;
-  }, [schedules, locationBays, selectedLocation]);
+  // Count projects that have the specific phase we're viewing
+  const activeProjectCount = useMemo(() => {
+    const projectIds = new Set(departmentSchedules.map(s => s.projectId));
+    const scheduledProjects = projects.filter(p => projectIds.has(p.id));
+    
+    // Count projects that have dates for the selected phase
+    return scheduledProjects.filter(project => {
+      switch (selectedDepartment) {
+        case 'mech':
+          return project.mechShop && project.productionStart; // MECH is 30 days before production
+        case 'fab':
+          return project.fabricationStart;
+        case 'paint':
+          return project.paintStart;
+        case 'wrap':
+          return project.wrapDate;
+        default:
+          return false;
+      }
+    }).length;
+  }, [departmentSchedules, projects, selectedDepartment]);
 
   const handlePreviousWeek = () => {
     setCurrentWeek(prev => subWeeks(prev, 1));
@@ -213,7 +240,7 @@ const DepartmentSchedules = () => {
                           {dept.toUpperCase()} Schedule - {location === 'columbia-falls' ? 'Columbia Falls' : 'Libby'}
                         </span>
                         <Badge variant="secondary">
-                          {location === selectedLocation ? departmentSchedules.length : 0} Active Projects
+                          {location === selectedLocation && dept === selectedDepartment ? activeProjectCount : 0} Active Projects
                         </Badge>
                       </CardTitle>
                     </CardHeader>
@@ -222,7 +249,7 @@ const DepartmentSchedules = () => {
                         <ResizableBaySchedule
                           schedules={departmentSchedules}
                           projects={projects}
-                          bays={locationBays}
+                          bays={[virtualBay] as any} // Single virtual bay for department
                           onScheduleChange={async () => {}} // Read-only
                           onScheduleCreate={async () => {}} // Read-only
                           onScheduleDelete={async () => {}} // Read-only
@@ -230,7 +257,7 @@ const DepartmentSchedules = () => {
                           viewMode={viewMode}
                           enableFinancialImpact={false}
                           isSandboxMode={true} // Read-only mode
-                          departmentPhaseFilter={selectedDepartment as any} // Filter to show only this phase
+                          departmentPhaseFilter={selectedDepartment} // Filter to show only this phase
                           hideUnassignedProjects={true} // Hide sidebar in Department view
                         />
                       </div>

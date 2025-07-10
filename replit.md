@@ -436,14 +436,17 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added location-based filtering with sub-tabs for Columbia Falls and Libby
   - Integrated with existing Bay Schedule data as read-only snapshot views
   - Uses ResizableBaySchedule component to maintain consistent UI with Bay Scheduling
-  - Filters projects based on current manufacturing phase using calculatePhaseDates utility
+  - Filters projects based on current manufacturing phase dates (mechShop, fabricationStart, paintStart, wrapDate)
   - Virtual bay created for each department/location combination showing only relevant projects
-  - Projects displayed as single team with multiple rows (4 projects per row)
+  - Projects displayed as single team with multiple rows (4 projects per row) in waterfall view
   - Week navigation controls with 12-week view range for department planning
-  - Real-time filtering based on project phase dates and schedule data
+  - Shows only the specific phase portion of each project bar (e.g., only FAB bars in Fabrication tab)
   - MECH shop bars display in orange color and start 30 working days before production phase
   - Added "Today" button to quickly jump to current week view
   - Auto-scroll functionality centers on today's date when page loads via ResizableBaySchedule component
+  - Implemented skinnier row heights (20px bars) with project numbers centered in bars
+  - Hide Unassigned Projects sidebar completely in Department Schedules view
+  - Active project count shows only projects that have the specific phase dates
 
 
 ## User Preferences
