@@ -600,58 +600,10 @@ export default function ResizableBaySchedule({
     }
   }, [isDragging, handleDragMove, handleDragEndGlobal, stopAutoScroll]);
 
-  // Department phase filter effect - hide non-matching phases via CSS
+  // Department phase filter effect - NO CSS CHANGES, handled in bar creation
   useEffect(() => {
     if (departmentPhaseFilter) {
       console.log(`🎯 DEPARTMENT FILTER ACTIVE: Showing only ${departmentPhaseFilter.toUpperCase()} phase`);
-      
-      // Add CSS classes to hide all phases except the selected one
-      const styleElement = document.createElement('style');
-      styleElement.id = 'department-phase-filter';
-      
-      let css = '';
-      const phases = ['fab', 'paint', 'production', 'it', 'ntc', 'qc'];
-      
-      // For MECH department, we want to show bars with orange color and special position
-      if (departmentPhaseFilter === 'mech') {
-        css = `
-          .project-bar {
-            background-color: #f97316 !important; /* Orange for MECH */
-          }
-        `;
-      } else {
-        // For other departments, hide all phases except the selected one
-        phases.forEach(phase => {
-          if (phase !== departmentPhaseFilter) {
-            css += `
-              .project-bar .${phase}-phase,
-              .project-bar .${phase}-section {
-                display: none !important;
-              }
-            `;
-          }
-        });
-        
-        // Show only the selected phase and make it full width
-        css += `
-          .project-bar .${departmentPhaseFilter}-phase,
-          .project-bar .${departmentPhaseFilter}-section {
-            width: 100% !important;
-            left: 0 !important;
-          }
-        `;
-      }
-      
-      styleElement.textContent = css;
-      document.head.appendChild(styleElement);
-      
-      return () => {
-        // Clean up the style element when filter changes or component unmounts
-        const existingStyle = document.getElementById('department-phase-filter');
-        if (existingStyle) {
-          document.head.removeChild(existingStyle);
-        }
-      };
     }
   }, [departmentPhaseFilter]);
   const [dialogOpen, setDialogOpen] = useState(false);
