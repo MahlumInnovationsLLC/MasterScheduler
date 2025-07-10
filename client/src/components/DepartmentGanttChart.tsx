@@ -17,7 +17,9 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
   viewMode
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const slotWidth = 60; // Width per week
+  const rowHeight = 50; // Increased height for better text spacing
   
   // Filter and prepare projects for the specific department
   const ganttRows = useMemo(() => {
@@ -105,13 +107,14 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
   
   // Auto-scroll to today
   useEffect(() => {
-    if (containerRef.current) {
+    if (containerRef.current && headerRef.current) {
       const today = new Date();
       const daysFromStart = differenceInDays(today, dateRange.start);
       const pixelsPerDay = slotWidth / 7;
       const scrollPosition = daysFromStart * pixelsPerDay - 400; // Center it
       
       containerRef.current.scrollLeft = Math.max(0, scrollPosition);
+      headerRef.current.scrollLeft = Math.max(0, scrollPosition);
     }
   }, [dateRange]);
   
@@ -139,6 +142,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
           
           {/* Scrollable timeline headers */}
           <div 
+            ref={headerRef}
             className="flex-1 overflow-x-auto overflow-y-hidden"
             onScroll={(e) => {
               // Sync scroll with content area
@@ -184,7 +188,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
             const { project } = row;
             
             return (
-              <div key={project.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-2" style={{ height: '40px' }}>
+              <div key={project.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-3 flex flex-col justify-center" style={{ height: `${rowHeight}px` }}>
                 <a 
                   href={`/project/${project.id}`}
                   className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
@@ -205,9 +209,8 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
           className="flex-1 overflow-auto"
           onScroll={(e) => {
             // Sync scroll with header
-            const header = e.currentTarget.previousElementSibling?.previousElementSibling?.querySelector('.overflow-x-auto');
-            if (header) {
-              header.scrollLeft = e.currentTarget.scrollLeft;
+            if (headerRef.current) {
+              headerRef.current.scrollLeft = e.currentTarget.scrollLeft;
             }
           }}
         >
@@ -217,7 +220,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none today-marker"
               style={{
                 left: `${differenceInDays(new Date(), dateRange.start) * (slotWidth / 7)}px`,
-                height: `${ganttRows.length * 40}px`
+                height: `${ganttRows.length * rowHeight}px`
               }}
             />
             
@@ -228,7 +231,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
               const { left, width } = calculateBarPosition(startDate, endDate);
               
               return (
-                <div key={project.id} className="relative border-b hover:bg-gray-50 dark:hover:bg-gray-800" style={{ height: '40px' }}>
+                <div key={project.id} className="relative border-b hover:bg-gray-50 dark:hover:bg-gray-800" style={{ height: `${rowHeight}px` }}>
                   {/* Grid lines */}
                   {timeSlots.map((_, idx) => (
                     <div
@@ -240,11 +243,12 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
                   
                   {/* Phase bar */}
                   <div
-                    className="absolute top-2 rounded shadow-sm flex items-center justify-center text-white text-xs font-semibold hover:shadow-md transition-shadow cursor-pointer"
+                    className="absolute rounded shadow-sm flex items-center justify-center text-white text-xs font-semibold hover:shadow-md transition-shadow cursor-pointer"
                     style={{
                       left: `${left}px`,
                       width: `${width}px`,
                       height: '24px',
+                      top: `${(rowHeight - 24) / 2}px`, // Center vertically
                       backgroundColor: barColor
                     }}
                     onClick={() => window.location.href = `/project/${project.id}`}
@@ -259,13 +263,13 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
                     <>
                       <div
                         className="absolute text-xs text-gray-500 dark:text-gray-400"
-                        style={{ left: `${left}px`, top: '28px' }}
+                        style={{ left: `${left}px`, top: `${rowHeight - 16}px` }}
                       >
                         {format(startDate, 'MM/dd')}
                       </div>
                       <div
                         className="absolute text-xs text-gray-500 dark:text-gray-400"
-                        style={{ left: `${left + width - 30}px`, top: '28px' }}
+                        style={{ left: `${left + width - 30}px`, top: `${rowHeight - 16}px` }}
                       >
                         {format(endDate, 'MM/dd')}
                       </div>
