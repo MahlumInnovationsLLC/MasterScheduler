@@ -74,12 +74,14 @@ const DepartmentSchedules = () => {
     queryKey: ['/api/manufacturing-bays']
   });
 
-  // Calculate date range for current view (start from current week for better phase alignment)
+  // Calculate date range for current view (extend from beginning of year to 2030)
   const dateRange = useMemo(() => {
-    const start = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Start from current week
-    const end = endOfWeek(addWeeks(currentWeek, 16), { weekStartsOn: 1 }); // Show 16 weeks in future
+    const yearStart = new Date(2025, 0, 1); // Start from January 1, 2025
+    const start = startOfWeek(yearStart, { weekStartsOn: 1 }); // Align to week start
+    const yearEnd = new Date(2030, 11, 31); // End at December 31, 2030
+    const end = endOfWeek(yearEnd, { weekStartsOn: 1 }); // Align to week end
     return { start, end };
-  }, [currentWeek]);
+  }, []);
 
   // Filter projects by location
   const locationProjects = useMemo(() => {

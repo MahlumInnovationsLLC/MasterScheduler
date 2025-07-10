@@ -5,35 +5,106 @@
 
 /* Department Gantt Chart Styles */
 .gantt-chart-container {
-  @apply relative;
+  position: relative;
+  overflow: hidden;
 }
 
 .gantt-chart-container .today-marker {
-  @apply absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.125rem;
+  background-color: #ef4444;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .gantt-chart-container .gantt-bar {
-  @apply absolute rounded shadow-sm flex items-center justify-center text-white text-xs font-semibold hover:shadow-md transition-shadow cursor-pointer;
+  position: absolute;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: box-shadow 0.2s;
+  cursor: pointer;
   height: 24px;
   top: 8px;
 }
 
+.gantt-chart-container .gantt-bar:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
 .gantt-chart-container .gantt-row {
-  @apply flex border-b hover:bg-gray-50 dark:hover:bg-gray-800;
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
   height: 40px;
 }
 
+.dark .gantt-chart-container .gantt-row {
+  border-bottom-color: #374151;
+}
+
+.gantt-chart-container .gantt-row:hover {
+  background-color: #f9fafb;
+}
+
+.dark .gantt-chart-container .gantt-row:hover {
+  background-color: #1f2937;
+}
+
 .gantt-chart-container .project-info {
-  @apply w-64 flex-shrink-0 px-4 py-2 border-r;
+  width: 16rem;
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  border-right: 1px solid #e5e7eb;
+}
+
+.dark .gantt-chart-container .project-info {
+  border-right-color: #374151;
 }
 
 .gantt-chart-container .timeline-area {
-  @apply flex-1 relative;
+  flex: 1;
+  position: relative;
   height: 40px;
 }
 
 .gantt-chart-container .grid-line {
-  @apply absolute top-0 bottom-0 border-r border-gray-200 dark:border-gray-700;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid #e5e7eb;
+}
+
+.dark .gantt-chart-container .grid-line {
+  border-right-color: #374151;
+}
+
+/* Sticky column support */
+.gantt-chart-container .sticky {
+  position: sticky !important;
+  position: -webkit-sticky !important;
+}
+
+.gantt-chart-container .left-0 {
+  left: 0 !important;
+}
+
+.gantt-chart-container .z-10 {
+  z-index: 10 !important;
+}
+
+.gantt-chart-container .z-20 {
+  z-index: 20 !important;
+}
+
+.gantt-chart-container .z-30 {
+  z-index: 30 !important;
 }
 
 :root {

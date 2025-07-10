@@ -128,18 +128,38 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
   };
   
   return (
-    <div className="gantt-chart-container">
-      {/* Fixed header */}
-      <div className="sticky top-0 z-20 bg-white dark:bg-gray-900 border-b">
+    <div className="gantt-chart-container relative" style={{ height: 'calc(100vh - 350px)' }}>
+      {/* Header with sticky positioning */}
+      <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b">
         <div className="flex">
-          {/* Project column header */}
-          <div className="w-64 flex-shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-r font-semibold">
+          {/* Sticky project column header */}
+          <div className="w-64 flex-shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-r font-semibold sticky left-0 z-20">
             Project
           </div>
           
-          {/* Timeline headers */}
-          <div className="flex-1 overflow-hidden">
+          {/* Scrollable timeline headers */}
+          <div 
+            className="flex-1 overflow-x-auto overflow-y-hidden"
+            onScroll={(e) => {
+              // Sync scroll with content area
+              if (containerRef.current) {
+                containerRef.current.scrollLeft = e.currentTarget.scrollLeft;
+              }
+            }}
+          >
             <div className="flex" style={{ width: `${timeSlots.length * slotWidth}px` }}>
+              {/* Today line in header */}
+              <div
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none"
+                style={{
+                  left: `${differenceInDays(new Date(), dateRange.start) * (slotWidth / 7) + 256}px` // 256px is the project column width
+                }}
+              >
+                <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-xs px-2 py-0.5 rounded">
+                  TODAY
+                </div>
+              </div>
+              
               {timeSlots.map((slot, index) => (
                 <div
                   key={index}
@@ -156,47 +176,59 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
       </div>
       
       {/* Scrollable content area */}
-      <div 
-        ref={containerRef}
-        className="overflow-auto"
-        style={{ maxHeight: 'calc(100vh - 300px)' }}
-      >
-        <div className="relative">
-          {/* Today line */}
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none"
-            style={{
-              left: `${differenceInDays(new Date(), dateRange.start) * (slotWidth / 7)}px`
-            }}
-          >
-            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-xs px-2 py-0.5 rounded">
-              TODAY
-            </div>
-          </div>
-          
-          {/* Project rows */}
+      <div className="relative flex flex-1 overflow-hidden">
+        {/* Sticky project column */}
+        <div className="w-64 flex-shrink-0 bg-white dark:bg-gray-900 border-r sticky left-0 z-10 overflow-y-auto">
           {ganttRows.map((row, index) => {
             if (!row) return null;
-            const { project, startDate, endDate, barColor, phaseName } = row;
-            const { left, width } = calculateBarPosition(startDate, endDate);
+            const { project } = row;
             
             return (
-              <div key={project.id} className="flex border-b hover:bg-gray-50 dark:hover:bg-gray-800">
-                {/* Project info column */}
-                <div className="w-64 flex-shrink-0 px-4 py-2 border-r">
-                  <a 
-                    href={`/project/${project.id}`}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                    {project.projectNumber}
-                  </a>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                    {project.name}
-                  </div>
+              <div key={project.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-2" style={{ height: '40px' }}>
+                <a 
+                  href={`/project/${project.id}`}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {project.projectNumber}
+                </a>
+                <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                  {project.name}
                 </div>
-                
-                {/* Timeline area */}
-                <div className="flex-1 relative" style={{ width: `${timeSlots.length * slotWidth}px`, height: '40px' }}>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Scrollable timeline area */}
+        <div 
+          ref={containerRef}
+          className="flex-1 overflow-auto"
+          onScroll={(e) => {
+            // Sync scroll with header
+            const header = e.currentTarget.previousElementSibling?.previousElementSibling?.querySelector('.overflow-x-auto');
+            if (header) {
+              header.scrollLeft = e.currentTarget.scrollLeft;
+            }
+          }}
+        >
+          <div className="relative" style={{ width: `${timeSlots.length * slotWidth}px` }}>
+            {/* Today line */}
+            <div
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none today-marker"
+              style={{
+                left: `${differenceInDays(new Date(), dateRange.start) * (slotWidth / 7)}px`,
+                height: `${ganttRows.length * 40}px`
+              }}
+            />
+            
+            {/* Project rows */}
+            {ganttRows.map((row, index) => {
+              if (!row) return null;
+              const { project, startDate, endDate, barColor, phaseName } = row;
+              const { left, width } = calculateBarPosition(startDate, endDate);
+              
+              return (
+                <div key={project.id} className="relative border-b hover:bg-gray-50 dark:hover:bg-gray-800" style={{ height: '40px' }}>
                   {/* Grid lines */}
                   {timeSlots.map((_, idx) => (
                     <div
@@ -223,27 +255,31 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
                   </div>
                   
                   {/* Date labels */}
-                  <div
-                    className="absolute text-xs text-gray-500 dark:text-gray-400"
-                    style={{ left: `${left}px`, top: '28px' }}
-                  >
-                    {format(startDate, 'MM/dd')}
-                  </div>
-                  <div
-                    className="absolute text-xs text-gray-500 dark:text-gray-400"
-                    style={{ left: `${left + width - 30}px`, top: '28px' }}
-                  >
-                    {format(endDate, 'MM/dd')}
-                  </div>
+                  {left >= 0 && left < timeSlots.length * slotWidth && (
+                    <>
+                      <div
+                        className="absolute text-xs text-gray-500 dark:text-gray-400"
+                        style={{ left: `${left}px`, top: '28px' }}
+                      >
+                        {format(startDate, 'MM/dd')}
+                      </div>
+                      <div
+                        className="absolute text-xs text-gray-500 dark:text-gray-400"
+                        style={{ left: `${left + width - 30}px`, top: '28px' }}
+                      >
+                        {format(endDate, 'MM/dd')}
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
       
       {/* Summary footer */}
-      <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t px-4 py-2 text-sm">
+      <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t px-4 py-2 text-sm z-20">
         <span className="font-medium">{ganttRows.length} Projects</span>
         <span className="text-gray-500 dark:text-gray-400 ml-4">
           {department.toUpperCase()} Phase Schedule
