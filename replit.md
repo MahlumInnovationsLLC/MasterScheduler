@@ -447,6 +447,20 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Implemented skinnier row heights (20px bars) with project numbers centered in bars
   - Hide Unassigned Projects sidebar completely in Department Schedules view
   - Active project count shows only projects that have the specific phase dates
+- January 10, 2025: Department Schedules Gantt Chart Enhancement
+  - Major pivot from bay/row waterfall system to Microsoft Project-style Gantt chart
+  - Implemented complete scrolling functionality: horizontal timeline scrolling with synchronized headers
+  - Project column frozen horizontally but scrolls vertically with timeline rows for perfect alignment
+  - Increased row heights to 65px to prevent project name text overlap and cutoff
+  - Enhanced grid system with consistent gray-400 borders for better visibility
+  - White background maintained for project column with proper contrast
+  - Complete horizontal grid lines extending across all weekly columns without gaps
+  - Timeline extends from January 2025 through December 2030 (314 weeks, 18,840px width)
+  - Auto-scroll centers on today's date for immediate context
+  - Phase bars color-coded: MECH (orange), FAB (blue), PAINT (red), WRAP (red)
+  - Date labels show start/end dates below each phase bar
+  - Today line indicator with red vertical line and "TODAY" label
+  - Project names clickable to navigate to project details page
 
 
 ## User Preferences

@@ -242,7 +242,10 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
                   ))}
                   
                   {/* Horizontal grid line extension */}
-                  <div className="absolute top-0 left-0 right-0 h-0 border-t border-gray-400 dark:border-gray-600" />
+                  <div 
+                    className="absolute top-0 left-0 h-0 border-t border-gray-400 dark:border-gray-600" 
+                    style={{ width: `${timeSlots.length * slotWidth}px` }}
+                  />
                   
                   {/* Phase bar */}
                   <div
