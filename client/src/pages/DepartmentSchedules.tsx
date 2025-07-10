@@ -81,37 +81,25 @@ const DepartmentSchedules = () => {
     return { start, end };
   }, [currentWeek]);
 
-  // Create a virtual bay for the department view
-  const virtualBay = useMemo(() => {
-    const deptName = selectedDepartment.toUpperCase();
-    const locationName = selectedLocation === 'columbia-falls' ? 'Columbia Falls' : 'Libby';
-    return {
-      id: 99999, // Virtual ID
-      name: `${deptName} - ${locationName}`,
-      bayNumber: 1,
-      status: 'active' as const,
-      location: locationName,
-      team: `${deptName} Department`,
-      capacityTonn: null,
-      maxWidth: null,
-      maxHeight: null,
-      maxLength: null,
-      teamId: null,
-      createdAt: null,
-      updatedAt: null
-    };
-  }, [selectedDepartment, selectedLocation]);
+  // Get actual bays for the selected location instead of creating virtual ones
+  const locationBays = useMemo(() => {
+    // Since bay locations are null, let's use team names and bay names for filtering
+    return bays.filter(bay => {
+      const bayTeam = bay.team?.toLowerCase() || '';
+      const bayName = bay.name?.toLowerCase() || '';
+      
+      if (selectedLocation === 'columbia-falls') {
+        // Columbia Falls: exclude teams/bays with 'libby' in the name, include everything else
+        return !bayTeam.includes('libby') && !bayName.includes('libby') && !bayName.includes('container') && !bayName.includes('libby mt');
+      } else {
+        // Libby: include only teams/bays with 'libby' in the name
+        return bayTeam.includes('libby') || bayName.includes('libby') || bayName.includes('libby mt');
+      }
+    });
+  }, [bays, selectedLocation]);
 
   // Transform schedules to show only the selected department phase
   const departmentSchedules = useMemo(() => {
-    // Get bays for selected location
-    const locationBays = bays.filter(bay => {
-      const bayLocation = bay.location?.toLowerCase() || '';
-      if (selectedLocation === 'columbia-falls') {
-        return bayLocation.includes('columbia') || !bayLocation.includes('libby');
-      }
-      return bayLocation.includes('libby');
-    });
     const locationBayIds = locationBays.map(b => b.id);
 
     // Filter schedules by location
@@ -119,10 +107,18 @@ const DepartmentSchedules = () => {
       locationBayIds.includes(schedule.bayId)
     );
 
+    console.log(`Department Schedules Debug:`, {
+      selectedDepartment,
+      selectedLocation,
+      locationBays: locationBays.length,
+      locationSchedules: locationSchedules.length,
+      totalSchedules: schedules.length
+    });
+
     // Transform schedules to show only the selected phase
     const transformedSchedules: ManufacturingSchedule[] = [];
     
-    locationSchedules.forEach((schedule, index) => {
+    locationSchedules.forEach((schedule) => {
       const project = projects.find(p => p.id === schedule.projectId);
       if (!project) return;
 
@@ -163,27 +159,29 @@ const DepartmentSchedules = () => {
       }
 
       if (phaseStart && phaseEnd) {
-        // Create a schedule object that preserves the color property for MECH shop
+        // Create a schedule object that preserves the original bay and row information
         const transformedSchedule: any = {
           ...schedule,
-          id: schedule.id + 10000 * (selectedDepartment === 'mech' ? 1 : 0), // Unique ID for MECH
-          bayId: virtualBay.id,
+          id: schedule.id + 10000 * (selectedDepartment === 'mech' ? 1 : selectedDepartment === 'fab' ? 2 : selectedDepartment === 'paint' ? 3 : 4),
           startDate: phaseStart.toISOString(),
           endDate: phaseEnd.toISOString(),
-          row: Math.floor(index / 4) // Create rows with up to 4 projects each
+          // Keep original bay ID and row to maintain positioning
+          bayId: schedule.bayId,
+          row: schedule.row || 0
         };
 
         // Override color for MECH shop to be orange
         if (selectedDepartment === 'mech') {
-          transformedSchedule.color = 'rgb(251, 146, 60)'; // Orange color
+          transformedSchedule.color = '#f97316'; // Orange color for MECH shop
         }
 
         transformedSchedules.push(transformedSchedule);
       }
     });
 
+    console.log(`Transformed ${transformedSchedules.length} schedules for ${selectedDepartment} department`);
     return transformedSchedules;
-  }, [schedules, projects, bays, selectedDepartment, selectedLocation, virtualBay.id]);
+  }, [schedules, projects, locationBays, selectedDepartment, selectedLocation]);
 
   const handlePreviousWeek = () => {
     setCurrentWeek(prev => subWeeks(prev, 1));
@@ -283,11 +281,11 @@ const DepartmentSchedules = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <div className="border rounded-lg overflow-hidden">
+                      <div className="border rounded-lg overflow-hidden department-schedule-container">
                         <ResizableBaySchedule
                           schedules={departmentSchedules}
                           projects={projects}
-                          bays={[virtualBay]}
+                          bays={locationBays}
                           onScheduleChange={async () => {}} // Read-only
                           onScheduleCreate={async () => {}} // Read-only
                           onScheduleDelete={async () => {}} // Read-only

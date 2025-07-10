@@ -1293,3 +1293,25 @@ button[role="switch"] input[type="checkbox"] {
 .dark .border-gray-200 {
   border-color: #4b5563 !important;
 }
+
+/* Department Schedules - Smaller row heights */
+.department-schedule-container .team-container {
+  margin-bottom: 10px !important;
+}
+
+.department-schedule-container .bay-container {
+  min-height: 40px !important;
+  height: 40px !important;
+}
+
+.department-schedule-container .row-0-bar,
+.department-schedule-container .row-1-bar,
+.department-schedule-container .row-2-bar,
+.department-schedule-container .row-3-bar {
+  height: 25% !important;
+}
+
+.department-schedule-container .project-bar {
+  height: 20px !important;
+  min-height: 20px !important;
+}
