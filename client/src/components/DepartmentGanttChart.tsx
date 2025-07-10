@@ -241,6 +241,9 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
                     />
                   ))}
                   
+                  {/* Horizontal grid line extension */}
+                  <div className="absolute top-0 left-0 right-0 h-0 border-t border-gray-400 dark:border-gray-600" />
+                  
                   {/* Phase bar */}
                   <div
                     className="absolute rounded shadow-sm flex items-center justify-center text-white text-xs font-semibold hover:shadow-md transition-shadow cursor-pointer"
