@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,74 +74,12 @@ const DepartmentSchedules = () => {
     queryKey: ['/api/bays']
   });
 
-  // Calculate date range for current view
+  // Calculate date range for current view (include past weeks)
   const dateRange = useMemo(() => {
-    const start = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday
-    const end = endOfWeek(addWeeks(currentWeek, 12), { weekStartsOn: 1 }); // Show 12 weeks
+    const start = startOfWeek(subWeeks(currentWeek, 4), { weekStartsOn: 1 }); // Show 4 weeks in the past
+    const end = endOfWeek(addWeeks(currentWeek, 12), { weekStartsOn: 1 }); // Show 12 weeks in future
     return { start, end };
   }, [currentWeek]);
-
-  // Filter schedules based on selected department and location
-  const filteredSchedules = useMemo(() => {
-    // Get bays for selected location
-    const locationBays = bays.filter(bay => {
-      const bayLocation = bay.location?.toLowerCase() || '';
-      if (selectedLocation === 'columbia-falls') {
-        return bayLocation.includes('columbia') || !bayLocation.includes('libby');
-      }
-      return bayLocation.includes('libby');
-    });
-    const locationBayIds = locationBays.map(b => b.id);
-
-    // Filter schedules by location
-    const locationSchedules = schedules.filter(schedule => 
-      locationBayIds.includes(schedule.bayId)
-    );
-
-    // Now filter by department phase
-    return locationSchedules.filter(schedule => {
-      const project = projects.find(p => p.id === schedule.projectId);
-      if (!project) return false;
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Calculate phase dates using the schedule
-      const phaseDates = calculatePhaseDates(schedule as any, project as any);
-
-      // Check if project is currently in the selected department phase
-      switch (selectedDepartment) {
-        case 'mech':
-          // MECH shop phase: 30 working days before FAB start
-          if (!project.mechShop) return false;
-          const mechDate = new Date(project.mechShop);
-          const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : phaseDates.fab.start;
-          // Project is in MECH phase if today is between MECH start and FAB start
-          return today >= mechDate && today < fabStart;
-
-        case 'fab':
-          // FAB phase: between FAB start and PAINT start
-          return today >= phaseDates.fab.start && today < phaseDates.paint.start;
-
-        case 'paint':
-          // PAINT phase: between PAINT start and PRODUCTION start
-          return today >= phaseDates.paint.start && today < phaseDates.production.start;
-
-        case 'wrap':
-          // WRAP phase is during paint phase
-          // If project has specific wrapDate, use that; otherwise same as paint
-          if (project.wrapDate) {
-            const wrapDate = new Date(project.wrapDate);
-            return today >= wrapDate && today < phaseDates.production.start;
-          }
-          // Default to paint phase if no specific wrap date
-          return today >= phaseDates.paint.start && today < phaseDates.production.start;
-
-        default:
-          return false;
-      }
-    });
-  }, [schedules, projects, bays, selectedDepartment, selectedLocation]);
 
   // Create a virtual bay for the department view
   const virtualBay = useMemo(() => {
@@ -164,14 +102,88 @@ const DepartmentSchedules = () => {
     };
   }, [selectedDepartment, selectedLocation]);
 
-  // Map filtered schedules to the virtual bay
+  // Transform schedules to show only the selected department phase
   const departmentSchedules = useMemo(() => {
-    return filteredSchedules.map((schedule, index) => ({
-      ...schedule,
-      bayId: virtualBay.id,
-      row: Math.floor(index / 4) // Create rows with up to 4 projects each
-    }));
-  }, [filteredSchedules, virtualBay]);
+    // Get bays for selected location
+    const locationBays = bays.filter(bay => {
+      const bayLocation = bay.location?.toLowerCase() || '';
+      if (selectedLocation === 'columbia-falls') {
+        return bayLocation.includes('columbia') || !bayLocation.includes('libby');
+      }
+      return bayLocation.includes('libby');
+    });
+    const locationBayIds = locationBays.map(b => b.id);
+
+    // Filter schedules by location
+    const locationSchedules = schedules.filter(schedule => 
+      locationBayIds.includes(schedule.bayId)
+    );
+
+    // Transform schedules to show only the selected phase
+    const transformedSchedules: ManufacturingSchedule[] = [];
+    
+    locationSchedules.forEach((schedule, index) => {
+      const project = projects.find(p => p.id === schedule.projectId);
+      if (!project) return;
+
+      // Calculate phase dates using the schedule
+      const phaseDates = calculatePhaseDates(schedule as any, project as any);
+
+      let phaseStart: Date | null = null;
+      let phaseEnd: Date | null = null;
+
+      switch (selectedDepartment) {
+        case 'mech':
+          // MECH shop: 30 working days before production start
+          if (project.productionStart || phaseDates.production.start) {
+            const prodStart = project.productionStart ? new Date(project.productionStart) : phaseDates.production.start;
+            // Calculate 30 working days before production (approx 42 calendar days)
+            phaseStart = new Date(prodStart);
+            phaseStart.setDate(phaseStart.getDate() - 42);
+            phaseEnd = new Date(phaseStart);
+            phaseEnd.setDate(phaseEnd.getDate() + 30); // MECH phase lasts 30 days
+          }
+          break;
+
+        case 'fab':
+          phaseStart = phaseDates.fab.start;
+          phaseEnd = phaseDates.fab.end;
+          break;
+
+        case 'paint':
+          phaseStart = phaseDates.paint.start;
+          phaseEnd = phaseDates.paint.end;
+          break;
+
+        case 'wrap':
+          // Wrap is during paint phase
+          phaseStart = phaseDates.paint.start;
+          phaseEnd = phaseDates.paint.end;
+          break;
+      }
+
+      if (phaseStart && phaseEnd) {
+        // Create a schedule object that preserves the color property for MECH shop
+        const transformedSchedule: any = {
+          ...schedule,
+          id: schedule.id + 10000 * (selectedDepartment === 'mech' ? 1 : 0), // Unique ID for MECH
+          bayId: virtualBay.id,
+          startDate: phaseStart.toISOString(),
+          endDate: phaseEnd.toISOString(),
+          row: Math.floor(index / 4) // Create rows with up to 4 projects each
+        };
+
+        // Override color for MECH shop to be orange
+        if (selectedDepartment === 'mech') {
+          transformedSchedule.color = 'rgb(251, 146, 60)'; // Orange color
+        }
+
+        transformedSchedules.push(transformedSchedule);
+      }
+    });
+
+    return transformedSchedules;
+  }, [schedules, projects, bays, selectedDepartment, selectedLocation, virtualBay.id]);
 
   const handlePreviousWeek = () => {
     setCurrentWeek(prev => subWeeks(prev, 1));
@@ -212,6 +224,14 @@ const DepartmentSchedules = () => {
               onClick={handleNextWeek}
             >
               <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={() => setCurrentWeek(new Date())}
+              className="ml-2"
+            >
+              Today
             </Button>
           </div>
           <Badge variant="outline" className="text-xs">

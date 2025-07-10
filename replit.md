@@ -441,6 +441,9 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Projects displayed as single team with multiple rows (4 projects per row)
   - Week navigation controls with 12-week view range for department planning
   - Real-time filtering based on project phase dates and schedule data
+  - MECH shop bars display in orange color and start 30 working days before production phase
+  - Added "Today" button to quickly jump to current week view
+  - Auto-scroll functionality centers on today's date when page loads via ResizableBaySchedule component
 
 
 ## User Preferences
