@@ -670,7 +670,7 @@ export default function Meetings() {
       if (!b.shipDate) return -1;
       return new Date(a.shipDate).getTime() - new Date(b.shipDate).getTime();
     })
-    .slice(0, 10);
+    .slice(0, 30);
 
   // Get concerns escalated to Tier IV (exclude completed concerns)
   const tierIVConcerns = (elevatedConcerns as ElevatedConcern[]).filter((c: ElevatedConcern) => 
@@ -1889,9 +1889,9 @@ export default function Meetings() {
             </Card>
           </div>
 
-          {/* Top 10 GOOD Projects - Thin cards */}
+          {/* Top 30 GOOD Projects - Thin cards */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Top 10 GOOD Projects ({goodProjects.length})</h3>
+            <h3 className="text-lg font-semibold">Top 30 GOOD Projects ({goodProjects.length})</h3>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
               {goodProjects.map((project: Project) => (
                 <Card key={project.id} className="w-full h-20 border-l-4 border-l-green-500">
