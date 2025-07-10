@@ -74,10 +74,10 @@ const DepartmentSchedules = () => {
     queryKey: ['/api/manufacturing-bays']
   });
 
-  // Calculate date range for current view (include past weeks)
+  // Calculate date range for current view (start from current week for better phase alignment)
   const dateRange = useMemo(() => {
-    const start = startOfWeek(subWeeks(currentWeek, 4), { weekStartsOn: 1 }); // Show 4 weeks in the past
-    const end = endOfWeek(addWeeks(currentWeek, 12), { weekStartsOn: 1 }); // Show 12 weeks in future
+    const start = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Start from current week
+    const end = endOfWeek(addWeeks(currentWeek, 16), { weekStartsOn: 1 }); // Show 16 weeks in future
     return { start, end };
   }, [currentWeek]);
 
