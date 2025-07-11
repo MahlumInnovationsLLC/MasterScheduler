@@ -833,7 +833,7 @@ const BillingMilestones = () => {
             <div className="ml-1">
               <div 
                 className="text-sm font-medium text-white cursor-pointer hover:text-blue-300 hover:underline"
-                onClick={() => setLocation(`/projects/${project.id}`)}
+                onClick={() => setLocation(`/project/${project.id}`)}
               >
                 {project.projectNumber}
               </div>
