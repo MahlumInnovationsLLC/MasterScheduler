@@ -1303,7 +1303,6 @@ export async function importEngineeringAssignments(req: Request, res: Response) 
         for (const eng of engineers) {
           // Skip if name is null, undefined, or empty string
           if (!eng.name || eng.name.trim() === '') {
-            console.log(`Skipping empty ${eng.discipline} engineer field`);
             continue;
           }
           
@@ -1351,8 +1350,6 @@ export async function importEngineeringAssignments(req: Request, res: Response) 
             const username = engineerName.toLowerCase().replace(/\s+/g, '.');
             const email = `${username}@nomadgcs.com`;
             
-            console.log(`Creating new OFFLINE user: ${engineerName} (${eng.discipline})`);
-            
             const newUser = {
               email: email,
               firstName: firstName,
@@ -1372,8 +1369,6 @@ export async function importEngineeringAssignments(req: Request, res: Response) 
               console.error('Failed to create user:', error);
               continue;
             }
-          } else {
-            console.log(`Found existing user for ${engineerName}: ${user.firstName} ${user.lastName}`);
           }
           
           // Update project with engineer assignment
@@ -1383,8 +1378,6 @@ export async function importEngineeringAssignments(req: Request, res: Response) 
           // This prevents overwriting existing data with blank values
           if (eng.percent !== null && eng.percent !== undefined && eng.percent !== '') {
             projectUpdates[eng.percentField] = eng.percent;
-          } else {
-            console.log(`Skipping blank completion percentage for ${eng.discipline} on project ${assignment.projectNumber}`);
           }
         }
         

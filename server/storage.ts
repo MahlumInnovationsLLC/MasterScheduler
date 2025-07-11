@@ -1463,7 +1463,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined> {
-    console.log(`Updating project ID ${id} with data:`, JSON.stringify(project, null, 2));
     try {
       const [updatedProject] = await db
         .update(projects)
@@ -1476,7 +1475,6 @@ export class DatabaseStorage implements IStorage {
         return undefined;
       }
 
-      console.log(`Project ${id} updated successfully:`, updatedProject.projectNumber);
       return updatedProject;
     } catch (error) {
       console.error(`Error updating project ${id}:`, error);

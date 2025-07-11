@@ -535,7 +535,8 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added handling for null/blank engineer fields - skips assignment instead of creating empty records
   - Prevented overwriting existing completion percentage data when import has blank values
   - Creates OFFLINE users with exact names from import when no match is found
-  - Added comprehensive logging for debugging import operations
+  - Fixed excessive feedback messages by removing verbose logging from import operations
+  - Cleaned up console logging in updateProject function to reduce UI clutter during imports
 
 
 ## User Preferences
