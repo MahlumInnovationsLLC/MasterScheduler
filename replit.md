@@ -537,6 +537,8 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Creates OFFLINE users with exact names from import when no match is found
   - Fixed excessive feedback messages by removing verbose logging from import operations
   - Cleaned up console logging in updateProject function to reduce UI clutter during imports
+  - Fixed database user creation issue by adding automatic UUID generation for new users
+  - Removed verbose Excel processing logs that were causing detailed error message display
 
 
 ## User Preferences

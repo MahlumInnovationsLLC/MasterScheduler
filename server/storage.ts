@@ -948,7 +948,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    // Generate a UUID for the user ID if not provided
+    const userWithId = {
+      ...insertUser,
+      id: insertUser.id || crypto.randomUUID()
+    };
+    
+    const [user] = await db.insert(users).values(userWithId).returning();
     return user;
   }
 
@@ -1478,11 +1484,6 @@ export class DatabaseStorage implements IStorage {
       return updatedProject;
     } catch (error) {
       console.error(`Error updating project ${id}:`, error);
-      // Log the specific error for debugging
-      if (error instanceof Error) {
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
-      }
       return undefined;
     }
   }

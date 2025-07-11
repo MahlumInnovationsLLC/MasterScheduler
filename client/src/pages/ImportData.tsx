@@ -23,11 +23,9 @@ const convertRowsWithHeaders = (
   
   // Clean up headers - remove undefined, null, empty strings
   const cleanHeaders = headers.filter(h => h !== undefined && h !== null && h !== '');
-  console.log('Clean headers:', cleanHeaders);
   
   // If no clean headers, return empty array
   if (cleanHeaders.length === 0) {
-    console.error('No valid headers found in Excel file');
     return [];
   }
   
@@ -76,10 +74,7 @@ const convertRowsWithHeaders = (
       }
     });
     
-    // Debug output for the first few rows
-    if (rows.indexOf(row) < 3) {
-      console.log(`Processed row ${rows.indexOf(row) + 1}:`, newRow);
-    }
+
     
     return newRow;
   });
@@ -122,7 +117,6 @@ const ImportDataPage = () => {
       
       // Get the header row first to see actual column names
       const header = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] as string[];
-      console.log('Excel header row:', header);
       
       // Use options for more forgiving parsing
       const data = XLSX.utils.sheet_to_json(worksheet, { 
@@ -132,16 +126,11 @@ const ImportDataPage = () => {
         blankrows: false // Skip blank rows
       });
       
-      // Print the raw data for debugging
-      console.log('Raw Excel data (first row):', data.length > 0 ? data[0] : 'No data found');
-      
       // Check for completely empty rows (all cells empty or undefined)
       const nonEmptyData = data.filter((row: any) => {
         // Check if any value in the row is non-empty
         return Object.values(row).some(value => value !== null && value !== undefined && value !== '');
       });
-      
-      console.log(`Filtered out ${data.length - nonEmptyData.length} empty rows`);
       
       if (nonEmptyData.length === 0) {
         throw new Error("No valid data found in the spreadsheet. Please check the file format and try again.");
@@ -149,7 +138,6 @@ const ImportDataPage = () => {
       
       // Convert header-mapped data
       const headerMappedData = convertRowsWithHeaders(nonEmptyData as Record<string, any>[], header);
-      console.log('Processed Excel data (first row):', headerMappedData.length > 0 ? headerMappedData[0] : 'No data mapped');
       
       setProgressPercent(50);
 
@@ -207,13 +195,8 @@ const ImportDataPage = () => {
   // Process project data from Tier IV Project Status excel
   const processProjectData = async (data: any[]): Promise<any> => {
     try {
-      console.log("Processing projects with these fields:", 
-        data.length > 0 ? Object.keys(data[0]).join(", ") : "No data");
-      
       // Clean and validate data
       const projects = data.map(row => {
-        // Print all available data for debugging
-        console.log("Row data:", JSON.stringify(row));
         
         // For Tier IV projects, we need to use the actual project numbers from the first column
         // The project number is typically in format 804924_OK_LawtonFD_IC34As4
@@ -235,7 +218,7 @@ const ImportDataPage = () => {
         // Get location information 
         const locationInfo = row['Location'] || '';
         
-        console.log(`Found project: ${projName}, ID: ${projNumber}, PM: ${pmName}, Team: ${teamInfo}, Status: ${statusValue}`);
+
         
         // Get all the specific Tier IV fields from your spreadsheet
         // First, create the base project object with our required fields
