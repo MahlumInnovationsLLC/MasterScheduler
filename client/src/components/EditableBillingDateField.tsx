@@ -29,44 +29,57 @@ const EditableBillingDateField: React.FC<EditableBillingDateFieldProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Helper function to get stored text preference for this milestone
+  const getStoredTextPreference = () => {
+    try {
+      const stored = localStorage.getItem(`billing-text-${milestoneId}-${field}`);
+      return stored === 'TBD' ? 'TBD' : 'N/A';
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  // Helper function to store text preference for this milestone
+  const storeTextPreference = (preference: string) => {
+    try {
+      localStorage.setItem(`billing-text-${milestoneId}-${field}`, preference);
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
+
   // Reset date value when value changes - use direct value without adjustments
   useEffect(() => {
     if (value) {
-      // Check if it's a text value like N/A or TBD
-      if (value === 'N/A' || value === 'TBD') {
-        setTextValue(value);
-        setInputMode('text');
-        setDateValue(undefined);
+      // For date values, use them exactly as they come from the server
+      // If it's already in YYYY-MM-DD format, use it directly
+      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        setDateValue(value);
       } else {
-        // For date values, use them exactly as they come from the server
-        // If it's already in YYYY-MM-DD format, use it directly
-        if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          setDateValue(value);
-        } else {
-          // If it's a different format, convert it but preserve the date
-          try {
-            const dateObj = new Date(value + 'T00:00:00'); // Add time to prevent timezone issues
-            const localDateString = dateObj.getFullYear() + '-' + 
-              String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + 
-              String(dateObj.getDate()).padStart(2, '0');
-            setDateValue(localDateString);
-          } catch (e) {
-            // If parsing fails, treat as text
-            setTextValue(value);
-            setInputMode('text');
-            setDateValue(undefined);
-            return;
-          }
+        // If it's a different format, convert it but preserve the date
+        try {
+          const dateObj = new Date(value + 'T00:00:00'); // Add time to prevent timezone issues
+          const localDateString = dateObj.getFullYear() + '-' + 
+            String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + 
+            String(dateObj.getDate()).padStart(2, '0');
+          setDateValue(localDateString);
+        } catch (e) {
+          // If parsing fails, treat as stored preference
+          setDateValue(undefined);
+          setTextValue(getStoredTextPreference());
+          setInputMode('text');
+          return;
         }
-        setInputMode('date');
-        setTextValue('');
       }
+      setInputMode('date');
+      setTextValue('');
     } else {
+      // When value is null/undefined, use stored preference
       setDateValue(undefined);
-      setTextValue('N/A');
+      setTextValue(getStoredTextPreference());
       setInputMode('text');
     }
-  }, [value, field]);
+  }, [value, field, milestoneId]);
 
   const handleSave = async () => {
     setIsUpdating(true);
@@ -75,12 +88,19 @@ const EditableBillingDateField: React.FC<EditableBillingDateFieldProps> = ({
       let valueToSend = null;
 
       if (inputMode === 'text' && textValue) {
-        // Save text values like N/A or TBD
-        valueToSend = textValue;
+        // For text values like N/A or TBD, store null in database but remember preference
+        valueToSend = null;
+        storeTextPreference(textValue);
       } else if (inputMode === 'date' && dateValue) {
         // Save the exact date string that was selected without any modifications
         // This ensures the date stored is exactly what the user selected
         valueToSend = dateValue;
+        // Clear any stored text preference when saving a date
+        try {
+          localStorage.removeItem(`billing-text-${milestoneId}-${field}`);
+        } catch {
+          // Ignore localStorage errors
+        }
       }
 
       const response = await apiRequest(
@@ -169,7 +189,7 @@ const EditableBillingDateField: React.FC<EditableBillingDateFieldProps> = ({
             onClick={() => setInputMode('date')}
             className={`px-2 py-1 text-xs rounded ${
               inputMode === 'date' 
-                ? 'bg-primary text-white' 
+                ? 'bg-primary text-primary-foreground' 
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >
@@ -180,7 +200,7 @@ const EditableBillingDateField: React.FC<EditableBillingDateFieldProps> = ({
             onClick={() => setInputMode('text')}
             className={`px-2 py-1 text-xs rounded ${
               inputMode === 'text' 
-                ? 'bg-primary text-white' 
+                ? 'bg-primary text-primary-foreground' 
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >
@@ -245,8 +265,8 @@ const EditableBillingDateField: React.FC<EditableBillingDateFieldProps> = ({
           className={`text-sm cursor-pointer flex items-center hover:bg-gray-100/10 px-2 py-1 rounded group ${className || ''}`}
           onClick={() => setIsEditing(true)}
         >
-          <span className={value === 'N/A' || value === 'TBD' ? 'text-gray-500 italic' : ''}>
-            {(value === 'N/A' || value === 'TBD') ? value : (value ? formatDate(value) : 'N/A')}
+          <span className={!value ? 'text-gray-500 italic' : ''}>
+            {value ? formatDate(value) : getStoredTextPreference()}
           </span>
           <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
         </div>
