@@ -1379,6 +1379,34 @@ export async function importEngineeringAssignments(req: Request, res: Response) 
           if (eng.percent !== null && eng.percent !== undefined && eng.percent !== '') {
             projectUpdates[eng.percentField] = eng.percent;
           }
+          
+          // Create or update engineering assignment record
+          try {
+            // Check if assignment already exists
+            const existingAssignments = await storage.getProjectEngineeringAssignmentsByProjectId(project.id);
+            const existingAssignment = existingAssignments.find(a => 
+              a.resourceId === user.id && a.discipline === eng.discipline
+            );
+            
+            if (existingAssignment) {
+              // Update existing assignment
+              await storage.updateProjectEngineeringAssignment(existingAssignment.id, {
+                percentage: eng.percent ? convertToInteger(eng.percent) : existingAssignment.percentage
+              });
+            } else {
+              // Create new assignment
+              await storage.createProjectEngineeringAssignment({
+                projectId: project.id,
+                resourceId: user.id,
+                discipline: eng.discipline,
+                percentage: eng.percent ? convertToInteger(eng.percent) : 0,
+                isLead: false
+              });
+            }
+          } catch (assignmentError) {
+            console.error('Error creating/updating engineering assignment:', assignmentError);
+            // Continue with other assignments even if one fails
+          }
         }
         
         // Update the project with all assignments

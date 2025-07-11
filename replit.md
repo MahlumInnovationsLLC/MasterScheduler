@@ -539,6 +539,9 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Cleaned up console logging in updateProject function to reduce UI clutter during imports
   - Fixed database user creation issue by adding automatic UUID generation for new users
   - Removed verbose Excel processing logs that were causing detailed error message display
+  - CRITICAL FIX: Added creation of actual engineering assignment records in project_engineering_assignments table
+  - Engineering imports now properly create assignment records that Engineering module uses for project display
+  - Fixed missing link between imported engineer names and actual project assignments in the database
 
 
 ## User Preferences
