@@ -921,10 +921,11 @@ const BillingMilestones = () => {
         // Check if this is a delivery milestone with date changes
         const project = projects?.find(p => p.id === row.original.projectId);
         const projectDeliveryDate = project?.deliveryDate;
+        const liveDate = row.original.liveDate || projectDeliveryDate;
         const hasDateChange = isDeliveryMilestone && 
-                             projectDeliveryDate && 
+                             liveDate && 
                              row.original.targetInvoiceDate && 
-                             new Date(projectDeliveryDate).toDateString() !== new Date(row.original.targetInvoiceDate).toDateString();
+                             new Date(liveDate).toDateString() !== new Date(row.original.targetInvoiceDate).toDateString();
 
         return (
           <div 
@@ -962,13 +963,14 @@ const BillingMilestones = () => {
 
         // Check if there's an actual difference between target date and live date
         const targetDate = row.original.targetInvoiceDate;
+        const liveDate = row.original.liveDate || projectDeliveryDate;
         const hasDateChange = isDeliveryMilestone && 
-                             projectDeliveryDate && 
+                             liveDate && 
                              targetDate && 
-                             new Date(projectDeliveryDate).toDateString() !== new Date(targetDate).toDateString();
+                             new Date(liveDate).toDateString() !== new Date(targetDate).toDateString();
 
-        // Show approval button if this is a delivery milestone with date changes
-        const showApprovalButton = isDeliveryMilestone && hasDateChange && row.original.shipDateChanged;
+        // Show approval button if this is a delivery milestone with date changes flagged for approval
+        const showApprovalButton = isDeliveryMilestone && row.original.shipDateChanged;
 
         if (!displayDate) {
           return <div className="text-gray-400">-</div>;
