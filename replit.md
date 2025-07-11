@@ -518,6 +518,8 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added Live date display for UPCOMING milestones showing calculated Live date under Due date
   - Enhanced conditional display logic to prevent invoiced dates showing for upcoming milestones
   - Billing milestone cards now show accurate and relevant information based on milestone status
+  - Fixed delivery milestone Live Date calculation to use project delivery date instead of ship date
+  - Updated delivery milestone synchronization to prioritize delivery date over ship date for proper Live Date calculation
 
 
 ## User Preferences

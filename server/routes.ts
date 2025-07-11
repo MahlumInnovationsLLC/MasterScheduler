@@ -146,12 +146,12 @@ const upload = multer({
 });
 
 /**
- * Helper function to synchronize delivery milestones with project ship date
+ * Helper function to synchronize delivery milestones with project delivery date
  * This ensures any delivery milestones are updated when a project's schedule changes
  */
-async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: string): Promise<void> {
+async function syncDeliveryMilestonesToShipDate(projectId: number, deliveryDate: string): Promise<void> {
   try {
-    console.log(`🔄 Synchronizing delivery milestones for project ${projectId} to ship date ${shipDate}`);
+    console.log(`🔄 Synchronizing delivery milestones for project ${projectId} to delivery date ${deliveryDate}`);
     
     // Get all billing milestones for this project
     const billingMilestones = await storage.getProjectBillingMilestones(projectId);
@@ -171,19 +171,19 @@ async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: str
     );
     
     if (deliveryMilestones.length > 0) {
-      console.log(`Found ${deliveryMilestones.length} delivery milestones for project ${projectId} to update to date: ${shipDate}`);
+      console.log(`Found ${deliveryMilestones.length} delivery milestones for project ${projectId} to update to date: ${deliveryDate}`);
       
       for (const milestone of deliveryMilestones) {
-        // Store the current ship date as liveDate and mark as changed if it differs from lastAcceptedShipDate
-        const shipDateChanged = milestone.lastAcceptedShipDate && 
-                              new Date(shipDate).getTime() !== new Date(milestone.lastAcceptedShipDate).getTime();
+        // Store the current delivery date as liveDate and mark as changed if it differs from lastAcceptedShipDate
+        const deliveryDateChanged = milestone.lastAcceptedShipDate && 
+                              new Date(deliveryDate).getTime() !== new Date(milestone.lastAcceptedShipDate).getTime();
         
-        console.log(`Updating delivery milestone ${milestone.id} (${milestone.name}) to date ${shipDate}`);
+        console.log(`Updating delivery milestone ${milestone.id} (${milestone.name}) to date ${deliveryDate}`);
         
         const milestoneUpdate = {
-          targetInvoiceDate: shipDate,
-          liveDate: shipDate,
-          shipDateChanged: shipDateChanged
+          targetInvoiceDate: deliveryDate,
+          liveDate: deliveryDate,
+          shipDateChanged: deliveryDateChanged
         };
         
         await storage.updateBillingMilestone(milestone.id, milestoneUpdate);
@@ -2552,7 +2552,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Check if delivery/ship date changed, and update any associated delivery milestones
               if (projectUpdate.deliveryDate || projectUpdate.shipDate) {
                 try {
-                  const dateToSync = projectUpdate.deliveryDate || projectUpdate.shipDate;
+                  // Always use delivery date for delivery milestones (delivery date takes precedence)
+                  const project = await storage.getProject(projectId);
+                  const dateToSync = project?.deliveryDate || projectUpdate.deliveryDate || projectUpdate.shipDate;
                   await syncDeliveryMilestonesToShipDate(projectId, dateToSync);
                 } catch (milestoneError) {
                   console.error("Error updating delivery milestones after schedule change:", milestoneError);
