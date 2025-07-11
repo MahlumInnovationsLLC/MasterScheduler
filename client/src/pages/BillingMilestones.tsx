@@ -1450,10 +1450,6 @@ const BillingMilestones = () => {
 
         <div className="flex items-center gap-3">
           <AIInsightsModal />
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
           <Button size="sm" onClick={handleAddMilestone}>
             <Plus className="mr-2 h-4 w-4" />
             New Milestone
