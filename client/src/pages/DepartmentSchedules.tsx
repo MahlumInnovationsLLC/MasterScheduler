@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Factory, PaintBucket, Package, Wrench } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Factory, PaintBucket, Package, Wrench, Settings, Monitor, TestTube, CheckCircle } from 'lucide-react';
 import DepartmentGanttChart from '@/components/DepartmentGanttChart';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 
@@ -51,7 +51,7 @@ interface ManufacturingBay {
   team: string | null;
 }
 
-type DepartmentPhase = 'mech' | 'fab' | 'paint' | 'wrap';
+type DepartmentPhase = 'mech' | 'fab' | 'paint' | 'production' | 'it' | 'ntc' | 'qc' | 'wrap';
 type Location = 'columbia-falls' | 'libby';
 
 const DepartmentSchedules = () => {
@@ -175,6 +175,10 @@ const DepartmentSchedules = () => {
       case 'mech': return <Wrench className="w-4 h-4" />;
       case 'fab': return <Factory className="w-4 h-4" />;
       case 'paint': return <PaintBucket className="w-4 h-4" />;
+      case 'production': return <Settings className="w-4 h-4" />;
+      case 'it': return <Monitor className="w-4 h-4" />;
+      case 'ntc': return <TestTube className="w-4 h-4" />;
+      case 'qc': return <CheckCircle className="w-4 h-4" />;
       case 'wrap': return <Package className="w-4 h-4" />;
     }
   };
@@ -199,7 +203,7 @@ const DepartmentSchedules = () => {
       </div>
 
       <Tabs value={selectedDepartment} onValueChange={(v) => setSelectedDepartment(v as DepartmentPhase)}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="mech" className="flex items-center gap-2">
             {getDepartmentIcon('mech')}
             MECH Shop
@@ -212,13 +216,29 @@ const DepartmentSchedules = () => {
             {getDepartmentIcon('paint')}
             Paint
           </TabsTrigger>
+          <TabsTrigger value="production" className="flex items-center gap-2">
+            {getDepartmentIcon('production')}
+            Production
+          </TabsTrigger>
+          <TabsTrigger value="it" className="flex items-center gap-2">
+            {getDepartmentIcon('it')}
+            IT
+          </TabsTrigger>
+          <TabsTrigger value="ntc" className="flex items-center gap-2">
+            {getDepartmentIcon('ntc')}
+            NTC
+          </TabsTrigger>
+          <TabsTrigger value="qc" className="flex items-center gap-2">
+            {getDepartmentIcon('qc')}
+            QC
+          </TabsTrigger>
           <TabsTrigger value="wrap" className="flex items-center gap-2">
             {getDepartmentIcon('wrap')}
             Wrap
           </TabsTrigger>
         </TabsList>
 
-        {['mech', 'fab', 'paint', 'wrap'].map((dept) => (
+        {['mech', 'fab', 'paint', 'production', 'it', 'ntc', 'qc', 'wrap'].map((dept) => (
           <TabsContent key={dept} value={dept} className="mt-6">
             <Tabs value={selectedLocation} onValueChange={(v) => setSelectedLocation(v as Location)}>
               <TabsList className="grid w-full grid-cols-2 mb-4">

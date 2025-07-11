@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react';
 
 interface DepartmentGanttChartProps {
   projects: Project[];
-  department: 'mech' | 'fab' | 'paint' | 'wrap';
+  department: 'mech' | 'fab' | 'paint' | 'production' | 'it' | 'ntc' | 'qc' | 'wrap';
   dateRange: { start: Date; end: Date };
   viewMode: 'week' | 'month';
   onTodayButtonRef?: (scrollToToday: () => void) => void;
@@ -34,6 +34,14 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
           return project.fabricationStart && project.productionStart;
         case 'paint':
           return project.paintStart && project.productionStart;
+        case 'production':
+          return project.productionStart && project.itStart;
+        case 'it':
+          return project.itStart && project.ntcTestingDate;
+        case 'ntc':
+          return project.ntcTestingDate && project.qcStartDate;
+        case 'qc':
+          return project.qcStartDate && project.shipDate;
         case 'wrap':
           return project.wrapDate && project.qcStartDate;
         default:
@@ -67,6 +75,30 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
             endDate = parseISO(project.productionStart!.split('T')[0]);
             barColor = '#dc2626'; // Red
             phaseName = 'PAINT';
+            break;
+          case 'production':
+            startDate = parseISO(project.productionStart!.split('T')[0]);
+            endDate = parseISO(project.itStart!.split('T')[0]);
+            barColor = '#10b981'; // Green
+            phaseName = 'PRODUCTION';
+            break;
+          case 'it':
+            startDate = parseISO(project.itStart!.split('T')[0]);
+            endDate = parseISO(project.ntcTestingDate!.split('T')[0]);
+            barColor = '#8b5cf6'; // Purple
+            phaseName = 'IT';
+            break;
+          case 'ntc':
+            startDate = parseISO(project.ntcTestingDate!.split('T')[0]);
+            endDate = parseISO(project.qcStartDate!.split('T')[0]);
+            barColor = '#06b6d4'; // Cyan
+            phaseName = 'NTC';
+            break;
+          case 'qc':
+            startDate = parseISO(project.qcStartDate!.split('T')[0]);
+            endDate = parseISO(project.shipDate!.split('T')[0]);
+            barColor = '#f59e0b'; // Amber
+            phaseName = 'QC';
             break;
           case 'wrap':
             startDate = parseISO(project.wrapDate!.split('T')[0]);
