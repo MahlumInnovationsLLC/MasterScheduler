@@ -201,6 +201,12 @@ export function BillingMilestonesList({ projectId }: BillingMilestonesListProps)
                   <Calendar className="h-3 w-3 mr-1" />
                   Due: {milestone.targetInvoiceDate ? format(new Date(milestone.targetInvoiceDate + 'T00:00:00'), "MMM d, yyyy") : "Upcoming"}
                 </div>
+                {milestone.status === 'upcoming' && milestone.liveDate && (
+                  <div className="flex items-center text-xs mt-1">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Live: {format(new Date(milestone.liveDate + 'T00:00:00'), "MMM d, yyyy")}
+                  </div>
+                )}
                 {milestone.actualInvoiceDate && (milestone.status === 'invoiced' || milestone.status === 'billed' || milestone.status === 'paid') && (
                   <div className="flex items-center text-xs mt-1">
                     <Calendar className="h-3 w-3 mr-1" />
