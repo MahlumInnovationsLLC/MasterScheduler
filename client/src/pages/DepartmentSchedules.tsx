@@ -52,11 +52,11 @@ interface ManufacturingBay {
 }
 
 type DepartmentPhase = 'mech' | 'fab' | 'paint' | 'production' | 'it' | 'ntc' | 'qc' | 'wrap';
-type Location = 'columbia-falls' | 'libby';
+type Location = 'columbia-falls' | 'libby' | 'all-locations';
 
 const DepartmentSchedules = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<DepartmentPhase>('mech');
-  const [selectedLocation, setSelectedLocation] = useState<Location>('columbia-falls');
+  const [selectedLocation, setSelectedLocation] = useState<Location>('all-locations');
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [scrollToTodayFunction, setScrollToTodayFunction] = useState<(() => void) | null>(null);
@@ -90,6 +90,13 @@ const DepartmentSchedules = () => {
 
   // Filter projects by location
   const locationProjects = useMemo(() => {
+    // If "All Locations" is selected, return all projects that are scheduled in any bay
+    if (selectedLocation === 'all-locations') {
+      // Get all scheduled project IDs
+      const projectIds = new Set(schedules.map(s => s.projectId));
+      return projects.filter(p => projectIds.has(p.id));
+    }
+    
     // Get all bays for the selected location
     const locationBays = bays.filter(bay => {
       const bayTeam = bay.team?.toLowerCase() || '';
@@ -147,6 +154,39 @@ const DepartmentSchedules = () => {
       'paint': 'paint',
       'wrap': 'production' // Wrap work is typically done in production
     };
+    
+    // Handle "All Locations" case - combine capacity from both locations
+    if (location === 'all-locations') {
+      const columbiaFalls = capacityData.departmentCapacity.find(
+        (dept: any) => dept.departmentType === departmentTypeMap[department] && 
+                       dept.location === 'Columbia Falls, MT'
+      );
+      const libby = capacityData.departmentCapacity.find(
+        (dept: any) => dept.departmentType === departmentTypeMap[department] && 
+                       dept.location === 'Libby, MT'
+      );
+      
+      if (columbiaFalls && libby) {
+        return {
+          weeklyHours: columbiaFalls.weeklyCapacityHours + libby.weeklyCapacityHours,
+          utilization: ((columbiaFalls.utilizationPercentage + libby.utilizationPercentage) / 2),
+          staffCount: columbiaFalls.totalMembers + libby.totalMembers
+        };
+      } else if (columbiaFalls) {
+        return {
+          weeklyHours: columbiaFalls.weeklyCapacityHours,
+          utilization: columbiaFalls.utilizationPercentage,
+          staffCount: columbiaFalls.totalMembers
+        };
+      } else if (libby) {
+        return {
+          weeklyHours: libby.weeklyCapacityHours,
+          utilization: libby.utilizationPercentage,
+          staffCount: libby.totalMembers
+        };
+      }
+      return null;
+    }
     
     const locationName = location === 'columbia-falls' ? 'Columbia Falls, MT' : 'Libby, MT';
     
@@ -228,19 +268,20 @@ const DepartmentSchedules = () => {
         {['mech', 'fab', 'paint', 'production', 'it', 'ntc', 'qc', 'wrap'].map((dept) => (
           <TabsContent key={dept} value={dept} className="mt-6">
             <Tabs value={selectedLocation} onValueChange={(v) => setSelectedLocation(v as Location)}>
-              <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
                 <TabsTrigger value="columbia-falls">Columbia Falls</TabsTrigger>
                 <TabsTrigger value="libby">Libby</TabsTrigger>
+                <TabsTrigger value="all-locations">All Locations</TabsTrigger>
               </TabsList>
 
-              {['columbia-falls', 'libby'].map((location) => (
+              {['columbia-falls', 'libby', 'all-locations'].map((location) => (
                 <TabsContent key={location} value={location}>
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           {getDepartmentIcon(dept as DepartmentPhase)}
-                          {dept.toUpperCase()} Schedule - {location === 'columbia-falls' ? 'Columbia Falls' : 'Libby'}
+                          {dept.toUpperCase()} Schedule - {location === 'columbia-falls' ? 'Columbia Falls' : location === 'libby' ? 'Libby' : 'All Locations'}
                         </span>
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary">
