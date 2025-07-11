@@ -117,7 +117,20 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
         historicalPaid = 0;
       } else {
         projected = upcomingDelayed;
+        outstanding = 0; // For future periods, outstanding should be 0
         historicalPaid = paid;
+      }
+
+      // Debug logging for troubleshooting
+      if (period.label.includes('Jul')) {
+        console.log(`July 2025 Debug:`, {
+          period: period.label,
+          totalPeriodAmount,
+          invoiced,
+          outstanding,
+          periodMilestones: periodMilestones.length,
+          timeframe: selectedTimeframe
+        });
       }
 
       data.push({
@@ -229,9 +242,13 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
     }
   };
 
-  const maxValue = Math.max(...cashFlowData.map(d => 
-    Math.max(d.outstanding, d.invoiced, d.paid, d.projected)
-  ), 1);
+  const maxValue = Math.max(...cashFlowData.map(d => {
+    if (selectedTimeframe === 'historical') {
+      return d.outstanding + d.invoiced; // Total bar size for historical
+    } else {
+      return d.projected + d.invoiced; // Total bar size for future
+    }
+  }), 1);
 
   return (
     <Card className="bg-card rounded-xl border border-border">
