@@ -185,21 +185,8 @@ const DepartmentSchedules = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold">Department Schedules</h1>
-        <Button
-          variant="outline" 
-          size="sm"
-          onClick={() => {
-            setCurrentWeek(new Date());
-            if (scrollToTodayFunction) {
-              scrollToTodayFunction();
-            }
-          }}
-          className="ml-2"
-        >
-          Today
-        </Button>
       </div>
 
       <Tabs value={selectedDepartment} onValueChange={(v) => setSelectedDepartment(v as DepartmentPhase)}>

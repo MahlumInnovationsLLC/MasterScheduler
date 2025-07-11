@@ -471,6 +471,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Projects without required dates are automatically excluded from department schedule views
   - Added "Setup Capacity" link for departments without capacity data configured
   - Fixed capacity calculation API to use correct database field names and include location information
+- January 11, 2025: Department Schedules Phase Expansion
+  - Added PRODUCTION, IT, NTC, and QC tabs to Department Schedules module
+  - Extended tab layout from 4 to 8 departments with proper grid-cols-8 styling
+  - Implemented filtering logic for all new phases with appropriate date ranges
+  - Added unique color coding: PRODUCTION (green), IT (purple), NTC (cyan), QC (amber)
+  - Added appropriate icons for each department: Settings, Monitor, TestTube, CheckCircle
+  - Enhanced DepartmentGanttChart to handle all 8 department phases with proper date validation
+  - Removed Today button from top right corner of Department Schedules page at user request
 
 
 ## User Preferences
