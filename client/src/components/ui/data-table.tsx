@@ -241,6 +241,30 @@ export function DataTable<TData, TValue>({
         const strA = String(valueA);
         const strB = String(valueB);
         return strA.localeCompare(strB);
+      },
+      statusSort: (rowA, rowB, columnId) => {
+        // ALWAYS ensure delivered projects go to the bottom regardless of sorting
+        const statusA = rowA.original?.status;
+        const statusB = rowB.original?.status;
+
+        const isADelivered = statusA === 'delivered';
+        const isBDelivered = statusB === 'delivered';
+
+        if (isADelivered && !isBDelivered) return 1;  // A goes to bottom
+        if (!isADelivered && isBDelivered) return -1; // B goes to bottom
+
+        // If both or neither are delivered, sort by issue priority
+        if (!isADelivered && !isBDelivered) {
+          const priorityA = rowA.original?.issuePriority || 0;
+          const priorityB = rowB.original?.issuePriority || 0;
+          
+          // Higher priority (higher number) comes first
+          if (priorityA !== priorityB) {
+            return priorityB - priorityA;
+          }
+        }
+
+        return 0;
       }
     },
     getFilteredRowModel: getFilteredRowModel(),

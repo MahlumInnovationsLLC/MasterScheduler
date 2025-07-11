@@ -379,6 +379,40 @@ const ProjectStatus = () => {
   const { data: manufacturingBays } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
   });
+
+  // Fetch all project label assignments for sorting
+  const { data: allProjectLabelAssignments } = useQuery({
+    queryKey: ['/api/all-project-label-assignments'],
+    enabled: !!projects && projects.length > 0
+  });
+
+  // Fetch available labels to get issue type information
+  const { data: availableLabels } = useQuery({
+    queryKey: ['/api/project-labels']
+  });
+
+  // Function to get issue priority for sorting
+  const getIssuePriority = (projectId: number): number => {
+    if (!allProjectLabelAssignments || !availableLabels) return 0;
+    
+    // Find the project's label assignment
+    const assignment = allProjectLabelAssignments.find((a: any) => a.projectId === projectId);
+    if (!assignment) return 0; // No status assigned
+    
+    // Find the label details
+    const label = availableLabels.find((l: any) => l.id === assignment.labelId);
+    if (!label) return 0;
+    
+    // Priority order: MAJOR ISSUE > MINOR ISSUE > GOOD > DELIVERED > No Status
+    switch (label.name) {
+      case 'MAJOR ISSUE': return 4;
+      case 'MINOR ISSUE': return 3;
+      case 'GOOD': return 2;
+      case 'DELIVERED': return 1;
+      default: return 0;
+    }
+  };
+
   // Flag to track if initial auto-filtering has been applied
   const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
 
@@ -1004,8 +1038,13 @@ const ProjectStatus = () => {
       return true;
     };
 
-    // Cast projects to ProjectWithRawData[] to ensure rawData is available
-    const filtered = (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
+    // Cast projects to ProjectWithRawData[] and add issue priority for sorting
+    const projectsWithPriority = (projects as ProjectWithRawData[]).map((project: ProjectWithRawData) => ({
+      ...project,
+      issuePriority: getIssuePriority(project.id)
+    }));
+
+    const filtered = projectsWithPriority.filter((project: ProjectWithRawData & { issuePriority: number }) => {
       // Now we'll only filter out archived projects if showArchived is false
       // This allows displaying all projects including archived ones when showArchived is true
       if (project.status === 'archived' && !showArchived) {
@@ -1068,7 +1107,7 @@ const ProjectStatus = () => {
       // If both or neither are delivered, maintain existing order
       return 0;
     });
-  }, [projects, dateFilters, locationFilter, showArchived]);
+  }, [projects, dateFilters, locationFilter, showArchived, allProjectLabelAssignments, availableLabels]);
 
   // Effect to move filter buttons into table header
   useEffect(() => {
@@ -1584,7 +1623,10 @@ const ProjectStatus = () => {
       (value, project) => {
         return <ProjectLabelsInline projectId={project.id} />;
       },
-      { size: 200 }),
+      { 
+        size: 200,
+        sortingFn: 'statusSort' // Use custom sorting function for status column
+      }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
       (value, project) => <EditableDateFieldWithOP 
         projectId={project.id} 
