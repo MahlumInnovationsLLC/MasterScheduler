@@ -1625,7 +1625,7 @@ const ProjectStatus = () => {
       },
       { 
         size: 200,
-        sortingFn: 'statusSort' // Use custom sorting function for status column
+        sortingFn: 'statusSort' // Use custom sorting function for issue type priority
       }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
       (value, project) => <EditableDateFieldWithOP 

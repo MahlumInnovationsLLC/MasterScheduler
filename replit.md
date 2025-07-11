@@ -479,6 +479,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added appropriate icons for each department: Settings, Monitor, TestTube, CheckCircle
   - Enhanced DepartmentGanttChart to handle all 8 department phases with proper date validation
   - Removed Today button from top right corner of Department Schedules page at user request
+- January 11, 2025: Projects Module STATUS Column Custom Sorting Implementation
+  - Implemented custom STATUS column sorting by issue type priority (MAJOR ISSUE → MINOR ISSUE → GOOD → DELIVERED → No Status)
+  - Added project label assignments and available labels queries for real-time issue type data
+  - Created issuePriority calculation function using actual project label assignments from database
+  - Enhanced data table with statusSort function that prioritizes issue types while maintaining delivered projects at bottom
+  - Table defaults to ship date sorting when STATUS column sorting is removed or cleared
+  - STATUS column now properly sorts projects based on their assigned issue labels with highest priority issues appearing first
 
 
 ## User Preferences
