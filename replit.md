@@ -461,6 +461,16 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Date labels show start/end dates below each phase bar
   - Today line indicator with red vertical line and "TODAY" label
   - Project names clickable to navigate to project details page
+- January 11, 2025: Department Schedules Today Button and Capacity Integration
+  - Fixed Today button functionality to properly scroll to today's date and center first active project
+  - Implemented smart dual-axis positioning: horizontal scroll to today line, vertical scroll to first project crossing today
+  - Added capacity information integration to department schedule titles
+  - Connected with Capacity Management module to display weekly capacity hours from database
+  - Created Production department capacity records for both Columbia Falls and Libby locations
+  - Enhanced project filtering to only show projects with complete phase dates (both start and end dates required)
+  - Projects without required dates are automatically excluded from department schedule views
+  - Added "Setup Capacity" link for departments without capacity data configured
+  - Fixed capacity calculation API to use correct database field names and include location information
 
 
 ## User Preferences

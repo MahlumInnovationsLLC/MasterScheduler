@@ -25,22 +25,23 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
   
   // Filter and prepare projects for the specific department
   const ganttRows = useMemo(() => {
-    return projects
-      .filter(project => {
-        // Filter by department phase availability
-        switch (department) {
-          case 'mech':
-            return project.mechShop && project.productionStart;
-          case 'fab':
-            return project.fabricationStart && project.productionStart;
-          case 'paint':
-            return project.paintStart && project.productionStart;
-          case 'wrap':
-            return project.wrapDate && project.qcStartDate;
-          default:
-            return false;
-        }
-      })
+    const filteredProjects = projects.filter(project => {
+      // Filter by department phase availability - project must have BOTH dates
+      switch (department) {
+        case 'mech':
+          return project.mechShop && project.productionStart;
+        case 'fab':
+          return project.fabricationStart && project.productionStart;
+        case 'paint':
+          return project.paintStart && project.productionStart;
+        case 'wrap':
+          return project.wrapDate && project.qcStartDate;
+        default:
+          return false;
+      }
+    });
+    
+    return filteredProjects
       .map(project => {
         let startDate: Date;
         let endDate: Date;
@@ -107,15 +108,15 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
     return slots;
   }, [dateRange]);
   
-  // Smart scroll to today with first FAB project
+  // Smart scroll to today with first project
   const scrollToToday = useCallback(() => {
     if (containerRef.current && headerRef.current) {
       const today = new Date();
       const pixelsPerDay = slotWidth / 7;
       const todayPosition = differenceInDays(today, dateRange.start) * pixelsPerDay;
       
-      // Find the first FAB project that crosses the today line
-      const firstFabProject = ganttRows.find(row => {
+      // Find the first project that crosses the today line
+      const firstProject = ganttRows.find(row => {
         if (!row) return false;
         const { startDate, endDate } = row;
         return startDate <= today && endDate >= today;
@@ -123,9 +124,9 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
       
       let scrollPosition = todayPosition - 400; // Default center on today
       
-      if (firstFabProject) {
+      if (firstProject) {
         // Calculate the project's row position for vertical scrolling
-        const projectIndex = ganttRows.indexOf(firstFabProject);
+        const projectIndex = ganttRows.indexOf(firstProject);
         const projectVerticalPosition = projectIndex * rowHeight;
         
         // Scroll to center the project vertically
