@@ -92,20 +92,38 @@ const BillingMilestones = () => {
     queryKey: ['/api/billing-milestones'],
   });
 
-  // Filter milestones based on active tab
+  // Query for projects (needed for search functionality)
+  const { data: projects, isLoading: isLoadingProjects } = useQuery({
+    queryKey: ['/api/projects'],
+  });
+
+  // Filter milestones based on active tab and enhance with project data for search
   const billingMilestones = React.useMemo(() => {
     if (!allBillingMilestones) return [];
 
-    return allBillingMilestones.filter(milestone => {
-      if (activeTab === 'open') {
-        // Open tab should only show upcoming and delayed milestones
-        return milestone.status === 'upcoming' || milestone.status === 'delayed';
-      } else {
-        // Invoiced tab should show invoiced, paid, and billed milestones (all completed)
-        return milestone.status === 'invoiced' || milestone.status === 'paid' || milestone.status === 'billed';
-      }
-    });
-  }, [allBillingMilestones, activeTab]);
+    return allBillingMilestones
+      .filter(milestone => {
+        if (activeTab === 'open') {
+          // Open tab should only show upcoming and delayed milestones
+          return milestone.status === 'upcoming' || milestone.status === 'delayed';
+        } else {
+          // Invoiced tab should show invoiced, paid, and billed milestones (all completed)
+          return milestone.status === 'invoiced' || milestone.status === 'paid' || milestone.status === 'billed';
+        }
+      })
+      .map(milestone => {
+        // Enhance milestone data with project information for search functionality
+        const project = projects?.find(p => p.id === milestone.projectId);
+        return {
+          ...milestone,
+          // Add project fields for search
+          projectNumber: project?.projectNumber || '',
+          projectName: project?.name || '',
+          pmOwner: project?.pmOwner || '',
+          location: project?.location || '',
+        };
+      });
+  }, [allBillingMilestones, activeTab, projects]);
 
   // Query for financial goals
   const { data: financialGoals, isLoading: isLoadingGoals } = useQuery<{
@@ -118,10 +136,6 @@ const BillingMilestones = () => {
     updatedAt: string;
   }[]>({
     queryKey: ['/api/financial-goals'],
-  });
-
-  const { data: projects, isLoading: isLoadingProjects } = useQuery({
-    queryKey: ['/api/projects'],
   });
 
   // Delete milestone mutation
@@ -1533,7 +1547,7 @@ const BillingMilestones = () => {
         data={billingMilestones || []}
         filterColumn="status"
         filterOptions={statusOptions}
-        searchPlaceholder="Search milestones..."
+        searchPlaceholder="Search by project number, name, milestone name, PM owner, location..."
       />
 
       {/* Milestone Details Dialog */}

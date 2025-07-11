@@ -145,11 +145,17 @@ export function DataTable<TData, TValue>({
     
     const searchValue = value.toLowerCase().trim();
     
-    // Only search in actual table columns that exist
-    const actualTableColumns = ['projectNumber', 'pmOwner', 'location'];
+    // Search fields for Projects module
+    const projectFields = ['projectNumber', 'pmOwner', 'location', 'name', 'status'];
     
-    // Search across actual table columns
-    for (const field of actualTableColumns) {
+    // Search fields for Billing Milestones module
+    const billingFields = ['projectNumber', 'projectName', 'pmOwner', 'location', 'name', 'status'];
+    
+    // Combine all potential search fields
+    const allSearchFields = [...new Set([...projectFields, ...billingFields])];
+    
+    // Search across all possible table columns
+    for (const field of allSearchFields) {
       try {
         const fieldValue = row.getValue(field);
         if (fieldValue && typeof fieldValue === 'string') {
