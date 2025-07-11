@@ -282,7 +282,7 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
              }}
         >
           {/* Sticky project column */}
-          <div className="w-64 flex-shrink-0 bg-white dark:bg-gray-900 border-r sticky left-0 z-10">
+          <div className="w-64 flex-shrink-0 bg-white dark:bg-gray-900 border-r sticky left-0 z-20">
             {ganttRows.map((row, index) => {
               if (!row) return null;
               const { project } = row;
