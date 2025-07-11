@@ -780,6 +780,8 @@ export const billingMilestones = pgTable("billing_milestones", {
   liveDate: date("live_date"),
   lastAcceptedShipDate: date("last_accepted_ship_date"),
   shipDateChanged: boolean("ship_date_changed").default(false),
+  // Live invoice date for tracking live vs target dates
+  liveInvoiceDate: date("live_invoice_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

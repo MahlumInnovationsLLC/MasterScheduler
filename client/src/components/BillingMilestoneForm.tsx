@@ -49,12 +49,14 @@ const formSchema = z.object({
   targetInvoiceDate: z.string().optional(),
   actualInvoiceDate: z.string().optional(),
   paymentReceivedDate: z.string().optional(),
-  status: z.enum(["upcoming", "invoiced", "paid", "delayed"]),
+  status: z.enum(["upcoming", "invoiced", "paid", "delayed", "billed"]),
   // Delivery milestone flag
   isDeliveryMilestone: z.boolean().default(false),
   // Live date tracking for approval workflow
   liveDate: z.string().optional(),
   shipDateChanged: z.boolean().default(false),
+  // Live invoice date for tracking live vs target dates
+  liveInvoiceDate: z.string().optional(),
   // New fields
   contractReference: z.string().optional(),
   paymentTerms: z.string().optional(),
@@ -117,6 +119,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
       isDeliveryMilestone: existingMilestone.isDeliveryMilestone || false,
       liveDate: existingMilestone.liveDate || "",
       shipDateChanged: existingMilestone.shipDateChanged || false,
+      liveInvoiceDate: existingMilestone.liveInvoiceDate || "",
     } : {
       projectId: projectId || 0,
       name: "",
@@ -129,6 +132,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
       isDeliveryMilestone: false,
       liveDate: "",
       shipDateChanged: false,
+      liveInvoiceDate: "",
       ...defaultValues,
     },
   });
@@ -155,6 +159,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         notes: existingMilestone.notes || "",
         liveDate: existingMilestone.liveDate || "",
         shipDateChanged: existingMilestone.shipDateChanged || false,
+        liveInvoiceDate: existingMilestone.liveInvoiceDate || "",
       });
     }
   }, [isEdit, existingMilestone, form]);
@@ -172,6 +177,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         paymentReceivedDate: data.paymentReceivedDate || null,
         liveDate: data.liveDate || null,
         shipDateChanged: data.shipDateChanged || false,
+        liveInvoiceDate: data.liveInvoiceDate || null,
         // Keep amount as string since the schema expects it
         amount: data.amount,
       };
@@ -218,6 +224,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         paymentReceivedDate: data.paymentReceivedDate || null,
         liveDate: data.liveDate || null,
         shipDateChanged: data.shipDateChanged || false,
+        liveInvoiceDate: data.liveInvoiceDate || null,
         // Keep amount as string since the schema expects it
         amount: data.amount,
       };
@@ -424,6 +431,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
                         <SelectContent>
                           <SelectItem value="upcoming">Upcoming</SelectItem>
                           <SelectItem value="invoiced">Invoiced</SelectItem>
+                          <SelectItem value="billed">Billed</SelectItem>
                           <SelectItem value="paid">Paid</SelectItem>
                           <SelectItem value="delayed">Delayed</SelectItem>
                         </SelectContent>
@@ -435,25 +443,47 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
               </div>
 
               {/* Show additional fields based on status */}
-              {(form.watch("status") === "invoiced" || form.watch("status") === "paid" || form.watch("status") === "delayed") && (
-                <FormField
-                  control={form.control}
-                  name="actualInvoiceDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Actual Invoice Date</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          {...field}
-                          disabled={isPending}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {(form.watch("status") === "invoiced" || form.watch("status") === "billed" || form.watch("status") === "paid" || form.watch("status") === "delayed") && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="actualInvoiceDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Actual Invoice Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                            disabled={isPending}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="liveInvoiceDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Live Invoice Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                            disabled={isPending}
+                            value={field.value || ''}
+                            placeholder="Track live vs target dates"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               )}
 
               {form.watch("status") === "paid" && (
