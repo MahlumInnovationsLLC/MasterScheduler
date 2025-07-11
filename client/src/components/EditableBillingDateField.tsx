@@ -236,7 +236,7 @@ const EditableBillingDateField: React.FC<EditableBillingDateFieldProps> = ({
           <button
             onClick={handleSave}
             disabled={isUpdating}
-            className="px-3 py-1 text-xs bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
+            className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50"
           >
             {isUpdating ? 'Saving...' : 'Save'}
           </button>
