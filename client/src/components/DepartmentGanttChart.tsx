@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback } from 'react';
 import { format, differenceInDays, startOfWeek, endOfWeek, addWeeks, parseISO, addDays } from 'date-fns';
 import { Project } from '@shared/schema';
 import { ChevronRight } from 'lucide-react';
@@ -8,13 +8,15 @@ interface DepartmentGanttChartProps {
   department: 'mech' | 'fab' | 'paint' | 'wrap';
   dateRange: { start: Date; end: Date };
   viewMode: 'week' | 'month';
+  onTodayButtonRef?: (scrollToToday: () => void) => void;
 }
 
 const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
   projects,
   department,
   dateRange,
-  viewMode
+  viewMode,
+  onTodayButtonRef
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -105,18 +107,51 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
     return slots;
   }, [dateRange]);
   
-  // Auto-scroll to today
-  useEffect(() => {
+  // Smart scroll to today with first FAB project
+  const scrollToToday = useCallback(() => {
     if (containerRef.current && headerRef.current) {
       const today = new Date();
-      const daysFromStart = differenceInDays(today, dateRange.start);
       const pixelsPerDay = slotWidth / 7;
-      const scrollPosition = daysFromStart * pixelsPerDay - 400; // Center it
+      const todayPosition = differenceInDays(today, dateRange.start) * pixelsPerDay;
       
+      // Find the first FAB project that crosses the today line
+      const firstFabProject = ganttRows.find(row => {
+        if (!row) return false;
+        const { startDate, endDate } = row;
+        return startDate <= today && endDate >= today;
+      });
+      
+      let scrollPosition = todayPosition - 400; // Default center on today
+      
+      if (firstFabProject) {
+        // Calculate the project's row position for vertical scrolling
+        const projectIndex = ganttRows.indexOf(firstFabProject);
+        const projectVerticalPosition = projectIndex * rowHeight;
+        
+        // Scroll to center the project vertically
+        const containerHeight = containerRef.current.clientHeight;
+        const verticalScrollPosition = projectVerticalPosition - (containerHeight / 2) + (rowHeight / 2);
+        
+        containerRef.current.scrollTop = Math.max(0, verticalScrollPosition);
+      }
+      
+      // Horizontal scroll to today line
       containerRef.current.scrollLeft = Math.max(0, scrollPosition);
       headerRef.current.scrollLeft = Math.max(0, scrollPosition);
     }
-  }, [dateRange]);
+  }, [dateRange, ganttRows, rowHeight, slotWidth]);
+
+  // Auto-scroll to today on mount
+  useEffect(() => {
+    scrollToToday();
+  }, [scrollToToday]);
+
+  // Expose scrollToToday function to parent
+  useEffect(() => {
+    if (onTodayButtonRef) {
+      onTodayButtonRef(scrollToToday);
+    }
+  }, [scrollToToday, onTodayButtonRef]);
   
   // Calculate bar position and width
   const calculateBarPosition = (startDate: Date, endDate: Date) => {
@@ -286,14 +321,6 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
             })}
           </div>
         </div>
-      </div>
-      
-      {/* Summary footer */}
-      <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t px-4 py-2 text-sm z-20">
-        <span className="font-medium">{ganttRows.length} Projects</span>
-        <span className="text-gray-500 dark:text-gray-400 ml-4">
-          {department.toUpperCase()} Phase Schedule
-        </span>
       </div>
     </div>
   );

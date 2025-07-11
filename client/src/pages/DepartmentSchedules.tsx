@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Factory, PaintBucket, Package, Wrench } from 'lucide-react';
 import DepartmentGanttChart from '@/components/DepartmentGanttChart';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
-// Removed unused import
 
 interface Project {
   id: number;
@@ -60,6 +59,7 @@ const DepartmentSchedules = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location>('columbia-falls');
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [scrollToTodayFunction, setScrollToTodayFunction] = useState<(() => void) | null>(null);
 
   // Fetch data
   const { data: projects = [] } = useQuery<Project[]>({
@@ -152,38 +152,19 @@ const DepartmentSchedules = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Department Schedules</h1>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePreviousWeek}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-sm font-medium">
-              Week of {format(currentWeek, 'MMM d, yyyy')}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNextWeek}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline" 
-              size="sm"
-              onClick={() => setCurrentWeek(new Date())}
-              className="ml-2"
-            >
-              Today
-            </Button>
-          </div>
-          <Badge variant="outline" className="text-xs">
-            View Mode: {viewMode === 'week' ? 'Weekly' : 'Monthly'}
-          </Badge>
-        </div>
+        <Button
+          variant="outline" 
+          size="sm"
+          onClick={() => {
+            setCurrentWeek(new Date());
+            if (scrollToTodayFunction) {
+              scrollToTodayFunction();
+            }
+          }}
+          className="ml-2"
+        >
+          Today
+        </Button>
       </div>
 
       <Tabs value={selectedDepartment} onValueChange={(v) => setSelectedDepartment(v as DepartmentPhase)}>
@@ -235,6 +216,7 @@ const DepartmentSchedules = () => {
                           department={selectedDepartment}
                           dateRange={dateRange}
                           viewMode={viewMode}
+                          onTodayButtonRef={setScrollToTodayFunction}
                         />
                       )}
                     </CardContent>
