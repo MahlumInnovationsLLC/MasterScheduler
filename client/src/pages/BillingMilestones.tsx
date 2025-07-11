@@ -918,14 +918,10 @@ const BillingMilestones = () => {
           );
         }
 
-        // Check if this is a delivery milestone with date changes
-        const project = projects?.find(p => p.id === row.original.projectId);
-        const projectDeliveryDate = project?.deliveryDate;
-        const liveDate = row.original.liveDate || projectDeliveryDate;
-        const hasDateChange = isDeliveryMilestone && 
-                             liveDate && 
-                             row.original.targetInvoiceDate && 
-                             new Date(liveDate).toDateString() !== new Date(row.original.targetInvoiceDate).toDateString();
+        // Check if Target Date is different from Live Date in billing milestone
+        const hasDateChange = row.original.targetInvoiceDate && 
+                             row.original.liveDate && 
+                             new Date(row.original.targetInvoiceDate).toDateString() !== new Date(row.original.liveDate).toDateString();
 
         return (
           <div 
@@ -961,16 +957,13 @@ const BillingMilestones = () => {
         const displayDate = isDeliveryMilestone && projectDeliveryDate ? 
           projectDeliveryDate : row.original.liveDate;
 
-        // Check if there's an actual difference between target date and live date
-        const targetDate = row.original.targetInvoiceDate;
-        const liveDate = row.original.liveDate || projectDeliveryDate;
-        const hasDateChange = isDeliveryMilestone && 
-                             liveDate && 
-                             targetDate && 
-                             new Date(liveDate).toDateString() !== new Date(targetDate).toDateString();
+        // Check if Target Date is different from Live Date in billing milestone
+        const hasDateChange = row.original.targetInvoiceDate && 
+                             row.original.liveDate && 
+                             new Date(row.original.targetInvoiceDate).toDateString() !== new Date(row.original.liveDate).toDateString();
 
-        // Show approval button if this is a delivery milestone with date changes flagged for approval
-        const showApprovalButton = isDeliveryMilestone && row.original.shipDateChanged;
+        // Show approval button if Target Date differs from Live Date
+        const showApprovalButton = hasDateChange;
 
         if (!displayDate) {
           return <div className="text-gray-400">-</div>;
