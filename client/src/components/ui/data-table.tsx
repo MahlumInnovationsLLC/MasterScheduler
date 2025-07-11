@@ -145,49 +145,30 @@ export function DataTable<TData, TValue>({
     
     const searchValue = value.toLowerCase().trim();
     
-    // Search fields for Projects module
-    const projectFields = ['projectNumber', 'pmOwner', 'location', 'name', 'status'];
-    
-    // Search fields for Billing Milestones module
-    const billingFields = ['projectNumber', 'projectName', 'pmOwner', 'location', 'name', 'status'];
-    
-    // Combine all potential search fields
-    const allSearchFields = [...new Set([...projectFields, ...billingFields])];
-    
-    // Search across all possible table columns
-    for (const field of allSearchFields) {
-      try {
-        const fieldValue = row.getValue(field);
-        if (fieldValue && typeof fieldValue === 'string') {
-          if (fieldValue.toLowerCase().includes(searchValue)) {
-            return true;
-          }
-        }
-      } catch (error) {
-        // Column doesn't exist, skip it
-        continue;
-      }
-    }
-    
-    // Search in original row data for all other fields
+    // Search in original row data directly (this contains all the data)
     const original = row.original;
     if (original) {
       // Define all searchable fields from the original data
       const searchableFields = [
-        'name',           // Project name
-        'description',    // Project description  
+        'projectNumber',  // Project number
+        'projectName',    // Project name  
+        'name',           // Milestone name or project name
+        'description',    // Description
         'customer',       // Customer name
-        'team',          // Team assignment
-        'notes',         // Project notes
-        'status',        // Project status
-        'assignedTo',    // Assigned person
-        'department'     // Department
+        'team',           // Team assignment
+        'notes',          // Project notes
+        'status',         // Project status
+        'assignedTo',     // Assigned person
+        'department',     // Department
+        'pmOwner',        // Project manager
+        'location',       // Project location
+        'amount',         // Milestone amount
       ];
       
       for (const field of searchableFields) {
         const fieldValue = original[field];
-        if (fieldValue && typeof fieldValue === 'string') {
-          if (fieldValue.toLowerCase().includes(searchValue)) {
+        if (fieldValue && (typeof fieldValue === 'string' || typeof fieldValue === 'number')) {
+          if (fieldValue.toString().toLowerCase().includes(searchValue)) {
             return true;
           }
         }
