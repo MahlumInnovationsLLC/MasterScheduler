@@ -376,8 +376,9 @@ router.get("/calculations", async (req: AppRequest, res) => {
 
       return {
         departmentId: dept.id,
-        departmentName: dept.departmentName,
+        departmentName: dept.name,
         departmentType: dept.departmentType,
+        location: dept.location,
         totalMembers: deptMembers.length,
         weeklyCapacityHours: totalWeeklyHours || dept.weeklyCapacityHours,
         utilizationTarget: dept.utilizationTarget,

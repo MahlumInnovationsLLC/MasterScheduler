@@ -74,6 +74,11 @@ const DepartmentSchedules = () => {
     queryKey: ['/api/manufacturing-bays']
   });
 
+  // Fetch capacity data for department titles
+  const { data: capacityData } = useQuery({
+    queryKey: ['/api/capacity/calculations']
+  });
+
   // Calculate date range for current view (extend from beginning of year to 2030)
   const dateRange = useMemo(() => {
     const yearStart = new Date(2025, 0, 1); // Start from January 1, 2025
@@ -130,6 +135,32 @@ const DepartmentSchedules = () => {
       }
     }).length;
   }, [locationProjects, selectedDepartment]);
+
+  // Get capacity information for current department and location
+  const getCapacityInfo = (department: DepartmentPhase, location: Location) => {
+    if (!capacityData?.departmentCapacity) return null;
+    
+    // Map department phase to capacity department type
+    const departmentTypeMap = {
+      'mech': 'fabrication', // MECH work is typically done in fabrication
+      'fab': 'fabrication',
+      'paint': 'paint',
+      'wrap': 'production' // Wrap work is typically done in production
+    };
+    
+    const locationName = location === 'columbia-falls' ? 'Columbia Falls, MT' : 'Libby, MT';
+    
+    const capacity = capacityData.departmentCapacity.find(
+      (dept: any) => dept.departmentType === departmentTypeMap[department] && 
+                     dept.location === locationName
+    );
+    
+    return capacity ? {
+      weeklyHours: capacity.weeklyCapacityHours,
+      utilization: capacity.utilizationPercentage,
+      staffCount: capacity.totalMembers
+    } : null;
+  };
 
   const handlePreviousWeek = () => {
     setCurrentWeek(prev => subWeeks(prev, 1));
@@ -204,9 +235,28 @@ const DepartmentSchedules = () => {
                           {getDepartmentIcon(dept as DepartmentPhase)}
                           {dept.toUpperCase()} Schedule - {location === 'columbia-falls' ? 'Columbia Falls' : 'Libby'}
                         </span>
-                        <Badge variant="secondary">
-                          {location === selectedLocation && dept === selectedDepartment ? activeProjectCount : 0} Active Projects
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {location === selectedLocation && dept === selectedDepartment ? activeProjectCount : 0} Active Projects
+                          </Badge>
+                          {(() => {
+                            const capacityInfo = getCapacityInfo(dept as DepartmentPhase, location as Location);
+                            if (capacityInfo) {
+                              return (
+                                <Badge variant="outline" className="text-xs">
+                                  {capacityInfo.weeklyHours}h/week capacity
+                                </Badge>
+                              );
+                            }
+                            return (
+                              <Badge variant="destructive" className="text-xs">
+                                <a href="/capacity-management" className="text-inherit hover:underline">
+                                  Setup Capacity
+                                </a>
+                              </Badge>
+                            );
+                          })()}
+                        </div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
