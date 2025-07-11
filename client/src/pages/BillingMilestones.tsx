@@ -139,19 +139,14 @@ const BillingMilestones = () => {
           const bLiveDate = bIsDelivery ? 
             (bProject?.deliveryDate || bProject?.shipDate || b.liveDate) : b.liveDate;
           
-          // Sort by live date (earliest first)
-          if (aLiveDate && bLiveDate) {
-            return new Date(aLiveDate).getTime() - new Date(bLiveDate).getTime();
-          }
-          
-          // If one doesn't have a live date, put it last
-          if (aLiveDate && !bLiveDate) return -1;
-          if (!aLiveDate && bLiveDate) return 1;
-          
-          // If neither has a live date, sort by target date
+          // Sort by target date (earliest first)
           if (a.targetInvoiceDate && b.targetInvoiceDate) {
             return new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime();
           }
+          
+          // If one doesn't have a target date, put it last
+          if (a.targetInvoiceDate && !b.targetInvoiceDate) return -1;
+          if (!a.targetInvoiceDate && b.targetInvoiceDate) return 1;
           
           return 0;
         } else {

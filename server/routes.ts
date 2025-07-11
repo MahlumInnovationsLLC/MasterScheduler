@@ -2736,6 +2736,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (project?.deliveryDate || project?.shipDate || currentMilestone.liveDate) : 
           currentMilestone.liveDate;
         
+        console.log(`📅 Milestone ${milestoneId} analysis:`, {
+          name: currentMilestone.name,
+          isDeliveryMilestone,
+          currentTargetDate: currentMilestone.targetInvoiceDate,
+          milestoneLiveDate: currentMilestone.liveDate,
+          projectDeliveryDate: project?.deliveryDate,
+          projectShipDate: project?.shipDate,
+          correctLiveDate
+        });
+        
         const updateData = {
           ...req.body,
           targetInvoiceDate: correctLiveDate || currentMilestone.targetInvoiceDate,
