@@ -95,11 +95,11 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
         .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
       const invoiced = periodMilestones
-        .filter(m => m.status === 'invoiced')
+        .filter(m => m.status === 'invoiced' || m.status === 'billed')
         .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
       const paid = periodMilestones
-        .filter(m => m.status === 'paid' || m.status === 'billed')
+        .filter(m => m.status === 'paid')
         .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
       // For future periods, outstanding becomes projected

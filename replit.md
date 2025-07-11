@@ -523,6 +523,8 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Fixed TBD milestone display by updating import logic to preserve NULL target dates instead of defaulting to current date
   - Enhanced billing milestone ordering to include TBD milestones (NULL target dates) in project milestone lists
   - Updated milestone cards to show "TBD" for milestones without target dates instead of "Upcoming"
+  - Enhanced Cash Flow Widget to show "billed" milestones as "invoiced" instead of "paid" for accurate cash flow visualization
+  - Fixed cash flow calculation to properly reflect $59.5M in billed milestones as invoiced amounts in horizontal bars
 
 
 ## User Preferences
