@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react';
 
 interface DepartmentGanttChartProps {
   projects: Project[];
-  department: 'mech' | 'fab' | 'paint' | 'production' | 'it' | 'ntc' | 'qc' | 'wrap';
+  department: 'full-timeline' | 'mech' | 'fab' | 'paint' | 'production' | 'it' | 'ntc' | 'qc' | 'wrap';
   dateRange: { start: Date; end: Date };
   viewMode: 'week' | 'month';
   onTodayButtonRef?: (scrollToToday: () => void) => void;
@@ -28,6 +28,8 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
     const filteredProjects = projects.filter(project => {
       // Filter by department phase availability - project must have BOTH dates
       switch (department) {
+        case 'full-timeline':
+          return project.shipDate && (project.mechShop || project.fabricationStart || project.paintStart || project.productionStart);
         case 'mech':
           return project.mechShop && project.productionStart;
         case 'fab':
@@ -58,6 +60,26 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
         
         // Determine dates and colors based on department
         switch (department) {
+          case 'full-timeline':
+            // Find the earliest start date
+            const startOptions = [
+              project.mechShop,
+              project.fabricationStart,
+              project.paintStart,
+              project.productionStart
+            ].filter(Boolean);
+            
+            if (startOptions.length === 0) return null;
+            
+            const earliestStart = startOptions
+              .map(date => parseISO(date!.split('T')[0]))
+              .sort((a, b) => a.getTime() - b.getTime())[0];
+            
+            startDate = earliestStart;
+            endDate = parseISO(project.shipDate!.split('T')[0]);
+            barColor = 'linear-gradient(90deg, #f97316 0%, #dc2626 25%, #10b981 50%, #8b5cf6 75%, #06b6d4 100%)'; // Rainbow gradient
+            phaseName = 'FULL';
+            break;
           case 'mech':
             startDate = parseISO(project.mechShop!.split('T')[0]);
             endDate = parseISO(project.productionStart!.split('T')[0]);
@@ -323,7 +345,9 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
                       width: `${width}px`,
                       height: '24px',
                       top: `${(rowHeight - 24) / 2}px`, // Center vertically
-                      backgroundColor: barColor
+                      ...(barColor.startsWith('linear-gradient') 
+                        ? { background: barColor } 
+                        : { backgroundColor: barColor })
                     }}
                     onClick={() => window.location.href = `/project/${project.id}`}
                   >

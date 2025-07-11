@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Factory, PaintBucket, Package, Wrench, Settings, Monitor, TestTube, CheckCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Factory, PaintBucket, Package, Wrench, Settings, Monitor, TestTube, CheckCircle, Calendar } from 'lucide-react';
 import DepartmentGanttChart from '@/components/DepartmentGanttChart';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 
@@ -51,7 +51,7 @@ interface ManufacturingBay {
   team: string | null;
 }
 
-type DepartmentPhase = 'mech' | 'fab' | 'paint' | 'production' | 'it' | 'ntc' | 'qc' | 'wrap';
+type DepartmentPhase = 'full-timeline' | 'mech' | 'fab' | 'paint' | 'production' | 'it' | 'ntc' | 'qc' | 'wrap';
 type Location = 'columbia-falls' | 'libby' | 'all-locations';
 
 const DepartmentSchedules = () => {
@@ -129,6 +129,8 @@ const DepartmentSchedules = () => {
     // Count projects that have dates for the selected phase
     return locationProjects.filter(project => {
       switch (selectedDepartment) {
+        case 'full-timeline':
+          return project.shipDate && (project.mechShop || project.fabricationStart || project.paintStart || project.productionStart);
         case 'mech':
           return project.mechShop && project.productionStart; // MECH is 30 days before production
         case 'fab':
@@ -149,6 +151,7 @@ const DepartmentSchedules = () => {
     
     // Map department phase to capacity department type
     const departmentTypeMap = {
+      'full-timeline': 'fabrication', // Full timeline starts with fabrication
       'mech': 'fabrication', // MECH work is typically done in fabrication
       'fab': 'fabrication',
       'paint': 'paint',
@@ -212,6 +215,7 @@ const DepartmentSchedules = () => {
 
   const getDepartmentIcon = (dept: DepartmentPhase) => {
     switch (dept) {
+      case 'full-timeline': return <Calendar className="w-4 h-4" />;
       case 'mech': return <Wrench className="w-4 h-4" />;
       case 'fab': return <Factory className="w-4 h-4" />;
       case 'paint': return <PaintBucket className="w-4 h-4" />;
@@ -230,7 +234,11 @@ const DepartmentSchedules = () => {
       </div>
 
       <Tabs value={selectedDepartment} onValueChange={(v) => setSelectedDepartment(v as DepartmentPhase)}>
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
+          <TabsTrigger value="full-timeline" className="flex items-center gap-2">
+            {getDepartmentIcon('full-timeline')}
+            Full Timeline
+          </TabsTrigger>
           <TabsTrigger value="mech" className="flex items-center gap-2">
             {getDepartmentIcon('mech')}
             MECH Shop
@@ -265,7 +273,7 @@ const DepartmentSchedules = () => {
           </TabsTrigger>
         </TabsList>
 
-        {['mech', 'fab', 'paint', 'production', 'it', 'ntc', 'qc', 'wrap'].map((dept) => (
+        {['full-timeline', 'mech', 'fab', 'paint', 'production', 'it', 'ntc', 'qc', 'wrap'].map((dept) => (
           <TabsContent key={dept} value={dept} className="mt-6">
             <Tabs value={selectedLocation} onValueChange={(v) => setSelectedLocation(v as Location)}>
               <TabsList className="grid w-full grid-cols-3 mb-4">
