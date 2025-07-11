@@ -287,10 +287,16 @@ const DepartmentSchedules = () => {
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          {getDepartmentIcon(dept as DepartmentPhase)}
-                          {dept.toUpperCase()} Schedule - {location === 'columbia-falls' ? 'Columbia Falls' : location === 'libby' ? 'Libby' : 'All Locations'}
-                        </span>
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-2">
+                            {getDepartmentIcon(dept as DepartmentPhase)}
+                            {dept.toUpperCase()} Schedule - {location === 'columbia-falls' ? 'Columbia Falls' : location === 'libby' ? 'Libby' : 'All Locations'}
+                          </span>
+                          <div className="delivered-legend-key">
+                            <div className="legend-indicator"></div>
+                            <span className="text-xs font-medium text-green-700 dark:text-green-300">Delivered</span>
+                          </div>
+                        </div>
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary">
                             {location === selectedLocation && dept === selectedDepartment ? activeProjectCount : 0} Active Projects
