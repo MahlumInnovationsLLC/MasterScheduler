@@ -55,6 +55,7 @@ import { EditableStatusField } from '@/components/EditableStatusField';
 import CCBRequestDialog from '@/components/CCBRequestDialog';
 import ImpactAssessmentDialog from '@/components/ImpactAssessmentDialog';
 import { Badge } from '@/components/ui/badge';
+import { EngineeringAssignmentCell } from '@/components/EngineeringAssignmentCell';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1681,23 +1682,30 @@ const ProjectStatus = () => {
       (value) => value ? 'Yes' : 'No',
       { size: 120 }),
     createColumn('meAssigned', 'meAssigned', 'ME Assigned',
-      (value, project) => <EditableTextField projectId={project.id} field="meAssigned" value={value} />,
+      (value, project) => <EngineeringAssignmentCell projectId={project.id} discipline="ME" />,
       { size: 120 }),
     createColumn('meDesignOrdersPercent', 'meDesignOrdersPercent', 'ME Design %',
       (value, project) => <EditableTextField projectId={project.id} field="meDesignOrdersPercent" value={value} isPercentage={true} />,
       { size: 120 }),
     createColumn('eeAssigned', 'eeAssigned', 'EE Assigned',
-      (value, project) => <EditableTextField projectId={project.id} field="eeAssigned" value={value} />,
+      (value, project) => <EngineeringAssignmentCell projectId={project.id} discipline="EE" />,
       { size: 120 }),
     createColumn('eeDesignOrdersPercent', 'eeDesignOrdersPercent', 'EE Design %',
       (value, project) => <EditableTextField projectId={project.id} field="eeDesignOrdersPercent" value={value} isPercentage={true} />,
       { size: 120 }),
     createColumn('iteAssigned', 'iteAssigned', 'ITE Assigned',
-      (value, project) => <EditableTextField projectId={project.id} field="iteAssigned" value={value} />,
+      (value, project) => <EngineeringAssignmentCell projectId={project.id} discipline="ITE" />,
       { size: 120 }),
     createColumn('itDesignOrdersPercent', 'itDesignOrdersPercent', 'IT Design %',
       (value, project) => <EditableTextField projectId={project.id} field="itDesignOrdersPercent" value={value} isPercentage={true} />,
       { size: 120 }),
+    // Add NTC Assigned column
+    {
+      id: 'ntcAssigned',
+      header: 'NTC Assigned',
+      cell: ({ row }) => <EngineeringAssignmentCell projectId={row.original.id} discipline="NTC" />,
+      size: 120
+    },
     createColumn('ntcDesignOrdersPercent', 'ntcDesignOrdersPercent', 'NTC Design %',
       (value, project) => <EditableTextField projectId={project.id} field="ntcDesignOrdersPercent" value={value} isPercentage={true} />,
       { size: 120 }),
