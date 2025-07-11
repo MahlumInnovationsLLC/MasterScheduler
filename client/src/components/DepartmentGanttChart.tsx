@@ -340,8 +340,9 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
                   {/* Phase bar */}
                   <div
                     className={`absolute rounded shadow-sm flex items-center justify-center text-white text-xs font-semibold hover:shadow-md transition-shadow cursor-pointer ${
-                      project.status === 'Delivered' ? 'delivered-project-glow' : ''
+                      project.status?.toLowerCase() === 'delivered' ? 'delivered-project-glow' : ''
                     }`}
+                    title={`Project: ${project.projectNumber} - Status: ${project.status || 'No Status'}`}
                     style={{
                       left: `${left}px`,
                       width: `${width}px`,
