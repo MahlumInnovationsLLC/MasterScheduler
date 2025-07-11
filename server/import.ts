@@ -1248,6 +1248,139 @@ export async function importDeliveryTracking(req: Request, res: Response) {
   }
 }
 
+// Import Engineering Assignments
+export async function importEngineeringAssignments(req: Request, res: Response) {
+  try {
+    const engineeringData = req.body;
+    
+    if (!Array.isArray(engineeringData)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid engineering assignment data. Expected an array.' 
+      });
+    }
+
+    const results = {
+      imported: 0,
+      errors: 0,
+      details: [] as string[],
+      newUsers: [] as string[]
+    };
+
+    // Get all existing users for lookup
+    const existingUsers = await storage.getUsers();
+    const allProjects = await storage.getProjects();
+    
+    // Process each engineering assignment
+    for (const assignment of engineeringData) {
+      try {
+        const projectNumber = assignment.projectNumber;
+        
+        if (!projectNumber) {
+          results.errors++;
+          results.details.push('Missing project number');
+          continue;
+        }
+        
+        // Find the project
+        const project = allProjects.find(p => p.projectNumber === projectNumber);
+        
+        if (!project) {
+          results.errors++;
+          results.details.push(`Project not found: ${projectNumber}`);
+          continue;
+        }
+        
+        // Process engineers and create users if necessary
+        const engineers = [
+          { name: assignment.meEngineer, discipline: 'ME', percentField: 'meDesignOrdersPercent', assignField: 'meAssigned', percent: assignment.meCompletionPercent },
+          { name: assignment.eeEngineer, discipline: 'EE', percentField: 'eeDesignOrdersPercent', assignField: 'eeAssigned', percent: assignment.eeCompletionPercent },
+          { name: assignment.iteEngineer, discipline: 'ITE', percentField: 'itDesignOrdersPercent', assignField: 'iteAssigned', percent: assignment.iteCompletionPercent }
+        ];
+        
+        const projectUpdates: any = {};
+        
+        for (const eng of engineers) {
+          if (eng.name) {
+            // Check if user exists
+            let user = existingUsers.find(u => 
+              `${u.firstName} ${u.lastName}`.toLowerCase() === eng.name.toLowerCase() ||
+              u.email.toLowerCase() === eng.name.toLowerCase()
+            );
+            
+            if (!user) {
+              // Create new user as OFFLINE
+              const nameParts = eng.name.split(' ');
+              const firstName = nameParts[0] || eng.name;
+              const lastName = nameParts.slice(1).join(' ') || '';
+              const username = eng.name.toLowerCase().replace(/\s+/g, '.');
+              const email = `${username}@nomadgcs.com`;
+              
+              const newUser = {
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                username: username,
+                role: 'viewer' as const,
+                department: 'engineering' as const,
+                isApproved: true,
+                status: 'offline' as const
+              };
+              
+              try {
+                user = await storage.createUser(newUser);
+                existingUsers.push(user);
+                results.newUsers.push(`${firstName} ${lastName} (${eng.discipline})`);
+              } catch (error) {
+                console.error('Failed to create user:', error);
+                continue;
+              }
+            }
+            
+            // Update project with engineer assignment
+            projectUpdates[eng.assignField] = `${user.firstName} ${user.lastName}`;
+            if (eng.percent !== null && eng.percent !== undefined) {
+              projectUpdates[eng.percentField] = eng.percent;
+            }
+          }
+        }
+        
+        // Update the project with all assignments
+        if (Object.keys(projectUpdates).length > 0) {
+          await storage.updateProject(project.id, projectUpdates);
+          results.imported++;
+        }
+        
+      } catch (error) {
+        console.error('Error processing engineering assignment:', error);
+        results.errors++;
+        results.details.push((error as Error).message);
+      }
+    }
+
+    const message = results.newUsers.length > 0
+      ? `Successfully imported ${results.imported} engineering assignments. Created ${results.newUsers.length} new offline users: ${results.newUsers.join(', ')}`
+      : `Successfully imported ${results.imported} engineering assignments`;
+
+    return res.status(200).json({
+      success: true,
+      message: message,
+      imported: results.imported,
+      errors: results.errors,
+      details: results.details,
+      newUsers: results.newUsers
+    });
+  } catch (error) {
+    console.error('Import engineering assignments error:', error);
+    return res.status(500).json({
+      success: false,
+      message: (error as Error).message,
+      errors: 1,
+      details: [(error as Error).message]
+    });
+  }
+}
+
 export async function importManufacturingSchedules(req: Request, res: Response) {
   try {
     const schedulesData = req.body;

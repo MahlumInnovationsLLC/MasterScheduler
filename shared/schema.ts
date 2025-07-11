@@ -227,6 +227,7 @@ export const userStatusEnum = pgEnum("user_status", [
   "active",
   "inactive",
   "archived",
+  "offline",
 ]);
 
 // User Department enum for user department assignments

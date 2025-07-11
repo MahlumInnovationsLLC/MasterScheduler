@@ -83,7 +83,8 @@ import {
   importBillingMilestones, 
   importManufacturingBays,
   importManufacturingSchedules,
-  importDeliveryTracking
+  importDeliveryTracking,
+  importEngineeringAssignments
 } from "./import";
 import { importBayScheduling } from "./routes/baySchedulingImport";
 import rolePermissionsRouter from "./routes/rolePermissions";
@@ -2864,6 +2865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   app.post("/api/import/delivery-tracking", simpleAuth, importDeliveryTracking);
   app.post("/api/import/bay-scheduling", simpleAuth, importBayScheduling);
+  app.post("/api/import/engineering", simpleAuth, importEngineeringAssignments);
   
   // Debug endpoint for the bay scheduling import (temporary - remove in production)
   app.post("/api/debug/bay-scheduling-import", async (req, res) => {

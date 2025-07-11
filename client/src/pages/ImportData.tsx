@@ -168,6 +168,9 @@ const ImportDataPage = () => {
         case 'delivery':
           result = await processDeliveryData(headerMappedData);
           break;
+        case 'engineering':
+          result = await processEngineeringData(headerMappedData);
+          break;
         default:
           throw new Error('Unknown import type');
       }
@@ -654,6 +657,57 @@ const ImportDataPage = () => {
     }
   };
 
+  // Process engineering assignment data
+  const processEngineeringData = async (data: any[]): Promise<any> => {
+    try {
+      // Clean and validate data
+      const engineeringAssignments = data.map(row => {
+        const projectNumber = row['Project Number'] || '';
+        
+        return {
+          projectNumber: projectNumber,
+          meEngineer: row['ME Engineer'] || row['ME Assigned'] || null,
+          eeEngineer: row['EE Engineer'] || row['EE Assigned'] || null,
+          iteEngineer: row['ITE Engineer'] || row['ITE Assigned'] || null,
+          meCompletionPercent: convertToInteger(row['ME Completion %'] || row['ME %'] || null),
+          eeCompletionPercent: convertToInteger(row['EE Completion %'] || row['EE %'] || null),
+          iteCompletionPercent: convertToInteger(row['ITE Completion %'] || row['ITE %'] || null),
+        };
+      }).filter(row => row.projectNumber); // Only include rows with project numbers
+
+      // Call API to save data
+      const response = await fetch('/api/import/engineering', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(engineeringAssignments),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to import engineering assignments');
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        message: result.message || `Successfully imported ${result.imported} engineering assignments`,
+        imported: result.imported,
+        errors: result.errors,
+        details: result.details
+      };
+    } catch (error) {
+      console.error('Process engineering data error:', error);
+      return {
+        success: false,
+        message: (error as Error).message,
+        errors: data.length,
+        details: [(error as Error).message]
+      };
+    }
+  };
+
   // Helper function to convert Excel date to ISO string
   const parseExcelDate = (excelDate: any): string | null => {
     if (!excelDate) return null;
@@ -943,6 +997,30 @@ const ImportDataPage = () => {
         ];
         filename = 'on_time_delivery_template.xlsx';
         break;
+      
+      case 'engineering':
+        template = [
+          {
+            'Project Number': '804924',
+            'ME Engineer': 'John Smith',
+            'EE Engineer': 'Jane Doe',
+            'ITE Engineer': 'Bob Johnson',
+            'ME Completion %': 75,
+            'EE Completion %': 100,
+            'ITE Completion %': 50
+          },
+          {
+            'Project Number': '805040',
+            'ME Engineer': 'Jason Vryhof',
+            'EE Engineer': 'Sarah Williams',
+            'ITE Engineer': 'Mike Brown',
+            'ME Completion %': 100,
+            'EE Completion %': 90,
+            'ITE Completion %': 80
+          }
+        ];
+        filename = 'engineering_assignments_template.xlsx';
+        break;
     }
 
     // Create worksheet
@@ -980,11 +1058,12 @@ const ImportDataPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="projects" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-4 mb-6">
+            <TabsList className="grid grid-cols-5 mb-6">
               <TabsTrigger value="projects">Tier IV Projects</TabsTrigger>
               <TabsTrigger value="billing">Billing Milestones</TabsTrigger>
               <TabsTrigger value="bay-scheduling">Bay Scheduling</TabsTrigger>
               <TabsTrigger value="delivery">On Time Delivery</TabsTrigger>
+              <TabsTrigger value="engineering">Engineering</TabsTrigger>
             </TabsList>
             
             <TabsContent value="projects">
@@ -1094,6 +1173,51 @@ const ImportDataPage = () => {
                     >
                       <Download className="mr-2 h-4 w-4" /> Template
                     </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="engineering">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-md font-medium mb-2">Import Engineering Assignments</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Upload an Excel file containing project numbers and assigned engineers.
+                    Engineers not found in the system will be automatically created and marked as OFFLINE/NOT REGISTERED.
+                  </p>
+                  
+                  <div className="flex justify-between items-center gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="engineering-file" className="mb-2 block">Select Engineering Assignments Excel File</Label>
+                      <Input 
+                        id="engineering-file" 
+                        type="file" 
+                        accept=".xlsx,.xls,.csv" 
+                        onChange={(e) => handleFileUpload(e, 'engineering')}
+                        disabled={isUploading}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => downloadTemplate('engineering')}
+                    >
+                      <Download className="mr-2 h-4 w-4" /> Template
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <h4 className="font-medium text-sm mb-2">Expected Format:</h4>
+                    <ul className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
+                      <li>• Project Number (required)</li>
+                      <li>• ME Engineer (full name)</li>
+                      <li>• EE Engineer (full name)</li>
+                      <li>• ITE Engineer (full name)</li>
+                      <li>• ME Completion % (optional)</li>
+                      <li>• EE Completion % (optional)</li>
+                      <li>• ITE Completion % (optional)</li>
+                    </ul>
                   </div>
                 </div>
               </div>
