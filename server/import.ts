@@ -998,7 +998,7 @@ export async function importBillingMilestones(req: Request, res: Response) {
           name: milestoneData.name || '',
           description: milestoneData.description || '',
           amount: finalAmount, 
-          targetInvoiceDate: milestoneData.targetDate || new Date().toISOString().split('T')[0],
+          targetInvoiceDate: milestoneData.targetDate || null,
           actualInvoiceDate: milestoneData.invoiceDate || null,
           paymentReceivedDate: milestoneData.paymentReceivedDate || null,
           status: validStatus,

@@ -1828,7 +1828,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(billingMilestones)
       .where(eq(billingMilestones.projectId, projectId))
-      .orderBy(billingMilestones.targetInvoiceDate);
+      .orderBy(sql`${billingMilestones.targetInvoiceDate} IS NULL, ${billingMilestones.targetInvoiceDate}`);
   }
 
   async getBillingMilestone(id: number): Promise<BillingMilestone | undefined> {
