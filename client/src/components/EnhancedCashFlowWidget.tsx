@@ -90,8 +90,7 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
         return targetDate >= period.start && targetDate <= period.end;
       });
 
-      const outstanding = periodMilestones
-        .filter(m => m.status === 'upcoming' || m.status === 'delayed')
+      const totalPeriodAmount = periodMilestones
         .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
       const invoiced = periodMilestones
@@ -102,14 +101,30 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
         .filter(m => m.status === 'paid')
         .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
-      // For future periods, outstanding becomes projected
-      const projected = selectedTimeframe === 'future' ? outstanding : 0;
+      const upcomingDelayed = periodMilestones
+        .filter(m => m.status === 'upcoming' || m.status === 'delayed')
+        .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+      // For historical periods: outstanding = total - invoiced, no paid category
+      // For future periods: outstanding becomes projected
+      let outstanding = 0;
+      let projected = 0;
+      let historicalPaid = 0;
+
+      if (selectedTimeframe === 'historical') {
+        outstanding = totalPeriodAmount - invoiced;
+        // Don't show paid category for historical
+        historicalPaid = 0;
+      } else {
+        projected = upcomingDelayed;
+        historicalPaid = paid;
+      }
 
       data.push({
         period: period.label,
-        outstanding: selectedTimeframe === 'historical' ? outstanding : 0,
+        outstanding,
         invoiced,
-        paid,
+        paid: historicalPaid,
         projected
       });
     });
@@ -287,7 +302,6 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
                   <div className="flex gap-2 text-xs">
                     {selectedTimeframe === 'historical' ? (
                       <>
-                        <span className="text-green-400">Paid: {formatCurrency(data.paid)}</span>
                         <span className="text-blue-400">Invoiced: {formatCurrency(data.invoiced)}</span>
                         <span className="text-orange-400">Outstanding: {formatCurrency(data.outstanding)}</span>
                       </>
@@ -304,20 +318,13 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
                   {selectedTimeframe === 'historical' ? (
                     <>
                       <div 
-                        className="absolute top-0 left-0 h-full bg-green-500 transition-all duration-300"
-                        style={{ width: `${(data.paid / maxValue) * 100}%` }}
-                      />
-                      <div 
-                        className="absolute top-0 h-full bg-blue-500 transition-all duration-300"
-                        style={{ 
-                          left: `${(data.paid / maxValue) * 100}%`,
-                          width: `${(data.invoiced / maxValue) * 100}%` 
-                        }}
+                        className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-300"
+                        style={{ width: `${(data.invoiced / maxValue) * 100}%` }}
                       />
                       <div 
                         className="absolute top-0 h-full bg-orange-500 transition-all duration-300"
                         style={{ 
-                          left: `${((data.paid + data.invoiced) / maxValue) * 100}%`,
+                          left: `${(data.invoiced / maxValue) * 100}%`,
                           width: `${(data.outstanding / maxValue) * 100}%` 
                         }}
                       />
@@ -346,10 +353,6 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
           <div className="flex flex-wrap gap-4 text-xs">
             {selectedTimeframe === 'historical' ? (
               <>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded"></div>
-                  <span>Paid</span>
-                </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded"></div>
                   <span>Invoiced</span>
@@ -417,15 +420,9 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
         </div>
 
         {/* Summary Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-border">
           {selectedTimeframe === 'historical' ? (
             <>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">
-                  {formatCurrency(cashFlowData.reduce((sum, d) => sum + d.paid, 0))}
-                </div>
-                <div className="text-xs text-muted-foreground">Total Paid</div>
-              </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-400">
                   {formatCurrency(cashFlowData.reduce((sum, d) => sum + d.invoiced, 0))}
@@ -440,7 +437,7 @@ export function EnhancedCashFlowWidget({ billingMilestones }: EnhancedCashFlowWi
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-muted-foreground">
-                  {formatCurrency(cashFlowData.reduce((sum, d) => sum + d.paid + d.invoiced + d.outstanding, 0))}
+                  {formatCurrency(cashFlowData.reduce((sum, d) => sum + d.invoiced + d.outstanding, 0))}
                 </div>
                 <div className="text-xs text-muted-foreground">Total Volume</div>
               </div>

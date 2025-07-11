@@ -525,6 +525,9 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated milestone cards to show "TBD" for milestones without target dates instead of "Upcoming"
   - Enhanced Cash Flow Widget to show "billed" milestones as "invoiced" instead of "paid" for accurate cash flow visualization
   - Fixed cash flow calculation to properly reflect $59.5M in billed milestones as invoiced amounts in horizontal bars
+  - Updated historical cash flow logic: Outstanding = Total Period Amount - Invoiced Amount (proper calculation)
+  - Removed "Paid" category from historical view as requested, showing only Invoiced and Outstanding amounts
+  - Enhanced historical bars to show only blue (invoiced) and orange (outstanding) segments without green (paid)
 
 
 ## User Preferences
