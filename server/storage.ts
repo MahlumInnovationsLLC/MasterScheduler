@@ -1363,6 +1363,19 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`STORAGE: Deleting user ${userId}`);
       
+      // First, delete all engineering assignments for this user
+      console.log(`STORAGE: Deleting engineering assignments for user ${userId}`);
+      await db
+        .delete(projectEngineeringAssignments)
+        .where(eq(projectEngineeringAssignments.resourceId, userId));
+      
+      // Delete from engineering_resources table if exists
+      console.log(`STORAGE: Deleting engineering resources for user ${userId}`);
+      await db
+        .delete(engineeringResources)
+        .where(eq(engineeringResources.userId, userId));
+      
+      // Then delete the user
       const result = await db
         .delete(users)
         .where(eq(users.id, userId));

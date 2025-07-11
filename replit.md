@@ -548,6 +548,7 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added admin role check to prevent non-admin users from deleting engineers
   - Delete functionality removes engineer from users table and invalidates all related queries
   - Added proper error handling and success/error toast notifications for delete operations
+  - Fixed cascading deletion to handle foreign key constraints from project_engineering_assignments and engineering_resources tables
 
 
 ## User Preferences
