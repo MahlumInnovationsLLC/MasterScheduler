@@ -953,9 +953,8 @@ const BillingMilestones = () => {
         const project = projects?.find(p => p.id === row.original.projectId);
         const projectDeliveryDate = project?.deliveryDate;
 
-        // For delivery milestones, show project delivery date; otherwise show liveDate
-        const displayDate = isDeliveryMilestone && projectDeliveryDate ? 
-          projectDeliveryDate : row.original.liveDate;
+        // Always show the billing milestone's liveDate (not project delivery date)
+        const displayDate = row.original.liveDate;
 
         // Check if Target Date is different from Live Date in billing milestone
         const hasDateChange = row.original.targetInvoiceDate && 
