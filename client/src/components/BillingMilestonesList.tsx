@@ -201,7 +201,7 @@ export function BillingMilestonesList({ projectId }: BillingMilestonesListProps)
                   <Calendar className="h-3 w-3 mr-1" />
                   Due: {milestone.targetInvoiceDate ? format(new Date(milestone.targetInvoiceDate + 'T00:00:00'), "MMM d, yyyy") : "Upcoming"}
                 </div>
-                {milestone.actualInvoiceDate && (
+                {milestone.actualInvoiceDate && (milestone.status === 'invoiced' || milestone.status === 'billed' || milestone.status === 'paid') && (
                   <div className="flex items-center text-xs mt-1">
                     <Calendar className="h-3 w-3 mr-1" />
                     Invoiced: {format(new Date(milestone.actualInvoiceDate + 'T00:00:00'), "MMM d, yyyy")}
@@ -212,7 +212,7 @@ export function BillingMilestonesList({ projectId }: BillingMilestonesListProps)
             </CardHeader>
             <CardContent>
               <p className="text-sm">
-                {milestone.description || "No description provided"}
+                {milestone.notes || "No notes provided"}
               </p>
             </CardContent>
             <CardFooter className="pt-1 flex justify-between">

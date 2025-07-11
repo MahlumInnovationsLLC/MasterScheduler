@@ -511,6 +511,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Fixed Live Date calculation to use database dates instead of delivery dates for chassis delivery milestones
   - Applied changes to all billing milestone logic: main table, project-specific cards, and approval workflow
   - Ensures proper billing milestone categorization for current and future payment milestones
+- January 11, 2025: Project-Specific Billing Milestone Cards Enhancement
+  - Fixed "Due" date to always display Target Invoice Date instead of other date fields
+  - Restricted "Invoiced" line display to only billed/invoiced/paid milestones (hidden for upcoming milestones)
+  - Replaced "No description provided" with billing milestone notes field display
+  - Enhanced conditional display logic to prevent invoiced dates showing for upcoming milestones
+  - Billing milestone cards now show accurate and relevant information based on milestone status
 
 
 ## User Preferences
