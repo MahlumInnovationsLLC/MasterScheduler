@@ -499,6 +499,11 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Simplified form interface so Actual Invoice Date serves as Live Invoice Date in main Billing Milestones Module
   - Updated form validation to include all valid status options (upcoming, invoiced, billed, paid, delayed)
   - Enhanced status-based conditional field display to include "billed" status trigger
+- January 11, 2025: Billing Milestone Card UI Cleanup and Timezone Fix
+  - Removed "Paid" line from billing milestone cards in project-specific tab to reduce visual clutter
+  - Fixed timezone issue causing dates to display one day before actual selected date
+  - Updated date parsing to append 'T00:00:00' ensuring correct local date display
+  - Applied timezone fix to both date display formatting and milestone sorting logic
 
 
 ## User Preferences

@@ -126,7 +126,7 @@ export function BillingMilestonesList({ projectId }: BillingMilestonesListProps)
   // Sort milestones by date
   const sortedMilestones = billingMilestones
     ? [...billingMilestones].sort((a, b) => {
-        return new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime();
+        return new Date(a.targetInvoiceDate + 'T00:00:00').getTime() - new Date(b.targetInvoiceDate + 'T00:00:00').getTime();
       })
     : [];
 
@@ -199,20 +199,15 @@ export function BillingMilestonesList({ projectId }: BillingMilestonesListProps)
                 </div>
                 <div className="flex items-center text-xs mt-1">
                   <Calendar className="h-3 w-3 mr-1" />
-                  Due: {milestone.targetInvoiceDate ? format(new Date(milestone.targetInvoiceDate), "MMM d, yyyy") : "Upcoming"}
+                  Due: {milestone.targetInvoiceDate ? format(new Date(milestone.targetInvoiceDate + 'T00:00:00'), "MMM d, yyyy") : "Upcoming"}
                 </div>
                 {milestone.actualInvoiceDate && (
                   <div className="flex items-center text-xs mt-1">
                     <Calendar className="h-3 w-3 mr-1" />
-                    Invoiced: {format(new Date(milestone.actualInvoiceDate), "MMM d, yyyy")}
+                    Invoiced: {format(new Date(milestone.actualInvoiceDate + 'T00:00:00'), "MMM d, yyyy")}
                   </div>
                 )}
-                {milestone.paymentReceivedDate && (
-                  <div className="flex items-center text-xs mt-1">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Paid: {format(new Date(milestone.paymentReceivedDate), "MMM d, yyyy")}
-                  </div>
-                )}
+
               </CardDescription>
             </CardHeader>
             <CardContent>
