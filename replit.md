@@ -493,6 +493,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Implemented approval flagging when liveDate differs from targetInvoiceDate for non-delivery milestones
   - Enhanced BillingMilestoneForm with shipDateChanged tracking for comprehensive approval workflow
   - Date changes from project-specific page now properly feed into main billing milestones approval system
+- January 11, 2025: Billing Milestone Form Status and Live Date Simplification
+  - Fixed billing milestone status dropdown by adding missing "billed" status option to prevent form errors
+  - Removed separate Live Invoice Date field from project-specific billing milestone dialog
+  - Simplified form interface so Actual Invoice Date serves as Live Invoice Date in main Billing Milestones Module
+  - Updated form validation to include all valid status options (upcoming, invoiced, billed, paid, delayed)
+  - Enhanced status-based conditional field display to include "billed" status trigger
 
 
 ## User Preferences
