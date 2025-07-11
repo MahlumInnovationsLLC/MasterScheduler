@@ -657,6 +657,26 @@ const ImportDataPage = () => {
     }
   };
 
+  // Helper function to convert values to integers
+  const convertToInteger = (value: any): number | null => {
+    if (value === null || value === undefined || value === '') return null;
+    
+    // If it's already a number, return it
+    if (typeof value === 'number') return Math.floor(value);
+    
+    // Convert string to number
+    const str = String(value).trim();
+    
+    // Remove percentage sign if present
+    const cleanStr = str.replace('%', '').trim();
+    
+    // Try to parse the number
+    const num = parseFloat(cleanStr);
+    
+    // Return null if parsing failed, otherwise return the integer
+    return isNaN(num) ? null : Math.floor(num);
+  };
+
   // Process engineering assignment data
   const processEngineeringData = async (data: any[]): Promise<any> => {
     try {
