@@ -157,11 +157,12 @@ async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: str
     const billingMilestones = await storage.getProjectBillingMilestones(projectId);
     
     // Find all delivery milestones by common naming patterns
+    // CHASSIS+DELIVERY milestones are NOT delivery milestones (chassis arrival, not customer delivery)
     const deliveryMilestones = billingMilestones.filter(
       milestone => 
         milestone.isDeliveryMilestone || 
         (milestone.name && (
-          milestone.name.toUpperCase().includes("DELIVERY") ||
+          (milestone.name.toUpperCase().includes("DELIVERY") && !milestone.name.toUpperCase().includes("CHASSIS")) ||
           milestone.name.toUpperCase().includes("100%") ||
           milestone.name.includes("Final") ||
           milestone.name.includes("final") ||
@@ -969,8 +970,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const billingMilestones = await storage.getProjectBillingMilestones(id);
           const deliveryMilestones = billingMilestones.filter(
             milestone => milestone.isDeliveryMilestone || 
-                        milestone.name.toLowerCase().includes('delivery') || 
-                        milestone.description?.toLowerCase().includes('delivery')
+                        milestone.name && milestone.name.toLowerCase().includes('delivery') && !milestone.name.toLowerCase().includes('chassis') || 
+                        milestone.description && milestone.description.toLowerCase().includes('delivery') && !milestone.description.toLowerCase().includes('chassis')
           );
           
           // For delivery milestones, flag them for approval if ship date differs from target
@@ -1103,8 +1104,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const billingMilestones = await storage.getProjectBillingMilestones(id);
           const deliveryMilestones = billingMilestones.filter(
             milestone => milestone.isDeliveryMilestone || 
-                        milestone.name.toLowerCase().includes('delivery') || 
-                        milestone.description?.toLowerCase().includes('delivery')
+                        milestone.name && milestone.name.toLowerCase().includes('delivery') && !milestone.name.toLowerCase().includes('chassis') || 
+                        milestone.description && milestone.description.toLowerCase().includes('delivery') && !milestone.description.toLowerCase().includes('chassis')
           );
           
           // For delivery milestones, flag them for approval if ship date differs from target
@@ -2730,7 +2731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For delivery milestones, use project delivery date (fallback to ship date)
         // For other milestones, use the milestone's liveDate
         const isDeliveryMilestone = currentMilestone.isDeliveryMilestone || 
-          (currentMilestone.name && currentMilestone.name.toLowerCase().includes('delivery'));
+          (currentMilestone.name && currentMilestone.name.toLowerCase().includes('delivery') && !currentMilestone.name.toLowerCase().includes('chassis'));
         
         const correctLiveDate = isDeliveryMilestone ? 
           (project?.deliveryDate || project?.shipDate || currentMilestone.liveDate) : 

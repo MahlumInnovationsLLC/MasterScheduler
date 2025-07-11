@@ -858,8 +858,11 @@ const BillingMilestones = () => {
       header: 'Target Date',
       cell: ({ row }) => {
         // Check if Target Date is different from Live Date for highlighting
+        // CHASSIS+DELIVERY milestones are NOT delivery milestones (chassis arrival, not customer delivery)
         const isDeliveryMilestone = row.original.isDeliveryMilestone || 
-          (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"));
+          (row.original.name && 
+           row.original.name.toUpperCase().includes("DELIVERY") && 
+           !row.original.name.toUpperCase().includes("CHASSIS"));
         const project = projects?.find(p => p.id === row.original.projectId);
         const liveDate = isDeliveryMilestone ? 
           (project?.deliveryDate || project?.shipDate) : row.original.liveDate;
@@ -889,8 +892,11 @@ const BillingMilestones = () => {
       header: 'Live Date',
       cell: ({ row }) => {
         // Check if this is a delivery milestone
+        // CHASSIS+DELIVERY milestones are NOT delivery milestones (chassis arrival, not customer delivery)
         const isDeliveryMilestone = row.original.isDeliveryMilestone || 
-          (row.original.name && row.original.name.toLowerCase().includes('delivery'));
+          (row.original.name && 
+           row.original.name.toLowerCase().includes('delivery') && 
+           !row.original.name.toLowerCase().includes('chassis'));
 
         // Get the project for this milestone to access delivery date
         const project = projects?.find(p => p.id === row.original.projectId);

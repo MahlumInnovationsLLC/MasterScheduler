@@ -504,6 +504,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Fixed timezone issue causing dates to display one day before actual selected date
   - Updated date parsing to append 'T00:00:00' ensuring correct local date display
   - Applied timezone fix to both date display formatting and milestone sorting logic
+- January 11, 2025: CHASSIS+DELIVERY Milestone Detection Rule Implementation
+  - Implemented critical business rule: milestones containing both "CHASSIS" and "DELIVERY" are treated as NON-DELIVERY milestones
+  - CHASSIS+DELIVERY milestones represent chassis arrival at shop, not customer delivery
+  - Updated both frontend and backend delivery milestone detection logic to exclude chassis delivery milestones
+  - Fixed Live Date calculation to use database dates instead of delivery dates for chassis delivery milestones
+  - Applied changes to all billing milestone logic: main table, project-specific cards, and approval workflow
+  - Ensures proper billing milestone categorization for current and future payment milestones
 
 
 ## User Preferences
