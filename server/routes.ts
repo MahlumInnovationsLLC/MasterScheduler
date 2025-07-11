@@ -968,20 +968,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get all billing milestones for this project
           const billingMilestones = await storage.getProjectBillingMilestones(id);
           const deliveryMilestones = billingMilestones.filter(
-            milestone => milestone.name.toLowerCase().includes('delivery') || 
+            milestone => milestone.isDeliveryMilestone || 
+                        milestone.name.toLowerCase().includes('delivery') || 
                         milestone.description?.toLowerCase().includes('delivery')
           );
           
-          // Update any delivery-related milestones to match the new delivery date
+          // Update any delivery-related milestones to flag date changes for approval
           if (deliveryMilestones.length > 0 && dateToSync) {
-            console.log(`Found ${deliveryMilestones.length} delivery milestones to update`);
+            console.log(`📅 Found ${deliveryMilestones.length} delivery milestones to update for project ${id}`);
             
             for (const milestone of deliveryMilestones) {
-              await storage.updateBillingMilestone(milestone.id, {
-                targetInvoiceDate: dateToSync,
-                shipDateChanged: !milestone.targetInvoiceDate || new Date(dateToSync).toDateString() !== new Date(milestone.targetInvoiceDate).toDateString()
-              });
-              console.log(`Updated delivery milestone ${milestone.id} to match date ${dateToSync}`);
+              const targetDate = milestone.targetInvoiceDate;
+              const hasDateChange = !targetDate || new Date(dateToSync).toDateString() !== new Date(targetDate).toDateString();
+              
+              if (hasDateChange) {
+                await storage.updateBillingMilestone(milestone.id, {
+                  liveDate: dateToSync, // Update the live date with the new delivery date
+                  shipDateChanged: true // Flag that approval is needed
+                });
+                console.log(`🚩 Flagged delivery milestone ${milestone.id} for approval: target=${targetDate}, live=${dateToSync}`);
+              }
             }
           }
         } catch (syncError) {
@@ -1097,20 +1103,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get all billing milestones for this project
           const billingMilestones = await storage.getProjectBillingMilestones(id);
           const deliveryMilestones = billingMilestones.filter(
-            milestone => milestone.name.toLowerCase().includes('delivery') || 
+            milestone => milestone.isDeliveryMilestone || 
+                        milestone.name.toLowerCase().includes('delivery') || 
                         milestone.description?.toLowerCase().includes('delivery')
           );
           
-          // Update any delivery-related milestones to match the new delivery date
+          // Update any delivery-related milestones to flag date changes for approval
           if (deliveryMilestones.length > 0 && dateToSync) {
-            console.log(`Found ${deliveryMilestones.length} delivery milestones to update`);
+            console.log(`📅 Found ${deliveryMilestones.length} delivery milestones to update for project ${id}`);
             
             for (const milestone of deliveryMilestones) {
-              await storage.updateBillingMilestone(milestone.id, {
-                targetInvoiceDate: dateToSync,
-                shipDateChanged: !milestone.targetInvoiceDate || new Date(dateToSync).toDateString() !== new Date(milestone.targetInvoiceDate).toDateString()
-              });
-              console.log(`Updated delivery milestone ${milestone.id} to match date ${dateToSync}`);
+              const targetDate = milestone.targetInvoiceDate;
+              const hasDateChange = !targetDate || new Date(dateToSync).toDateString() !== new Date(targetDate).toDateString();
+              
+              if (hasDateChange) {
+                await storage.updateBillingMilestone(milestone.id, {
+                  liveDate: dateToSync, // Update the live date with the new delivery date
+                  shipDateChanged: true // Flag that approval is needed
+                });
+                console.log(`🚩 Flagged delivery milestone ${milestone.id} for approval: target=${targetDate}, live=${dateToSync}`);
+              }
             }
           }
         } catch (syncError) {

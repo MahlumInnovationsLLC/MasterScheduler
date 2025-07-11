@@ -918,17 +918,27 @@ const BillingMilestones = () => {
           );
         }
 
+        // Check if this is a delivery milestone with date changes
+        const project = projects?.find(p => p.id === row.original.projectId);
+        const projectDeliveryDate = project?.deliveryDate;
+        const hasDateChange = isDeliveryMilestone && 
+                             projectDeliveryDate && 
+                             row.original.targetInvoiceDate && 
+                             new Date(projectDeliveryDate).toDateString() !== new Date(row.original.targetInvoiceDate).toDateString();
+
         return (
           <div 
-            className={`text-sm cursor-pointer hover:underline flex items-center ${isDeliveryMilestone && hasShipDateChanged 
-              ? "bg-orange-100 p-1 rounded border border-orange-300 font-medium text-orange-800" 
+            className={`text-sm cursor-pointer hover:underline flex items-center ${hasDateChange 
+              ? "bg-orange-100 p-2 rounded border border-orange-300 font-medium text-orange-800" 
               : ""}`}
             onClick={() => setIsEditing(true)}
           >
             <span>{formatDate(row.original.targetInvoiceDate)}</span>
             <Calendar className="inline-block ml-1 h-3 w-3" />
-            {isDeliveryMilestone && hasShipDateChanged && (
-              <div className="text-xs text-orange-600 mt-1">Ship date changed</div>
+            {hasDateChange && (
+              <div className="text-xs text-orange-600 ml-2">
+                Target date needs update
+              </div>
             )}
           </div>
         );
@@ -957,192 +967,32 @@ const BillingMilestones = () => {
                              targetDate && 
                              new Date(projectDeliveryDate).toDateString() !== new Date(targetDate).toDateString();
 
-        // Each cell needs its own state
-        const cellId = `livedate-${row.original.id}`;
+        // Show approval button if this is a delivery milestone with date changes
+        const showApprovalButton = isDeliveryMilestone && hasDateChange && row.original.shipDateChanged;
 
-        const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
-        const [dateValues, setDateValues] = useState<Record<string, string | undefined>>({});
-        const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
-
-        // Initialize date value if not already set
-        useEffect(() => {
-          if (!dateValues[cellId] && displayDate) {
-            setDateValues(prev => ({
-              ...prev,
-              [cellId]: new Date(displayDate).toISOString().split('T')[0]
-            }));
-          }
-        }, [cellId, displayDate]);
-
-        const isEditing = editingStates[cellId] || false;
-        const dateValue = dateValues[cellId];
-        const isUpdating = updatingStates[cellId] || false;
-
-        // Handlers that use the cell ID for tracking state
-        const setIsEditing = (value: boolean) => {
-          setEditingStates(prev => ({...prev, [cellId]: value}));
-        };
-
-        const setDateValue = (value: string | undefined) => {
-          setDateValues(prev => ({...prev, [cellId]: value}));
-        };
-
-        const setIsUpdating = (value: boolean) => {
-          setUpdatingStates(prev => ({...prev, [cellId]: value}));
-        };
-
-        // Function to handle saving the date
-        const handleSave = async () => {
-          if (!dateValue) return;
-
-          setIsUpdating(true);
-          try {
-            const response = await apiRequest(
-              "PATCH",
-              `/api/billing-milestones/${row.original.id}`,
-              { 
-                liveDate: dateValue,
-              }
-            );
-
-            if (response.ok) {
-              queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
-              toast({
-                title: "Live Date Updated",
-                description: "Live date has been updated successfully",
-                variant: "default"
-              });
-            } else {
-              throw new Error("Failed to update live date");
-            }
-          } catch (error) {
-            toast({
-              title: "Update Failed",
-              description: `Error updating live date: ${(error as Error).message}`,
-              variant: "destructive"
-            });
-          } finally {
-            setIsUpdating(false);
-            setIsEditing(false);
-          }
-        };
-
-        // Display editor if in edit mode
-        if (isEditing) {
-          return (
-            <div className="flex items-center space-x-2">
-              <input
-                type="date"
-                className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
-                value={dateValue || ''}
-                onChange={(e) => setDateValue(e.target.value)}
-              />
-              <div className="flex space-x-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6" 
-                  onClick={handleSave}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success" />}
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6" 
-                  onClick={() => setIsEditing(false)}
-                  disabled={isUpdating}
-                >
-                  <X className="h-3 w-3 text-danger" />
-                </Button>
-              </div>
-            </div>
-          );
-        }
-
-        // Check if there's a ship date change
-        const hasShipDateChanged = row.original.shipDateChanged;
-
-        // Regular display mode
         if (!displayDate) {
-          return (
-            <div 
-              className="text-sm text-gray-400 cursor-pointer hover:underline flex items-center"
-              onClick={() => setIsEditing(true)}
-            >
-              <span>-</span>
-              <Calendar className="inline-block ml-1 h-3 w-3" />
-            </div>
-          );
+          return <div className="text-gray-400">-</div>;
         }
 
         return (
-          <div 
-            className={`text-sm ${hasDateChange ? "bg-red-100 font-semibold text-red-600 border border-red-300" : ""} rounded px-2 py-1 flex items-center justify-between`}
-          >
-            <div 
-              className="cursor-pointer hover:underline flex items-center"
-              onClick={() => setIsEditing(true)}
-            >
-              <span>{formatDate(displayDate)}</span>
-              <Calendar className="inline-block ml-1 h-3 w-3" />
-              {hasDateChange && (
-                <div className="text-xs text-red-600 ml-2">
-                  Needs acceptance
-                </div>
-              )}
+          <div className="flex items-center space-x-2">
+            <div className={`text-sm ${hasDateChange ? 'text-blue-600 font-medium' : ''}`}>
+              {formatDate(displayDate)}
             </div>
-            {hasDateChange && (
+            {showApprovalButton && (
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 px-2 text-xs ml-2 bg-green-50 hover:bg-green-100 border-green-300 text-green-700"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const acceptingKey = `accepting-${row.original.id}`;
-                  setUpdatingStates(prev => ({...prev, [acceptingKey]: true}));
-                  
-                  try {
-                    // Update the target date to match the live date
-                    const response = await apiRequest(
-                      "PATCH",
-                      `/api/billing-milestones/${row.original.id}`,
-                      { 
-                        targetInvoiceDate: displayDate,
-                        shipDateChanged: false // Clear the ship date changed flag
-                      }
-                    );
-
-                    if (response.ok) {
-                      queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
-                      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-                      toast({
-                        title: "Date Change Accepted",
-                        description: "The target date has been updated to match the live date",
-                        variant: "default"
-                      });
-                    } else {
-                      throw new Error("Failed to accept date change");
-                    }
-                  } catch (error) {
-                    toast({
-                      title: "Update Failed",
-                      description: `Error accepting date change: ${(error as Error).message}`,
-                      variant: "destructive"
-                    });
-                  } finally {
-                    setUpdatingStates(prev => ({...prev, [acceptingKey]: false}));
-                  }
-                }}
-                disabled={updatingStates[`accepting-${row.original.id}`]}
+                className="h-6 px-2 text-xs bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                onClick={() => handleAcceptShipDate(row.original.id)}
+                disabled={isAcceptingShipDate[row.original.id]}
               >
-                {updatingStates[`accepting-${row.original.id}`] ? (
+                {isAcceptingShipDate[row.original.id] ? (
                   <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-green-600"></div>
                 ) : (
                   <>
                     <Check className="h-3 w-3 mr-1" />
-                    Accept
+                    Approve
                   </>
                 )}
               </Button>
