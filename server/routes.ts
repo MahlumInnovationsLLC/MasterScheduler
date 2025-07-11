@@ -973,9 +973,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         milestone.description?.toLowerCase().includes('delivery')
           );
           
-          // Update any delivery-related milestones to flag date changes for approval
+          // For delivery milestones, flag them for approval if ship date differs from target
           if (deliveryMilestones.length > 0 && dateToSync) {
-            console.log(`📅 Found ${deliveryMilestones.length} delivery milestones to update for project ${id}`);
+            console.log(`📅 Found ${deliveryMilestones.length} delivery milestones to check for project ${id}`);
             
             for (const milestone of deliveryMilestones) {
               const targetDate = milestone.targetInvoiceDate;
@@ -983,10 +983,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (hasDateChange) {
                 await storage.updateBillingMilestone(milestone.id, {
-                  liveDate: dateToSync, // Update the live date with the new delivery date
                   shipDateChanged: true // Flag that approval is needed
                 });
-                console.log(`🚩 Flagged delivery milestone ${milestone.id} for approval: target=${targetDate}, live=${dateToSync}`);
+                console.log(`🚩 Flagged delivery milestone ${milestone.id} for approval: target=${targetDate}, ship=${dateToSync}`);
               }
             }
           }
@@ -1108,9 +1107,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         milestone.description?.toLowerCase().includes('delivery')
           );
           
-          // Update any delivery-related milestones to flag date changes for approval
+          // For delivery milestones, flag them for approval if ship date differs from target
           if (deliveryMilestones.length > 0 && dateToSync) {
-            console.log(`📅 Found ${deliveryMilestones.length} delivery milestones to update for project ${id}`);
+            console.log(`📅 Found ${deliveryMilestones.length} delivery milestones to check for project ${id}`);
             
             for (const milestone of deliveryMilestones) {
               const targetDate = milestone.targetInvoiceDate;
@@ -1118,10 +1117,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (hasDateChange) {
                 await storage.updateBillingMilestone(milestone.id, {
-                  liveDate: dateToSync, // Update the live date with the new delivery date
                   shipDateChanged: true // Flag that approval is needed
                 });
-                console.log(`🚩 Flagged delivery milestone ${milestone.id} for approval: target=${targetDate}, live=${dateToSync}`);
+                console.log(`🚩 Flagged delivery milestone ${milestone.id} for approval: target=${targetDate}, ship=${dateToSync}`);
               }
             }
           }

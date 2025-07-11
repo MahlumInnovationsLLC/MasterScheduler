@@ -918,10 +918,14 @@ const BillingMilestones = () => {
           );
         }
 
-        // Check if Target Date is different from Live Date in billing milestone
+        // Check if Target Date is different from Live Date
+        // For delivery milestones, compare with project ship date; otherwise use billing milestone liveDate
+        const project = projects?.find(p => p.id === row.original.projectId);
+        const liveDate = isDeliveryMilestone && project?.shipDate ? 
+          project.shipDate : row.original.liveDate;
         const hasDateChange = row.original.targetInvoiceDate && 
-                             row.original.liveDate && 
-                             new Date(row.original.targetInvoiceDate).toDateString() !== new Date(row.original.liveDate).toDateString();
+                             liveDate && 
+                             new Date(row.original.targetInvoiceDate).toDateString() !== new Date(liveDate).toDateString();
 
         return (
           <div 
@@ -953,13 +957,17 @@ const BillingMilestones = () => {
         const project = projects?.find(p => p.id === row.original.projectId);
         const projectDeliveryDate = project?.deliveryDate;
 
-        // Always show the billing milestone's liveDate (not project delivery date)
-        const displayDate = row.original.liveDate;
+        // For delivery milestones, show project ship date; otherwise show liveDate from billing milestone
+        const displayDate = isDeliveryMilestone && project?.shipDate ? 
+          project.shipDate : row.original.liveDate;
 
-        // Check if Target Date is different from Live Date in billing milestone
+        // Check if Target Date is different from Live Date
+        // For delivery milestones, compare with project ship date; otherwise use billing milestone liveDate
+        const liveDate = isDeliveryMilestone && project?.shipDate ? 
+          project.shipDate : row.original.liveDate;
         const hasDateChange = row.original.targetInvoiceDate && 
-                             row.original.liveDate && 
-                             new Date(row.original.targetInvoiceDate).toDateString() !== new Date(row.original.liveDate).toDateString();
+                             liveDate && 
+                             new Date(row.original.targetInvoiceDate).toDateString() !== new Date(liveDate).toDateString();
 
         // Show approval button if Target Date differs from Live Date
         const showApprovalButton = hasDateChange;
