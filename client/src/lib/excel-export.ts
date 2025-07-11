@@ -17,6 +17,14 @@ export interface ProjectForExport {
   executiveReviewDate: string | null;
   fabricationStart: string | null;
   assemblyStart: string | null;
+  // Engineering assignment fields
+  meAssigned: string | null;
+  meCompletionPercent: number | null;
+  eeAssigned: string | null;
+  eeCompletionPercent: number | null;
+  iteAssigned: string | null;
+  iteCompletionPercent: number | null;
+  ntcCompletionPercent: number | null;
   notes: string | null;
   rawData?: Record<string, any>;
 }
@@ -45,6 +53,13 @@ export function exportProjectsToExcel(projects: ProjectForExport[], filename: st
       { key: 'deliveryDate', label: 'Delivery Date' },
       { key: 'executiveReviewDate', label: 'Executive Review Date' },
       { key: 'location', label: 'Location' },
+      { key: 'meAssigned', label: 'ME Engineer' },
+      { key: 'meCompletionPercent', label: 'ME Completion %' },
+      { key: 'eeAssigned', label: 'EE Engineer' },
+      { key: 'eeCompletionPercent', label: 'EE Completion %' },
+      { key: 'iteAssigned', label: 'ITE Engineer' },
+      { key: 'iteCompletionPercent', label: 'ITE Completion %' },
+      { key: 'ntcCompletionPercent', label: 'NTC Completion %' },
       { key: 'notes', label: 'Notes' }
     ];
 
@@ -60,7 +75,7 @@ export function exportProjectsToExcel(projects: ProjectForExport[], filename: st
         
         if (col.key === 'contractDate' || col.key === 'chassisETA' || col.key === 'qcStartDate' || 
            col.key === 'shipDate' || col.key === 'deliveryDate' || col.key === 'executiveReviewDate' ||
-           col.key === 'fabricationStart' || col.key === 'assemblyStart') {
+           col.key === 'fabricationStart' || col.key === 'assemblyStart' || col.key === 'mechShop') {
           // Format date columns
           if (value) {
             try {
@@ -72,6 +87,19 @@ export function exportProjectsToExcel(projects: ProjectForExport[], filename: st
               }
             } catch {
               row[col.label] = value;
+            }
+          } else {
+            row[col.label] = '';
+          }
+        } else if (col.key === 'meCompletionPercent' || col.key === 'eeCompletionPercent' || 
+                   col.key === 'iteCompletionPercent' || col.key === 'ntcCompletionPercent') {
+          // Format percentage columns
+          if (value !== null && value !== undefined) {
+            const numValue = typeof value === 'string' ? parseFloat(value) : value;
+            if (!isNaN(numValue)) {
+              row[col.label] = `${numValue}%`;
+            } else {
+              row[col.label] = '';
             }
           } else {
             row[col.label] = '';

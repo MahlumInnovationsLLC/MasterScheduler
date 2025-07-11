@@ -1256,6 +1256,14 @@ const ProjectStatus = () => {
         executiveReviewDate: project.executiveReviewDate,
         fabricationStart: project.fabricationStart,
         assemblyStart: project.assemblyStart,
+        // Engineering assignment fields
+        meAssigned: project.meAssigned || null,
+        meCompletionPercent: project.meManualPercent || project.meDesignOrdersPercent || null,
+        eeAssigned: project.eeAssigned || null,
+        eeCompletionPercent: project.eeManualPercent || project.eeDesignOrdersPercent || null,
+        iteAssigned: project.iteAssigned || null,
+        iteCompletionPercent: project.iteManualPercent || project.itDesignOrdersPercent || null,
+        ntcCompletionPercent: project.ntcManualPercent || project.ntcPercentage || null,
         notes: project.notes,
         rawData: project.rawData
       }));
