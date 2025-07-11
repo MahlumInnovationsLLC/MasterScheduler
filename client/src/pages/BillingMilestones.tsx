@@ -122,6 +122,45 @@ const BillingMilestones = () => {
           pmOwner: project?.pmOwner || '',
           location: project?.location || '',
         };
+      })
+      .sort((a, b) => {
+        // Sort by earliest live date first for open milestones
+        if (activeTab === 'open') {
+          // Get the live date for each milestone
+          const aProject = projects?.find(p => p.id === a.projectId);
+          const bProject = projects?.find(p => p.id === b.projectId);
+          
+          // For delivery milestones, use project delivery date (fallback to ship date)
+          const aIsDelivery = a.isDeliveryMilestone || (a.name && a.name.toLowerCase().includes('delivery'));
+          const bIsDelivery = b.isDeliveryMilestone || (b.name && b.name.toLowerCase().includes('delivery'));
+          
+          const aLiveDate = aIsDelivery ? 
+            (aProject?.deliveryDate || aProject?.shipDate || a.liveDate) : a.liveDate;
+          const bLiveDate = bIsDelivery ? 
+            (bProject?.deliveryDate || bProject?.shipDate || b.liveDate) : b.liveDate;
+          
+          // Sort by live date (earliest first)
+          if (aLiveDate && bLiveDate) {
+            return new Date(aLiveDate).getTime() - new Date(bLiveDate).getTime();
+          }
+          
+          // If one doesn't have a live date, put it last
+          if (aLiveDate && !bLiveDate) return -1;
+          if (!aLiveDate && bLiveDate) return 1;
+          
+          // If neither has a live date, sort by target date
+          if (a.targetInvoiceDate && b.targetInvoiceDate) {
+            return new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime();
+          }
+          
+          return 0;
+        } else {
+          // For invoiced tab, sort by target date
+          if (a.targetInvoiceDate && b.targetInvoiceDate) {
+            return new Date(b.targetInvoiceDate).getTime() - new Date(a.targetInvoiceDate).getTime();
+          }
+          return 0;
+        }
       });
   }, [allBillingMilestones, activeTab, projects]);
 

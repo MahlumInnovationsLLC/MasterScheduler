@@ -2724,14 +2724,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.acceptDateChange === true) {
         console.log(`📅 Accepting date change for milestone ${milestoneId}`);
         
+        // Get the project to determine the correct live date
+        const project = await storage.getProject(currentMilestone.projectId);
+        
+        // For delivery milestones, use project delivery date (fallback to ship date)
+        // For other milestones, use the milestone's liveDate
+        const isDeliveryMilestone = currentMilestone.isDeliveryMilestone || 
+          (currentMilestone.name && currentMilestone.name.toLowerCase().includes('delivery'));
+        
+        const correctLiveDate = isDeliveryMilestone ? 
+          (project?.deliveryDate || project?.shipDate || currentMilestone.liveDate) : 
+          currentMilestone.liveDate;
+        
         const updateData = {
           ...req.body,
-          targetInvoiceDate: currentMilestone.liveDate || currentMilestone.targetInvoiceDate,
-          lastAcceptedShipDate: currentMilestone.liveDate,
+          targetInvoiceDate: correctLiveDate || currentMilestone.targetInvoiceDate,
+          lastAcceptedShipDate: correctLiveDate,
           shipDateChanged: false, // Clear the highlight flag
         };
         delete updateData.acceptDateChange; // Remove the flag from the update data
         
+        console.log(`📅 Updating milestone ${milestoneId} with targetInvoiceDate: ${correctLiveDate}`);
         const updatedMilestone = await storage.updateBillingMilestone(milestoneId, updateData);
         console.log(`✅ Date change accepted for milestone ${milestoneId}`);
         res.json(updatedMilestone);
