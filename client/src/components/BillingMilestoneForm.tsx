@@ -52,6 +52,9 @@ const formSchema = z.object({
   status: z.enum(["upcoming", "invoiced", "paid", "delayed"]),
   // Delivery milestone flag
   isDeliveryMilestone: z.boolean().default(false),
+  // Live date tracking for approval workflow
+  liveDate: z.string().optional(),
+  shipDateChanged: z.boolean().default(false),
   // New fields
   contractReference: z.string().optional(),
   paymentTerms: z.string().optional(),
@@ -112,6 +115,8 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
       paymentReceivedDate: existingMilestone.paymentReceivedDate || "",
       status: existingMilestone.status || "upcoming",
       isDeliveryMilestone: existingMilestone.isDeliveryMilestone || false,
+      liveDate: existingMilestone.liveDate || "",
+      shipDateChanged: existingMilestone.shipDateChanged || false,
     } : {
       projectId: projectId || 0,
       name: "",
@@ -122,6 +127,8 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
       paymentReceivedDate: "",
       status: "upcoming",
       isDeliveryMilestone: false,
+      liveDate: "",
+      shipDateChanged: false,
       ...defaultValues,
     },
   });
@@ -164,6 +171,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         actualInvoiceDate: data.actualInvoiceDate || null,
         paymentReceivedDate: data.paymentReceivedDate || null,
         liveDate: data.liveDate || null,
+        shipDateChanged: data.shipDateChanged || false,
         // Keep amount as string since the schema expects it
         amount: data.amount,
       };
@@ -209,9 +217,33 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         actualInvoiceDate: data.actualInvoiceDate || null,
         paymentReceivedDate: data.paymentReceivedDate || null,
         liveDate: data.liveDate || null,
+        shipDateChanged: data.shipDateChanged || false,
         // Keep amount as string since the schema expects it
         amount: data.amount,
       };
+
+      // Check if this is NOT a delivery milestone - for non-delivery milestones,
+      // when dates are updated from project page, update liveDate and flag for approval
+      if (!data.isDeliveryMilestone && existingMilestone) {
+        // Check if any date fields have changed
+        const dateFieldsChanged = 
+          data.targetInvoiceDate !== existingMilestone.targetInvoiceDate ||
+          data.actualInvoiceDate !== existingMilestone.actualInvoiceDate ||
+          data.paymentReceivedDate !== existingMilestone.paymentReceivedDate;
+
+        if (dateFieldsChanged) {
+          // Update liveDate with the most recent date change
+          const newLiveDate = data.actualInvoiceDate || data.paymentReceivedDate || data.targetInvoiceDate;
+          if (newLiveDate) {
+            requestData.liveDate = newLiveDate;
+            
+            // Flag for approval if liveDate differs from targetInvoiceDate
+            if (data.targetInvoiceDate && newLiveDate !== data.targetInvoiceDate) {
+              requestData.shipDateChanged = true;
+            }
+          }
+        }
+      }
       
       return await apiRequest("PUT", `/api/billing-milestones/${milestoneId}`, requestData);
     },

@@ -486,6 +486,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Enhanced data table with statusSort function that prioritizes issue types while maintaining delivered projects at bottom
   - Table defaults to ship date sorting when STATUS column sorting is removed or cleared
   - STATUS column now properly sorts projects based on their assigned issue labels with highest priority issues appearing first
+- January 11, 2025: Billing Milestone Live Date Enhancement for Project-Specific Updates
+  - Enhanced Live Date logic to prioritize delivery date over ship date for delivery milestones
+  - Updated project-specific billing milestone form to sync date changes to Live Date field for approval workflow
+  - Added automatic liveDate updates when users edit billing milestone dates from project details page
+  - Implemented approval flagging when liveDate differs from targetInvoiceDate for non-delivery milestones
+  - Enhanced BillingMilestoneForm with shipDateChanged tracking for comprehensive approval workflow
+  - Date changes from project-specific page now properly feed into main billing milestones approval system
 
 
 ## User Preferences
