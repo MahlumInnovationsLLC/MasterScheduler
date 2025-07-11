@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { useLocation } from 'wouter';
 import { 
   DollarSign, 
   Flag, 
@@ -60,6 +61,7 @@ const BillingMilestones = () => {
   const [activeTab, setActiveTab] = useState<'open' | 'invoiced'>('open');
   const [revenueTarget, setRevenueTarget] = useState(50000000); // Default 50M target
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Handler for viewing milestone details
   const handleViewMilestoneDetails = (milestone: any) => {
@@ -829,7 +831,12 @@ const BillingMilestones = () => {
         return (
           <div className="flex items-center">
             <div className="ml-1">
-              <div className="text-sm font-medium text-white">{project.projectNumber}</div>
+              <div 
+                className="text-sm font-medium text-white cursor-pointer hover:text-blue-300 hover:underline"
+                onClick={() => setLocation(`/projects/${project.id}`)}
+              >
+                {project.projectNumber}
+              </div>
               <div className="text-xs text-gray-400">{project.name}</div>
             </div>
           </div>
