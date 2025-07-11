@@ -339,7 +339,9 @@ const DepartmentGanttChart: React.FC<DepartmentGanttChartProps> = ({
                   
                   {/* Phase bar */}
                   <div
-                    className="absolute rounded shadow-sm flex items-center justify-center text-white text-xs font-semibold hover:shadow-md transition-shadow cursor-pointer"
+                    className={`absolute rounded shadow-sm flex items-center justify-center text-white text-xs font-semibold hover:shadow-md transition-shadow cursor-pointer ${
+                      project.status === 'Delivered' ? 'delivered-project-glow' : ''
+                    }`}
                     style={{
                       left: `${left}px`,
                       width: `${width}px`,

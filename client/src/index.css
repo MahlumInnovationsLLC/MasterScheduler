@@ -107,6 +107,28 @@
   z-index: 30 !important;
 }
 
+/* Delivered Project Glow Effect */
+.delivered-project-glow {
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3), 
+              0 0 10px rgba(34, 197, 94, 0.4), 
+              0 0 20px rgba(34, 197, 94, 0.2) !important;
+  border: 2px solid rgba(34, 197, 94, 0.6) !important;
+  animation: deliveredPulse 2s ease-in-out infinite;
+}
+
+@keyframes deliveredPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3), 
+                0 0 10px rgba(34, 197, 94, 0.4), 
+                0 0 20px rgba(34, 197, 94, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5), 
+                0 0 15px rgba(34, 197, 94, 0.6), 
+                0 0 30px rgba(34, 197, 94, 0.3);
+  }
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 240 10% 3.9%;
