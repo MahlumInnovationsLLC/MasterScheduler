@@ -542,6 +542,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - CRITICAL FIX: Added creation of actual engineering assignment records in project_engineering_assignments table
   - Engineering imports now properly create assignment records that Engineering module uses for project display
   - Fixed missing link between imported engineer names and actual project assignments in the database
+- January 11, 2025: Engineering Module Admin Delete Functionality
+  - Added trash can delete button for engineer cards in Engineering module (admin access only)
+  - Implemented delete confirmation dialog with warning message before engineer deletion
+  - Added admin role check to prevent non-admin users from deleting engineers
+  - Delete functionality removes engineer from users table and invalidates all related queries
+  - Added proper error handling and success/error toast notifications for delete operations
 
 
 ## User Preferences

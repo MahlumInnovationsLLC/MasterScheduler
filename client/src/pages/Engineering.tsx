@@ -596,6 +596,29 @@ export default function Engineering() {
     },
   });
 
+  // Mutation for deleting engineering resources (admin only)
+  const deleteEngineerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest('DELETE', `/api/users/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/engineering/engineering-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: "Success",
+        description: "Engineer deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete engineer",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Mutation for creating project engineering assignments
   const createEngineerAssignmentMutation = useMutation({
     mutationFn: async (data: Omit<ProjectEngineeringAssignment, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -712,6 +735,27 @@ export default function Engineering() {
     }
 
     return false;
+  };
+
+  // Check if user is admin (for delete permissions)
+  const isAdmin = () => {
+    return userRole === 'admin';
+  };
+
+  // Handle engineer deletion with confirmation
+  const handleDeleteEngineer = (engineer: EngineeringResource) => {
+    if (!isAdmin()) {
+      toast({
+        title: "Access Denied",
+        description: "Only administrators can delete engineers",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete ${engineer.firstName} ${engineer.lastName}? This action cannot be undone.`)) {
+      deleteEngineerMutation.mutate(engineer.id);
+    }
   };
 
   // If user doesn't have access, show access denied message
@@ -1527,6 +1571,16 @@ export default function Engineering() {
                           <Button variant="outline" size="sm">
                             View Tasks
                           </Button>
+                          {isAdmin() && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteEngineer(resource)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -1601,6 +1655,16 @@ export default function Engineering() {
                                       <Button variant="outline" size="sm">
                                         View Tasks
                                       </Button>
+                                      {isAdmin() && (
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={() => handleDeleteEngineer(resource)}
+                                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      )}
                                     </div>
 
                                     {/* Project Assignments Dropdown */}
