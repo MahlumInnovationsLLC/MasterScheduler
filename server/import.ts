@@ -1301,47 +1301,90 @@ export async function importEngineeringAssignments(req: Request, res: Response) 
         const projectUpdates: any = {};
         
         for (const eng of engineers) {
-          if (eng.name) {
-            // Check if user exists
-            let user = existingUsers.find(u => 
-              `${u.firstName} ${u.lastName}`.toLowerCase() === eng.name.toLowerCase() ||
-              u.email.toLowerCase() === eng.name.toLowerCase()
-            );
+          // Skip if name is null, undefined, or empty string
+          if (!eng.name || eng.name.trim() === '') {
+            console.log(`Skipping empty ${eng.discipline} engineer field`);
+            continue;
+          }
+          
+          const engineerName = eng.name.trim();
+          
+          // Find user with various matching strategies
+          let user = existingUsers.find(u => {
+            const fullName = `${u.firstName} ${u.lastName}`.trim();
+            const firstNameOnly = u.firstName;
             
-            if (!user) {
-              // Create new user as OFFLINE
-              const nameParts = eng.name.split(' ');
-              const firstName = nameParts[0] || eng.name;
-              const lastName = nameParts.slice(1).join(' ') || '';
-              const username = eng.name.toLowerCase().replace(/\s+/g, '.');
-              const email = `${username}@nomadgcs.com`;
-              
-              const newUser = {
-                email: email,
-                firstName: firstName,
-                lastName: lastName,
-                username: username,
-                role: 'viewer' as const,
-                department: 'engineering' as const,
-                isApproved: true,
-                status: 'offline' as const
-              };
-              
-              try {
-                user = await storage.createUser(newUser);
-                existingUsers.push(user);
-                results.newUsers.push(`${firstName} ${lastName} (${eng.discipline})`);
-              } catch (error) {
-                console.error('Failed to create user:', error);
-                continue;
+            // Try exact full name match
+            if (fullName.toLowerCase() === engineerName.toLowerCase()) {
+              return true;
+            }
+            
+            // Try first name + last initial match (e.g., "John S" matches "John Smith")
+            const nameParts = engineerName.split(' ');
+            if (nameParts.length === 2 && nameParts[1].length === 1) {
+              const searchFirstName = nameParts[0];
+              const searchLastInitial = nameParts[1].toUpperCase();
+              if (u.firstName.toLowerCase() === searchFirstName.toLowerCase() && 
+                  u.lastName && u.lastName.charAt(0).toUpperCase() === searchLastInitial) {
+                return true;
               }
             }
             
-            // Update project with engineer assignment
-            projectUpdates[eng.assignField] = `${user.firstName} ${user.lastName}`;
-            if (eng.percent !== null && eng.percent !== undefined) {
-              projectUpdates[eng.percentField] = eng.percent;
+            // Try first name only match if import has only one name
+            if (!engineerName.includes(' ') && firstNameOnly.toLowerCase() === engineerName.toLowerCase()) {
+              return true;
             }
+            
+            // Try email match
+            if (u.email.toLowerCase() === engineerName.toLowerCase()) {
+              return true;
+            }
+            
+            return false;
+          });
+          
+          if (!user) {
+            // Create new user as OFFLINE with exact name from import
+            const nameParts = engineerName.split(' ');
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(' ') || '';
+            const username = engineerName.toLowerCase().replace(/\s+/g, '.');
+            const email = `${username}@nomadgcs.com`;
+            
+            console.log(`Creating new OFFLINE user: ${engineerName} (${eng.discipline})`);
+            
+            const newUser = {
+              email: email,
+              firstName: firstName,
+              lastName: lastName,
+              username: username,
+              role: 'viewer' as const,
+              department: 'engineering' as const,
+              isApproved: true,
+              status: 'offline' as const
+            };
+            
+            try {
+              user = await storage.createUser(newUser);
+              existingUsers.push(user);
+              results.newUsers.push(`${engineerName} (${eng.discipline})`);
+            } catch (error) {
+              console.error('Failed to create user:', error);
+              continue;
+            }
+          } else {
+            console.log(`Found existing user for ${engineerName}: ${user.firstName} ${user.lastName}`);
+          }
+          
+          // Update project with engineer assignment
+          projectUpdates[eng.assignField] = `${user.firstName} ${user.lastName}`.trim();
+          
+          // Only update percentage if it's not null/undefined/empty
+          // This prevents overwriting existing data with blank values
+          if (eng.percent !== null && eng.percent !== undefined && eng.percent !== '') {
+            projectUpdates[eng.percentField] = eng.percent;
+          } else {
+            console.log(`Skipping blank completion percentage for ${eng.discipline} on project ${assignment.projectNumber}`);
           }
         }
         

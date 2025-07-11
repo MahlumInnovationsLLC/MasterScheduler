@@ -528,6 +528,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated historical cash flow logic: Outstanding = Total Period Amount - Invoiced Amount (proper calculation)
   - Removed "Paid" category from historical view as requested, showing only Invoiced and Outstanding amounts
   - Enhanced historical bars to show only blue (invoiced) and orange (outstanding) segments without green (paid)
+- January 11, 2025: Engineering Import Enhanced Name Matching and Data Handling
+  - Enhanced engineering import functionality with improved name matching strategies
+  - Added support for first name + last initial matching (e.g., "John S" matches "John Smith")
+  - Implemented first name only matching when import contains single name
+  - Added handling for null/blank engineer fields - skips assignment instead of creating empty records
+  - Prevented overwriting existing completion percentage data when import has blank values
+  - Creates OFFLINE users with exact names from import when no match is found
+  - Added comprehensive logging for debugging import operations
 
 
 ## User Preferences
