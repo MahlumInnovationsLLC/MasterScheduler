@@ -919,10 +919,10 @@ const BillingMilestones = () => {
         }
 
         // Check if Target Date is different from Live Date
-        // For delivery milestones, compare with project ship date; otherwise use billing milestone liveDate
+        // For delivery milestones, compare with project delivery date (fallback to ship date); otherwise use billing milestone liveDate
         const project = projects?.find(p => p.id === row.original.projectId);
-        const liveDate = isDeliveryMilestone && project?.shipDate ? 
-          project.shipDate : row.original.liveDate;
+        const liveDate = isDeliveryMilestone ? 
+          (project?.deliveryDate || project?.shipDate) : row.original.liveDate;
         const hasDateChange = row.original.targetInvoiceDate && 
                              liveDate && 
                              new Date(row.original.targetInvoiceDate).toDateString() !== new Date(liveDate).toDateString();
@@ -957,14 +957,14 @@ const BillingMilestones = () => {
         const project = projects?.find(p => p.id === row.original.projectId);
         const projectDeliveryDate = project?.deliveryDate;
 
-        // For delivery milestones, show project ship date; otherwise show liveDate from billing milestone
-        const displayDate = isDeliveryMilestone && project?.shipDate ? 
-          project.shipDate : row.original.liveDate;
+        // For delivery milestones, show project delivery date (fallback to ship date); otherwise show liveDate from billing milestone
+        const displayDate = isDeliveryMilestone ? 
+          (project?.deliveryDate || project?.shipDate) : row.original.liveDate;
 
         // Check if Target Date is different from Live Date
-        // For delivery milestones, compare with project ship date; otherwise use billing milestone liveDate
-        const liveDate = isDeliveryMilestone && project?.shipDate ? 
-          project.shipDate : row.original.liveDate;
+        // For delivery milestones, compare with project delivery date (fallback to ship date); otherwise use billing milestone liveDate
+        const liveDate = isDeliveryMilestone ? 
+          (project?.deliveryDate || project?.shipDate) : row.original.liveDate;
         const hasDateChange = row.original.targetInvoiceDate && 
                              liveDate && 
                              new Date(row.original.targetInvoiceDate).toDateString() !== new Date(liveDate).toDateString();
