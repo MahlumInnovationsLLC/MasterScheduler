@@ -53,12 +53,16 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
   
   // Calculate status for each bay
   const bayStatuses: BayStatus[] = React.useMemo(() => {
-    if (!bays || !bays.length) return [];
+    // Ensure bays and schedules are always arrays
+    const safeBays = Array.isArray(bays) ? bays : [];
+    const safeSchedules = Array.isArray(schedules) ? schedules : [];
+    
+    if (!safeBays.length) return [];
     
     // Track which bays we've processed to avoid duplicates
     const processedBayIds = new Set<number>();
     
-    return bays
+    return safeBays
       .filter(bay => bay.staffCount && bay.staffCount > 0 && bay.isActive)
       .filter(bay => {
         // Skip duplicate bays
@@ -71,7 +75,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
       })
       .map(bay => {
         // Get schedules for this bay
-        const baySchedules = schedules.filter(schedule => schedule.bayId === bay.id);
+        const baySchedules = safeSchedules.filter(schedule => schedule.bayId === bay.id);
         
         // Calculate capacity for this bay - always use the bay's specific data (no fallback)
         const hoursPerPerson = bay.hoursPerPersonPerWeek || 0;

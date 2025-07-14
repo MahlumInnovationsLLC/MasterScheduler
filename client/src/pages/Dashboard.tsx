@@ -125,8 +125,11 @@ const Dashboard = () => {
       return date.toISOString();
     };
 
+    // Ensure projects is always an array
+    const safeProjects = Array.isArray(projects) ? projects : [];
+    
     // Enhance projects with calculated phase dates
-    const enhancedProjects = projects.map(p => {
+    const enhancedProjects = safeProjects.map(p => {
       const shipDate = getValidDate(p.shipDate);
       return {
         ...p,
@@ -238,8 +241,8 @@ const Dashboard = () => {
     
     if (dateRangeFilter === 'all' && columnFilter === 'all') {
       // No filters applied - limit to top 10 projects
-      const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
-      const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
+      const nonDeliveredProjects = Array.isArray(sortedByShipDate) ? sortedByShipDate.filter(p => p.status !== 'delivered') : [];
+      const deliveredProjects = Array.isArray(sortedByShipDate) ? sortedByShipDate.filter(p => p.status === 'delivered') : [];
 
       // Take top 10 non-delivered projects, then add any delivered projects at the end
       finalList = [
@@ -288,23 +291,26 @@ const Dashboard = () => {
 
   // Calculate billing stats with revenue forecast
   const billingStats = React.useMemo(() => {
-    if (!billingMilestones || billingMilestones.length === 0) return null;
+    // Ensure billingMilestones is always an array
+    const safeMilestones = Array.isArray(billingMilestones) ? billingMilestones : [];
+    
+    if (safeMilestones.length === 0) return null;
 
-    const completed = billingMilestones.filter(m => m.status === 'paid').length;
-    const inProgress = billingMilestones.filter(m => m.status === 'invoiced').length;
-    const overdue = billingMilestones.filter(m => m.status === 'delayed').length;
-    const upcoming = billingMilestones.filter(m => m.status === 'upcoming').length;
+    const completed = safeMilestones.filter(m => m.status === 'paid').length;
+    const inProgress = safeMilestones.filter(m => m.status === 'invoiced').length;
+    const overdue = safeMilestones.filter(m => m.status === 'delayed').length;
+    const upcoming = safeMilestones.filter(m => m.status === 'upcoming').length;
 
     // Calculate total amounts
-    const totalReceived = billingMilestones
+    const totalReceived = safeMilestones
       .filter(m => m.status === 'paid')
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
-    const totalPending = billingMilestones
+    const totalPending = safeMilestones
       .filter(m => m.status === 'invoiced')
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
-    const totalOverdue = billingMilestones
+    const totalOverdue = safeMilestones
       .filter(m => m.status === 'delayed')
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
@@ -320,7 +326,7 @@ const Dashboard = () => {
     }
 
     // Add upcoming milestones to forecast
-    billingMilestones
+    safeMilestones
       .filter(m => m.status === 'upcoming' && m.targetInvoiceDate)
       .forEach(m => {
         const targetDate = new Date(m.targetInvoiceDate);
@@ -355,18 +361,21 @@ const Dashboard = () => {
 
   // Calculate project stats - moved before conditional returns
   const projectStats = React.useMemo(() => {
-    if (!projects || projects.length === 0) return null;
+    // Ensure projects is always an array
+    const safeProjects = Array.isArray(projects) ? projects : [];
+    
+    if (safeProjects.length === 0) return null;
 
     // Get projects by schedule state
     const scheduledProjects = manufacturingSchedules 
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
+      ? safeProjects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
       : [];
     const inProgressProjects = manufacturingSchedules
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
+      ? safeProjects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
       : [];
-    const completeProjects = projects.filter(p => p.status === 'completed');
+    const completeProjects = safeProjects.filter(p => p.status === 'completed');
     const unscheduledProjects = manufacturingSchedules
-      ? projects.filter(p => {
+      ? safeProjects.filter(p => {
           const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
           const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
           
@@ -412,7 +421,7 @@ const Dashboard = () => {
     };
 
     console.log('Dashboard Debug - Project counts:');
-    console.log('Total projects:', projects.length);
+    console.log('Total projects:', safeProjects.length);
     console.log('Unscheduled projects found:', unscheduledProjects.length);
     console.log('Delivered projects found:', deliveredProjectsCount);
     console.log('Project lists for hover:', {
@@ -424,7 +433,7 @@ const Dashboard = () => {
     });
 
     return {
-      total: projects.length,
+      total: safeProjects.length,
       major: labelStats.major,
       minor: labelStats.minor,
       good: labelStats.good,

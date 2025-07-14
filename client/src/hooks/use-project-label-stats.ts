@@ -25,12 +25,17 @@ export function useProjectLabelStats() {
   });
 
   return useMemo(() => {
+    // Ensure all data is arrays with proper defaults
+    const safeProjects = Array.isArray(projects) ? projects : [];
+    const safeAvailableLabels = Array.isArray(availableLabels) ? availableLabels : [];
+    const safeAssignments = Array.isArray(allProjectLabelAssignments) ? allProjectLabelAssignments : [];
+
     if (!projects || !availableLabels || !allProjectLabelAssignments) {
       return {
         major: 0,
         minor: 0,
         good: 0,
-        total: projects?.length || 0
+        total: safeProjects.length
       };
     }
 
@@ -38,13 +43,13 @@ export function useProjectLabelStats() {
 
     // Find label IDs for MAJOR, MINOR, GOOD (case-insensitive)
     // This will match "MAJOR ISSUE", "MAJOR", "MINOR ISSUE", "MINOR", etc.
-    const majorLabel = availableLabels.find(l => 
+    const majorLabel = safeAvailableLabels.find(l => 
       l.name.toUpperCase().includes('MAJOR')
     );
-    const minorLabel = availableLabels.find(l => 
+    const minorLabel = safeAvailableLabels.find(l => 
       l.name.toUpperCase().includes('MINOR')
     );
-    const goodLabel = availableLabels.find(l => 
+    const goodLabel = safeAvailableLabels.find(l => 
       l.name.toUpperCase().includes('GOOD')
     );
 
@@ -52,21 +57,21 @@ export function useProjectLabelStats() {
     
     // Count projects by label - ensure we're comparing the right data types
     const majorCount = majorLabel ? 
-      allProjectLabelAssignments.filter(assignment => {
+      safeAssignments.filter(assignment => {
         const assignmentLabelId = Number(assignment.labelId);
         const targetLabelId = Number(majorLabel.id);
         return assignmentLabelId === targetLabelId;
       }).length : 0;
     
     const minorCount = minorLabel ?
-      allProjectLabelAssignments.filter(assignment => {
+      safeAssignments.filter(assignment => {
         const assignmentLabelId = Number(assignment.labelId);
         const targetLabelId = Number(minorLabel.id);
         return assignmentLabelId === targetLabelId;
       }).length : 0;
       
     const goodCount = goodLabel ?
-      allProjectLabelAssignments.filter(assignment => {
+      safeAssignments.filter(assignment => {
         const assignmentLabelId = Number(assignment.labelId);
         const targetLabelId = Number(goodLabel.id);
         return assignmentLabelId === targetLabelId;

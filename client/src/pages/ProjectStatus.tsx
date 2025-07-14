@@ -202,6 +202,9 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
     }
   });
 
+  // Ensure availableLabels is always an array
+  const safeAvailableLabels = Array.isArray(availableLabels) ? availableLabels : [];
+
   const [isOpen, setIsOpen] = useState(false);
 
   // Assign label mutation - remove existing label first if any, then assign new one
@@ -327,7 +330,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {(availableLabels || []).filter((label: any) => label.name !== 'DELIVERED').map((label: any) => (
+              {safeAvailableLabels.filter((label: any) => label.name !== 'DELIVERED').map((label: any) => (
                 <button
                   key={label.id}
                   onClick={() => handleAssignLabel(label.id)}
