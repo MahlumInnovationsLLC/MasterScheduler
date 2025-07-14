@@ -54,7 +54,9 @@ export function DashboardTable<TData extends { id: number }, TValue>({
   const [, navigate] = useLocation();
 
   // Remove 'timeline' column if it exists
-  const filteredColumns = columns.filter(col => col.id !== 'timeline');
+  // Ensure columns is an array before filtering
+  const safeColumns = Array.isArray(columns) ? columns : [];
+  const filteredColumns = safeColumns.filter(col => col.id !== 'timeline');
 
   const table = useReactTable({
     data,

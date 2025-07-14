@@ -3,6 +3,7 @@ import { AlertCircle, BrainCircuit, ChevronRight, Clock, Info, TrendingDown, Use
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { safeFilter, ensureArray } from '@/lib/array-utils';
 
 interface Change {
   value: string;
@@ -54,17 +55,17 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
   // Calculate status for each bay
   const bayStatuses: BayStatus[] = React.useMemo(() => {
     // Ensure bays and schedules are always arrays
-    const safeBays = Array.isArray(bays) ? bays : [];
-    const safeSchedules = Array.isArray(schedules) ? schedules : [];
+    const safeBays = ensureArray(bays, [], 'BayUtilizationCard.bays');
+    const safeSchedules = ensureArray(schedules, [], 'BayUtilizationCard.schedules');
     
     if (!safeBays.length) return [];
     
     // Track which bays we've processed to avoid duplicates
     const processedBayIds = new Set<number>();
     
-    return safeBays
-      .filter(bay => bay.staffCount && bay.staffCount > 0 && bay.isActive)
-      .filter(bay => {
+    const activeBays = safeFilter(safeBays, bay => bay.staffCount && bay.staffCount > 0 && bay.isActive, 'BayUtilizationCard.activeBays');
+    
+    return safeFilter(activeBays, bay => {
         // Skip duplicate bays
         if (processedBayIds.has(bay.id)) {
           console.log(`Skipping duplicate bay: ${bay.name} (ID: ${bay.id})`);
@@ -72,10 +73,10 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
         }
         processedBayIds.add(bay.id);
         return true;
-      })
+      }, 'BayUtilizationCard.duplicateFilter')
       .map(bay => {
         // Get schedules for this bay
-        const baySchedules = safeSchedules.filter(schedule => schedule.bayId === bay.id);
+        const baySchedules = safeFilter(safeSchedules, schedule => schedule.bayId === bay.id, 'BayUtilizationCard.baySchedules');
         
         // Calculate capacity for this bay - always use the bay's specific data (no fallback)
         const hoursPerPerson = bay.hoursPerPersonPerWeek || 0;
@@ -98,11 +99,11 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
         };
         
         // Get projects assigned to this bay (non-ended projects)
-        const activeProjects = baySchedules.filter(schedule => {
+        const activeProjects = safeFilter(baySchedules, schedule => {
           const endDate = new Date(schedule.endDate);
           const now = new Date();
           return endDate >= now;
-        });
+        }, 'BayUtilizationCard.activeProjects');
         
         // Simple capacity calculation following project standards:
         // 0 projects = 0% (Available)
@@ -180,9 +181,9 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
   
   // Get overall insight
   const getOverallInsight = () => {
-    const atCapacity = bayStatuses.filter(b => b.status === 'at-capacity').length;
-    const noProjects = bayStatuses.filter(b => b.status === 'no-projects').length;
-    const nearCapacity = bayStatuses.filter(b => b.status === 'near-capacity').length;
+    const atCapacity = safeFilter(bayStatuses, b => b.status === 'at-capacity', 'BayUtilizationCard.atCapacity').length;
+    const noProjects = safeFilter(bayStatuses, b => b.status === 'no-projects', 'BayUtilizationCard.noProjects').length;
+    const nearCapacity = safeFilter(bayStatuses, b => b.status === 'near-capacity', 'BayUtilizationCard.nearCapacity').length;
     
     if (atCapacity > 0 && noProjects > 0) {
       return 'Opportunity to balance workload by shifting projects from at-capacity teams to available bays.';
@@ -337,8 +338,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
                         <span>At Capacity Teams</span>
                       </h6>
                       <ul className="mt-1.5 space-y-1.5">
-                        {bayStatuses
-                          .filter(b => b.status === 'at-capacity')
+                        {safeFilter(bayStatuses, b => b.status === 'at-capacity', 'BayUtilizationCard.atCapacityList')
                           .map(bay => bay.recommendations?.[0])
                           .filter(Boolean)
                           .map((rec, i) => (
@@ -359,8 +359,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
                         <span>Near Capacity Teams</span>
                       </h6>
                       <ul className="mt-1.5 space-y-1.5">
-                        {bayStatuses
-                          .filter(b => b.status === 'near-capacity')
+                        {safeFilter(bayStatuses, b => b.status === 'near-capacity', 'BayUtilizationCard.nearCapacityList')
                           .map(bay => bay.recommendations?.[0])
                           .filter(Boolean)
                           .map((rec, i) => (
@@ -381,8 +380,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
                         <span>Available Bays</span>
                       </h6>
                       <ul className="mt-1.5 space-y-1.5">
-                        {bayStatuses
-                          .filter(b => b.status === 'no-projects')
+                        {safeFilter(bayStatuses, b => b.status === 'no-projects', 'BayUtilizationCard.noProjectsList')
                           .map(bay => bay.recommendations?.[0])
                           .filter(Boolean)
                           .map((rec, i) => (
@@ -428,7 +426,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
               <span>At Capacity</span>
             </div>
             <div className="text-xs font-medium">
-              {bayStatuses.filter(b => b.status === 'at-capacity').length}
+              {safeFilter(bayStatuses, b => b.status === 'at-capacity', 'BayUtilizationCard.atCapacityCount').length}
             </div>
           </div>
           
@@ -439,7 +437,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
               <span>Near Capacity</span>
             </div>
             <div className="text-xs font-medium">
-              {bayStatuses.filter(b => b.status === 'near-capacity').length}
+              {safeFilter(bayStatuses, b => b.status === 'near-capacity', 'BayUtilizationCard.nearCapacityCount').length}
             </div>
           </div>
           
@@ -450,7 +448,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
               <span>Available</span>
             </div>
             <div className="text-xs font-medium">
-              {bayStatuses.filter(b => b.status === 'no-projects').length}
+              {safeFilter(bayStatuses, b => b.status === 'no-projects', 'BayUtilizationCard.noProjectsCount').length}
             </div>
           </div>
         </div>
