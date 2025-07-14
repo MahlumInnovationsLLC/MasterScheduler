@@ -866,14 +866,14 @@ const Dashboard = () => {
       }
 
       // Find the scrollable container - check multiple possible parent containers
-      const scrollContainers = [
+      const scrollContainers = safeFilter([
         targetBar.closest('.overflow-auto'),
         targetBar.closest('.overflow-x-auto'),
         targetBar.closest('.overflow-y-auto'),
         targetBar.closest('[style*="overflow"]'),
         document.querySelector('.manufacturing-schedule-container'),
         document.querySelector('.schedule-grid')
-      ].filter(Boolean);
+      ], Boolean, 'Dashboard.scrollContainers');
 
       const scrollContainer = scrollContainers[0];
 
