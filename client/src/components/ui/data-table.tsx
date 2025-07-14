@@ -71,7 +71,9 @@ export function DataTable<TData, TValue>({
       const saved = localStorage.getItem(`datatable-sorting-${persistenceKey}`);
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          // If saved sorting is empty, return initialSorting instead
+          return parsed.length === 0 ? initialSorting : parsed;
         } catch (e) {
           // Ignore invalid saved data
         }
@@ -87,9 +89,11 @@ export function DataTable<TData, TValue>({
   // Save sorting state when it changes
   useEffect(() => {
     if (persistenceKey && typeof window !== 'undefined') {
-      localStorage.setItem(`datatable-sorting-${persistenceKey}`, JSON.stringify(sorting));
+      // If sorting is empty, save initialSorting instead to maintain default
+      const sortingToSave = sorting.length === 0 ? initialSorting : sorting;
+      localStorage.setItem(`datatable-sorting-${persistenceKey}`, JSON.stringify(sortingToSave));
     }
-  }, [sorting, persistenceKey]);
+  }, [sorting, persistenceKey, initialSorting]);
 
   // Initialize pageIndex with saved value immediately
   const getInitialPageIndex = () => {
@@ -149,6 +153,25 @@ export function DataTable<TData, TValue>({
       }
     }, 0);
   }, []);
+
+  // Create custom sorting handler that returns to default sort
+  const handleColumnSort = React.useCallback((column: any) => {
+    const currentSort = column.getIsSorted();
+    
+    // Cycle through: none -> asc -> desc -> none (returns to default)
+    if (!currentSort) {
+      // No sort -> ascending
+      const newSorting = [{ id: column.id, desc: false }];
+      setSorting(newSorting);
+    } else if (currentSort === 'asc') {
+      // Ascending -> descending
+      const newSorting = [{ id: column.id, desc: true }];
+      setSorting(newSorting);
+    } else {
+      // Descending -> clear (which triggers default sorting)
+      setSorting([]); // This will trigger the onSortingChange handler to apply default
+    }
+  }, [setSorting]);
 
   // Modify the columns to always enable sorting for all columns
   const columnsWithSorting = React.useMemo(() => {
@@ -281,7 +304,15 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: globalFilterFn,
     onSortingChange: (updater) => {
-      setSorting(updater);
+      const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
+      
+      // If sorting is being cleared (empty array), apply default ship date sorting
+      if (newSorting.length === 0 && initialSorting.length > 0) {
+        setSorting(initialSorting);
+      } else {
+        setSorting(newSorting);
+      }
+      
       // Clear any active timeouts to prevent re-renders
       if (searchInputRef.current) {
         const currentValue = searchInputRef.current.value;
@@ -427,7 +458,7 @@ export function DataTable<TData, TValue>({
                                   ? 'flex items-center gap-1 cursor-pointer select-none'
                                   : ''
                               }
-                              onClick={header.column.getToggleSortingHandler()}
+                              onClick={() => handleColumnSort(header.column)}
                             >
                               {flexRender(
                                 header.column.columnDef.header,
@@ -596,7 +627,7 @@ export function DataTable<TData, TValue>({
                                   ? 'flex items-center gap-1 cursor-pointer select-none'
                                   : ''
                               }
-                              onClick={header.column.getToggleSortingHandler()}
+                              onClick={() => handleColumnSort(header.column)}
                             >
                               {headerText}
                               {header.column.getCanSort() && (
