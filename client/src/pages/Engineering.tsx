@@ -213,6 +213,9 @@ export default function Engineering() {
   const [disciplineFilter, setDisciplineFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [projectViewMode, setProjectViewMode] = useState<'project' | 'engineer'>('project');
+  // Project table sorting state (separate from benchmarks sorting)
+  const [projectSortField, setProjectSortField] = useState<string>('name');
+  const [projectSortOrder, setProjectSortOrder] = useState<'asc' | 'desc'>('asc');
   const queryClient = useQueryClient();
 
   // All hooks must be called before any conditional returns
@@ -299,6 +302,17 @@ export default function Engineering() {
     });
   }, [benchmarks, sortField, sortOrder]);
 
+  // Project table sorting handler
+  const handleProjectSort = (field: string) => {
+    if (projectSortField === field) {
+      setProjectSortOrder(projectSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setProjectSortField(field);
+      setProjectSortOrder('asc');
+    }
+  };
+
+  // Benchmark table sorting handler
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -307,6 +321,25 @@ export default function Engineering() {
       setSortOrder('asc');
     }
   };
+
+  // Helper function to render sortable column headers
+  const renderSortableHeader = (label: string, field: string) => (
+    <th 
+      className="text-left p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+      onClick={() => handleProjectSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        <span>{label}</span>
+        {projectSortField === field && (
+          <ChevronUp 
+            className={`h-4 w-4 transition-transform ${
+              projectSortOrder === 'desc' ? 'rotate-180' : ''
+            }`} 
+          />
+        )}
+      </div>
+    </th>
+  );
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<BenchmarkTemplate[]>({
     queryKey: ['/api/engineering/benchmark-templates'],
@@ -507,6 +540,118 @@ export default function Engineering() {
   
   // Use overview data for projects if available, otherwise use direct projects data
   const projectsWithEngineering = overview?.projects || projects;
+  
+  // Enhanced search and filtering with sorting
+  const filteredAndSortedProjects = React.useMemo(() => {
+    let filtered = projectsWithEngineering.filter(project => {
+      if (searchTerm === '') return true;
+      
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Search in project name and number
+      if (project.name?.toLowerCase().includes(searchLower) || 
+          project.projectNumber?.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+      
+      // Search in assigned engineer names
+      if (project.meAssigned?.toLowerCase().includes(searchLower) ||
+          project.eeAssigned?.toLowerCase().includes(searchLower) ||
+          project.iteAssigned?.toLowerCase().includes(searchLower) ||
+          project.ntcAssigned?.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+      
+      // Search in status
+      if (project.status?.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+      
+      return false;
+    });
+    
+    // Sort the filtered results
+    filtered.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (projectSortField) {
+        case 'name':
+          aValue = a.name || '';
+          bValue = b.name || '';
+          break;
+        case 'projectNumber':
+          aValue = a.projectNumber || '';
+          bValue = b.projectNumber || '';
+          break;
+        case 'status':
+          aValue = a.status || '';
+          bValue = b.status || '';
+          break;
+        case 'meAssigned':
+          aValue = a.meAssigned || 'Unassigned';
+          bValue = b.meAssigned || 'Unassigned';
+          break;
+        case 'eeAssigned':
+          aValue = a.eeAssigned || 'Unassigned';
+          bValue = b.eeAssigned || 'Unassigned';
+          break;
+        case 'iteAssigned':
+          aValue = a.iteAssigned || 'Unassigned';
+          bValue = b.iteAssigned || 'Unassigned';
+          break;
+        case 'ntcAssigned':
+          aValue = a.ntcAssigned || 'Unassigned';
+          bValue = b.ntcAssigned || 'Unassigned';
+          break;
+        case 'mePercent':
+          aValue = a.meCompletionPercent || 0;
+          bValue = b.meCompletionPercent || 0;
+          break;
+        case 'eePercent':
+          aValue = a.eeCompletionPercent || 0;
+          bValue = b.eeCompletionPercent || 0;
+          break;
+        case 'itePercent':
+          aValue = a.iteCompletionPercent || 0;
+          bValue = b.iteCompletionPercent || 0;
+          break;
+        case 'ntcPercent':
+          aValue = a.ntcCompletionPercent || 0;
+          bValue = b.ntcCompletionPercent || 0;
+          break;
+        case 'tasks':
+          aValue = (a.completedTasks || 0) / (a.engineeringTasks || 1);
+          bValue = (b.completedTasks || 0) / (b.engineeringTasks || 1);
+          break;
+        case 'benchmarks':
+          aValue = (a.completedBenchmarks || 0) / (a.engineeringBenchmarks || 1);
+          bValue = (b.completedBenchmarks || 0) / (b.engineeringBenchmarks || 1);
+          break;
+        default:
+          aValue = a.name || '';
+          bValue = b.name || '';
+      }
+      
+      // Handle string comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return projectSortOrder === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      // Handle numeric comparison
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return projectSortOrder === 'asc' 
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+      
+      return 0;
+    });
+    
+    return filtered;
+  }, [projectsWithEngineering, searchTerm, projectSortField, projectSortOrder]);
   
   // Debug logging
   React.useEffect(() => {
@@ -1093,7 +1238,7 @@ export default function Engineering() {
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                         <Input
-                          placeholder="Search projects..."
+                          placeholder="Search projects, engineers, status..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           className="pl-10 w-64"
@@ -1136,31 +1281,25 @@ export default function Engineering() {
                   <div className="overflow-x-auto max-h-[800px] overflow-y-auto">
                     {projectViewMode === 'project' ? (
                       <table className="w-full">
-                        <thead className="sticky top-0 bg-white">
+                        <thead className="sticky top-0 bg-white dark:bg-gray-900">
                           <tr className="border-b">
-                            <th className="text-left p-2">Project</th>
-                            <th className="text-left p-2">Status</th>
-                            <th className="text-left p-2">ME Assigned</th>
-                            <th className="text-left p-2">EE Assigned</th>
-                            <th className="text-left p-2">ITE Assigned</th>
-                            <th className="text-left p-2">NTC Assigned</th>
-                            <th className="text-left p-2">ME %</th>
-                            <th className="text-left p-2">EE %</th>
-                            <th className="text-left p-2">IT %</th>
-                            <th className="text-left p-2">NTC %</th>
-                            <th className="text-left p-2">Tasks</th>
-                            <th className="text-left p-2">Benchmarks</th>
+                            {renderSortableHeader('Project', 'name')}
+                            {renderSortableHeader('Status', 'status')}
+                            {renderSortableHeader('ME Assigned', 'meAssigned')}
+                            {renderSortableHeader('EE Assigned', 'eeAssigned')}
+                            {renderSortableHeader('ITE Assigned', 'iteAssigned')}
+                            {renderSortableHeader('NTC Assigned', 'ntcAssigned')}
+                            {renderSortableHeader('ME %', 'mePercent')}
+                            {renderSortableHeader('EE %', 'eePercent')}
+                            {renderSortableHeader('IT %', 'itePercent')}
+                            {renderSortableHeader('NTC %', 'ntcPercent')}
+                            {renderSortableHeader('Tasks', 'tasks')}
+                            {renderSortableHeader('Benchmarks', 'benchmarks')}
                             <th className="text-left p-2">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {projectsWithEngineering
-                            .filter(project => 
-                              searchTerm === '' || 
-                              project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              project.projectNumber.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
-                            .map((project) => (
+                          {filteredAndSortedProjects.map((project) => (
                             <tr key={project.id} className="border-b hover:bg-gray-50">
                               <td className="p-2">
                                 <div>
