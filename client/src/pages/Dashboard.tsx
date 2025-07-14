@@ -23,7 +23,14 @@ import {
   Wrench,
   Clock,
   CheckCircle,
-  Search
+  Search,
+  Factory,
+  Paintbrush,
+  Settings,
+  Monitor,
+  TestTube,
+  UserCheck,
+  Truck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
@@ -203,11 +210,6 @@ const Dashboard = () => {
         const shipDateA = getValidDate(a.shipDate);
         const shipDateB = getValidDate(b.shipDate);
 
-        // Projects without ship dates go to the end
-        if (!shipDateA && !shipDateB) return 0;
-        if (!shipDateA) return 1;
-        if (!shipDateB) return -1;
-
         // Delivered projects go to the end
         const isDeliveredA = a.status === 'delivered';
         const isDeliveredB = b.status === 'delivered';
@@ -222,8 +224,13 @@ const Dashboard = () => {
           return numB - numA;
         }
 
-        // If both are delivered, maintain original order
-        return 0;
+        // Projects without ship dates go to the end
+        if (!shipDateA && !shipDateB) return 0;
+        if (!shipDateA) return 1;
+        if (!shipDateB) return -1;
+
+        // Sort by ship date - soonest first
+        return shipDateA.getTime() - shipDateB.getTime();
       });
 
     // Apply different limits based on filter state
@@ -539,10 +546,100 @@ const Dashboard = () => {
       cell: ({ row }) => <div className="text-sm">{row.original.name}</div>,
     },
     {
-      accessorKey: 'ntc-test',
-      header: 'NTC Test',
+      accessorKey: 'mechShop',
+      header: (
+        <div className="text-center">
+          <div>MECH Shop</div>
+          <Wrench className="h-4 w-4 mx-auto mt-1 text-yellow-500" />
+        </div>
+      ),
       cell: ({ row }) => (
-        <div className="text-sm">
+        <div className="text-sm text-center">
+          {row.original.mechShop 
+            ? formatDateForDisplay(row.original.mechShop)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'fabricationStart',
+      header: (
+        <div className="text-center">
+          <div>FAB Start</div>
+          <Factory className="h-4 w-4 mx-auto mt-1 text-blue-500" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-sm text-center">
+          {row.original.fabricationStart 
+            ? formatDateForDisplay(row.original.fabricationStart)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'paintStart',
+      header: (
+        <div className="text-center">
+          <div>PAINT Start</div>
+          <Paintbrush className="h-4 w-4 mx-auto mt-1 text-red-500" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-sm text-center">
+          {row.original.paintStart 
+            ? formatDateForDisplay(row.original.paintStart)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'assemblyStart',
+      header: (
+        <div className="text-center">
+          <div>Production Start</div>
+          <Settings className="h-4 w-4 mx-auto mt-1 text-green-500" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-sm text-center">
+          {row.original.assemblyStart 
+            ? formatDateForDisplay(row.original.assemblyStart)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'itStart',
+      header: (
+        <div className="text-center">
+          <div>IT Start</div>
+          <Monitor className="h-4 w-4 mx-auto mt-1 text-purple-500" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-sm text-center">
+          {row.original.itStart 
+            ? formatDateForDisplay(row.original.itStart)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'ntcTestStart',
+      header: (
+        <div className="text-center">
+          <div>NTC Test</div>
+          <TestTube className="h-4 w-4 mx-auto mt-1 text-cyan-500" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-sm text-center">
           {row.original.ntcTestStart 
             ? formatDateForDisplay(row.original.ntcTestStart)
             : <span className="text-gray-500">TBD</span>
@@ -551,10 +648,15 @@ const Dashboard = () => {
       ),
     },
     {
-      accessorKey: 'qc-start',
-      header: 'QC Start',
+      accessorKey: 'qcStart',
+      header: (
+        <div className="text-center">
+          <div>QC Start</div>
+          <CheckCircle className="h-4 w-4 mx-auto mt-1 text-amber-500" />
+        </div>
+      ),
       cell: ({ row }) => (
-        <div className="text-sm">
+        <div className="text-sm text-center">
           {row.original.qcStart 
             ? formatDateForDisplay(row.original.qcStart)
             : <span className="text-gray-500">TBD</span>
@@ -563,10 +665,15 @@ const Dashboard = () => {
       ),
     },
     {
-      accessorKey: 'exec-review',
-      header: 'Exec Review',
+      accessorKey: 'execReview',
+      header: (
+        <div className="text-center">
+          <div>Exec Review</div>
+          <UserCheck className="h-4 w-4 mx-auto mt-1 text-indigo-500" />
+        </div>
+      ),
       cell: ({ row }) => (
-        <div className="text-sm">
+        <div className="text-sm text-center">
           {row.original.executiveReview 
             ? formatDateForDisplay(row.original.executiveReview)
             : <span className="text-gray-500">TBD</span>
@@ -575,10 +682,15 @@ const Dashboard = () => {
       ),
     },
     {
-      accessorKey: 'ship-date',
-      header: 'Ship Date',
+      accessorKey: 'shipDate',
+      header: (
+        <div className="text-center">
+          <div>Ship Date</div>
+          <Truck className="h-4 w-4 mx-auto mt-1 text-orange-500" />
+        </div>
+      ),
       cell: ({ row }) => (
-        <div className="text-sm">
+        <div className="text-sm text-center">
           {row.original.shipDate 
             ? formatDateForDisplay(row.original.shipDate)
             : <span className="text-gray-500">TBD</span>
