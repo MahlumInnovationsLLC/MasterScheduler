@@ -647,81 +647,8 @@ const Dashboard = () => {
     return filteredColumns.filter(Boolean); // Remove any undefined columns
   }, [columnFilter]);
 
-  // Show loading if auth is still loading
-  if (authLoading) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Dashboard</h1>
-        <div className="animate-pulse space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
-            ))}
-          </div>
-          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
-        </div>
-      </div>
-    );
-  }
-
-  // Authentication check - after all hooks
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <Card className="border-border bg-card backdrop-blur-sm shadow-lg">
-            <CardContent className="p-8 text-center">
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <Shield className="h-16 w-16 text-blue-500 opacity-20" />
-                  <LogIn className="h-8 w-8 text-blue-400 absolute top-4 left-4" />
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <div className="text-primary font-bold text-3xl font-sans mb-2">
-                  <span>TIER</span>
-                  <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span>
-                  <span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Manufacturing Management Platform
-                </p>
-              </div>
-
-              <h1 className="text-2xl font-bold mb-4 text-white dark:text-white">Login Required</h1>
-              <p className="text-gray-300 dark:text-gray-300 mb-8 leading-relaxed">
-                Please sign in to access your manufacturing dashboard and project management tools.
-              </p>
-
-              <div className="space-y-4">
-                <Link href="/auth">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Sign In to Continue
-                  </Button>
-                </Link>
-
-                <div className="grid grid-cols-2 gap-3 text-xs text-gray-400">
-                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
-                    <Building2 className="h-4 w-4 mx-auto mb-1 text-blue-400" />
-                    <div className="font-medium">Project Management</div>
-                  </div>
-                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
-                    <BarChart3 className="h-4 w-4 mx-auto mb-1 text-green-400" />
-                    <div className="font-medium">Analytics & Reports</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // Project scroll function - same logic as bay scheduling module
-  const scrollToProject = (searchQuery) => {
+  // Project scroll function - moved before conditional returns to fix React hook mismatch
+  const scrollToProject = React.useCallback((searchQuery) => {
     if (!searchQuery.trim()) {
       toast({
         title: "Search Required",
@@ -804,79 +731,177 @@ const Dashboard = () => {
       if (!targetBar) {
         const allElements = document.querySelectorAll('*');
         for (let i = 0; i < allElements.length; i++) {
-          const element = allElements[i];
-          const textContent = element.textContent || '';
-
-          if (textContent.includes(targetProject.projectNumber) || 
-              textContent.includes(targetProject.name)) {
-            // Find the closest parent that looks like a project bar
-            let parent = element;
-            while (parent && parent !== document.body) {
-              if (parent.classList.contains('project-bar') || 
-                  parent.style.backgroundColor || 
-                  parent.style.width) {
-                targetBar = parent;
-                break;
-              }
-              parent = parent.parentElement;
+          const el = allElements[i];
+          if (el.textContent && 
+              el.textContent.toLowerCase().includes(searchTerm) &&
+              el.childElementCount === 0) { // Only leaf nodes with text
+            
+            // Check if this element is part of the manufacturing schedule
+            const parentSchedule = el.closest('.schedule-container, .manufacturing-schedule, .bay-schedule');
+            if (parentSchedule) {
+              targetBar = el.closest('.project-bar, .schedule-bar, [data-project-id]') || el;
+              break;
             }
-            if (targetBar) break;
           }
         }
       }
 
       if (!targetBar) {
         toast({
-          title: "Project Bar Not Found",
-          description: "Project found but not visible in current schedule view",
+          title: "Visual Element Not Found",
+          description: `Found project ${targetProject.projectNumber} in data but couldn't locate it in the schedule view`,
           variant: "destructive",
           duration: 3000
         });
         return false;
       }
 
-      // Scroll to the project bar
-      targetBar.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center',
-        inline: 'center'
+      // Find the scrollable container - check multiple possible parent containers
+      const scrollContainers = [
+        targetBar.closest('.overflow-auto'),
+        targetBar.closest('.overflow-x-auto'),
+        targetBar.closest('.overflow-y-auto'),
+        targetBar.closest('[style*="overflow"]'),
+        document.querySelector('.manufacturing-schedule-container'),
+        document.querySelector('.schedule-grid')
+      ].filter(Boolean);
+
+      const scrollContainer = scrollContainers[0];
+
+      if (!scrollContainer) {
+        toast({
+          title: "Scroll Error",
+          description: "Could not find scrollable container",
+          variant: "destructive",
+          duration: 3000
+        });
+        return false;
+      }
+
+      // Get positions for scrolling
+      const barRect = targetBar.getBoundingClientRect();
+      const containerRect = scrollContainer.getBoundingClientRect();
+
+      // Calculate scroll positions to center the project bar
+      const scrollLeft = targetBar.offsetLeft - (scrollContainer.clientWidth / 2) + (targetBar.offsetWidth / 2);
+      const scrollTop = targetBar.offsetTop - (scrollContainer.clientHeight / 2) + (targetBar.offsetHeight / 2);
+
+      // Perform the scroll
+      scrollContainer.scrollTo({
+        left: Math.max(0, scrollLeft),
+        top: Math.max(0, scrollTop),
+        behavior: 'smooth'
       });
 
-      // Success message
+      // Highlight the found project bar with visual feedback
+      targetBar.classList.add('highlight-found');
+      targetBar.style.transition = 'all 0.3s ease';
+      targetBar.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.8)';
+      targetBar.style.border = '2px solid #3b82f6';
+      targetBar.style.zIndex = '1000';
+
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        targetBar.style.boxShadow = '';
+        targetBar.style.border = '';
+        targetBar.style.zIndex = '';
+        targetBar.classList.remove('highlight-found');
+      }, 3000);
+
       toast({
-        title: "Found Project",
-        description: `Scrolled to project ${targetProject.projectNumber} (${targetProject.name})`,
-        duration: 3000
+        title: "Project Found",
+        description: `Scrolled to project ${targetProject.projectNumber}`,
+        duration: 2000
       });
 
       return true;
+
     } catch (error) {
-      console.error("Project search scrolling failed:", error);
+      console.error('Error scrolling to project:', error);
       toast({
-        title: "Search Failed", 
-        description: "Could not scroll to the project",
+        title: "Scroll Error",
+        description: "An error occurred while searching for the project",
         variant: "destructive",
         duration: 3000
       });
       return false;
     }
-  };
+  }, [projects, manufacturingSchedules, toast]);
 
-  // Helper function to format dates consistently without timezone issues
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return 'N/A';
+  // Show loading if auth is still loading
+  if (authLoading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-sans font-bold mb-6">Dashboard</h1>
+        <div className="animate-pulse space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
+            ))}
+          </div>
+          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
+        </div>
+      </div>
+    );
+  }
 
-    // Use UTC methods to avoid timezone issues
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: 'UTC'
-    });
-  };
+  // Authentication check - after all hooks
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card className="border-border bg-card backdrop-blur-sm shadow-lg">
+            <CardContent className="p-8 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <Shield className="h-16 w-16 text-blue-500 opacity-20" />
+                  <LogIn className="h-8 w-8 text-blue-400 absolute top-4 left-4" />
+                </div>
+              </div>
 
+              <div className="mb-6">
+                <div className="text-primary font-bold text-3xl font-sans mb-2">
+                  <span>TIER</span>
+                  <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span>
+                  <span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Manufacturing Management Platform
+                </p>
+              </div>
+
+              <h1 className="text-2xl font-bold mb-4 text-white dark:text-white">Login Required</h1>
+              <p className="text-gray-300 dark:text-gray-300 mb-8 leading-relaxed">
+                Please sign in to access your manufacturing dashboard and project management tools.
+              </p>
+
+              <div className="space-y-4">
+                <Link href="/auth">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In to Continue
+                  </Button>
+                </Link>
+
+                <div className="grid grid-cols-2 gap-3 text-xs text-gray-400">
+                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
+                    <Building2 className="h-4 w-4 mx-auto mb-1 text-blue-400" />
+                    <div className="font-medium">Project Management</div>
+                  </div>
+                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
+                    <BarChart3 className="h-4 w-4 mx-auto mb-1 text-green-400" />
+                    <div className="font-medium">Analytics & Reports</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
   if (isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays) {
     return (
       <div className="p-6">
