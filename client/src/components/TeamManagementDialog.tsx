@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Users, UserPlus, Clock, Edit } from 'lucide-react';
+import { safeFilter } from '@/lib/array-utils';
 
 // Define the ManufacturingBay interface based on schema
 interface ManufacturingBay {
@@ -91,10 +92,10 @@ export function TeamManagementDialog({
             let teamBays: ManufacturingBay[] = [];
             if (bayIds.length > 0) {
               // Filter to only the specific bays we want to edit
-              teamBays = latestBays.filter((bay: ManufacturingBay) => bayIds.includes(bay.id));
+              teamBays = safeFilter(latestBays, (bay: ManufacturingBay) => bayIds.includes(bay.id), 'TeamManagementDialog.teamBays1');
             } else {
               // Fallback to the old behavior if we don't have specific bay IDs
-              teamBays = latestBays.filter((bay: ManufacturingBay) => bay.team === actualTeamName);
+              teamBays = safeFilter(latestBays, (bay: ManufacturingBay) => bay.team === actualTeamName, 'TeamManagementDialog.teamBays2');
             }
             
             if (teamBays.length > 0) {
@@ -121,8 +122,8 @@ export function TeamManagementDialog({
           console.error("Error fetching latest bay data:", error);
           // If API fetch fails, use the provided bay data
           const teamBays = bayIds.length > 0 
-            ? bays.filter((bay: ManufacturingBay) => bayIds.includes(bay.id))
-            : bays.filter((bay: ManufacturingBay) => bay.team === actualTeamName);
+            ? safeFilter(bays, (bay: ManufacturingBay) => bayIds.includes(bay.id), 'TeamManagementDialog.teamBays3')
+            : safeFilter(bays, (bay: ManufacturingBay) => bay.team === actualTeamName, 'TeamManagementDialog.teamBays4');
           
           if (teamBays.length > 0) {
             const firstBay = teamBays[0];
@@ -167,10 +168,10 @@ export function TeamManagementDialog({
           
           if (bayIds.length > 0) {
             // Only update the specific bays that were clicked on
-            teamBays = latestBays.filter((bay: ManufacturingBay) => bayIds.includes(bay.id));
+            teamBays = safeFilter(latestBays, (bay: ManufacturingBay) => bayIds.includes(bay.id), 'TeamManagementDialog.teamBays5');
           } else {
             // Fallback to old behavior if no specific bay IDs
-            teamBays = latestBays.filter((bay: ManufacturingBay) => bay.team === actualTeamName);
+            teamBays = safeFilter(latestBays, (bay: ManufacturingBay) => bay.team === actualTeamName, 'TeamManagementDialog.teamBays6');
           }
           
           console.log(`Found ${teamBays.length} bays to update for team ${actualTeamName}`);
@@ -179,9 +180,9 @@ export function TeamManagementDialog({
         console.error("Error fetching latest bay data for update:", error);
         // Fallback to the provided bays if API fetch fails
         if (bayIds.length > 0) {
-          teamBays = bays.filter(bay => bayIds.includes(bay.id));
+          teamBays = safeFilter(bays, bay => bayIds.includes(bay.id), 'TeamManagementDialog.teamBays7');
         } else {
-          teamBays = bays.filter(bay => bay.team === actualTeamName);
+          teamBays = safeFilter(bays, bay => bay.team === actualTeamName, 'TeamManagementDialog.teamBays8');
         }
       }
       

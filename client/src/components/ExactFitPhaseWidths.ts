@@ -3,6 +3,8 @@
  * for manufacturing schedule visualization with capacity-based calculations.
  */
 
+import { safeFilter } from '@/lib/array-utils';
+
 // Define Team interfaces for capacity calculations
 export interface TeamCapacity {
   assemblyStaffCount: number;
@@ -56,7 +58,7 @@ const calculateTeamCapacity = (bay: Bay, allBays: Bay[]): number => {
   if (!bay.team) return 29 * 2; // Default 29 hours * 2 staff members
   
   // Find all bays in the same team
-  const teamBays = allBays.filter(b => b.team === bay.team);
+  const teamBays = safeFilter(allBays, b => b.team === bay.team, 'ExactFitPhaseWidths.teamBays');
   
   // Just use the first bay's capacity values for the team
   // This ensures we don't double-count staff across multiple bays in the same team
@@ -98,7 +100,7 @@ const doProductionPhasesOverlap = (bar1: ScheduleBar, bar2: ScheduleBar): boolea
  * Count overlapping projects in production phase
  */
 const countOverlappingProjects = (bar: ScheduleBar, allBars: ScheduleBar[]): number => {
-  return allBars.filter(otherBar => doProductionPhasesOverlap(bar, otherBar)).length;
+  return safeFilter(allBars, otherBar => doProductionPhasesOverlap(bar, otherBar), 'ExactFitPhaseWidths.overlappingBars').length;
 };
 
 /**

@@ -31,6 +31,7 @@ import {
   XCircle,
   ShieldAlert
 } from 'lucide-react';
+import { safeFilter } from '@/lib/array-utils';
 
 interface BillingMilestone {
   id: number;
@@ -95,7 +96,7 @@ export default function FinancialImpactPopup({
   
   // Filter benchmarks for this specific project
   const projectBenchmarks = useMemo(() => {
-    return allProjectBenchmarks.filter(b => b.projectId === projectId);
+    return safeFilter(allProjectBenchmarks, b => b.projectId === projectId, 'FinancialImpactPopup.projectBenchmarks');
   }, [allProjectBenchmarks, projectId]);
 
   // DIRECT DATE DISPLAY: Use exact dates without calculations
@@ -117,8 +118,9 @@ export default function FinancialImpactPopup({
     console.log("EXACT DAYS DIFFERENCE:", daysDifference);
     
     // Only consider milestones that are not paid
-    const affectedMilestones = billingMilestones.filter(
-      m => m.status !== 'paid' && m.targetInvoiceDate
+    const affectedMilestones = safeFilter(billingMilestones,
+      m => m.status !== 'paid' && m.targetInvoiceDate,
+      'FinancialImpactPopup.affectedMilestones'
     );
     
     // For each milestone, shift by the exact same number of days as the project shifted
@@ -175,7 +177,7 @@ export default function FinancialImpactPopup({
     console.log("EXACT SUPPLY CHAIN IMPACT - Days difference:", daysDifference);
     
     // Only consider incomplete benchmarks
-    const incompleteBenchmarks = projectBenchmarks.filter(b => !b.isCompleted);
+    const incompleteBenchmarks = safeFilter(projectBenchmarks, b => !b.isCompleted, 'FinancialImpactPopup.incompleteBenchmarks');
     
     // For each benchmark, apply exact day shift
     return incompleteBenchmarks.map(benchmark => {

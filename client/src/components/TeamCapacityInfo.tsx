@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Clock, Calendar, Activity } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { safeFilter } from '@/lib/array-utils';
 
 interface ManufacturingBay {
   id: number;
@@ -30,13 +31,13 @@ interface TeamCapacityInfoProps {
 
 export function TeamCapacityInfo({ teamName, bays, schedules }: TeamCapacityInfoProps) {
   // Filter the bays that belong to this team
-  const teamBays = bays.filter(bay => bay.team === teamName);
+  const teamBays = safeFilter(bays, bay => bay.team === teamName, 'TeamCapacityInfo.teamBays');
   const teamBayIds = teamBays.map(bay => bay.id);
   
   // Filter schedules for this team's bays
-  const teamSchedules = schedules.filter(schedule => 
+  const teamSchedules = safeFilter(schedules, schedule => 
     teamBayIds.includes(schedule.bayId)
-  );
+  , 'TeamCapacityInfo.teamSchedules');
   
   // Calculate staff counts and hours
   const assemblyStaffCount = teamBays.reduce((total, bay) => total + (bay.assemblyStaffCount || 0), 0);
@@ -63,11 +64,11 @@ export function TeamCapacityInfo({ teamName, bays, schedules }: TeamCapacityInfo
   currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
   
   // Get schedules that overlap with current week
-  const currentWeekSchedules = teamSchedules.filter(schedule => {
+  const currentWeekSchedules = safeFilter(teamSchedules, schedule => {
     const startDate = new Date(schedule.startDate);
     const endDate = new Date(schedule.endDate);
     return (startDate <= currentWeekEnd && endDate >= currentWeekStart);
-  });
+  }, 'TeamCapacityInfo.currentWeekSchedules');
   
   // Get total hours for current week (simplified calculation)
   // Ideally this would be prorated by actual days within current week

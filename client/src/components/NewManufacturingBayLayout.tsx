@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ManufacturingSchedule, Project } from '@shared/schema';
 import { checkScheduleConflict } from '@/lib/utils';
+import { safeFilter } from '@/lib/array-utils';
 
 interface ScheduleItem {
   id: number;
@@ -244,7 +245,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
   // Unassigned projects
   const unassignedProjects = useMemo(() => {
     const scheduledIds = new Set(schedules.map(s => s.projectId));
-    return projects.filter(p => !scheduledIds.has(p.id));
+    return safeFilter(projects, p => !scheduledIds.has(p.id), 'NewManufacturingBayLayout.unscheduledProjects');
   }, [projects, schedules]);
   
   return (

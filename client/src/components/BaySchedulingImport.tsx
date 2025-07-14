@@ -8,6 +8,7 @@ import { Loader2, FileDown, Upload, Check, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { cn } from '@/lib/utils';
+import { safeFilter } from '@/lib/array-utils';
 // Inline template instead of importing CSV file
 const templateCsvContent = `projectNumber,productionStartDate,endDate,teamNumber,totalHours
 804205,06/01/2025,07/15/2025,1,1200
@@ -175,7 +176,7 @@ const BaySchedulingImport: React.FC = () => {
           // Check required headers (only projectNumber and endDate are truly required)
           const requiredHeaders = ['projectNumber', 'endDate'];
           const optionalHeaders = ['productionStartDate', 'teamNumber', 'totalHours'];
-          const missingRequiredHeaders = requiredHeaders.filter(h => !headers.includes(h));
+          const missingRequiredHeaders = safeFilter(requiredHeaders, h => !headers.includes(h), 'BaySchedulingImport.missingRequiredHeaders');
           
           if (missingRequiredHeaders.length > 0) {
             reject(`CSV missing required headers: ${missingRequiredHeaders.join(', ')}`);
@@ -183,7 +184,7 @@ const BaySchedulingImport: React.FC = () => {
           }
           
           // Check for optional headers and log warnings if any are missing
-          const missingOptionalHeaders = optionalHeaders.filter(h => !headers.includes(h));
+          const missingOptionalHeaders = safeFilter(optionalHeaders, h => !headers.includes(h), 'BaySchedulingImport.missingOptionalHeaders');
           if (missingOptionalHeaders.length > 0) {
             console.warn(`CSV missing optional headers: ${missingOptionalHeaders.join(', ')}`);
           }

@@ -16,6 +16,7 @@ import {
   endOfWeek
 } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { safeFilter } from '@/lib/array-utils';
 
 export type ScheduleItem = {
   id: string | number;
@@ -66,7 +67,7 @@ export function CalendarSchedule({ items, onDateClick, onItemClick }: CalendarSc
   
   // Function to check if an item spans multiple days and includes the given date
   const getItemsForDate = (date: Date) => {
-    return items.filter(item => {
+    return safeFilter(items, item => {
       try {
         const itemStartDate = item.date instanceof Date ? item.date : parseISO(item.date as string);
         
@@ -86,7 +87,7 @@ export function CalendarSchedule({ items, onDateClick, onItemClick }: CalendarSc
         console.error("Error parsing date:", error);
         return false;
       }
-    });
+    }, 'CalendarSchedule.getItemsForDate');
   };
   
   // Get the status color based on the status

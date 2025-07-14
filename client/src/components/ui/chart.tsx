@@ -4,6 +4,7 @@ import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
 import { cn } from "@/lib/utils"
+import { safeFilter, ensureArray } from "@/lib/array-utils"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
@@ -68,8 +69,10 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme || config.color
+  const configEntries = ensureArray(Object.entries(config), [], 'ChartStyle.configEntries');
+  const colorConfig = safeFilter(configEntries,
+    ([, config]) => config.theme || config.color,
+    'ChartStyle.colorConfig'
   )
 
   if (!colorConfig.length) {

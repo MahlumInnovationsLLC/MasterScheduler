@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { addDays, format, eachDayOfInterval, isSameDay, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { safeFilter } from '@/lib/array-utils';
 
 export type GanttItem = {
   id: string | number;
@@ -38,11 +39,11 @@ const GanttRow = ({ label, items, days, today }: GanttRowProps) => {
         const isToday = isSameDay(day, today);
         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
         
-        const itemsForCell = items.filter(item => {
+        const itemsForCell = safeFilter(items, item => {
           const itemStart = new Date(item.startDate);
           const itemEnd = new Date(item.endDate);
           return isWithinInterval(day, { start: itemStart, end: itemEnd });
-        });
+        }, 'GanttRow.itemsForCell');
 
         return (
           <div 

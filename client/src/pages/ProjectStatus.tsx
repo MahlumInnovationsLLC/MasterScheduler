@@ -225,7 +225,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
       return [];
     }
     
-    return availableLabels;
+    return ensureArray(availableLabels, [], 'ProjectStatus.safeAvailableLabels');
   }, [availableLabels]);
 
   const [isOpen, setIsOpen] = useState(false);
