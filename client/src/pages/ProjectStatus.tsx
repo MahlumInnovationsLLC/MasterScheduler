@@ -372,18 +372,25 @@ const ProjectStatus = () => {
   const { data: ccbRequests = [] } = useQuery({
     queryKey: ['/api/ccb-requests'],
     staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   const { data: manufacturingSchedules = [] } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   const { data: billingMilestones = [] } = useQuery({
     queryKey: ['/api/billing-milestones'],
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   const { data: manufacturingBays = [] } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   // Fetch all project label assignments for sorting
@@ -395,7 +402,9 @@ const ProjectStatus = () => {
 
   // Fetch available labels to get issue type information
   const { data: availableLabels = [] } = useQuery({
-    queryKey: ['/api/project-labels']
+    queryKey: ['/api/project-labels'],
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   // Function to get issue priority for sorting
