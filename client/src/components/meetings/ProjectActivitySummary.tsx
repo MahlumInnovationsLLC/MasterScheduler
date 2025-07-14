@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { CalendarIcon, CheckCircleIcon, ClockIcon, FolderIcon, ListTodoIcon } from "lucide-react";
 import { Link } from "wouter";
 import type { Meeting, Task } from "@shared/schema";
+import { safeFilter, ensureArray } from "@/lib/array-utils";
 
 interface ProjectActivitySummaryProps {
   projectId: number;
@@ -120,7 +121,7 @@ export function ProjectActivitySummary({ projectId }: ProjectActivitySummaryProp
               <CheckCircleIcon className="h-4 w-4 text-green-600" />
               <div>
                 <div className="text-2xl font-bold text-green-600">
-                  {summary.meetingTasks.filter(task => task.status === 'completed').length}
+                  {safeFilter(ensureArray(summary.meetingTasks, [], 'ProjectActivitySummary.meetingTasks'), task => task.status === 'completed', 'ProjectActivitySummary.completedTasks').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Completed</div>
               </div>

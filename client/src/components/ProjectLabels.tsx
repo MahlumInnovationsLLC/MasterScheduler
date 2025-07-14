@@ -13,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Edit, Trash2, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { safeFilter, ensureArray } from '@/lib/array-utils';
 
 // Types
 interface ProjectLabel {
@@ -481,8 +482,10 @@ export function ProjectLabelsAssignment({ projectId }: { projectId: number }) {
   });
 
   const assignedLabelIds = projectLabels.map((assignment: ProjectLabelAssignment) => assignment.labelId);
-  const unassignedLabels = availableLabels.filter((label: ProjectLabel) => 
-    !assignedLabelIds.includes(label.id)
+  const safeAvailableLabels = ensureArray(availableLabels, [], 'ProjectLabels.availableLabels');
+  const unassignedLabels = safeFilter(safeAvailableLabels, (label: ProjectLabel) => 
+    !assignedLabelIds.includes(label.id),
+    'ProjectLabels.unassignedLabels'
   );
 
   if (isLoading) {

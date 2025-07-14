@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import { Project } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
+import { safeFilter, ensureArray } from '@/lib/array-utils';
 
 interface HighRiskProjectsCardProps {
   projects: Project[];
@@ -41,7 +42,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     const nextWeek = new Date(today);
     nextWeek.setDate(today.getDate() + 14); // Show projects starting within 2 weeks
     
-    const activeSchedules = schedulesArray.filter((schedule: any) => {
+    const activeSchedules = safeFilter(schedulesArray, (schedule: any) => {
       const startDate = new Date(schedule.startDate);
       const endDate = new Date(schedule.endDate);
       
@@ -61,7 +62,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       }
       
       return isActiveToday || isStartingSoon;
-    });
+    }, 'HighRiskProjectsCard.activeSchedules');
     
     // Log the total count of active schedules for debugging
     console.log(`Total active schedules found for Current Production Status: ${activeSchedules.length}`);
@@ -89,10 +90,10 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
         ...enhancedProject,
         currentPhase
       };
-    }).filter(Boolean);
+    });
     
     // First filter out any nulls or undefined values
-    const validResults = result.filter((item): item is NonNullable<typeof item> => !!item);
+    const validResults = safeFilter(result, (item): item is NonNullable<typeof item> => !!item, 'HighRiskProjectsCard.validResults');
     
     // Then sort valid results by days until ship date
     const sortedResults = validResults.sort((a, b) => {
@@ -117,12 +118,12 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     twoWeeksLater.setHours(23, 59, 59, 999);
     
     // Filter projects with ship dates in the next 2 weeks
-    return projects
-      .filter(project => {
+    const safeProjects = ensureArray(projects, [], 'HighRiskProjectsCard.projects');
+    return safeFilter(safeProjects, project => {
         const shipDate = project.shipDate ? new Date(project.shipDate) : null;
         
         return shipDate && shipDate >= today && shipDate <= twoWeeksLater;
-      })
+      }, 'HighRiskProjectsCard.upcomingShipProjects')
       .sort((a, b) => {
         const shipDateA = a.shipDate ? new Date(a.shipDate) : new Date();
         const shipDateB = b.shipDate ? new Date(b.shipDate) : new Date();

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link, useLocation } from 'wouter';
 import { queryClient, apiRequest } from '@/lib/queryClient';
+import { safeFilter, ensureArray } from '@/lib/array-utils';
 import { 
   ArrowLeft,
   User,
@@ -475,7 +476,8 @@ const ProjectDetails = () => {
     if (!tasks || tasks.length === 0) return 0;
 
     // Calculate task completion percentage
-    const completedTasks = tasks.filter(t => t.isCompleted).length;
+    const safeTasks = ensureArray(tasks, [], 'ProjectDetails.tasks');
+    const completedTasks = safeFilter(safeTasks, t => t.isCompleted, 'ProjectDetails.completedTasks').length;
     return Math.round((completedTasks / tasks.length) * 100);
   };
 
@@ -530,8 +532,8 @@ const ProjectDetails = () => {
     const milestoneGroups = [];
 
     // Group tasks that have milestoneId assignments
-    const tasksWithMilestones = currentTasks.filter(task => task.milestoneId);
-    const standaloneTasks = currentTasks.filter(task => !task.milestoneId);
+    const tasksWithMilestones = safeFilter(currentTasks, task => task.milestoneId, 'ProjectDetails.tasksWithMilestones');
+    const standaloneTasks = safeFilter(currentTasks, task => !task.milestoneId, 'ProjectDetails.standaloneTasks');
 
     // Create milestone groups for tasks with milestone assignments
     const milestoneMap = new Map();
@@ -808,9 +810,9 @@ const ProjectDetails = () => {
             <div className="text-sm text-gray-400 mb-1">Billing</div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold">
-                {formatCurrency(billingMilestones
-                  .filter(m => m.status === 'paid')
-                  .reduce((sum, m) => sum + parseFloat(m.amount), 0)
+                {formatCurrency(
+                  safeFilter(billingMilestones, m => m.status === 'paid', 'ProjectDetails.paidMilestones')
+                    .reduce((sum, m) => sum + parseFloat(m.amount), 0)
                 )}
               </span>
               <span className="text-sm text-gray-400">/ 
@@ -829,14 +831,14 @@ const ProjectDetails = () => {
             <div className="text-sm text-gray-400 mb-1">Tasks</div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold">
-                {tasks.filter(t => t.isCompleted).length}/{tasks.length}
+                {safeFilter(tasks, t => t.isCompleted, 'ProjectDetails.completedTasksCount').length}/{tasks.length}
               </span>
               <span className="text-sm text-gray-400">completed</span>
             </div>
             <div className="text-xs text-gray-500 mt-1">
               {tasks.length === 0 ? 'No tasks defined' : 
-               tasks.filter(t => t.isCompleted).length === tasks.length ? 'All complete' :
-               `${tasks.length - tasks.filter(t => t.isCompleted).length} remaining`}
+               safeFilter(tasks, t => t.isCompleted, 'ProjectDetails.completedTasksCheck').length === tasks.length ? 'All complete' :
+               `${tasks.length - safeFilter(tasks, t => t.isCompleted, 'ProjectDetails.completedTasksRemaining').length} remaining`}
             </div>
           </div>
 

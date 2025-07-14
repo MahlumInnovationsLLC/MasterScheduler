@@ -9,6 +9,7 @@ import { LinkIcon, UnlinkIcon, FolderIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Project, Meeting } from "@shared/schema";
+import { safeFilter } from "@/lib/array-utils";
 
 interface ProjectLinkDialogProps {
   meeting: Meeting;
@@ -77,7 +78,7 @@ export function ProjectLinkDialog({ meeting, open, onOpenChange }: ProjectLinkDi
     if (checked) {
       setSelectedProjects(prev => [...prev, projectId]);
     } else {
-      setSelectedProjects(prev => prev.filter(id => id !== projectId));
+      setSelectedProjects(prev => safeFilter(prev, id => id !== projectId, 'ProjectLinkDialog.handleProjectToggle'));
     }
   };
 
@@ -87,7 +88,7 @@ export function ProjectLinkDialog({ meeting, open, onOpenChange }: ProjectLinkDi
 
   const handleUnlinkProject = (projectId: number) => {
     unlinkProjectMutation.mutate(projectId);
-    setSelectedProjects(prev => prev.filter(id => id !== projectId));
+    setSelectedProjects(prev => safeFilter(prev, id => id !== projectId, 'ProjectLinkDialog.handleUnlinkProject'));
   };
 
   const getProjectStatus = (status: string) => {
@@ -121,8 +122,7 @@ export function ProjectLinkDialog({ meeting, open, onOpenChange }: ProjectLinkDi
             <div>
               <h4 className="text-sm font-medium mb-3">Currently Linked Projects</h4>
               <div className="grid gap-2">
-                {projects
-                  .filter(project => selectedProjects.includes(project.id))
+                {safeFilter(projects, project => selectedProjects.includes(project.id), 'ProjectLinkDialog.linkedProjects')
                   .map(project => (
                     <div key={project.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
                       <div className="flex items-center gap-3">

@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { formatDistanceToNow, format } from 'date-fns';
+import { safeFilter, ensureArray } from '@/lib/array-utils';
 
 interface ProjectForensicsRecord {
   id: number;
@@ -102,7 +103,8 @@ export function ProjectForensicsWidget({ projectId, className = '' }: ProjectFor
   const forensicsRecords: ProjectForensicsRecord[] = forensicsData || [];
 
   // Filter records based on search and filters
-  const filteredRecords = forensicsRecords.filter(record => {
+  const safeRecords = ensureArray(forensicsRecords, [], 'ProjectForensicsWidget.forensicsRecords');
+  const filteredRecords = safeFilter(safeRecords, record => {
     const matchesSearch = !searchTerm || 
       record.changeDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -112,7 +114,7 @@ export function ProjectForensicsWidget({ projectId, className = '' }: ProjectFor
     const matchesEntity = entityFilter === 'all' || record.entityType === entityFilter;
     
     return matchesSearch && matchesAction && matchesEntity;
-  });
+  }, 'ProjectForensicsWidget.filteredRecords');
 
   const toggleExpanded = (id: number) => {
     const newExpanded = new Set(expandedItems);

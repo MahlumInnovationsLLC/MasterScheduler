@@ -28,6 +28,7 @@ import {
 import { ProjectCostForm } from './ProjectCostForm';
 import { ProjectCostImport } from './ProjectCostImport';
 import { ProjectCostExport } from './ProjectCostExport';
+import { safeFilter } from '@/lib/array-utils';
 
 type ProjectCostsListProps = {
   projectId: number;
@@ -519,10 +520,10 @@ export function ProjectCostsList({ projectId }: ProjectCostsListProps) {
                   <div className="flex justify-between">
                     <span>Sections with costs:</span>
                     <span className="font-semibold">
-                      {COST_SECTIONS.filter(section => {
+                      {safeFilter(COST_SECTIONS, section => {
                         const value = parseFloat(projectCost[`section${section.key}` as keyof ProjectCost] as string) || 0;
                         return value > 0;
-                      }).length} / {COST_SECTIONS.length}
+                      }, 'ProjectCostsList.nonZeroSections').length} / {COST_SECTIONS.length}
                     </span>
                   </div>
                   <div className="flex justify-between">
