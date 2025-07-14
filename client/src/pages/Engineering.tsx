@@ -972,7 +972,11 @@ export default function Engineering() {
 
   // Helper function to get engineer assignments for a project
   const getProjectAssignments = (projectId: number) => {
-    return projectAssignments.filter(assignment => assignment.projectId === projectId);
+    console.log('🔍 DEBUG: getProjectAssignments called with projectId:', projectId);
+    console.log('🔍 DEBUG: All projectAssignments:', projectAssignments);
+    const filtered = projectAssignments.filter(assignment => assignment.projectId === projectId);
+    console.log('🔍 DEBUG: Filtered assignments for project', projectId, ':', filtered);
+    return filtered;
   };
 
   // Helper function to calculate percentage for a discipline on a project
