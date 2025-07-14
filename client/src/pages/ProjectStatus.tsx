@@ -407,8 +407,8 @@ const ProjectStatus = () => {
     refetchOnWindowFocus: false
   });
 
-  // Function to get issue priority for sorting
-  const getIssuePriority = (projectId: number): number => {
+  // Memoized function to get issue priority for sorting
+  const getIssuePriority = React.useCallback((projectId: number): number => {
     if (!allProjectLabelAssignments || !availableLabels) return 0;
     
     // Find the project's label assignment
@@ -427,7 +427,7 @@ const ProjectStatus = () => {
       case 'DELIVERED': return 1;
       default: return 0;
     }
-  };
+  }, [allProjectLabelAssignments, availableLabels]);
 
   // Removed hasAppliedInitialFilter - not needed anymore
 

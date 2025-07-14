@@ -6,17 +6,22 @@ export function useProjectLabelStats() {
   // Fetch all projects with their label assignments
   const { data: projects } = useQuery({
     queryKey: ['/api/projects'],
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   // Fetch all available labels to identify MAJOR, MINOR, GOOD
   const { data: availableLabels } = useQuery({
-    queryKey: ['/api/project-labels']
+    queryKey: ['/api/project-labels'],
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   // Fetch all project label assignments
   const { data: allProjectLabelAssignments } = useQuery({
     queryKey: ['/api/all-project-label-assignments'],
-    enabled: !!projects && projects.length > 0
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   return useMemo(() => {
@@ -29,9 +34,7 @@ export function useProjectLabelStats() {
       };
     }
 
-    // Debug: Log available labels
-    console.log('Available labels:', availableLabels.map(l => ({ id: l.id, name: l.name })));
-    console.log('Project label assignments:', allProjectLabelAssignments.length);
+    // Remove debug logs to prevent console spam
 
     // Find label IDs for MAJOR, MINOR, GOOD (case-insensitive)
     // This will match "MAJOR ISSUE", "MAJOR", "MINOR ISSUE", "MINOR", etc.
