@@ -92,6 +92,546 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
+  // Get label statistics - moved before conditional returns
+  const labelStats = useProjectLabelStats();
+
+  // Calculate delivered projects count
+  const deliveredProjectsCount = deliveredProjects?.length || 0;
+
+  // Move all hooks to the top before conditional returns
+  // Show the top 10 projects that are ready to ship next with enhanced date calculations
+  useEffect(() => {
+    if (!projects) return;
+
+    // Helper to get valid dates and handle null/invalid dates with UTC
+    const getValidDate = (dateStr) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    };
+
+    // Calculate NTC Test and QC Start dates based on ship date using UTC
+    const calculatePhaseDate = (shipDate, daysBeforeShip) => {
+      if (!shipDate) return null;
+      const date = new Date(shipDate);
+      date.setUTCDate(date.getUTCDate() - daysBeforeShip);
+      return date.toISOString();
+    };
+
+    // Enhance projects with calculated phase dates
+    const enhancedProjects = projects.map(p => {
+      const shipDate = getValidDate(p.shipDate);
+      return {
+        ...p,
+        ntcTestStart: p.ntcTestStart || calculatePhaseDate(shipDate, 14), // 2 weeks before ship
+        qcStart: p.qcStart || calculatePhaseDate(shipDate, 7) // 1 week before ship
+      };
+    });
+
+    // Apply date range filter
+    const getDateRangeFilteredProjects = (projects) => {
+      if (dateRangeFilter === 'all') return projects;
+
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Start of this week (Sunday)
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // End of this week (Saturday)
+
+      const startOfNextWeek = new Date(endOfWeek);
+      startOfNextWeek.setDate(endOfWeek.getDate() + 1);
+      const endOfNextWeek = new Date(startOfNextWeek);
+      endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
+
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+
+      return projects.filter(project => {
+        const shipDate = getValidDate(project.shipDate);
+        if (!shipDate) return false;
+
+        switch (dateRangeFilter) {
+          case 'this-week':
+            return shipDate >= startOfWeek && shipDate <= endOfWeek;
+          case 'next-week':
+            return shipDate >= startOfNextWeek && shipDate <= endOfNextWeek;
+          case 'this-month':
+            return shipDate >= startOfMonth && shipDate <= endOfMonth;
+          case 'next-month':
+            return shipDate >= startOfNextMonth && shipDate <= endOfNextMonth;
+          default:
+            return true;
+        }
+      });
+    };
+
+    // Apply column filter
+    const getColumnFilteredProjects = (projects) => {
+      if (columnFilter === 'all') return projects;
+
+      return projects.filter(project => {
+        const ntcTestDate = getValidDate(project.ntcTestStart);
+        const qcStartDate = getValidDate(project.qcStart);
+        const execReviewDate = getValidDate(project.executiveReview);
+        const shipDate = getValidDate(project.shipDate);
+
+        switch (columnFilter) {
+          case 'ntc-test':
+            return ntcTestDate !== null;
+          case 'qc-start':
+            return qcStartDate !== null;
+          case 'exec-review':
+            return execReviewDate !== null;
+          case 'ship-date':
+            return shipDate !== null;
+          default:
+            return true;
+        }
+      });
+    };
+
+    // Apply filters and sort
+    const filteredByDateRange = getDateRangeFilteredProjects(enhancedProjects);
+    const filteredByColumn = getColumnFilteredProjects(filteredByDateRange);
+
+    // Sort by ship date (soonest first) and filter for non-delivered projects
+    const sortedByShipDate = filteredByColumn
+      .sort((a, b) => {
+        const shipDateA = getValidDate(a.shipDate);
+        const shipDateB = getValidDate(b.shipDate);
+
+        // Projects without ship dates go to the end
+        if (!shipDateA && !shipDateB) return 0;
+        if (!shipDateA) return 1;
+        if (!shipDateB) return -1;
+
+        // Delivered projects go to the end
+        const isDeliveredA = a.status === 'delivered';
+        const isDeliveredB = b.status === 'delivered';
+
+        if (isDeliveredA && !isDeliveredB) return 1;
+        if (!isDeliveredA && isDeliveredB) return -1;
+
+        // If both are delivered, sort by project number (descending)
+        if (isDeliveredA && isDeliveredB) {
+          const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
+          return numB - numA;
+        }
+
+        // If both are delivered, maintain original order
+        return 0;
+      });
+
+    // Apply different limits based on filter state
+    let finalList;
+    
+    if (dateRangeFilter === 'all' && columnFilter === 'all') {
+      // No filters applied - limit to top 10 projects
+      const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
+      const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
+
+      // Take top 10 non-delivered projects, then add any delivered projects at the end
+      finalList = [
+        ...nonDeliveredProjects.slice(0, 10),
+        ...deliveredProjects
+      ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
+    } else {
+      // Any filter is applied - show ALL matching projects (no limit)
+      finalList = sortedByShipDate;
+    }
+
+    setFilteredProjects(finalList);
+  }, [projects, columnFilter, dateRangeFilter]);
+
+  // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
+  useEffect(() => {
+    if (manufacturingSchedules && manufacturingBays && projects) {
+      // Wait for the schedule to render, then snap to today
+      const timer = setTimeout(() => {
+        const todayMarker = document.querySelector('.today-marker');
+        if (todayMarker) {
+          // Get the parent scrollable container
+          const scrollContainer = todayMarker.closest('.overflow-auto');
+          if (scrollContainer) {
+            const markerRect = todayMarker.getBoundingClientRect();
+            const containerRect = scrollContainer.getBoundingClientRect();
+
+            // Calculate horizontal scroll position to center the today marker
+            const markerLeft = todayMarker.offsetLeft;
+            const containerWidth = scrollContainer.clientWidth;
+            const scrollLeft = markerLeft - (containerWidth / 2);
+
+            // Scroll horizontally only, preserve current vertical position
+            scrollContainer.scrollTo({
+              left: Math.max(0, scrollLeft),
+              top: scrollContainer.scrollTop, // Keep current vertical position
+              behavior: 'smooth'
+            });
+          }
+        }
+      }, 1000); // Give the component time to render
+
+      return () => clearTimeout(timer);
+    }
+  }, [manufacturingSchedules, manufacturingBays, projects]);
+
+  // Calculate billing stats with revenue forecast
+  const billingStats = React.useMemo(() => {
+    if (!billingMilestones || billingMilestones.length === 0) return null;
+
+    const completed = billingMilestones.filter(m => m.status === 'paid').length;
+    const inProgress = billingMilestones.filter(m => m.status === 'invoiced').length;
+    const overdue = billingMilestones.filter(m => m.status === 'delayed').length;
+    const upcoming = billingMilestones.filter(m => m.status === 'upcoming').length;
+
+    // Calculate total amounts
+    const totalReceived = billingMilestones
+      .filter(m => m.status === 'paid')
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+    const totalPending = billingMilestones
+      .filter(m => m.status === 'invoiced')
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+    const totalOverdue = billingMilestones
+      .filter(m => m.status === 'delayed')
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+    // Calculate forecast for next 12 months
+    const now = new Date();
+    const monthlyForecast = {};
+    
+    // Initialize next 12 months
+    for (let i = 0; i < 12; i++) {
+      const month = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const monthKey = `${month.getFullYear()}-${(month.getMonth() + 1).toString().padStart(2, '0')}`;
+      monthlyForecast[monthKey] = 0;
+    }
+
+    // Add upcoming milestones to forecast
+    billingMilestones
+      .filter(m => m.status === 'upcoming' && m.targetInvoiceDate)
+      .forEach(m => {
+        const targetDate = new Date(m.targetInvoiceDate);
+        const monthKey = `${targetDate.getFullYear()}-${(targetDate.getMonth() + 1).toString().padStart(2, '0')}`;
+        if (monthlyForecast[monthKey] !== undefined) {
+          monthlyForecast[monthKey] += parseFloat(m.amount || '0');
+        }
+      });
+
+    return {
+      completed,
+      inProgress,
+      overdue,
+      upcoming,
+      totalReceived,
+      totalPending,
+      totalOverdue,
+      monthlyForecast
+    };
+  }, [billingMilestones]);
+
+  // Calculate project stats - moved before conditional returns
+  const projectStats = React.useMemo(() => {
+    if (!projects || projects.length === 0) return null;
+
+    // Get projects by schedule state
+    const scheduledProjects = manufacturingSchedules 
+      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
+      : [];
+    const inProgressProjects = manufacturingSchedules
+      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
+      : [];
+    const completeProjects = projects.filter(p => p.status === 'completed');
+    const unscheduledProjects = manufacturingSchedules
+      ? projects.filter(p => {
+          const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
+          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
+          
+          // Filter out Field or FSW category projects
+          if (p.team === 'Field' || p.team === 'FSW') {
+            return false;
+          }
+          
+          if (isUnscheduled) {
+            console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
+          }
+          return isUnscheduled;
+        })
+      : [];
+
+    // Simple project info for the popover display
+    const projectLists = {
+      scheduled: scheduledProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      inProgress: inProgressProjects.map(p => ({
+        id: p.id,
+        name: p.name,
+        projectNumber: p.projectNumber
+      })),
+      complete: completeProjects.map(p => ({
+        id: p.id,
+        name: p.name,
+        projectNumber: p.projectNumber
+      })),
+      unscheduled: unscheduledProjects.map(p => ({
+        id: p.id,
+        name: p.name,
+        projectNumber: p.projectNumber
+      })),
+      delivered: (deliveredProjects || []).map(p => ({ 
+        id: p.id, 
+        name: p.name || 'Unknown Project', 
+        projectNumber: p.projectNumber 
+      }))
+    };
+
+    console.log('Dashboard Debug - Project counts:');
+    console.log('Total projects:', projects.length);
+    console.log('Unscheduled projects found:', unscheduledProjects.length);
+    console.log('Delivered projects found:', deliveredProjectsCount);
+    console.log('Project lists for hover:', {
+      unscheduled: projectLists.unscheduled.length,
+      scheduled: projectLists.scheduled.length,
+      inProgress: projectLists.inProgress.length,
+      complete: projectLists.complete.length,
+      delivered: projectLists.delivered.length
+    });
+
+    return {
+      total: projects.length,
+      major: labelStats.major,
+      minor: labelStats.minor,
+      good: labelStats.good,
+      scheduled: scheduledProjects.length,
+      inProgress: inProgressProjects.length,
+      complete: completeProjects.length,
+      unscheduled: unscheduledProjects.length,
+      delivered: deliveredProjectsCount,
+      projectLists
+    };
+  }, [projects, manufacturingSchedules, labelStats, deliveredProjects, deliveredProjectsCount]);
+
+  // Calculate upcoming milestones (billing milestones due in next 30 days)
+  const upcomingMilestonesData = React.useMemo(() => {
+    if (!billingMilestones || !projects) return [];
+
+    const now = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+    return billingMilestones
+      .filter(milestone => {
+        if (!milestone.targetInvoiceDate) return false;
+        const targetDate = new Date(milestone.targetInvoiceDate);
+        return targetDate >= now && targetDate <= thirtyDaysFromNow && milestone.status !== 'paid';
+      })
+      .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime())
+      .map(milestone => {
+        // Find the associated project to get project name
+        const project = projects.find(p => p.id === milestone.projectId);
+        return {
+          id: milestone.id,
+          name: milestone.name,
+          projectNumber: project?.projectNumber || 'Unknown',
+          projectName: project?.name || 'Unknown Project',
+          amount: milestone.amount?.toString() || '0',
+          dueDate: milestone.targetInvoiceDate,
+          targetInvoiceDate: milestone.targetInvoiceDate,
+          status: milestone.status
+        };
+      });
+  }, [billingMilestones, projects]);
+
+  // Manufacturing bay stats
+  const manufacturingStats = React.useMemo(() => {
+    if (!manufacturingSchedules || !manufacturingBays) return null;
+
+    // Get active bays (bays with active manufacturing schedules)
+    const activeBayIds = manufacturingSchedules
+      .filter(s => s.status === 'in_progress')
+      .map(s => s.bayId);
+
+    // Remove duplicates to get unique active bays
+    const uniqueActiveBayIds = [...new Set(activeBayIds)];
+    const active = uniqueActiveBayIds.length;
+
+    // Get scheduled bays (bays with scheduled manufacturing but not active)
+    const scheduledBayIds = manufacturingSchedules
+      .filter(s => s.status === 'scheduled')
+      .map(s => s.bayId);
+
+    // Remove duplicates and exclude bays that are already active
+    const uniqueScheduledBayIds = [...new Set(scheduledBayIds)]
+      .filter(id => !uniqueActiveBayIds.includes(id));
+    const scheduled = uniqueScheduledBayIds.length;
+
+    // For display purposes, count completed and maintenance schedules
+    const completed = manufacturingSchedules.filter(s => s.status === 'complete').length;
+    const maintenance = manufacturingSchedules.filter(s => s.status === 'maintenance').length;
+
+    // Total bays from the manufacturing bays data
+    const totalBays = manufacturingBays.length;
+
+    // Calculate utilization percentage using the standardized utility function
+    const utilization = calculateBayUtilization(manufacturingBays, manufacturingSchedules);
+
+    return {
+      active,
+      scheduled,
+      completed,
+      maintenance,
+      total: totalBays,
+      utilization
+    };
+  }, [manufacturingSchedules, manufacturingBays]);
+
+  // Define all project columns at the top
+  const allProjectColumns = [
+    {
+      accessorKey: 'projectNumber',
+      header: 'Project #',
+      cell: ({ row }) => (
+        <Link 
+          href={`/projects/${row.original.id}`}
+          className="text-blue-400 hover:text-blue-300 hover:underline font-medium"
+        >
+          {row.original.projectNumber}
+        </Link>
+      ),
+    },
+    {
+      accessorKey: 'name',
+      header: 'Project Name',
+      cell: ({ row }) => <div className="text-sm">{row.original.name}</div>,
+    },
+    {
+      accessorKey: 'ntc-test',
+      header: 'NTC Test',
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {row.original.ntcTestStart 
+            ? formatDateForDisplay(row.original.ntcTestStart)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'qc-start',
+      header: 'QC Start',
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {row.original.qcStart 
+            ? formatDateForDisplay(row.original.qcStart)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'exec-review',
+      header: 'Exec Review',
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {row.original.executiveReview 
+            ? formatDateForDisplay(row.original.executiveReview)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'ship-date',
+      header: 'Ship Date',
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {row.original.shipDate 
+            ? formatDateForDisplay(row.original.shipDate)
+            : <span className="text-gray-500">TBD</span>
+          }
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'priority',
+      header: 'Priority',
+      cell: ({ row }) => {
+        const priority = row.original.priority;
+        let priorityColor = 'bg-gray-600';
+        if (priority === 'high') priorityColor = 'bg-red-600';
+        else if (priority === 'medium') priorityColor = 'bg-yellow-600';
+        else if (priority === 'low') priorityColor = 'bg-green-600';
+        
+        return (
+          <span className={`${priorityColor} text-white text-xs px-2 py-1 rounded-full`}>
+            {priority ? priority.charAt(0).toUpperCase() + priority.slice(1) : 'Normal'}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'pmOwner',
+      header: 'PM Owner',
+      cell: ({ row }) => <div className="text-sm">{row.original.pmOwner || 'Unassigned'}</div>,
+    },
+    {
+      accessorKey: 'percentComplete',
+      header: 'Progress',
+      cell: ({ row }) => {
+        const percentValue = typeof row.original.percentComplete === 'string' ? parseFloat(row.original.percentComplete) : Number(row.original.percentComplete);
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-full bg-gray-800 rounded-full h-2.5 relative overflow-hidden">
+              <div 
+                className="h-2.5 rounded-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 relative overflow-hidden" 
+                style={{ width: `${percentValue}%` }}
+              >
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+              </div>
+            </div>
+            <span className="text-xs font-medium">{percentValue}%</span>
+          </div>
+        );
+      },
+    },
+  ];
+
+  // Filter columns based on column filter - show only selected column and next column
+  const projectColumns = React.useMemo(() => {
+    if (columnFilter === 'all') {
+      return allProjectColumns;
+    }
+
+    // Find the index of the selected column
+    const selectedColumnIndex = allProjectColumns.findIndex(col => col.accessorKey === columnFilter);
+    
+    if (selectedColumnIndex === -1) {
+      return allProjectColumns; // Fallback to all columns if not found
+    }
+
+    // Always include project number column for context
+    const projectNumberColumn = allProjectColumns.find(col => col.accessorKey === 'projectNumber');
+    const selectedColumn = allProjectColumns[selectedColumnIndex];
+    const nextColumn = allProjectColumns[selectedColumnIndex + 1];
+
+    // Return project number + selected column + next column (if exists)
+    const filteredColumns = [projectNumberColumn, selectedColumn];
+    if (nextColumn && nextColumn.accessorKey !== 'projectNumber') {
+      filteredColumns.push(nextColumn);
+    }
+
+    return filteredColumns.filter(Boolean); // Remove any undefined columns
+  }, [columnFilter]);
+
   // Show loading if auth is still loading
   if (authLoading) {
     return (
@@ -472,96 +1012,6 @@ const Dashboard = () => {
     setFilteredProjects(finalList);
   }, [projects, columnFilter, dateRangeFilter]);
 
-  // Get label statistics  
-  const labelStats = useProjectLabelStats();
-
-  // Calculate delivered projects count
-  const deliveredProjectsCount = deliveredProjects?.length || 0;
-
-  // Calculate project stats
-  const projectStats = React.useMemo(() => {
-    if (!projects || projects.length === 0) return null;
-
-    // Get projects by schedule state
-    const scheduledProjects = manufacturingSchedules 
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
-      : [];
-    const inProgressProjects = manufacturingSchedules
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
-      : [];
-    const completeProjects = projects.filter(p => p.status === 'completed');
-    const unscheduledProjects = manufacturingSchedules
-      ? projects.filter(p => {
-          const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
-          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
-          
-          // Filter out Field or FSW category projects
-          if (p.team === 'Field' || p.team === 'FSW') {
-            return false;
-          }
-          
-          if (isUnscheduled) {
-            console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
-          }
-          return isUnscheduled;
-        })
-      : [];
-
-    // Simple project info for the popover display
-    const projectLists = {
-      scheduled: scheduledProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      inProgress: inProgressProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      complete: completeProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      unscheduled: unscheduledProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      delivered: (deliveredProjects || []).map(p => ({ 
-        id: p.id, 
-        name: p.name || 'Unknown Project', 
-        projectNumber: p.projectNumber 
-      }))
-    };
-
-    console.log('Dashboard Debug - Project counts:');
-    console.log('Total projects:', projects.length);
-    console.log('Unscheduled projects found:', unscheduledProjects.length);
-    console.log('Delivered projects found:', deliveredProjectsCount);
-    console.log('Project lists for hover:', {
-      unscheduled: projectLists.unscheduled.length,
-      scheduled: projectLists.scheduled.length,
-      inProgress: projectLists.inProgress.length,
-      complete: projectLists.complete.length,
-      delivered: projectLists.delivered.length
-    });
-
-    return {
-      total: projects.length,
-      major: labelStats.major,
-      minor: labelStats.minor,
-      good: labelStats.good,
-      scheduled: scheduledProjects.length,
-      inProgress: inProgressProjects.length,
-      complete: completeProjects.length,
-      unscheduled: unscheduledProjects.length,
-      delivered: deliveredProjectsCount,
-      projectLists
-    };
-  }, [projects, manufacturingSchedules, labelStats, deliveredProjects, deliveredProjectsCount]);
-
   // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
   useEffect(() => {
     if (manufacturingSchedules && manufacturingBays && projects) {
@@ -594,149 +1044,6 @@ const Dashboard = () => {
     }
   }, [manufacturingSchedules, manufacturingBays, projects]);
 
-  // Calculate billing stats with revenue forecast
-  const billingStats = React.useMemo(() => {
-    if (!billingMilestones || billingMilestones.length === 0) return null;
-
-    const completed = billingMilestones.filter(m => m.status === 'paid').length;
-    const inProgress = billingMilestones.filter(m => m.status === 'invoiced').length;
-    const overdue = billingMilestones.filter(m => m.status === 'delayed').length;
-    const upcoming = billingMilestones.filter(m => m.status === 'upcoming').length;
-
-    // Calculate total amounts
-    const totalReceived = billingMilestones
-      .filter(m => m.status === 'paid')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-    const totalPending = billingMilestones
-      .filter(m => m.status === 'invoiced')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-    const totalOverdue = billingMilestones
-      .filter(m => m.status === 'delayed')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-    // Calculate forecast for next 12 months
-    const today = new Date();
-    const nextTwelveMonths = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-      return date;
-    });
-
-    const monthNames = nextTwelveMonths.map(date => 
-      date.toLocaleDateString('default', { month: 'short' })
-    );
-
-    const forecastValues = nextTwelveMonths.map(month => {
-      const nextMonth = new Date(month);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-
-      // Calculate revenue for milestones due in this month
-      const monthlyRevenue = billingMilestones
-        .filter(m => {
-          if (!m.targetInvoiceDate) return false;
-          const milestoneDate = new Date(m.targetInvoiceDate);
-          return milestoneDate >= month && milestoneDate < nextMonth;
-        })
-        .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-      return monthlyRevenue;
-    });
-
-    return {
-      milestones: {
-        completed,
-        inProgress,
-        overdue,
-        upcoming
-      },
-      amounts: {
-        received: totalReceived,
-        pending: totalPending,
-        overdue: totalOverdue
-      },
-      forecast: {
-        labels: monthNames,
-        values: forecastValues
-      }
-    };
-  }, [billingMilestones]);
-
-  // Calculate upcoming milestones (billing milestones due in next 30 days)
-  const upcomingMilestonesData = React.useMemo(() => {
-    if (!billingMilestones || !projects) return [];
-
-    const now = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-    return billingMilestones
-      .filter(milestone => {
-        if (!milestone.targetInvoiceDate) return false;
-        const targetDate = new Date(milestone.targetInvoiceDate);
-        return targetDate >= now && targetDate <= thirtyDaysFromNow && milestone.status !== 'paid';
-      })
-      .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime())
-      .map(milestone => {
-        // Find the associated project to get project name
-        const project = projects.find(p => p.id === milestone.projectId);
-        return {
-          id: milestone.id,
-          name: milestone.name,
-          projectNumber: project?.projectNumber || 'Unknown',
-          projectName: project?.name || 'Unknown Project',
-          amount: milestone.amount?.toString() || '0',
-          dueDate: milestone.targetInvoiceDate,
-          targetInvoiceDate: milestone.targetInvoiceDate,
-          status: milestone.status
-        };
-      });
-  }, [billingMilestones, projects]);
-
-
-  // Manufacturing bay stats
-  const manufacturingStats = React.useMemo(() => {
-    if (!manufacturingSchedules || !manufacturingBays) return null;
-
-    // Get active bays (bays with active manufacturing schedules)
-    const activeBayIds = manufacturingSchedules
-      .filter(s => s.status === 'in_progress')
-      .map(s => s.bayId);
-
-    // Remove duplicates to get unique active bays
-    const uniqueActiveBayIds = [...new Set(activeBayIds)];
-    const active = uniqueActiveBayIds.length;
-
-    // Get scheduled bays (bays with scheduled manufacturing but not active)
-    const scheduledBayIds = manufacturingSchedules
-      .filter(s => s.status === 'scheduled')
-      .map(s => s.bayId);
-
-    // Remove duplicates and exclude bays that are already active
-    const uniqueScheduledBayIds = [...new Set(scheduledBayIds)]
-      .filter(id => !uniqueActiveBayIds.includes(id));
-    const scheduled = uniqueScheduledBayIds.length;
-
-    // For display purposes, count completed and maintenance schedules
-    const completed = manufacturingSchedules.filter(s => s.status === 'complete').length;
-    const maintenance = manufacturingSchedules.filter(s => s.status === 'maintenance').length;
-
-    // Total bays from the manufacturing bays data
-    const totalBays = manufacturingBays.length;
-
-    // Calculate utilization percentage using the standardized utility function
-    const utilization = calculateBayUtilization(manufacturingBays, manufacturingSchedules);
-
-    return {
-      active,
-      scheduled,
-      completed,
-      maintenance,
-      total: totalBays,
-      utilization
-    };
-  }, [manufacturingSchedules, manufacturingBays]);
-
   
 
   // Helper function to format dates consistently without timezone issues
@@ -753,232 +1060,6 @@ const Dashboard = () => {
       timeZone: 'UTC'
     });
   };
-
-  // Enhanced project table columns matching Projects Module exactly
-  const allProjectColumns = [
-    {
-      accessorKey: 'projectNumber',
-      header: 'Project',
-      cell: ({ row }) => {
-        const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
-        const isSalesEstimate = row.original.isSalesEstimate;
-
-        return (
-          <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : isSalesEstimate ? 'bg-yellow-500/10 rounded' : ''}`}>
-            <div className="ml-2 p-1">
-              <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : isSalesEstimate ? 'text-yellow-400' : 'text-white'} whitespace-normal`}>
-                <Link to={`/project/${row.original.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : isSalesEstimate ? 'text-yellow-400 font-semibold' : 'text-primary'} hover:underline`}>
-                  {isSalesEstimate && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mr-2">PROPOSED</span>}
-                  {row.original.projectNumber}
-                </Link>
-              </div>
-              <div 
-                className={`text-xs ${isSalesEstimate ? 'text-yellow-400/70' : 'text-gray-400'} line-clamp-2 overflow-hidden`}
-                title={row.original.name}
-              >
-                {row.original.name}
-              </div>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'location',
-      header: 'Location',
-      cell: ({ row }) => (
-        <div className="flex items-center">
-          <div className="px-3 py-1 rounded font-medium text-white border border-gray-500 shadow-lg" 
-               style={{ 
-                 background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
-                 boxShadow: '0 2px 8px rgba(107, 114, 128, 0.3)'
-               }}>
-            {row.original.location || 'N/A'}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'mechShop',
-      header: 'MECH Shop',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Wrench className="h-4 w-4 text-gray-400" />
-          <div className="text-sm">
-            {formatDate(row.original.mechShop)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'fabricationStart',
-      header: 'FAB Start',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Hammer className="h-4 w-4 text-blue-400" />
-          <div className="text-sm">
-            {formatDate(row.original.fabricationStart)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'paintStart',
-      header: 'Paint Start',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <svg className="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M8 2a1 1 0 000 2h4a1 1 0 100-2H8zM3 7a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm2 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" clipRule="evenodd" />
-          </svg>
-          <div className="text-sm">
-            {formatDate(row.original.paintStart)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'productionStart',
-      header: 'Production Start',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Wrench className="h-4 w-4 text-green-400" />
-          <div className="text-sm">
-            {formatDate(row.original.productionStart)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'itStart',
-      header: 'IT Start',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <svg className="h-4 w-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-3.22l.123.493.006.024c.01.041.017.082.017.123a.75.75 0 01-.22.53l-.22.22a.75.75 0 01-1.06 0l-.22-.22A.75.75 0 0110 15.25a.75.75 0 01.75-.75H15a.5.5 0 00.5-.5V5a.5.5 0 00-.5-.5H5a.5.5 0 00-.5.5v9.5a.5.5 0 00.5.5h4.25a.75.75 0 010 1.5H5a2 2 0 01-2-2V5z" clipRule="evenodd" />
-          </svg>
-          <div className="text-sm">
-            {formatDate(row.original.itStart)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'ntcTestingDate',
-      header: 'NTC Test',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <CheckCircle className="h-4 w-4 text-orange-400" />
-          <div className="text-sm">
-            {formatDate(row.original.ntcTestingDate)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'qcStartDate',
-      header: 'QC Start',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Shield className="h-4 w-4 text-purple-400" />
-          <div className="text-sm">
-            {formatDate(row.original.qcStartDate)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'executiveReviewDate',
-      header: 'Exec Review',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <svg className="h-4 w-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
-          </svg>
-          <div className="text-sm">
-            {formatDate(row.original.executiveReviewDate)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'contractDate',
-      header: 'Contract Date',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Clock className="h-4 w-4 text-blue-500" />
-          <div className="text-sm">
-            {formatDate(row.original.contractDate)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'shipDate',
-      header: 'Ship Date',
-      cell: ({ row }) => {
-        const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
-        return (
-          <div className={`text-sm ${isPastDue ? 'text-red-400 font-semibold' : ''}`}>
-            {formatDate(row.original.shipDate)}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'pmOwner',
-      header: 'PM Owner',
-      cell: ({ row }) => <div className="text-sm">{row.original.pmOwner || 'Unassigned'}</div>,
-    },
-    {
-      accessorKey: 'percentComplete',
-      header: 'Progress',
-      cell: ({ row }) => {
-        const percentValue = typeof row.original.percentComplete === 'string' ? parseFloat(row.original.percentComplete) : Number(row.original.percentComplete);
-        return (
-          <div className="flex items-center gap-2">
-            <div className="w-full bg-gray-800 rounded-full h-2.5 relative overflow-hidden">
-              <div 
-                className="h-2.5 rounded-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 relative overflow-hidden" 
-                style={{ width: `${percentValue}%` }}
-              >
-                {/* Shimmer effect */}
-                <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-              </div>
-            </div>
-            <span className="text-xs font-medium">{percentValue}%</span>
-          </div>
-        );
-      },
-    },
-    
-  ];
-
-  // Filter columns based on column filter - show only selected column and next column
-  const projectColumns = React.useMemo(() => {
-    if (columnFilter === 'all') {
-      return allProjectColumns;
-    }
-
-    // Find the index of the selected column
-    const selectedColumnIndex = allProjectColumns.findIndex(col => col.accessorKey === columnFilter);
-    
-    if (selectedColumnIndex === -1) {
-      return allProjectColumns; // Fallback to all columns if not found
-    }
-
-    // Always include project number column for context
-    const projectNumberColumn = allProjectColumns.find(col => col.accessorKey === 'projectNumber');
-    const selectedColumn = allProjectColumns[selectedColumnIndex];
-    const nextColumn = allProjectColumns[selectedColumnIndex + 1];
-
-    // Return project number + selected column + next column (if exists)
-    const filteredColumns = [projectNumberColumn, selectedColumn];
-    if (nextColumn && nextColumn.accessorKey !== 'projectNumber') {
-      filteredColumns.push(nextColumn);
-    }
-
-    return filteredColumns.filter(Boolean); // Remove any undefined columns
-  }, [columnFilter]);
 
   if (isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays) {
     return (
