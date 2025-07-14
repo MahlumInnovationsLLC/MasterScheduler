@@ -972,11 +972,7 @@ export default function Engineering() {
 
   // Helper function to get engineer assignments for a project
   const getProjectAssignments = (projectId: number) => {
-    console.log('🔍 DEBUG: getProjectAssignments called with projectId:', projectId);
-    console.log('🔍 DEBUG: All projectAssignments:', projectAssignments);
-    const filtered = projectAssignments.filter(assignment => assignment.projectId === projectId);
-    console.log('🔍 DEBUG: Filtered assignments for project', projectId, ':', filtered);
-    return filtered;
+    return projectAssignments.filter(assignment => assignment.projectId === projectId);
   };
 
   // Helper function to calculate percentage for a discipline on a project
@@ -2315,11 +2311,7 @@ export default function Engineering() {
                           <div>
                             <Label className="text-sm">Assigned Engineers</Label>
                             <p className="text-sm text-muted-foreground">
-                              {(discipline === 'ME' && selectedProject.meAssigned) ||
-                               (discipline === 'EE' && selectedProject.eeAssigned) ||
-                               (discipline === 'ITE' && selectedProject.iteAssigned) ||
-                               (discipline === 'NTC' && selectedProject.ntcAssigned) ||
-                               'None assigned'}
+                              {getAssignedEngineers(selectedProject.id, discipline as 'ME' | 'EE' | 'ITE' | 'NTC') || 'None assigned'}
                             </p>
                           </div>
 
@@ -2332,10 +2324,10 @@ export default function Engineering() {
                                   min="0"
                                   max="100"
                                   value={
-                                    discipline === 'ME' ? (selectedProject.meManualPercent ?? selectedProject.meDesignOrdersPercent ?? 0) :
-                                    discipline === 'EE' ? (selectedProject.eeManualPercent ?? selectedProject.eeDesignOrdersPercent ?? 0) :
-                                    discipline === 'ITE' ? (selectedProject.iteManualPercent ?? selectedProject.itDesignOrdersPercent ?? 0) :
-                                    discipline === 'NTC' ? (selectedProject.ntcManualPercent ?? selectedProject.ntcPercentage ?? 0) : 0
+                                    discipline === 'ME' ? (selectedProject.meManualPercent ?? getDisciplinePercentage(selectedProject.id, 'ME')) :
+                                    discipline === 'EE' ? (selectedProject.eeManualPercent ?? getDisciplinePercentage(selectedProject.id, 'EE')) :
+                                    discipline === 'ITE' ? (selectedProject.iteManualPercent ?? getDisciplinePercentage(selectedProject.id, 'ITE')) :
+                                    discipline === 'NTC' ? (selectedProject.ntcManualPercent ?? getDisciplinePercentage(selectedProject.id, 'NTC')) : 0
                                   }
                                   onChange={(e) => handleManualPercentageUpdate(
                                     selectedProject.id, 
@@ -2346,10 +2338,10 @@ export default function Engineering() {
                                   disabled={updateProjectAssignmentMutation.isPending}
                                 />
                                 <span className="text-sm w-12 text-right">
-                                  {discipline === 'ME' ? (selectedProject.meManualPercent ?? selectedProject.meDesignOrdersPercent ?? 0) :
-                                   discipline === 'EE' ? (selectedProject.eeManualPercent ?? selectedProject.eeDesignOrdersPercent ?? 0) :
-                                   discipline === 'ITE' ? (selectedProject.iteManualPercent ?? selectedProject.itDesignOrdersPercent ?? 0) :
-                                   discipline === 'NTC' ? (selectedProject.ntcManualPercent ?? selectedProject.ntcPercentage ?? 0) : 0}%
+                                  {discipline === 'ME' ? (selectedProject.meManualPercent ?? getDisciplinePercentage(selectedProject.id, 'ME')) :
+                                   discipline === 'EE' ? (selectedProject.eeManualPercent ?? getDisciplinePercentage(selectedProject.id, 'EE')) :
+                                   discipline === 'ITE' ? (selectedProject.iteManualPercent ?? getDisciplinePercentage(selectedProject.id, 'ITE')) :
+                                   discipline === 'NTC' ? (selectedProject.ntcManualPercent ?? getDisciplinePercentage(selectedProject.id, 'NTC')) : 0}%
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
