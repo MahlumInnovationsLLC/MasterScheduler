@@ -101,17 +101,11 @@ interface ProjectRow {
 }
 
 // Project Cell Component that matches badge colors
-const ProjectCell = ({ project }: { project: ProjectWithRawData }) => {
+const ProjectCell = ({ project, projectLabels = [] }: { project: ProjectWithRawData, projectLabels?: any[] }) => {
   // Check if ship date is past due
   const isPastDue = project.shipDate ? new Date(project.shipDate) < new Date() : false;
   // Check if this is a sales estimate
   const isSalesEstimate = project.isSalesEstimate;
-
-  // Fetch project labels to get the badge color
-  const { data: projectLabels = [] } = useQuery({
-    queryKey: [`/api/projects/${project.id}/labels`],
-    enabled: !!project.id
-  });
 
   // Get status-based background color from the actual badge/label
   const getStatusBackgroundColor = () => {
@@ -402,6 +396,14 @@ const ProjectStatus = () => {
     retryDelay: 1000,
     staleTime: 30000,
     refetchOnWindowFocus: false
+  });
+
+  // Fetch ALL project label assignments at once to avoid N+1 queries
+  const { data: allProjectLabelAssignments = [] } = useQuery({
+    queryKey: ['/api/all-project-label-assignments'],
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+    enabled: projects.length > 0 // Only fetch when we have projects
   });
 
   const { data: ccbRequests = [] } = useQuery({
@@ -1531,7 +1533,11 @@ const ProjectStatus = () => {
       }
     },
     createColumn('projectNumber', 'projectNumber', 'Project', 
-      (value, project) => <ProjectCell project={project} />,
+      (value, project) => {
+        // Find labels for this specific project from the pre-fetched data
+        const projectLabels = allProjectLabelAssignments.filter(assignment => assignment.projectId === project.id);
+        return <ProjectCell project={project} projectLabels={projectLabels} />;
+      },
       { sortingFn: 'alphanumeric', size: 260 }),
     createColumn('pmOwner', 'pmOwner', 'PM Owner', 
       (value, project) => <EditableTextField projectId={project.id} field="pmOwner" value={value || ''} placeholder="Unassigned" />,
