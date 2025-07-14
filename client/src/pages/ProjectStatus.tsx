@@ -365,14 +365,8 @@ const ProjectStatus = () => {
     queryKey: ['/api/projects'],
     retry: 3,
     retryDelay: 1000,
-    onError: (error) => {
-      console.error('Projects data fetch error:', error);
-      toast({
-        title: "Error Loading Projects",
-        description: "Failed to load project data. Please refresh the page.",
-        variant: "destructive",
-      });
-    },
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   const { data: ccbRequests = [] } = useQuery({
@@ -395,7 +389,8 @@ const ProjectStatus = () => {
   // Fetch all project label assignments for sorting
   const { data: allProjectLabelAssignments = [] } = useQuery({
     queryKey: ['/api/all-project-label-assignments'],
-    enabled: !!projects && projects.length > 0
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   // Fetch available labels to get issue type information
@@ -921,7 +916,7 @@ const ProjectStatus = () => {
 
   // Location filter state
   const [locationFilter, setLocationFilter] = useState<string>('');
-  const [sortableColumns, setSortableColumns] = useState<boolean>(false);
+  const [sortableColumns, setSortableColumns] = useState<boolean>(true); // Always allow sorting
 
   // Filter dialog state
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
@@ -1053,16 +1048,11 @@ const ProjectStatus = () => {
 
       // If no filters, return all projects (archived ones only if showArchived is true)
       if (!hasActiveFilters) {
-        // Keep sorting enabled for all columns
-        setSortableColumns(true);
         return true;
       }
 
       // Location filtering
       if (locationFilter && project.location) {
-        // Enable sorting when a location filter is applied
-        setSortableColumns(true);
-
         // If the project location doesn't match the filter, exclude it
         if (project.location.toLowerCase() !== locationFilter.toLowerCase()) {
           return false;
