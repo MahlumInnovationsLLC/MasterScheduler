@@ -1143,6 +1143,7 @@ export default function Engineering() {
                             <th className="text-left p-2">ME Assigned</th>
                             <th className="text-left p-2">EE Assigned</th>
                             <th className="text-left p-2">ITE Assigned</th>
+                            <th className="text-left p-2">NTC Assigned</th>
                             <th className="text-left p-2">ME %</th>
                             <th className="text-left p-2">EE %</th>
                             <th className="text-left p-2">IT %</th>
@@ -1175,6 +1176,7 @@ export default function Engineering() {
                               <td className="p-2 text-sm">{project.meAssigned || 'Unassigned'}</td>
                               <td className="p-2 text-sm">{project.eeAssigned || 'Unassigned'}</td>
                               <td className="p-2 text-sm">{project.iteAssigned || 'Unassigned'}</td>
+                              <td className="p-2 text-sm">{project.ntcAssigned || 'Unassigned'}</td>
                               <td className="p-2">
                                 <div className="text-center text-sm">
                                   {formatPercentage(project.meCompletionPercent)}
@@ -1233,7 +1235,8 @@ export default function Engineering() {
                             const engineerProjects = projectsWithEngineering.filter(project => 
                               project.meAssigned === `${engineer.firstName} ${engineer.lastName}` ||
                               project.eeAssigned === `${engineer.firstName} ${engineer.lastName}` ||
-                              project.iteAssigned === `${engineer.firstName} ${engineer.lastName}`
+                              project.iteAssigned === `${engineer.firstName} ${engineer.lastName}` ||
+                              project.ntcAssigned === `${engineer.firstName} ${engineer.lastName}`
                             );
 
                             return (
@@ -1285,6 +1288,10 @@ export default function Engineering() {
                                             role = 'ITE';
                                             percentage = project.iteCompletionPercent || 0;
                                             benchmarkCount = project.iteBenchmarks || 0;
+                                          } else if (project.ntcAssigned === engineerName) {
+                                            role = 'NTC';
+                                            percentage = project.ntcCompletionPercent || 0;
+                                            benchmarkCount = project.ntcBenchmarks || 0;
                                           }
 
                                           return (
