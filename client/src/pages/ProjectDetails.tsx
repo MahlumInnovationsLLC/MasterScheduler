@@ -233,7 +233,7 @@ const ProjectDetails = () => {
 
   const { data: project, isLoading: isLoadingProject } = useQuery({
     queryKey: [`/api/projects/${projectId}`],
-    enabled: !isNaN(projectId)
+    // Removed enabled condition to prevent conditional hooks
   });
 
   // Reset task form when dialog closes
@@ -261,12 +261,12 @@ const ProjectDetails = () => {
 
   const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
     queryKey: [`/api/projects/${projectId}/tasks`],
-    enabled: !isNaN(projectId)
+    // Removed enabled condition to prevent conditional hooks
   });
 
   const { data: billingMilestones = [], isLoading: isLoadingBilling } = useQuery({
     queryKey: [`/api/projects/${projectId}/billing-milestones`],
-    enabled: !isNaN(projectId)
+    // Removed enabled condition to prevent conditional hooks
   });
 
   const { data: manufacturingSchedules = [], isLoading: isLoadingManufacturing } = useQuery({
@@ -278,12 +278,12 @@ const ProjectDetails = () => {
       if (!res.ok) throw new Error('Failed to fetch manufacturing schedules');
       return res.json();
     },
-    enabled: !isNaN(projectId)
+    // Removed enabled condition to prevent conditional hooks
   });
 
   const { data: manufacturingBays = [] } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
-    enabled: !isNaN(projectId)
+    // Removed enabled condition to prevent conditional hooks
   });
 
   const { data: users = [] } = useQuery({
@@ -484,7 +484,7 @@ const ProjectDetails = () => {
   // Real-time project health data from API
   const { data: realTimeProjectHealth, isLoading: isLoadingHealth } = useQuery({
     queryKey: [`/api/projects/${projectId}/health`],
-    enabled: !!projectId,
+    // Removed enabled condition to prevent conditional hooks
     refetchInterval: 30000, // Refresh every 30 seconds
     refetchOnWindowFocus: true,
     staleTime: 15000, // Consider data stale after 15 seconds
@@ -493,7 +493,7 @@ const ProjectDetails = () => {
   // Real-time project metrics from API
   const { data: projectMetrics, isLoading: isLoadingMetrics } = useQuery({
     queryKey: [`/api/projects/${projectId}/metrics`],
-    enabled: !!projectId,
+    // Removed enabled condition to prevent conditional hooks
     refetchInterval: 15000, // Refresh every 15 seconds
     refetchOnWindowFocus: true,
     staleTime: 10000, // Consider data stale after 10 seconds
