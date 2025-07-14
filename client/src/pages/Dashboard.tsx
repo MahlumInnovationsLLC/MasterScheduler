@@ -494,7 +494,7 @@ const Dashboard = () => {
   }, [manufacturingSchedules, manufacturingBays]);
 
   // Define all project columns at the top
-  const allProjectColumns = [
+  const allProjectColumns = React.useMemo(() => [
     {
       accessorKey: 'projectNumber',
       header: 'Project #',
@@ -603,7 +603,7 @@ const Dashboard = () => {
         );
       },
     },
-  ];
+  ], []);
 
   // Filter columns based on column filter - show only selected column and next column
   const projectColumns = React.useMemo(() => {
@@ -847,207 +847,23 @@ const Dashboard = () => {
     }
   };
 
-  // Show the top 10 projects that are ready to ship next with enhanced date calculations
-  useEffect(() => {
-    if (!projects) return;
-
-    // Helper to get valid dates and handle null/invalid dates with UTC
-    const getValidDate = (dateStr) => {
-      if (!dateStr) return null;
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? null : date;
-    };
-
-    // Calculate NTC Test and QC Start dates based on ship date using UTC
-    const calculatePhaseDate = (shipDate, daysBeforeShip) => {
-      if (!shipDate) return null;
-      const date = new Date(shipDate);
-      date.setUTCDate(date.getUTCDate() - daysBeforeShip);
-      return date.toISOString();
-    };
-
-    // Enhance projects with calculated phase dates
-    const enhancedProjects = projects.map(p => {
-      const shipDate = getValidDate(p.shipDate);
-      return {
-        ...p,
-        ntcTestStart: p.ntcTestStart || calculatePhaseDate(shipDate, 14), // 2 weeks before ship
-        qcStart: p.qcStart || calculatePhaseDate(shipDate, 7) // 1 week before ship
-      };
-    });
-
-    // Apply date range filter
-    const getDateRangeFilteredProjects = (projects) => {
-      if (dateRangeFilter === 'all') return projects;
-
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay()); // Start of this week (Sunday)
-      startOfWeek.setHours(0, 0, 0, 0);
-
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6); // End of this week (Saturday)
-      endOfWeek.setHours(23, 59, 59, 999);
-
-      const startOfNextWeek = new Date(endOfWeek);
-      startOfNextWeek.setDate(endOfWeek.getDate() + 1);
-      startOfNextWeek.setHours(0, 0, 0, 0);
-
-      const endOfNextWeek = new Date(startOfNextWeek);
-      endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
-      endOfNextWeek.setHours(23, 59, 59, 999);
-
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-      const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59, 999);
-
-      return projects.filter(project => {
-        // Get the date field based on column filter
-        let dateField = null;
-        if (columnFilter === 'all') {
-          // For 'all', check any date field that starts in the range
-          const dateFields = [
-            project.mechShop, project.fabricationStart, project.paintStart,
-            project.assemblyStart, project.itStart, project.ntcTestStart,
-            project.qcStart, project.execReview, project.contractDate, project.shipDate
-          ];
-          
-          for (const field of dateFields) {
-            const date = getValidDate(field);
-            if (date) {
-              dateField = date;
-              break; // Use the first valid date found
-            }
-          }
-        } else {
-          // Use specific column's date
-          dateField = getValidDate(project[columnFilter]);
-        }
-
-        if (!dateField) return false;
-
-        switch (dateRangeFilter) {
-          case 'thisWeek':
-            return dateField >= startOfWeek && dateField <= endOfWeek;
-          case 'nextWeek':
-            return dateField >= startOfNextWeek && dateField <= endOfNextWeek;
-          case 'thisMonth':
-            return dateField >= startOfMonth && dateField <= endOfMonth;
-          case 'nextMonth':
-            return dateField >= startOfNextMonth && dateField <= endOfNextMonth;
-          default:
-            return true;
-        }
-      });
-    };
-
-    // Apply column filter (if not 'all', show only projects with valid dates in that column)
-    const getColumnFilteredProjects = (projects) => {
-      if (columnFilter === 'all') return projects;
-      
-      return projects.filter(project => {
-        const dateValue = getValidDate(project[columnFilter]);
-        return dateValue !== null;
-      });
-    };
-
-    // Apply filters
-    let filteredByColumn = getColumnFilteredProjects(enhancedProjects);
-    let filteredByDateRange = getDateRangeFilteredProjects(filteredByColumn);
-
-    // Sort ALL projects by ship date but ensure delivered projects are always at the bottom
-    const sortedByShipDate = filteredByDateRange
-      .sort((a, b) => {
-        // FIRST PRIORITY: delivered projects always go to the bottom
-        const aDelivered = a.status === 'delivered';
-        const bDelivered = b.status === 'delivered';
-
-        if (aDelivered && !bDelivered) return 1;  // a goes to bottom
-        if (!aDelivered && bDelivered) return -1; // b goes to bottom
-
-        // SECOND PRIORITY: for non-delivered projects, sort by ship date
-        if (!aDelivered && !bDelivered) {
-          const dateA = getValidDate(a.shipDate);
-          const dateB = getValidDate(b.shipDate);
-
-          // Projects with ship dates come first, sorted by earliest date
-          if (dateA && dateB) {
-            return dateA.getTime() - dateB.getTime();
-          }
-
-          // Projects with ship dates come before those without
-          if (dateA && !dateB) return -1;
-          if (!dateA && dateB) return 1;
-
-          // For projects without ship dates, sort by project number (most recent first)
-          const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
-          const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
-          return numB - numA;
-        }
-
-        // If both are delivered, maintain original order
-        return 0;
-      });
-
-    // Apply different limits based on filter state
-    let finalList;
-    
-    if (dateRangeFilter === 'all' && columnFilter === 'all') {
-      // No filters applied - limit to top 10 projects
-      const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
-      const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
-
-      // Take top 10 non-delivered projects, then add any delivered projects at the end
-      finalList = [
-        ...nonDeliveredProjects.slice(0, 10),
-        ...deliveredProjects
-      ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
-    } else {
-      // Any filter is applied - show ALL matching projects (no limit)
-      finalList = sortedByShipDate;
-    }
-
-    setFilteredProjects(finalList);
-  }, [projects, columnFilter, dateRangeFilter]);
-
-  // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
-  useEffect(() => {
-    if (manufacturingSchedules && manufacturingBays && projects) {
-      // Wait for the schedule to render, then snap to today
-      const timer = setTimeout(() => {
-        const todayMarker = document.querySelector('.today-marker');
-        if (todayMarker) {
-          // Get the parent scrollable container
-          const scrollContainer = todayMarker.closest('.overflow-auto');
-          if (scrollContainer) {
-            const markerRect = todayMarker.getBoundingClientRect();
-            const containerRect = scrollContainer.getBoundingClientRect();
-
-            // Calculate horizontal scroll position to center the today marker
-            const markerLeft = todayMarker.offsetLeft;
-            const containerWidth = scrollContainer.clientWidth;
-            const scrollLeft = markerLeft - (containerWidth / 2);
-
-            // Scroll horizontally only, preserve current vertical position
-            scrollContainer.scrollTo({
-              left: Math.max(0, scrollLeft),
-              top: scrollContainer.scrollTop, // Keep current vertical position
-              behavior: 'smooth'
-            });
-          }
-        }
-      }, 1000); // Give the component time to render
-
-      return () => clearTimeout(timer);
-    }
-  }, [manufacturingSchedules, manufacturingBays, projects]);
-
-  
-
   // Helper function to format dates consistently without timezone issues
   const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'N/A';
+
+    // Use UTC methods to avoid timezone issues
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC'
+    });
+  };
+
+  // Helper function to format dates for display
+  const formatDateForDisplay = (dateStr) => {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return 'N/A';
