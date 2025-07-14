@@ -190,21 +190,43 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
   });
 
   // Fetch available labels for assignment
-  const { data: availableLabels = [] } = useQuery({
+  const { data: availableLabels } = useQuery({
     queryKey: ['/api/project-labels'],
     queryFn: async () => {
-      const response = await fetch('/api/project-labels');
-      if (!response.ok) {
-        console.error('Failed to fetch project labels:', response.status);
+      try {
+        const response = await fetch('/api/project-labels');
+        if (!response.ok) {
+          console.error('[ProjectStatus] Failed to fetch project labels:', response.status);
+          return [];
+        }
+        const data = await response.json();
+        console.log('[ProjectStatus] Raw labels data:', typeof data, 'isArray:', Array.isArray(data), data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('[ProjectStatus] Error fetching labels:', error);
         return [];
       }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
-    }
+    },
+    initialData: []  // Ensure we always have an array initially
   });
 
-  // Ensure availableLabels is always an array
-  const safeAvailableLabels = Array.isArray(availableLabels) ? availableLabels : [];
+  // Ensure availableLabels is always an array with comprehensive error handling
+  const safeAvailableLabels = React.useMemo(() => {
+    // Debug logging for availableLabels
+    console.log('[ProjectStatus] availableLabels type:', typeof availableLabels, 'isArray:', Array.isArray(availableLabels), 'value:', availableLabels);
+    
+    if (!availableLabels) {
+      console.warn('[ProjectStatus] availableLabels is null/undefined, using empty array');
+      return [];
+    }
+    
+    if (!Array.isArray(availableLabels)) {
+      console.error('[ProjectStatus] availableLabels is not an array:', availableLabels);
+      return [];
+    }
+    
+    return availableLabels;
+  }, [availableLabels]);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -331,7 +353,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {safeAvailableLabels.filter((label: any) => label.name !== 'DELIVERED').map((label: any) => (
+              {safeFilter(safeAvailableLabels, (label: any) => label.name !== 'DELIVERED', 'ProjectStatus.labelFilter').map((label: any) => (
                 <button
                   key={label.id}
                   onClick={() => handleAssignLabel(label.id)}
@@ -1066,10 +1088,16 @@ const ProjectStatus = () => {
       }
 
       return true;
-    });
+    }, 'ProjectStatus.projectFilter');
+
+    // Debug: Log the filtered result type
+    console.log('[ProjectStatus] filtered type:', typeof filtered, 'isArray:', Array.isArray(filtered), 'length:', filtered?.length);
+
+    // Ensure filtered is always an array before sorting
+    const safeFiltered = ensureArray(filtered, [], 'ProjectStatus.filteredSort');
 
     // ALWAYS sort delivered projects to the bottom regardless of other sorting
-    return filtered.sort((a, b) => {
+    return safeFiltered.sort((a, b) => {
       // First priority: delivered projects always go to the bottom
       const aDelivered = a.status === 'delivered';
       const bDelivered = b.status === 'delivered';

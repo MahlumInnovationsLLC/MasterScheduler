@@ -183,7 +183,9 @@ export function DataTable<TData, TValue>({
   }, [columns]);
 
   // Remove 'timeline' column if it exists
-  const filteredColumns = columnsWithSorting.filter(col => col.id !== 'timeline');
+  // Ensure columnsWithSorting is an array before filtering
+  const safeColumnsWithSorting = Array.isArray(columnsWithSorting) ? columnsWithSorting : [];
+  const filteredColumns = safeColumnsWithSorting.filter(col => col.id !== 'timeline');
 
   // Custom global filter function for enhanced text searching
   const globalFilterFn = React.useCallback((row: any, columnId: string, value: string) => {
