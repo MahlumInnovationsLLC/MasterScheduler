@@ -64,28 +64,28 @@ const Dashboard = () => {
   const [columnFilter, setColumnFilter] = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState('all');
 
-  const { data: projects, isLoading: isLoadingProjects } = useQuery({
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
     enabled: !!user, // Only fetch when user is authenticated
   });
 
-  const { data: billingMilestones, isLoading: isLoadingBillingMilestones } = useQuery({
+  const { data: billingMilestones = [], isLoading: isLoadingBillingMilestones } = useQuery({
     queryKey: ['/api/billing-milestones'],
     enabled: !!user,
   });
 
-  const { data: manufacturingSchedules, isLoading: isLoadingManufacturing } = useQuery({
+  const { data: manufacturingSchedules = [], isLoading: isLoadingManufacturing } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
     enabled: !!user,
   });
 
-  const { data: manufacturingBays, isLoading: isLoadingBays } = useQuery({
+  const { data: manufacturingBays = [], isLoading: isLoadingBays } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
     enabled: !!user,
   });
 
   // Fetch delivered projects for analytics
-  const { data: deliveredProjects } = useQuery({
+  const { data: deliveredProjects = [] } = useQuery({
     queryKey: ['/api/delivered-projects'],
     staleTime: 0,
     gcTime: 0,
