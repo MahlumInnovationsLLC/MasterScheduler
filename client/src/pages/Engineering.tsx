@@ -130,9 +130,11 @@ interface Project {
   name: string;
   projectNumber: string;
   status: string;
+  shipDate?: string | null;
   meAssigned?: string | null;
   eeAssigned?: string | null;
   iteAssigned?: string | null;
+  ntcAssigned?: string | null;
   meDesignOrdersPercent?: number | null;
   eeDesignOrdersPercent?: number | null;
   itDesignOrdersPercent?: number | null;
@@ -214,7 +216,7 @@ export default function Engineering() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [projectViewMode, setProjectViewMode] = useState<'project' | 'engineer'>('project');
   // Project table sorting state (separate from benchmarks sorting)
-  const [projectSortField, setProjectSortField] = useState<string>('name');
+  const [projectSortField, setProjectSortField] = useState<string>('shipDate');
   const [projectSortOrder, setProjectSortOrder] = useState<'asc' | 'desc'>('asc');
   const queryClient = useQueryClient();
 
@@ -305,7 +307,13 @@ export default function Engineering() {
   // Project table sorting handler
   const handleProjectSort = (field: string) => {
     if (projectSortField === field) {
-      setProjectSortOrder(projectSortOrder === 'asc' ? 'desc' : 'asc');
+      if (projectSortOrder === 'asc') {
+        setProjectSortOrder('desc');
+      } else {
+        // Third click resets to default sorting (shipDate asc)
+        setProjectSortField('shipDate');
+        setProjectSortOrder('asc');
+      }
     } else {
       setProjectSortField(field);
       setProjectSortOrder('asc');
@@ -327,6 +335,7 @@ export default function Engineering() {
     <th 
       className="text-left p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
       onClick={() => handleProjectSort(field)}
+      title={`Click to sort by ${label}. Click again to reverse order. Third click resets to default sorting (Next Project Ready to Ship).`}
     >
       <div className="flex items-center gap-1">
         <span>{label}</span>
@@ -627,6 +636,11 @@ export default function Engineering() {
         case 'benchmarks':
           aValue = (a.completedBenchmarks || 0) / (a.engineeringBenchmarks || 1);
           bValue = (b.completedBenchmarks || 0) / (b.engineeringBenchmarks || 1);
+          break;
+        case 'shipDate':
+          // Sort by ship date for "Next Project Ready To Ship" default sorting
+          aValue = a.shipDate ? new Date(a.shipDate).getTime() : new Date('2099-12-31').getTime();
+          bValue = b.shipDate ? new Date(b.shipDate).getTime() : new Date('2099-12-31').getTime();
           break;
         default:
           aValue = a.name || '';
