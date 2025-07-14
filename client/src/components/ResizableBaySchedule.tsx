@@ -3954,7 +3954,7 @@ export default function ResizableBaySchedule({
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
                   
                   return (
-                    <React.Fragment key={`bay-${bay.id}`}>
+                    <div key={`bay-${bay.id}`}>
                       {/* Weekly header divider between bay rows (not before first bay) */}
                       {bayIndex > 0 && (
                         <div 
@@ -4652,7 +4652,7 @@ export default function ResizableBaySchedule({
                         {/* RESIZE HANDLES - Rendered OUTSIDE project containers to fix z-index layering */}
                         {scheduleBars.map((bar) => {
                           return bar.bayId === bay.id && (
-                            <React.Fragment key={`handles-${bar.id}`}>
+                            <div key={`handles-${bar.id}`}>
                               {/* Left resize handle */}
                               <div 
                                 className="absolute cursor-ew-resize resize-handle flex items-center justify-center"
@@ -4728,12 +4728,12 @@ export default function ResizableBaySchedule({
                               >
                                 ›
                               </div>
-                            </React.Fragment>
+                            </div>
                           );
                         })}
                       </div>
                     </div>
-                    </React.Fragment>
+                    </div>
                   );
                 })}
               </div>

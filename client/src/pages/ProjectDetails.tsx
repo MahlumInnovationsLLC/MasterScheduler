@@ -1033,7 +1033,7 @@ const ProjectDetails = () => {
 
           <div className="p-4 space-y-3">
             {milestones.map((milestone) => (
-              <React.Fragment key={milestone.id}>
+              <div key={milestone.id}>
                 {/* Milestone */}
                 <div className={`border-l-4 ${milestone.color} pl-4 py-2`}>
                   <div className="flex items-center justify-between">
@@ -1130,7 +1130,7 @@ const ProjectDetails = () => {
                     </div>
                   </div>
                 ))}
-              </React.Fragment>
+              </div>
             ))}
           </div>
             </TabsContent>

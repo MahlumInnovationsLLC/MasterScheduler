@@ -1203,7 +1203,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
         {/* Days of week */}
         <div className="flex bg-card/80 rounded-md border border-border/30">
           {weeks.map(week => (
-            <React.Fragment key={week.weekNumber}>
+            <div key={week.weekNumber}>
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dayIndex) => {
                 const date = addDays(week.startDate, dayIndex);
                 const isWeekend = [5, 6].includes(dayIndex); // 5 is Sat, 6 is Sun
@@ -1221,7 +1221,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                   </div>
                 );
               })}
-            </React.Fragment>
+            </div>
           ))}
         </div>
       </div>
