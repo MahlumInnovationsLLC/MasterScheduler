@@ -1144,7 +1144,7 @@ const ProjectStatus = () => {
 
           // Restore event listeners for the Show Archived button
           if (clone.textContent?.includes('Archived')) {
-            clone.addEventListener('click', () => setShowArchived(!showArchived));
+            clone.addEventListener('click', () => setShowArchived(prev => !prev));
           }
 
           // Add event listeners for location filter items
@@ -1172,7 +1172,7 @@ const ProjectStatus = () => {
     const timer = setTimeout(moveFilterButtons, 300);
 
     return () => clearTimeout(timer);
-  }, [locationFilter, showArchived]); // Re-run when filter state changes
+  }, []); // Remove dependencies to prevent infinite loop
 
   // Calculate upcoming milestones within the next 30 days
   const upcomingMilestones = React.useMemo(() => {
@@ -2460,12 +2460,12 @@ const ProjectStatus = () => {
         <div className="md:col-span-2">
           <ProjectStatsCard 
             title="CCB Requests"
-            value={ccbRequests.filter((req: any) => req.status === 'pending_review' || req.status === 'under_review').length}
+            value={(ccbRequests || []).filter((req: any) => req.status === 'pending_review' || req.status === 'under_review').length}
             icon={<FileText className="text-orange-500 h-5 w-5" />}
             tags={[
-              { label: "Pending", value: ccbRequests.filter((req: any) => req.status === 'pending_review').length, status: "Delayed" },
-              { label: "Under Review", value: ccbRequests.filter((req: any) => req.status === 'under_review').length, status: "On Track" },
-              { label: "Approved", value: ccbRequests.filter((req: any) => req.status === 'approved').length, status: "Completed" }
+              { label: "Pending", value: (ccbRequests || []).filter((req: any) => req.status === 'pending_review').length, status: "Delayed" },
+              { label: "Under Review", value: (ccbRequests || []).filter((req: any) => req.status === 'under_review').length, status: "On Track" },
+              { label: "Approved", value: (ccbRequests || []).filter((req: any) => req.status === 'approved').length, status: "Completed" }
             ]}
             className="h-72"
           />
