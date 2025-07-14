@@ -461,6 +461,7 @@ export const projects = pgTable("projects", {
   eeDesignOrdersPercent: decimal("ee_design_orders_percent", { precision: 5, scale: 2 }),
   iteAssigned: text("ite_assigned"),
   itDesignOrdersPercent: decimal("it_design_orders_percent", { precision: 5, scale: 2 }),
+  ntcAssigned: text("ntc_assigned"),
   ntcDesignOrdersPercent: decimal("ntc_design_orders_percent", { precision: 5, scale: 2 }),
 
   // Status fields

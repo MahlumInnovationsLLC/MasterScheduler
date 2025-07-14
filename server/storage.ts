@@ -1443,6 +1443,7 @@ export class DatabaseStorage implements IStorage {
         meAssigned: meAssignment ? usersMap.get(meAssignment.resourceId) || project.meAssigned : project.meAssigned,
         eeAssigned: eeAssignment ? usersMap.get(eeAssignment.resourceId) || project.eeAssigned : project.eeAssigned,
         iteAssigned: iteAssignment ? usersMap.get(iteAssignment.resourceId) || project.iteAssigned : project.iteAssigned,
+        ntcAssigned: ntcAssignment ? usersMap.get(ntcAssignment.resourceId) || project.ntcAssigned : project.ntcAssigned,
         // Update percentage fields from assignments
         meDesignOrdersPercent: meAssignment ? meAssignment.percentage : project.meDesignOrdersPercent,
         eeDesignOrdersPercent: eeAssignment ? eeAssignment.percentage : project.eeDesignOrdersPercent,
