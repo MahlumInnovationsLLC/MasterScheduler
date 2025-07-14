@@ -751,22 +751,22 @@ const ProjectStatus = () => {
 
 
 
-  // Create stable callback functions for archive dialog
-  const handleArchiveReasonChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  // Create handler functions for archive dialog
+  const handleArchiveReasonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setArchiveReason(e.target.value);
-  }, []);
+  };
 
-  const handleCloseArchiveDialog = useCallback(() => {
+  const handleCloseArchiveDialog = () => {
     setArchiveDialogOpen(false);
-  }, []);
+  };
 
   // Memoize the selected archive project to prevent unnecessary re-renders
   const selectedArchiveProject = useMemo(() => {
     return projects?.find(p => p.id === selectedArchiveProjectId) || null;
   }, [projects, selectedArchiveProjectId]);
 
-  // Add the Archive Dialog component with stable props
-  const ArchiveDialog = useCallback(() => {
+  // Add the Archive Dialog component
+  const ArchiveDialog = () => {
     return (
       <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
         <DialogContent className="bg-darkBg border-gray-800 text-white max-w-md">
@@ -834,7 +834,7 @@ const ProjectStatus = () => {
         </DialogContent>
       </Dialog>
     );
-  }, [archiveDialogOpen, selectedArchiveProject, archiveReason, handleArchiveReasonChange, handleCloseArchiveDialog, handleArchiveProject]);
+  };
 
   // DISABLED auto-filtering - show ALL projects by default
   useEffect(() => {
@@ -855,7 +855,7 @@ const ProjectStatus = () => {
       estimatedCompletionDateMax: ''
     });
 
-  }, [projects, hasAppliedInitialFilter]);
+  }, [projects]); // Remove hasAppliedInitialFilter from dependencies to prevent circular updates
 
   // State for visible columns
   const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>({
