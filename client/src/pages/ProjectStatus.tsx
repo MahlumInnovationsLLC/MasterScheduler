@@ -354,7 +354,7 @@ const ProjectStatus = () => {
   const [showArchived, setShowArchived] = useState(true);
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { data: projects = [], isLoading, isError, error, refetch: refetchProjects } = useQuery<Project[]>({
+  const { data: projects = [], isLoading: projectsLoading, isError, error, refetch: refetchProjects } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
     retry: 3,
     retryDelay: 1000,
@@ -370,32 +370,32 @@ const ProjectStatus = () => {
     // Removed enabled condition to prevent conditional hook calls
   });
 
-  const { data: ccbRequests = [] } = useQuery({
+  const { data: ccbRequests = [], isLoading: ccbLoading } = useQuery({
     queryKey: ['/api/ccb-requests'],
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
 
-  const { data: manufacturingSchedules = [] } = useQuery({
+  const { data: manufacturingSchedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
 
-  const { data: billingMilestones = [] } = useQuery({
+  const { data: billingMilestones = [], isLoading: billingLoading } = useQuery({
     queryKey: ['/api/billing-milestones'],
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
 
-  const { data: manufacturingBays = [] } = useQuery({
+  const { data: manufacturingBays = [], isLoading: baysLoading } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
 
   // Fetch available labels for all projects
-  const { data: availableLabels = [] } = useQuery({
+  const { data: availableLabels = [], isLoading: availableLabelsLoading } = useQuery({
     queryKey: ['/api/project-labels'],
     staleTime: 30000,
     refetchOnWindowFocus: false
@@ -2041,64 +2041,67 @@ const ProjectStatus = () => {
     { value: 'completed', label: 'Completed Projects' },
   ];
 
-  // Early return conditions - check these first but render content at the end
-  // Wait for both projects AND label assignments to be loaded
-  const shouldShowLoading = isLoading || labelsLoading;
+  // COMPREHENSIVE FORCED LOADING STATE - Check ALL queries before rendering ANYTHING
+  // This ensures no component renders before ALL data is ready, preventing filter errors
+  const isAnyDataLoading = projectsLoading || labelsLoading || ccbLoading || schedulesLoading || billingLoading || baysLoading || availableLabelsLoading;
+  
+  // Also check if any critical data is still undefined/null to prevent rendering with incomplete data
+  const isDataIncomplete = !projects || !allProjectLabelAssignments || !ccbRequests || !manufacturingSchedules || !billingMilestones || !manufacturingBays || !availableLabels;
+  
+  // Combined check - show loading if ANY query is loading OR if data is incomplete
+  const shouldShowLoading = isAnyDataLoading || isDataIncomplete;
   const shouldShowError = isError;
-  const shouldShowNoProjects = !projects && !isLoading && !isError;
-
-  // Render loading state
-  if (shouldShowLoading) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
-        <div className="animate-pulse space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
-            ))}
+  const shouldShowNoProjects = projects && projects.length === 0 && !isAnyDataLoading && !isError;
+  
+  // SAFETY GATE: If we're in a loading state, return immediately before ANY data processing
+  // This prevents any filter operations from executing on undefined/null data
+  if (shouldShowLoading || shouldShowError) {
+    // Return early to prevent any code below from executing
+    if (shouldShowLoading) {
+      return (
+        <div className="p-6">
+          <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
+          <div className="flex flex-col items-center justify-center h-96">
+            <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+            <p className="text-gray-400">Loading project data...</p>
+            <p className="text-sm text-gray-500 mt-2">Please wait while we fetch all necessary information</p>
           </div>
-          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
         </div>
-      </div>
-    );
-  }
-
-  // Render error state
-  if (shouldShowError) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
-        <div className="flex flex-col items-center justify-center h-96 text-center">
-          <AlertTriangle className="h-16 w-16 text-red-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Error Loading Projects</h2>
-          <p className="text-gray-600 mb-4">
-            There was an error loading project data. This could be due to:
-          </p>
-          <ul className="text-left text-sm text-gray-500 mb-6">
-            <li>• Network connectivity issues</li>
-            <li>• Server temporary unavailability</li>
-            <li>• Authentication problems</li>
-            <li>• Browser cache issues</li>
-          </ul>
-          <div className="flex gap-3">
-            <Button onClick={() => refetchProjects()} variant="outline">
-              Try Again
-            </Button>
-            <Button onClick={() => window.location.reload()} variant="default">
-              Refresh Page
-            </Button>
+      );
+    }
+    
+    if (shouldShowError) {
+      return (
+        <div className="p-6">
+          <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
+          <div className="flex flex-col items-center justify-center h-96 text-center">
+            <AlertTriangle className="h-16 w-16 text-red-500 mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Error Loading Projects</h2>
+            <p className="text-gray-600 mb-4">
+              There was an error loading project data. This could be due to:
+            </p>
+            <ul className="text-left text-sm text-gray-500 mb-6">
+              <li>• Network connectivity issues</li>
+              <li>• Server temporary unavailability</li>
+              <li>• Authentication problems</li>
+              <li>• Browser cache issues</li>
+            </ul>
+            <div className="flex gap-3">
+              <Button onClick={() => refetchProjects()} variant="outline">
+                Retry Loading
+              </Button>
+              <Button onClick={() => window.location.reload()} variant="outline">
+                Refresh Page
+              </Button>
+            </div>
           </div>
-          <details className="mt-4 text-xs text-gray-400">
-            <summary className="cursor-pointer">Technical Details</summary>
-            <pre className="mt-2 text-left bg-gray-100 p-2 rounded">
-              {error instanceof Error ? error.message : String(error)}
-            </pre>
-          </details>
         </div>
-      </div>
-    );
+      );
+    }
   }
+  
+  // All loading and error states are handled in the SAFETY GATE above
+  // If we reach this point, ALL data is guaranteed to be loaded
 
   // Render no projects state
   if (shouldShowNoProjects) {
