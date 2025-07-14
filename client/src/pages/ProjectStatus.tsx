@@ -172,55 +172,17 @@ const ProjectCell = ({ project, projectLabels = [] }: { project: ProjectWithRawD
 };
 
 // Project Labels Inline Component for table cells
-const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
+const ProjectLabelsInline = ({ projectId, labels = [], availableLabels = [] }: { 
+  projectId: number, 
+  labels: any[], 
+  availableLabels: any[] 
+}) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isViewOnly, canEdit } = useRolePermissions();
 
-  // Fetch project labels
-  const { data: labels = [] } = useQuery({
-    queryKey: [`/api/projects/${projectId}/labels`],
-    enabled: !!projectId
-  });
-
-  // Fetch available labels for assignment
-  const { data: availableLabels } = useQuery({
-    queryKey: ['/api/project-labels'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/project-labels');
-        if (!response.ok) {
-          console.error('[ProjectStatus] Failed to fetch project labels:', response.status);
-          return [];
-        }
-        const data = await response.json();
-        console.log('[ProjectStatus] Raw labels data:', typeof data, 'isArray:', Array.isArray(data), data);
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('[ProjectStatus] Error fetching labels:', error);
-        return [];
-      }
-    },
-    initialData: []  // Ensure we always have an array initially
-  });
-
-  // Ensure availableLabels is always an array with comprehensive error handling
-  const safeAvailableLabels = React.useMemo(() => {
-    // Debug logging for availableLabels
-    console.log('[ProjectStatus] availableLabels type:', typeof availableLabels, 'isArray:', Array.isArray(availableLabels), 'value:', availableLabels);
-    
-    if (!availableLabels) {
-      console.warn('[ProjectStatus] availableLabels is null/undefined, using empty array');
-      return [];
-    }
-    
-    if (!Array.isArray(availableLabels)) {
-      console.error('[ProjectStatus] availableLabels is not an array:', availableLabels);
-      return [];
-    }
-    
-    return ensureArray(availableLabels, [], 'ProjectStatus.safeAvailableLabels');
-  }, [availableLabels]);
+  // Ensure availableLabels is always an array
+  const safeAvailableLabels = ensureArray(availableLabels, [], 'ProjectStatus.safeAvailableLabels');
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -241,6 +203,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/all-project-label-assignments'] });
       toast({ title: "Label assigned successfully" });
     },
     onError: (error) => {
@@ -277,6 +240,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
     onSettled: () => {
       // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/all-project-label-assignments'] });
     }
   });
 
@@ -426,6 +390,13 @@ const ProjectStatus = () => {
 
   const { data: manufacturingBays = [] } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
+    staleTime: 30000,
+    refetchOnWindowFocus: false
+  });
+
+  // Fetch available labels for all projects
+  const { data: availableLabels = [] } = useQuery({
+    queryKey: ['/api/project-labels'],
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
@@ -1587,7 +1558,9 @@ const ProjectStatus = () => {
       { size: 120 }),
     createColumn('status', 'status', 'Status', 
       (value, project) => {
-        return <ProjectLabelsInline projectId={project.id} />;
+        // Find labels for this specific project from the pre-fetched data
+        const projectLabels = allProjectLabelAssignments.filter(assignment => assignment.projectId === project.id);
+        return <ProjectLabelsInline projectId={project.id} labels={projectLabels} availableLabels={availableLabels} />;
       },
       { 
         size: 200
