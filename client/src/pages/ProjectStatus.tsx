@@ -363,11 +363,11 @@ const ProjectStatus = () => {
   });
 
   // Fetch ALL project label assignments at once to avoid N+1 queries
-  const { data: allProjectLabelAssignments = [] } = useQuery({
+  const { data: allProjectLabelAssignments = [], isLoading: labelsLoading } = useQuery({
     queryKey: ['/api/all-project-label-assignments'],
     staleTime: 30000,
-    refetchOnWindowFocus: false,
-    enabled: projects.length > 0 // Only fetch when we have projects
+    refetchOnWindowFocus: false
+    // Removed enabled condition to prevent conditional hook calls
   });
 
   const { data: ccbRequests = [] } = useQuery({
@@ -1506,7 +1506,7 @@ const ProjectStatus = () => {
     createColumn('projectNumber', 'projectNumber', 'Project', 
       (value, project) => {
         // Find labels for this specific project from the pre-fetched data
-        const projectLabels = allProjectLabelAssignments.filter(assignment => assignment.projectId === project.id);
+        const projectLabels = safeFilter(allProjectLabelAssignments, assignment => assignment.projectId === project.id, 'ProjectStatus.projectLabels');
         return <ProjectCell project={project} projectLabels={projectLabels} />;
       },
       { sortingFn: 'alphanumeric', size: 260 }),
@@ -1559,7 +1559,7 @@ const ProjectStatus = () => {
     createColumn('status', 'status', 'Status', 
       (value, project) => {
         // Find labels for this specific project from the pre-fetched data
-        const projectLabels = allProjectLabelAssignments.filter(assignment => assignment.projectId === project.id);
+        const projectLabels = safeFilter(allProjectLabelAssignments, assignment => assignment.projectId === project.id, 'ProjectStatus.statusLabels');
         return <ProjectLabelsInline projectId={project.id} labels={projectLabels} availableLabels={availableLabels} />;
       },
       { 
@@ -2042,7 +2042,8 @@ const ProjectStatus = () => {
   ];
 
   // Early return conditions - check these first but render content at the end
-  const shouldShowLoading = isLoading;
+  // Wait for both projects AND label assignments to be loaded
+  const shouldShowLoading = isLoading || labelsLoading;
   const shouldShowError = isError;
   const shouldShowNoProjects = !projects && !isLoading && !isError;
 
