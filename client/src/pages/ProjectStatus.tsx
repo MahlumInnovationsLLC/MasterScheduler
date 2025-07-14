@@ -1039,13 +1039,10 @@ const ProjectStatus = () => {
       return true;
     };
 
-    // Cast projects to ProjectWithRawData[] and add issue priority for sorting
-    const projectsWithPriority = ((projects || []) as ProjectWithRawData[]).map((project: ProjectWithRawData) => ({
-      ...project,
-      issuePriority: getIssuePriority(project.id)
-    }));
+    // Cast projects to ProjectWithRawData[]
+    const projectsWithPriority = ((projects || []) as ProjectWithRawData[]);
 
-    const filtered = projectsWithPriority.filter((project: ProjectWithRawData & { issuePriority: number }) => {
+    const filtered = projectsWithPriority.filter((project: ProjectWithRawData) => {
       // Now we'll only filter out archived projects if showArchived is false
       // This allows displaying all projects including archived ones when showArchived is true
       if (project.status === 'archived' && !showArchived) {
@@ -1579,8 +1576,7 @@ const ProjectStatus = () => {
         return <ProjectLabelsInline projectId={project.id} />;
       },
       { 
-        size: 200,
-        sortingFn: 'statusSort' // Use custom sorting function for issue type priority
+        size: 200
       }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
       (value, project) => <EditableDateFieldWithOP 
