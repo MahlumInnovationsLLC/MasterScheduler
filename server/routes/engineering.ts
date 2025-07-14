@@ -56,7 +56,8 @@ router.get('/engineering-resources', async (req: Request, res: Response) => {
       'af41a446-9f1a-4b3c-a685-5151ea757d65': 'ME', // Will Busching
       'bc1837b7-016d-46d8-a556-b709d30ec853': 'NTC', // Scott Barker
       '4408dabc-c27a-475c-870d-565e5a251722': 'EE', // Austin Guth
-      '9c7048d1-b9f9-4cb2-8f13-7e4edc88e8b1': 'ME' // Michael Klassen
+      '9c7048d1-b9f9-4cb2-8f13-7e4edc88e8b1': 'ME', // Michael Klassen
+      '5604f16c-fad1-4c23-9d0d-c5fdb07314b1': 'NTC', // Dan Leatzow
     };
     
     // Get all engineering resource customizations
@@ -810,7 +811,8 @@ router.get('/engineering-overview', async (req: Request, res: Response) => {
       'af41a446-9f1a-4b3c-a685-5151ea757d65': 'ME', // Will Busching
       'bc1837b7-016d-46d8-a556-b709d30ec853': 'NTC', // Scott Barker
       '4408dabc-c27a-475c-870d-565e5a251722': 'EE', // Austin Guth
-      '9c7048d1-b9f9-4cb2-8f13-7e4edc88e8b1': 'ME' // Michael Klassen
+      '9c7048d1-b9f9-4cb2-8f13-7e4edc88e8b1': 'ME', // Michael Klassen
+      '5604f16c-fad1-4c23-9d0d-c5fdb07314b1': 'NTC', // Dan Leatzow
     };
     
     // Get engineering resource customizations for the overview
