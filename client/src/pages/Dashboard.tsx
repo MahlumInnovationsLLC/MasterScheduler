@@ -74,22 +74,22 @@ const Dashboard = () => {
 
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
-    enabled: !!user, // Only fetch when user is authenticated
+    // Removed enabled condition to prevent conditional hooks
   });
 
   const { data: billingMilestones = [], isLoading: isLoadingBillingMilestones } = useQuery({
     queryKey: ['/api/billing-milestones'],
-    enabled: !!user,
+    // Removed enabled condition to prevent conditional hooks
   });
 
   const { data: manufacturingSchedules = [], isLoading: isLoadingManufacturing } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
-    enabled: !!user,
+    // Removed enabled condition to prevent conditional hooks
   });
 
   const { data: manufacturingBays = [], isLoading: isLoadingBays } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
-    enabled: !!user,
+    // Removed enabled condition to prevent conditional hooks
   });
 
   // Fetch delivered projects for analytics
@@ -97,7 +97,7 @@ const Dashboard = () => {
     queryKey: ['/api/delivered-projects'],
     staleTime: 0,
     gcTime: 0,
-    enabled: !!user,
+    // Removed enabled condition to prevent conditional hooks
   });
 
   // Get label statistics - moved before conditional returns
@@ -490,8 +490,8 @@ const Dashboard = () => {
       .map(s => s.bayId);
 
     // Remove duplicates and exclude bays that are already active
-    const uniqueScheduledBayIds = [...new Set(scheduledBayIds)]
-      .filter(id => !uniqueActiveBayIds.includes(id));
+    const uniqueScheduledBayIds = safeFilter([...new Set(scheduledBayIds)], 
+      id => !uniqueActiveBayIds.includes(id), 'Dashboard.scheduledBayFilter');
     const scheduled = uniqueScheduledBayIds.length;
 
     // For display purposes, count completed and maintenance schedules
@@ -937,8 +937,10 @@ const Dashboard = () => {
     }
   }, [projects, manufacturingSchedules, toast]);
 
-  // Show loading if auth is still loading
-  if (authLoading) {
+  // Show loading while any data is still loading
+  const isLoading = authLoading || isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays;
+  
+  if (isLoading) {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-sans font-bold mb-6">Dashboard</h1>
