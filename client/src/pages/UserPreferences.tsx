@@ -43,13 +43,21 @@ const UserPreferences = () => {
   React.useEffect(() => {
     if (preferences && typeof preferences === 'object') {
       const prefs = preferences as Record<string, any>;
-      setFormValues({
-        theme: (prefs.theme as string) || 'dark',
-        displayDensity: (prefs.displayDensity as 'compact' | 'comfortable') || 'comfortable',
-        defaultView: (prefs.defaultView as string) || 'dashboard',
-        showCompletedProjects: (prefs.showCompletedProjects as boolean) || true,
-        dateFormat: (prefs.dateFormat as string) || 'MM/DD/YYYY',
-        emailNotifications: (prefs.emailNotifications as boolean) || true,
+      // Only update if preferences have actually changed
+      setFormValues(prev => {
+        const newValues = {
+          theme: (prefs.theme as string) || 'dark',
+          displayDensity: (prefs.displayDensity as 'compact' | 'comfortable') || 'comfortable',
+          defaultView: (prefs.defaultView as string) || 'dashboard',
+          showCompletedProjects: prefs.showCompletedProjects !== undefined ? prefs.showCompletedProjects : true,
+          dateFormat: (prefs.dateFormat as string) || 'MM/DD/YYYY',
+          emailNotifications: prefs.emailNotifications !== undefined ? prefs.emailNotifications : true,
+        };
+        // Only update if values are different
+        if (JSON.stringify(prev) !== JSON.stringify(newValues)) {
+          return newValues;
+        }
+        return prev;
       });
     }
   }, [preferences]);
