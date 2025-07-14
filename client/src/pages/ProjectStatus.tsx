@@ -948,8 +948,8 @@ const ProjectStatus = () => {
   const projectStats = React.useMemo(() => {
     if (!projects || projects.length === 0) return null;
 
-    const completed = projects.filter(p => p.status === 'completed').length;
-    const avgCompletion = projects.reduce((sum, p) => sum + Number(p.percentComplete), 0) / projects.length;
+    const completed = (projects || []).filter(p => p.status === 'completed').length;
+    const avgCompletion = projects.length > 0 ? projects.reduce((sum, p) => sum + Number(p.percentComplete), 0) / projects.length : 0;
 
     return {
       total: projects.length,
@@ -1233,7 +1233,7 @@ const ProjectStatus = () => {
       console.log('Filtered projects count:', filteredProjects.length);
       
       // Filter out delivered projects by status rather than using a separate query
-      const nonDeliveredProjects = filteredProjects.filter(project => 
+      const nonDeliveredProjects = (filteredProjects || []).filter(project => 
         project.status !== 'delivered'
       );
 
@@ -2039,7 +2039,7 @@ const ProjectStatus = () => {
     if (!sampleProject.rawData) return [];
 
     // Get unique keys from rawData that aren't already in our column set
-    const rawDataKeys = Object.keys(sampleProject.rawData);
+    const rawDataKeys = sampleProject.rawData ? Object.keys(sampleProject.rawData) : [];
     const existingColumnIds = allColumns.map(col => col.id);
 
     // Map common field names to nicer display names
