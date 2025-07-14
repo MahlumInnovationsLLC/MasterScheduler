@@ -361,7 +361,7 @@ const ProjectStatus = () => {
   const [showArchived, setShowArchived] = useState(true);
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { data: projects, isLoading, isError, error, refetch: refetchProjects } = useQuery<Project[]>({
+  const { data: projects = [], isLoading, isError, error, refetch: refetchProjects } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
     retry: 3,
     retryDelay: 1000,
@@ -380,15 +380,15 @@ const ProjectStatus = () => {
     staleTime: 30000,
   });
 
-  const { data: manufacturingSchedules } = useQuery({
+  const { data: manufacturingSchedules = [] } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
   });
 
-  const { data: billingMilestones } = useQuery({
+  const { data: billingMilestones = [] } = useQuery({
     queryKey: ['/api/billing-milestones'],
   });
 
-  const { data: manufacturingBays } = useQuery({
+  const { data: manufacturingBays = [] } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
   });
 
