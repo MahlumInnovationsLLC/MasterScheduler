@@ -493,6 +493,21 @@ const Dashboard = () => {
     };
   }, [manufacturingSchedules, manufacturingBays]);
 
+  // Helper function to format dates for display
+  const formatDateForDisplay = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'N/A';
+
+    // Use UTC methods to avoid timezone issues
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC'
+    });
+  };
+
   // Define all project columns at the top
   const allProjectColumns = React.useMemo(() => [
     {
@@ -849,21 +864,6 @@ const Dashboard = () => {
 
   // Helper function to format dates consistently without timezone issues
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return 'N/A';
-
-    // Use UTC methods to avoid timezone issues
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: 'UTC'
-    });
-  };
-
-  // Helper function to format dates for display
-  const formatDateForDisplay = (dateStr) => {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return 'N/A';
