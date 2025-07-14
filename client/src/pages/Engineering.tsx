@@ -2314,6 +2314,7 @@ export default function Engineering() {
                               {(discipline === 'ME' && selectedProject.meAssigned) ||
                                (discipline === 'EE' && selectedProject.eeAssigned) ||
                                (discipline === 'ITE' && selectedProject.iteAssigned) ||
+                               (discipline === 'NTC' && selectedProject.ntcAssigned) ||
                                'None assigned'}
                             </p>
                           </div>
@@ -2425,7 +2426,7 @@ export default function Engineering() {
                       </thead>
                       <tbody>
                         {getProjectAssignments(selectedProject.id).map((assignment) => {
-                          const engineer = engineers.find(eng => eng.id === assignment.resourceId);
+                          const engineer = resources.find(eng => eng.id === assignment.resourceId);
                           return (
                             <tr key={assignment.id} className="border-b">
                               <td className="p-2">
