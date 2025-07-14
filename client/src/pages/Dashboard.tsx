@@ -699,23 +699,6 @@ const Dashboard = () => {
       ),
     },
     {
-      accessorKey: 'priority',
-      header: 'Priority',
-      cell: ({ row }) => {
-        const priority = row.original.priority;
-        let priorityColor = 'bg-gray-600';
-        if (priority === 'high') priorityColor = 'bg-red-600';
-        else if (priority === 'medium') priorityColor = 'bg-yellow-600';
-        else if (priority === 'low') priorityColor = 'bg-green-600';
-        
-        return (
-          <span className={`${priorityColor} text-white text-xs px-2 py-1 rounded-full`}>
-            {priority ? priority.charAt(0).toUpperCase() + priority.slice(1) : 'Normal'}
-          </span>
-        );
-      },
-    },
-    {
       accessorKey: 'pmOwner',
       header: 'PM Owner',
       cell: ({ row }) => <div className="text-sm">{row.original.pmOwner || 'Unassigned'}</div>,
