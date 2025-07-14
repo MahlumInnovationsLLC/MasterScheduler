@@ -2055,79 +2055,87 @@ const ProjectStatus = () => {
     { value: 'completed', label: 'Completed Projects' },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
-        <div className="animate-pulse space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
-            ))}
-          </div>
-          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
+  // Move conditional returns AFTER all hooks to avoid React hook ordering errors
+  const renderLoadingState = React.useCallback(() => (
+    <div className="p-6">
+      <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
+      <div className="animate-pulse space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
+          ))}
         </div>
+        <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
       </div>
-    );
+    </div>
+  ), []);
+
+  const renderErrorState = React.useCallback(() => (
+    <div className="p-6">
+      <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
+      <div className="flex flex-col items-center justify-center h-96 text-center">
+        <AlertTriangle className="h-16 w-16 text-red-500 mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Error Loading Projects</h2>
+        <p className="text-gray-600 mb-4">
+          There was an error loading project data. This could be due to:
+        </p>
+        <ul className="text-left text-sm text-gray-500 mb-6">
+          <li>• Network connectivity issues</li>
+          <li>• Server temporary unavailability</li>
+          <li>• Authentication problems</li>
+          <li>• Browser cache issues</li>
+        </ul>
+        <div className="flex gap-3">
+          <Button onClick={() => refetchProjects()} variant="outline">
+            Try Again
+          </Button>
+          <Button onClick={() => window.location.reload()} variant="default">
+            Refresh Page
+          </Button>
+        </div>
+        <details className="mt-4 text-xs text-gray-400">
+          <summary className="cursor-pointer">Technical Details</summary>
+          <pre className="mt-2 text-left bg-gray-100 p-2 rounded">
+            {error instanceof Error ? error.message : String(error)}
+          </pre>
+        </details>
+      </div>
+    </div>
+  ), [refetchProjects, error]);
+
+  const renderNoProjectsState = React.useCallback(() => (
+    <div className="p-6">
+      <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
+      <div className="flex flex-col items-center justify-center h-96 text-center">
+        <AlertTriangle className="h-16 w-16 text-yellow-500 mb-4" />
+        <h2 className="text-xl font-semibold mb-2">No Projects Found</h2>
+        <p className="text-gray-600 mb-4">
+          No project data is available. This could be due to:
+        </p>
+        <ul className="text-left text-sm text-gray-500 mb-6">
+          <li>• Database connection issues</li>
+          <li>• Empty database</li>
+          <li>• Permission restrictions</li>
+        </ul>
+        <Button onClick={() => refetchProjects()} variant="outline">
+          Retry Loading
+        </Button>
+      </div>
+    </div>
+  ), [refetchProjects]);
+
+  // Conditional returns moved after all hooks
+  if (isLoading) {
+    return renderLoadingState();
   }
 
   if (isError) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
-        <div className="flex flex-col items-center justify-center h-96 text-center">
-          <AlertTriangle className="h-16 w-16 text-red-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Error Loading Projects</h2>
-          <p className="text-gray-600 mb-4">
-            There was an error loading project data. This could be due to:
-          </p>
-          <ul className="text-left text-sm text-gray-500 mb-6">
-            <li>• Network connectivity issues</li>
-            <li>• Server temporary unavailability</li>
-            <li>• Authentication problems</li>
-            <li>• Browser cache issues</li>
-          </ul>
-          <div className="flex gap-3">
-            <Button onClick={() => refetchProjects()} variant="outline">
-              Try Again
-            </Button>
-            <Button onClick={() => window.location.reload()} variant="default">
-              Refresh Page
-            </Button>
-          </div>
-          <details className="mt-4 text-xs text-gray-400">
-            <summary className="cursor-pointer">Technical Details</summary>
-            <pre className="mt-2 text-left bg-gray-100 p-2 rounded">
-              {error instanceof Error ? error.message : String(error)}
-            </pre>
-          </details>
-        </div>
-      </div>
-    );
+    return renderErrorState();
   }
 
   // Additional safety checks to prevent blank screen
   if (!projects && !isLoading && !isError) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
-        <div className="flex flex-col items-center justify-center h-96 text-center">
-          <AlertTriangle className="h-16 w-16 text-yellow-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Projects Found</h2>
-          <p className="text-gray-600 mb-4">
-            No project data is available. This could be due to:
-          </p>
-          <ul className="text-left text-sm text-gray-500 mb-6">
-            <li>• Database connection issues</li>
-            <li>• Empty database</li>
-            <li>• Permission restrictions</li>
-          </ul>
-          <Button onClick={() => refetchProjects()} variant="outline">
-            Retry Loading
-          </Button>
-        </div>
-      </div>
-    );
+    return renderNoProjectsState();
   }
 
   return (
