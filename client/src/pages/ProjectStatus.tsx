@@ -425,8 +425,7 @@ const ProjectStatus = () => {
     }
   };
 
-  // Flag to track if initial auto-filtering has been applied
-  const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
+  // Removed hasAppliedInitialFilter - not needed anymore
 
   // Delivery dialog state
   const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
@@ -836,26 +835,12 @@ const ProjectStatus = () => {
     );
   };
 
-  // DISABLED auto-filtering - show ALL projects by default
+  // Log when projects are loaded (no state updates here)
   useEffect(() => {
-    if (!projects || hasAppliedInitialFilter) return;
-
-    // Simply mark that we've processed the initial state
-    // without applying any filters - this ensures ALL projects are visible
-    console.log(`Initialized with ${projects.length} total projects - NO auto-filtering`);
-    setHasAppliedInitialFilter(true);
-
-    // Clear any existing date filters to ensure all projects are shown
-    setDateFilters({
-      shipDateMin: '',
-      shipDateMax: '',
-      contractDateMin: '',
-      contractDateMax: '',
-      estimatedCompletionDateMin: '',
-      estimatedCompletionDateMax: ''
-    });
-
-  }, [projects]); // Remove hasAppliedInitialFilter from dependencies to prevent circular updates
+    if (projects && projects.length > 0) {
+      console.log(`Initialized with ${projects.length} total projects - NO auto-filtering`);
+    }
+  }, [projects?.length]); // Only log when project count changes
 
   // State for visible columns
   const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>({
@@ -1121,58 +1106,9 @@ const ProjectStatus = () => {
     });
   }, [projects, dateFilters, locationFilter, showArchived, allProjectLabelAssignments, availableLabels]);
 
-  // Effect to move filter buttons into table header
-  useEffect(() => {
-    // Wait for the DOM to be ready
-    const moveFilterButtons = () => {
-      const source = document.getElementById('custom-filter-buttons-source');
-      const target = document.getElementById('custom-filter-buttons');
-
-      if (source && target) {
-        // Clear previous content
-        while (target.firstChild) {
-          target.firstChild.remove();
-        }
-
-        // Clone the buttons but not as a deep clone to preserve event handlers
-        const buttons = source.cloneNode(false);
-
-        // Copy each child individually to preserve event handlers
-        Array.from(source.children).forEach(child => {
-          const clone = child.cloneNode(true);
-          buttons.appendChild(clone);
-
-          // Restore event listeners for the Show Archived button
-          if (clone.textContent?.includes('Archived')) {
-            clone.addEventListener('click', () => setShowArchived(prev => !prev));
-          }
-
-          // Add event listeners for location filter items
-          if (clone.querySelector('[data-location-filter]')) {
-            const items = clone.querySelectorAll('[data-location-filter]');
-            items.forEach(item => {
-              item.addEventListener('click', (e) => {
-                const locationValue = (e.currentTarget as HTMLElement).dataset.locationFilter || '';
-                setLocationFilter(locationValue);
-              });
-            });
-          }
-        });
-
-        // Make the buttons visible and enable pointer events
-        buttons.classList.remove('opacity-0');
-        buttons.classList.remove('pointer-events-none');
-
-        // Move the content
-        target.appendChild(buttons);
-      }
-    };
-
-    // Run after a short delay to ensure both elements exist
-    const timer = setTimeout(moveFilterButtons, 300);
-
-    return () => clearTimeout(timer);
-  }, []); // Remove dependencies to prevent infinite loop
+  // Commented out DOM manipulation to prevent infinite loops
+  // This was causing re-renders by adding event listeners
+  // The filter buttons should be handled through React's event system instead
 
   // Calculate upcoming milestones within the next 30 days
   const upcomingMilestones = React.useMemo(() => {
