@@ -318,7 +318,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {availableLabels.filter((label: any) => label.name !== 'DELIVERED').map((label: any) => (
+              {(availableLabels || []).filter((label: any) => label.name !== 'DELIVERED').map((label: any) => (
                 <button
                   key={label.id}
                   onClick={() => handleAssignLabel(label.id)}
@@ -393,13 +393,13 @@ const ProjectStatus = () => {
   });
 
   // Fetch all project label assignments for sorting
-  const { data: allProjectLabelAssignments } = useQuery({
+  const { data: allProjectLabelAssignments = [] } = useQuery({
     queryKey: ['/api/all-project-label-assignments'],
     enabled: !!projects && projects.length > 0
   });
 
   // Fetch available labels to get issue type information
-  const { data: availableLabels } = useQuery({
+  const { data: availableLabels = [] } = useQuery({
     queryKey: ['/api/project-labels']
   });
 
@@ -1051,7 +1051,7 @@ const ProjectStatus = () => {
     };
 
     // Cast projects to ProjectWithRawData[] and add issue priority for sorting
-    const projectsWithPriority = (projects as ProjectWithRawData[]).map((project: ProjectWithRawData) => ({
+    const projectsWithPriority = ((projects || []) as ProjectWithRawData[]).map((project: ProjectWithRawData) => ({
       ...project,
       issuePriority: getIssuePriority(project.id)
     }));
