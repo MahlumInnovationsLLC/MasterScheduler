@@ -393,42 +393,6 @@ const ProjectStatus = () => {
     refetchOnWindowFocus: false
   });
 
-  // Fetch all project label assignments for sorting
-  const { data: allProjectLabelAssignments = [] } = useQuery({
-    queryKey: ['/api/all-project-label-assignments'],
-    staleTime: 30000,
-    refetchOnWindowFocus: false
-  });
-
-  // Fetch available labels to get issue type information
-  const { data: availableLabels = [] } = useQuery({
-    queryKey: ['/api/project-labels'],
-    staleTime: 30000,
-    refetchOnWindowFocus: false
-  });
-
-  // Memoized function to get issue priority for sorting
-  const getIssuePriority = React.useCallback((projectId: number): number => {
-    if (!allProjectLabelAssignments || !availableLabels) return 0;
-    
-    // Find the project's label assignment
-    const assignment = allProjectLabelAssignments.find((a: any) => a.projectId === projectId);
-    if (!assignment) return 0; // No status assigned
-    
-    // Find the label details
-    const label = availableLabels.find((l: any) => l.id === assignment.labelId);
-    if (!label) return 0;
-    
-    // Priority order: MAJOR ISSUE > MINOR ISSUE > GOOD > DELIVERED > No Status
-    switch (label.name) {
-      case 'MAJOR ISSUE': return 4;
-      case 'MINOR ISSUE': return 3;
-      case 'GOOD': return 2;
-      case 'DELIVERED': return 1;
-      default: return 0;
-    }
-  }, [allProjectLabelAssignments, availableLabels]);
-
   // Removed hasAppliedInitialFilter - not needed anymore
 
   // Delivery dialog state
@@ -1100,7 +1064,7 @@ const ProjectStatus = () => {
       // If both or neither are delivered, maintain existing order
       return 0;
     });
-  }, [projects, dateFilters, locationFilter, showArchived, allProjectLabelAssignments, availableLabels]);
+  }, [projects, dateFilters, locationFilter, showArchived]);
 
   // Commented out DOM manipulation to prevent infinite loops
   // This was causing re-renders by adding event listeners
