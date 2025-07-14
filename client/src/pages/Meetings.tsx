@@ -179,9 +179,11 @@ export default function Meetings() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ fabNotes }),
+        credentials: 'include', // Include cookies for authentication
       });
       if (!response.ok) {
-        throw new Error('Failed to update FAB notes');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || 'Failed to update FAB notes');
       }
       return response.json();
     },
@@ -195,10 +197,11 @@ export default function Meetings() {
       setSelectedProjectForFabNotes(null);
       setFabNotesContent("");
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('FAB Notes Update Error:', error);
       toast({
         title: "Error",
-        description: "Failed to update FAB notes.",
+        description: error.message || "Failed to update FAB notes.",
         variant: "destructive",
       });
     },
@@ -213,9 +216,11 @@ export default function Meetings() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ fabProgress }),
+        credentials: 'include', // Include cookies for authentication
       });
       if (!response.ok) {
-        throw new Error('Failed to update FAB progress');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || 'Failed to update FAB progress');
       }
       return response.json();
     },
@@ -226,10 +231,11 @@ export default function Meetings() {
         description: "FAB progress has been saved successfully.",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('FAB Progress Update Error:', error);
       toast({
         title: "Error",
-        description: "Failed to update FAB progress.",
+        description: error.message || "Failed to update FAB progress.",
         variant: "destructive",
       });
     },
@@ -1160,6 +1166,13 @@ export default function Meetings() {
                   }
 
                   return isInFabPhase;
+                });
+
+                // Sort FAB projects by production start date (assembly start date) - earliest first
+                projectsInFab.sort((a, b) => {
+                  const aAssemblyStart = new Date(a.assemblyStart + 'T00:00:00');
+                  const bAssemblyStart = new Date(b.assemblyStart + 'T00:00:00');
+                  return aAssemblyStart.getTime() - bAssemblyStart.getTime();
                 });
 
                 if (projectsInFab.length === 0) {
