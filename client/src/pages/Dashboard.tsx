@@ -323,6 +323,16 @@ const Dashboard = () => {
         }
       });
 
+    // Convert monthlyForecast to forecast format expected by BillingStatusCard
+    const forecast = {
+      labels: Object.keys(monthlyForecast).map(key => {
+        const [year, month] = key.split('-');
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return monthNames[parseInt(month) - 1];
+      }),
+      values: Object.values(monthlyForecast)
+    };
+
     return {
       completed,
       inProgress,
@@ -331,7 +341,8 @@ const Dashboard = () => {
       totalReceived,
       totalPending,
       totalOverdue,
-      monthlyForecast
+      monthlyForecast,
+      forecast
     };
   }, [billingMilestones]);
 
