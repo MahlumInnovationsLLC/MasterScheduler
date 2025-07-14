@@ -49,8 +49,48 @@ import { ModuleHelpButton } from "@/components/ModuleHelpButton";
 import { dashboardHelpContent } from "@/data/moduleHelpContent";
 
 const Dashboard = () => {
-  // Authentication checks must be done first before any other hooks
+  // Move ALL hooks to the top before any conditional returns
   const { user, isLoading: authLoading } = useAuth();
+  const [projectSearchQuery, setProjectSearchQuery] = useState('');
+  const { toast } = useToast();
+  
+  const [filteredProjects, setFilteredProjects] = useState([]);
+  const [selectedMonthData, setSelectedMonthData] = useState<{
+    month: number;
+    year: number;
+    amount: number;
+    milestones: any[];
+  } | null>(null);
+  const [columnFilter, setColumnFilter] = useState('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState('all');
+
+  const { data: projects, isLoading: isLoadingProjects } = useQuery({
+    queryKey: ['/api/projects'],
+    enabled: !!user, // Only fetch when user is authenticated
+  });
+
+  const { data: billingMilestones, isLoading: isLoadingBillingMilestones } = useQuery({
+    queryKey: ['/api/billing-milestones'],
+    enabled: !!user,
+  });
+
+  const { data: manufacturingSchedules, isLoading: isLoadingManufacturing } = useQuery({
+    queryKey: ['/api/manufacturing-schedules'],
+    enabled: !!user,
+  });
+
+  const { data: manufacturingBays, isLoading: isLoadingBays } = useQuery({
+    queryKey: ['/api/manufacturing-bays'],
+    enabled: !!user,
+  });
+
+  // Fetch delivered projects for analytics
+  const { data: deliveredProjects } = useQuery({
+    queryKey: ['/api/delivered-projects'],
+    staleTime: 0,
+    gcTime: 0,
+    enabled: !!user,
+  });
 
   // Show loading if auth is still loading
   if (authLoading) {
@@ -69,7 +109,7 @@ const Dashboard = () => {
     );
   }
 
-  // Authentication check - must happen before other hooks
+  // Authentication check - after all hooks
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -124,43 +164,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  // Now all hooks can be called safely after auth checks
-  const [projectSearchQuery, setProjectSearchQuery] = useState('');
-  const { toast } = useToast();
-
-  const { data: projects, isLoading: isLoadingProjects } = useQuery({
-    queryKey: ['/api/projects'],
-  });
-
-  const { data: billingMilestones, isLoading: isLoadingBillingMilestones } = useQuery({
-    queryKey: ['/api/billing-milestones'],
-  });
-
-  const { data: manufacturingSchedules, isLoading: isLoadingManufacturing } = useQuery({
-    queryKey: ['/api/manufacturing-schedules'],
-  });
-
-  const { data: manufacturingBays, isLoading: isLoadingBays } = useQuery({
-    queryKey: ['/api/manufacturing-bays'],
-  });
-
-  // Fetch delivered projects for analytics
-  const { data: deliveredProjects } = useQuery({
-    queryKey: ['/api/delivered-projects'],
-    staleTime: 0,
-    gcTime: 0,
-  });
-
-  const [filteredProjects, setFilteredProjects] = useState([]);
-  const [selectedMonthData, setSelectedMonthData] = useState<{
-    month: number;
-    year: number;
-    amount: number;
-    milestones: any[];
-  } | null>(null);
-  const [columnFilter, setColumnFilter] = useState('all');
-  const [dateRangeFilter, setDateRangeFilter] = useState('all');
 
   // Project scroll function - same logic as bay scheduling module
   const scrollToProject = (searchQuery) => {
