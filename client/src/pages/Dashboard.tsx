@@ -54,6 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useProjectLabelStats } from "@/hooks/use-project-label-stats";
 import { ModuleHelpButton } from "@/components/ModuleHelpButton";
 import { dashboardHelpContent } from "@/data/moduleHelpContent";
+import { safeFilter, ensureArray, safeLength } from '@/lib/array-utils';
 
 const Dashboard = () => {
   // Move ALL hooks to the top before any conditional returns
@@ -61,7 +62,7 @@ const Dashboard = () => {
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
   const { toast } = useToast();
   
-  const [filteredProjects, setFilteredProjects] = useState([]);
+  // Removed useState for filteredProjects - will use useMemo instead
   const [selectedMonthData, setSelectedMonthData] = useState<{
     month: number;
     year: number;
@@ -107,8 +108,8 @@ const Dashboard = () => {
 
   // Move all hooks to the top before conditional returns
   // Show the top 10 projects that are ready to ship next with enhanced date calculations
-  useEffect(() => {
-    if (!projects) return;
+  const filteredProjects = React.useMemo(() => {
+    if (!projects) return [];
 
     // Helper to get valid dates and handle null/invalid dates with UTC
     const getValidDate = (dateStr) => {
@@ -126,7 +127,7 @@ const Dashboard = () => {
     };
 
     // Ensure projects is always an array
-    const safeProjects = Array.isArray(projects) ? projects : [];
+    const safeProjects = ensureArray(projects, [], 'Dashboard.projects');
     
     // Enhance projects with calculated phase dates
     const enhancedProjects = safeProjects.map(p => {
@@ -159,7 +160,7 @@ const Dashboard = () => {
       const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
 
-      return projects.filter(project => {
+      return safeFilter(projects, project => {
         const shipDate = getValidDate(project.shipDate);
         if (!shipDate) return false;
 
@@ -175,14 +176,14 @@ const Dashboard = () => {
           default:
             return true;
         }
-      });
+      }, 'Dashboard.dateRangeFilter');
     };
 
     // Apply column filter
     const getColumnFilteredProjects = (projects) => {
       if (columnFilter === 'all') return projects;
 
-      return projects.filter(project => {
+      return safeFilter(projects, project => {
         const ntcTestDate = getValidDate(project.ntcTestStart);
         const qcStartDate = getValidDate(project.qcStart);
         const execReviewDate = getValidDate(project.executiveReview);
@@ -200,7 +201,7 @@ const Dashboard = () => {
           default:
             return true;
         }
-      });
+      }, 'Dashboard.columnFilter');
     };
 
     // Apply filters and sort
@@ -241,8 +242,8 @@ const Dashboard = () => {
     
     if (dateRangeFilter === 'all' && columnFilter === 'all') {
       // No filters applied - limit to top 10 projects
-      const nonDeliveredProjects = Array.isArray(sortedByShipDate) ? sortedByShipDate.filter(p => p.status !== 'delivered') : [];
-      const deliveredProjects = Array.isArray(sortedByShipDate) ? sortedByShipDate.filter(p => p.status === 'delivered') : [];
+      const nonDeliveredProjects = safeFilter(sortedByShipDate, p => p.status !== 'delivered', 'Dashboard.nonDelivered');
+      const deliveredProjects = safeFilter(sortedByShipDate, p => p.status === 'delivered', 'Dashboard.delivered');
 
       // Take top 10 non-delivered projects, then add any delivered projects at the end
       finalList = [
@@ -254,7 +255,7 @@ const Dashboard = () => {
       finalList = sortedByShipDate;
     }
 
-    setFilteredProjects(finalList);
+    return finalList;
   }, [projects, columnFilter, dateRangeFilter]);
 
   // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
@@ -292,7 +293,7 @@ const Dashboard = () => {
   // Calculate billing stats with revenue forecast
   const billingStats = React.useMemo(() => {
     // Ensure billingMilestones is always an array
-    const safeMilestones = Array.isArray(billingMilestones) ? billingMilestones : [];
+    const safeMilestones = ensureArray(billingMilestones, [], 'Dashboard.billingMilestones');
     
     if (safeMilestones.length === 0) return null;
 
@@ -362,7 +363,7 @@ const Dashboard = () => {
   // Calculate project stats - moved before conditional returns
   const projectStats = React.useMemo(() => {
     // Ensure projects is always an array
-    const safeProjects = Array.isArray(projects) ? projects : [];
+    const safeProjects = ensureArray(projects, [], 'Dashboard.projectStats');
     
     if (safeProjects.length === 0) return null;
 

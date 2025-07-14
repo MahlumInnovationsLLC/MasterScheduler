@@ -84,6 +84,7 @@ import { exportProjectsToExcel } from '@/lib/excel-export';
 import { ModuleHelpButton } from "@/components/ModuleHelpButton";
 import { projectsHelpContent } from "@/data/moduleHelpContent";
 import { useRolePermissions } from '@/hooks/use-role-permissions';
+import { safeFilter, ensureArray, safeLength } from '@/lib/array-utils';
 
 // Extend Project type to ensure rawData is included
 interface ProjectWithRawData extends Project {
@@ -247,7 +248,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
 
       // Optimistically update to the new value
       queryClient.setQueryData([`/api/projects/${projectId}/labels`], (old: any[]) => 
-        old ? old.filter(label => label.labelId !== labelId) : []
+        old ? safeFilter(old, label => label.labelId !== labelId, 'ProjectStatus.removeLabelOptimistic') : []
       );
 
       return { previousLabels };
@@ -913,7 +914,7 @@ const ProjectStatus = () => {
   const projectStats = React.useMemo(() => {
     if (!projects || projects.length === 0) return null;
 
-    const completed = (projects || []).filter(p => p.status === 'completed').length;
+    const completed = safeFilter(projects || [], p => p.status === 'completed', 'ProjectStatus.completedProjects').length;
     const avgCompletion = projects.length > 0 ? projects.reduce((sum, p) => sum + Number(p.percentComplete), 0) / projects.length : 0;
 
     return {
@@ -1018,10 +1019,10 @@ const ProjectStatus = () => {
       return true;
     };
 
-    // Cast projects to ProjectWithRawData[]
-    const projectsWithPriority = ((projects || []) as ProjectWithRawData[]);
+    // Cast projects to ProjectWithRawData[] using safe array utility
+    const projectsWithPriority = ensureArray(projects, [], 'ProjectStatus.projects') as ProjectWithRawData[];
 
-    const filtered = projectsWithPriority.filter((project: ProjectWithRawData) => {
+    const filtered = safeFilter(projectsWithPriority, (project: ProjectWithRawData) => {
       // Now we'll only filter out archived projects if showArchived is false
       // This allows displaying all projects including archived ones when showArchived is true
       if (project.status === 'archived' && !showArchived) {
@@ -1093,7 +1094,7 @@ const ProjectStatus = () => {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-    return billingMilestones.filter(milestone => {
+    return safeFilter(billingMilestones, milestone => {
       if (!milestone.dueDate) return false;
 
       try {
@@ -1103,7 +1104,7 @@ const ProjectStatus = () => {
         console.error("Error parsing milestone due date:", e);
         return false;
       }
-    }).length;
+    }, 'ProjectStatus.upcomingMilestones').length;
   }, [billingMilestones]);
 
   // Calculate manufacturing bay statistics
@@ -1111,10 +1112,10 @@ const ProjectStatus = () => {
     if (!manufacturingBays || !Array.isArray(manufacturingBays)) return { active: 0, available: 0, total: 0 };
 
     const total = manufacturingBays.length;
-    const active = manufacturingBays.filter(bay => bay.isActive && 
+    const active = safeFilter(manufacturingBays, bay => bay.isActive && 
       Array.isArray(manufacturingSchedules) && 
       manufacturingSchedules.some(schedule => schedule.bayId === bay.id)
-    ).length;
+    , 'ProjectStatus.manufacturingBays').length;
 
     return {
       active,
@@ -1144,9 +1145,9 @@ const ProjectStatus = () => {
       console.log('Filtered projects count:', filteredProjects.length);
       
       // Filter out delivered projects by status rather than using a separate query
-      const nonDeliveredProjects = (filteredProjects || []).filter(project => 
+      const nonDeliveredProjects = safeFilter(filteredProjects || [], project => 
         project.status !== 'delivered'
-      );
+      , 'ProjectStatus.nonDeliveredProjects');
 
       console.log('Non-delivered projects count:', nonDeliveredProjects.length);
 
@@ -1966,11 +1967,10 @@ const ProjectStatus = () => {
     };
 
     // Create columns for rawData fields
-    return rawDataKeys
-      .filter(key => 
+    return safeFilter(rawDataKeys, key => 
         typeof sampleProject.rawData[key] !== 'object' && // Skip nested objects
         sampleProject.rawData[key] !== null // Skip null values
-      )
+      , 'ProjectStatus.rawDataKeys')
       .map(key => {
         // Determine if this is a numeric column
         const isNumeric = typeof sampleProject.rawData[key] === 'number';
@@ -2021,10 +2021,10 @@ const ProjectStatus = () => {
   }, [allColumns]);
 
   // Filter columns based on visibility settings
-  const columns = allAvailableColumns.filter(col => 
+  const columns = safeFilter(allAvailableColumns, col => 
     // If the column is new (not in visibleColumns yet), show it by default
     visibleColumns[col.id as string] === undefined ? true : visibleColumns[col.id as string] !== false
-  );
+  , 'ProjectStatus.columns');
 
   const statusOptions = [
     { value: 'all', label: 'All Projects' },
@@ -2149,9 +2149,8 @@ const ProjectStatus = () => {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {projects && 
-                [...new Set(projects
-                  .map(p => p.location)
-                  .filter(Boolean)
+                [...new Set(safeFilter(projects
+                  .map(p => p.location), Boolean, 'ProjectStatus.locations')
                 )]
                 .sort()
                 .map(location => (
@@ -2377,12 +2376,12 @@ const ProjectStatus = () => {
         <div className="md:col-span-2">
           <ProjectStatsCard 
             title="CCB Requests"
-            value={(ccbRequests || []).filter((req: any) => req.status === 'pending_review' || req.status === 'under_review').length}
+            value={safeFilter(ccbRequests || [], (req: any) => req.status === 'pending_review' || req.status === 'under_review', 'ProjectStatus.ccbRequestsActive').length}
             icon={<FileText className="text-orange-500 h-5 w-5" />}
             tags={[
-              { label: "Pending", value: (ccbRequests || []).filter((req: any) => req.status === 'pending_review').length, status: "Delayed" },
-              { label: "Under Review", value: (ccbRequests || []).filter((req: any) => req.status === 'under_review').length, status: "On Track" },
-              { label: "Approved", value: (ccbRequests || []).filter((req: any) => req.status === 'approved').length, status: "Completed" }
+              { label: "Pending", value: safeFilter(ccbRequests || [], (req: any) => req.status === 'pending_review', 'ProjectStatus.ccbRequestsPending').length, status: "Delayed" },
+              { label: "Under Review", value: safeFilter(ccbRequests || [], (req: any) => req.status === 'under_review', 'ProjectStatus.ccbRequestsUnderReview').length, status: "On Track" },
+              { label: "Approved", value: safeFilter(ccbRequests || [], (req: any) => req.status === 'approved', 'ProjectStatus.ccbRequestsApproved').length, status: "Completed" }
             ]}
             className="h-72"
           />

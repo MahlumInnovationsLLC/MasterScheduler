@@ -1,6 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { safeFilter, ensureArray } from '@/lib/array-utils';
 
 export function useProjectLabelStats() {
   // Fetch all projects with their label assignments
@@ -25,10 +26,10 @@ export function useProjectLabelStats() {
   });
 
   return useMemo(() => {
-    // Ensure all data is arrays with proper defaults
-    const safeProjects = Array.isArray(projects) ? projects : [];
-    const safeAvailableLabels = Array.isArray(availableLabels) ? availableLabels : [];
-    const safeAssignments = Array.isArray(allProjectLabelAssignments) ? allProjectLabelAssignments : [];
+    // Use safe array utilities
+    const safeProjects = ensureArray(projects, [], 'useProjectLabelStats.projects');
+    const safeAvailableLabels = ensureArray(availableLabels, [], 'useProjectLabelStats.availableLabels');
+    const safeAssignments = ensureArray(allProjectLabelAssignments, [], 'useProjectLabelStats.assignments');
 
     if (!projects || !availableLabels || !allProjectLabelAssignments) {
       return {
@@ -38,8 +39,6 @@ export function useProjectLabelStats() {
         total: safeProjects.length
       };
     }
-
-    // Remove debug logs to prevent console spam
 
     // Find label IDs for MAJOR, MINOR, GOOD (case-insensitive)
     // This will match "MAJOR ISSUE", "MAJOR", "MINOR ISSUE", "MINOR", etc.
@@ -53,29 +52,27 @@ export function useProjectLabelStats() {
       l.name.toUpperCase().includes('GOOD')
     );
 
-
-    
-    // Count projects by label - ensure we're comparing the right data types
+    // Count projects by label using safe filter
     const majorCount = majorLabel ? 
-      safeAssignments.filter(assignment => {
+      safeFilter(safeAssignments, assignment => {
         const assignmentLabelId = Number(assignment.labelId);
         const targetLabelId = Number(majorLabel.id);
         return assignmentLabelId === targetLabelId;
-      }).length : 0;
+      }, 'majorCount').length : 0;
     
     const minorCount = minorLabel ?
-      safeAssignments.filter(assignment => {
+      safeFilter(safeAssignments, assignment => {
         const assignmentLabelId = Number(assignment.labelId);
         const targetLabelId = Number(minorLabel.id);
         return assignmentLabelId === targetLabelId;
-      }).length : 0;
+      }, 'minorCount').length : 0;
       
     const goodCount = goodLabel ?
-      safeAssignments.filter(assignment => {
+      safeFilter(safeAssignments, assignment => {
         const assignmentLabelId = Number(assignment.labelId);
         const targetLabelId = Number(goodLabel.id);
         return assignmentLabelId === targetLabelId;
-      }).length : 0;
+      }, 'goodCount').length : 0;
 
 
 
