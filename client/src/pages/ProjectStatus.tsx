@@ -976,23 +976,23 @@ const ProjectStatus = () => {
     };
   }, [projects, manufacturingSchedules]);
 
+  // Memoize date parser to prevent recreation on every render
+  const parseDate = React.useCallback((dateString: string | null | undefined): Date | null => {
+    if (!dateString) return null;
+
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      return isNaN(date.getTime()) ? null : date;
+    } catch (e) {
+      console.error("Error parsing date:", dateString, e);
+      return null;
+    }
+  }, []);
+
   // Apply date filters and location filters to projects
   const filteredProjects = React.useMemo(() => {
     if (!projects) return [];
-
-    // Helper to safely parse dates
-    const parseDate = (dateString: string | null | undefined): Date | null => {
-      if (!dateString) return null;
-
-      try {
-        const date = new Date(dateString);
-        // Check if date is valid
-        return isNaN(date.getTime()) ? null : date;
-      } catch (e) {
-        console.error("Error parsing date:", dateString, e);
-        return null;
-      }
-    };
 
     // Helper to check date range
     const isInDateRange = (dateValue: string | null | undefined, minDate: string, maxDate: string): boolean => {
@@ -1001,11 +1001,14 @@ const ProjectStatus = () => {
       const parsedDate = parseDate(dateValue);
       if (!parsedDate) return true; // Skip if unparseable
 
-      if (minDate && parseDate(minDate) && parsedDate < parseDate(minDate)!) {
+      const minParsed = minDate ? parseDate(minDate) : null;
+      const maxParsed = maxDate ? parseDate(maxDate) : null;
+
+      if (minParsed && parsedDate < minParsed) {
         return false;
       }
 
-      if (maxDate && parseDate(maxDate) && parsedDate > parseDate(maxDate)!) {
+      if (maxParsed && parsedDate > maxParsed) {
         return false;
       }
 
@@ -2415,6 +2418,7 @@ const ProjectStatus = () => {
           frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
           enableSorting={true} // Always enable sorting on all columns
           initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)
+          persistenceKey="projects-table" // Add persistence key for sorting/pagination
           onExportExcel={handleExcelExport}
         />
 

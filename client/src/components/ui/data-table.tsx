@@ -65,9 +65,32 @@ export function DataTable<TData, TValue>({
   initialSorting = [],
   onExportExcel,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>(initialSorting);
+  // Use initial sorting only if no sorting is stored in localStorage
+  const getSavedSorting = (): SortingState => {
+    if (persistenceKey && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`datatable-sorting-${persistenceKey}`);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          // Ignore invalid saved data
+        }
+      }
+    }
+    return initialSorting;
+  };
+
+  const [sorting, setSorting] = useState<SortingState>(getSavedSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
+  
+  // Save sorting state when it changes
+  useEffect(() => {
+    if (persistenceKey && typeof window !== 'undefined') {
+      localStorage.setItem(`datatable-sorting-${persistenceKey}`, JSON.stringify(sorting));
+    }
+  }, [sorting, persistenceKey]);
+
   // Initialize pageIndex with saved value immediately
   const getInitialPageIndex = () => {
     if (persistenceKey && typeof window !== 'undefined') {
@@ -257,7 +280,18 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: globalFilterFn,
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      setSorting(updater);
+      // Clear any active timeouts to prevent re-renders
+      if (searchInputRef.current) {
+        const currentValue = searchInputRef.current.value;
+        setTimeout(() => {
+          if (searchInputRef.current && searchInputRef.current.value === currentValue) {
+            searchInputRef.current.focus();
+          }
+        }, 0);
+      }
+    },
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: (updater) => {
