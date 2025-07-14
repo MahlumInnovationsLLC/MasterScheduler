@@ -89,6 +89,391 @@ const Dashboard = () => {
   
   // Get label statistics  
   const labelStats = useProjectLabelStats();
+  
+  // Calculate delivered projects count
+  const deliveredProjectsCount = deliveredProjects?.length || 0;
+  
+  // ALL USEMEMO AND USEEFFECT HOOKS MUST BE HERE
+  const projectStats = React.useMemo(() => {
+    if (!projects || projects.length === 0) return null;
+
+    // Get projects by schedule state
+    const scheduledProjects = manufacturingSchedules 
+      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
+      : [];
+    const inProgressProjects = manufacturingSchedules
+      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
+      : [];
+    const completeProjects = projects.filter(p => p.status === 'completed');
+    const unscheduledProjects = manufacturingSchedules
+      ? projects.filter(p => {
+          const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
+          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
+          
+          // Filter out Field or FSW category projects
+          if (p.team === 'Field' || p.team === 'FSW') {
+            return false;
+          }
+          
+          if (isUnscheduled) {
+            console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
+          }
+          return isUnscheduled;
+        })
+      : [];
+
+    // Simple project info for the popover display
+    const projectLists = {
+      scheduled: scheduledProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      inProgress: inProgressProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      complete: completeProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      unscheduled: unscheduledProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      }))
+    };
+
+    return {
+      scheduled: scheduledProjects.length,
+      inProgress: inProgressProjects.length,
+      complete: completeProjects.length,
+      unscheduled: unscheduledProjects.length,
+      total: projects.length,
+      delivered: deliveredProjectsCount,
+      
+      // Include project lists for popover
+      projectLists
+    };
+  }, [projects, manufacturingSchedules, deliveredProjectsCount]);
+
+  const billingStats = React.useMemo(() => {
+    if (!billingMilestones || billingMilestones.length === 0) return null;
+
+    const now = new Date();
+    const overdueMilestones = billingMilestones.filter(m => {
+      const targetDate = new Date(m.targetInvoiceDate);
+      return targetDate < now && m.status === 'upcoming';
+    });
+
+    const upcomingMilestones = billingMilestones.filter(m => {
+      const targetDate = new Date(m.targetInvoiceDate);
+      return targetDate >= now && m.status === 'upcoming';
+    });
+
+    const invoicedMilestones = billingMilestones.filter(m => 
+      m.status === 'invoiced' || m.status === 'billed'
+    );
+
+    const paidMilestones = billingMilestones.filter(m => m.status === 'paid');
+
+    const totalValue = billingMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
+    const invoicedValue = invoicedMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
+    const paidValue = paidMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
+
+    return {
+      overdue: overdueMilestones.length,
+      upcoming: upcomingMilestones.length,
+      invoiced: invoicedMilestones.length,
+      paid: paidMilestones.length,
+      total: billingMilestones.length,
+      totalValue,
+      invoicedValue,
+      paidValue
+    };
+  }, [billingMilestones]);
+
+  const upcomingMilestonesData = React.useMemo(() => {
+    if (!billingMilestones || billingMilestones.length === 0) return [];
+
+    const now = new Date();
+    const next30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    return billingMilestones
+      .filter(m => {
+        const targetDate = new Date(m.targetInvoiceDate);
+        return targetDate >= now && targetDate <= next30Days && m.status === 'upcoming';
+      })
+      .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime())
+      .slice(0, 5);
+  }, [billingMilestones]);
+
+  const manufacturingStats = React.useMemo(() => {
+    if (!manufacturingSchedules || manufacturingSchedules.length === 0 || !manufacturingBays) return null;
+
+    const utilizationData = manufacturingBays.map(bay => {
+      const schedules = manufacturingSchedules.filter(s => s.bayId === bay.id);
+      const utilization = calculateBayUtilization(schedules);
+      const status = getBayStatusInfo(schedules);
+      
+      return {
+        bay: bay.name,
+        utilization,
+        status,
+        projectCount: schedules.length
+      };
+    });
+
+    const averageUtilization = utilizationData.reduce((sum, bay) => sum + bay.utilization, 0) / utilizationData.length;
+    const activeBays = utilizationData.filter(bay => bay.utilization > 0).length;
+    const totalSchedules = manufacturingSchedules.length;
+
+    return {
+      averageUtilization,
+      activeBays,
+      totalBays: manufacturingBays.length,
+      totalSchedules,
+      utilizationData
+    };
+  }, [manufacturingSchedules, manufacturingBays]);
+
+  const projectColumns = React.useMemo(() => {
+    const baseColumns = [
+      {
+        accessorKey: 'projectNumber',
+        header: 'Project #',
+        cell: ({ row }) => (
+          <Link href={`/project/${row.original.id}`} className="text-blue-400 hover:text-blue-300 font-medium">
+            {row.original.projectNumber}
+          </Link>
+        )
+      },
+      {
+        accessorKey: 'name',
+        header: 'Project Name',
+        cell: ({ row }) => (
+          <div className="max-w-[200px] truncate" title={row.original.name}>
+            {row.original.name}
+          </div>
+        )
+      },
+      {
+        accessorKey: 'shipDate',
+        header: 'Ship Date',
+        cell: ({ row }) => row.original.shipDate ? formatDate(row.original.shipDate) : 'TBD'
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => (
+          <ProgressBadge 
+            value={row.original.completionPercentage} 
+            status={row.original.status}
+            className="w-20"
+          />
+        )
+      }
+    ];
+
+    // Add conditional columns based on filter
+    const filteredColumns = [];
+    
+    if (columnFilter === 'all' || columnFilter === 'schedule') {
+      filteredColumns.push({
+        accessorKey: 'schedule',
+        header: 'Schedule',
+        cell: ({ row }) => {
+          const scheduleState = manufacturingSchedules 
+            ? getProjectScheduleState(manufacturingSchedules, row.original.id)
+            : 'Unknown';
+          const color = scheduleState === 'Scheduled' ? 'text-blue-400' :
+                       scheduleState === 'In Progress' ? 'text-yellow-400' :
+                       scheduleState === 'Unscheduled' ? 'text-red-400' : 'text-gray-400';
+          return <span className={color}>{scheduleState}</span>;
+        }
+      });
+    }
+    
+    if (columnFilter === 'all' || columnFilter === 'billing') {
+      filteredColumns.push({
+        accessorKey: 'billing',
+        header: 'Billing',
+        cell: ({ row }) => {
+          const projectMilestones = billingMilestones?.filter(m => m.projectId === row.original.id) || [];
+          const overdueMilestones = projectMilestones.filter(m => {
+            const targetDate = new Date(m.targetInvoiceDate);
+            return targetDate < new Date() && m.status === 'upcoming';
+          });
+          
+          if (overdueMilestones.length > 0) {
+            return <span className="text-red-400">{overdueMilestones.length} Overdue</span>;
+          }
+          
+          const upcomingMilestones = projectMilestones.filter(m => m.status === 'upcoming');
+          if (upcomingMilestones.length > 0) {
+            return <span className="text-yellow-400">{upcomingMilestones.length} Upcoming</span>;
+          }
+          
+          return <span className="text-gray-400">Current</span>;
+        }
+      });
+    }
+    
+    if (columnFilter === 'all' || columnFilter === 'manufacturing') {
+      filteredColumns.push({
+        accessorKey: 'manufacturing',
+        header: 'Manufacturing',
+        cell: ({ row }) => {
+          const schedule = manufacturingSchedules?.find(s => s.projectId === row.original.id);
+          if (!schedule) return <span className="text-gray-400">Unscheduled</span>;
+          
+          const bay = manufacturingBays?.find(b => b.id === schedule.bayId);
+          const bayName = bay?.name || `Bay ${schedule.bayId}`;
+          
+          return <span className="text-blue-400">{bayName}</span>;
+        }
+      });
+    }
+
+    return baseColumns.filter(Boolean); // Remove any undefined columns
+  }, [columnFilter, billingMilestones, manufacturingSchedules, manufacturingBays]);
+
+  // Show the top 10 projects that are ready to ship next with enhanced date calculations
+  useEffect(() => {
+    if (!projects) return;
+
+    // Helper to get valid dates and handle null/invalid dates with UTC
+    const getValidDate = (dateStr) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    };
+
+    // Calculate NTC Test and QC Start dates based on ship date using UTC
+    const calculatePhaseDate = (shipDate, daysBeforeShip) => {
+      if (!shipDate) return null;
+      const date = new Date(shipDate);
+      date.setUTCDate(date.getUTCDate() - daysBeforeShip);
+      return date.toISOString();
+    };
+
+    // Enhance projects with calculated phase dates
+    const enhancedProjects = projects.map(p => {
+      const shipDate = getValidDate(p.shipDate);
+      return {
+        ...p,
+        ntcTestStart: p.ntcTestStart || calculatePhaseDate(shipDate, 14), // 2 weeks before ship
+        qcStart: p.qcStart || calculatePhaseDate(shipDate, 7) // 1 week before ship
+      };
+    });
+
+    // Apply date range filter
+    const getDateRangeFilteredProjects = (projects) => {
+      if (dateRangeFilter === 'all') return projects;
+
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Start of this week (Sunday)
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // End of this week (Saturday)
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      const startOfNextWeek = new Date(endOfWeek);
+      startOfNextWeek.setDate(endOfWeek.getDate() + 1);
+      startOfNextWeek.setHours(0, 0, 0, 0);
+
+      const endOfNextWeek = new Date(startOfNextWeek);
+      endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
+      endOfNextWeek.setHours(23, 59, 59, 999);
+
+      return projects.filter(p => {
+        const shipDate = getValidDate(p.shipDate);
+        const deliveryDate = getValidDate(p.deliveryDate);
+        const ntcTestStart = getValidDate(p.ntcTestStart);
+        const qcStart = getValidDate(p.qcStart);
+        
+        // Check if any relevant date falls within the selected range
+        const dates = [shipDate, deliveryDate, ntcTestStart, qcStart].filter(Boolean);
+        
+        return dates.some(date => {
+          if (dateRangeFilter === 'thisWeek') {
+            return date >= startOfWeek && date <= endOfWeek;
+          } else if (dateRangeFilter === 'nextWeek') {
+            return date >= startOfNextWeek && date <= endOfNextWeek;
+          }
+          return false;
+        });
+      });
+    };
+
+    // Apply filters
+    const dateFilteredProjects = getDateRangeFilteredProjects(enhancedProjects);
+    
+    // Sort by ship date (earliest first, with null dates at the end)
+    const sortedByShipDate = dateFilteredProjects
+      .sort((a, b) => {
+        const aShipDate = getValidDate(a.shipDate);
+        const bShipDate = getValidDate(b.shipDate);
+        
+        // Handle null dates - put them at the end
+        if (!aShipDate && !bShipDate) return 0;
+        if (!aShipDate) return 1;
+        if (!bShipDate) return -1;
+        
+        // For projects with ship dates, sort by date
+        if (aShipDate.getTime() !== bShipDate.getTime()) {
+          return aShipDate.getTime() - bShipDate.getTime();
+        }
+        
+        // If ship dates are the same, sort by project number
+        const aNum = parseInt(a.projectNumber.replace(/\D/g, ''));
+        const bNum = parseInt(b.projectNumber.replace(/\D/g, ''));
+        
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return bNum - aNum;
+        }
+
+        // If both are delivered, maintain original order
+        return 0;
+      });
+
+    // Apply different limits based on filter state
+    let finalList;
+    
+    if (dateRangeFilter === 'all' && columnFilter === 'all') {
+      // No filters applied - limit to top 10 projects
+      const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
+      const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
+
+      // Take top 10 non-delivered projects, then add any delivered projects at the end
+      finalList = [
+        ...nonDeliveredProjects.slice(0, 10),
+        ...deliveredProjects
+      ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
+    } else {
+      // Any filter is applied - show ALL matching projects (no limit)
+      finalList = sortedByShipDate;
+    }
+
+    setFilteredProjects(finalList);
+  }, [projects, columnFilter, dateRangeFilter]);
+
+  // Second useEffect for selectedMonthData
+  useEffect(() => {
+    if (!billingMilestones || !selectedMonthData) return;
+
+    const monthMilestones = billingMilestones.filter(m => {
+      const targetDate = new Date(m.targetInvoiceDate);
+      return targetDate.getMonth() === selectedMonthData.month - 1 && 
+             targetDate.getFullYear() === selectedMonthData.year;
+    });
+
+    setSelectedMonthData(prev => prev ? { ...prev, milestones: monthMilestones } : null);
+  }, [billingMilestones, selectedMonthData]);
 
   // Show loading if auth is still loading
   if (authLoading) {
@@ -305,7 +690,7 @@ const Dashboard = () => {
     }
   };
 
-  // Show the top 10 projects that are ready to ship next with enhanced date calculations
+  // MOVED TO TOP - Show the top 10 projects that are ready to ship next with enhanced date calculations
   useEffect(() => {
     if (!projects) return;
 
@@ -470,143 +855,22 @@ const Dashboard = () => {
     setFilteredProjects(finalList);
   }, [projects, columnFilter, dateRangeFilter]);
 
-  // Label stats already moved to top of component
+  // Second useEffect for selectedMonthData
+  useEffect(() => {
+    if (!billingMilestones || !selectedMonthData) return;
 
-  // Calculate delivered projects count
-  const deliveredProjectsCount = deliveredProjects?.length || 0;
-
-  // Calculate project stats
-  const projectStats = React.useMemo(() => {
-    if (!projects || projects.length === 0) return null;
-
-    // Get projects by schedule state
-    const scheduledProjects = manufacturingSchedules 
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
-      : [];
-    const inProgressProjects = manufacturingSchedules
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
-      : [];
-    const completeProjects = projects.filter(p => p.status === 'completed');
-    const unscheduledProjects = manufacturingSchedules
-      ? projects.filter(p => {
-          const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
-          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed' && p.status !== 'delivered';
-          
-          // Filter out Field or FSW category projects
-          if (p.team === 'Field' || p.team === 'FSW') {
-            return false;
-          }
-          
-          if (isUnscheduled) {
-            console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
-          }
-          return isUnscheduled;
-        })
-      : [];
-
-    // Simple project info for the popover display
-    const projectLists = {
-      scheduled: scheduledProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      inProgress: inProgressProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      complete: completeProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      unscheduled: unscheduledProjects.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        projectNumber: p.projectNumber 
-      })),
-      delivered: (deliveredProjects || []).map(p => ({ 
-        id: p.id, 
-        name: p.name || 'Unknown Project', 
-        projectNumber: p.projectNumber 
-      }))
-    };
-
-    console.log('Dashboard Debug - Project counts:');
-    console.log('Total projects:', projects.length);
-    console.log('Unscheduled projects found:', unscheduledProjects.length);
-    console.log('Delivered projects found:', deliveredProjectsCount);
-    console.log('Project lists for hover:', {
-      unscheduled: projectLists.unscheduled.length,
-      scheduled: projectLists.scheduled.length,
-      inProgress: projectLists.inProgress.length,
-      complete: projectLists.complete.length,
-      delivered: projectLists.delivered.length
+    const monthMilestones = billingMilestones.filter(m => {
+      const targetDate = new Date(m.targetInvoiceDate);
+      return targetDate.getMonth() === selectedMonthData.month - 1 && 
+             targetDate.getFullYear() === selectedMonthData.year;
     });
 
-    return {
-      total: projects.length,
-      major: labelStats.major,
-      minor: labelStats.minor,
-      good: labelStats.good,
-      scheduled: scheduledProjects.length,
-      inProgress: inProgressProjects.length,
-      complete: completeProjects.length,
-      unscheduled: unscheduledProjects.length,
-      delivered: deliveredProjectsCount,
-      projectLists
-    };
-  }, [projects, manufacturingSchedules, labelStats, deliveredProjects, deliveredProjectsCount]);
+    setSelectedMonthData(prev => prev ? { ...prev, milestones: monthMilestones } : null);
+  }, [billingMilestones, selectedMonthData]);
 
-  // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
-  useEffect(() => {
-    if (manufacturingSchedules && manufacturingBays && projects) {
-      // Wait for the schedule to render, then snap to today
-      const timer = setTimeout(() => {
-        const todayMarker = document.querySelector('.today-marker');
-        if (todayMarker) {
-          // Get the parent scrollable container
-          const scrollContainer = todayMarker.closest('.overflow-auto');
-          if (scrollContainer) {
-            const markerRect = todayMarker.getBoundingClientRect();
-            const containerRect = scrollContainer.getBoundingClientRect();
+  // END OF HOOKS SECTION
 
-            // Calculate horizontal scroll position to center the today marker
-            const markerLeft = todayMarker.offsetLeft;
-            const containerWidth = scrollContainer.clientWidth;
-            const scrollLeft = markerLeft - (containerWidth / 2);
-
-            // Scroll horizontally only, preserve current vertical position
-            scrollContainer.scrollTo({
-              left: Math.max(0, scrollLeft),
-              top: scrollContainer.scrollTop, // Keep current vertical position
-              behavior: 'smooth'
-            });
-          }
-        }
-      }, 1000); // Give the component time to render
-
-      return () => clearTimeout(timer);
-    }
-  }, [manufacturingSchedules, manufacturingBays, projects]);
-
-  // Calculate billing stats with revenue forecast
-  const billingStats = React.useMemo(() => {
-    if (!billingMilestones || billingMilestones.length === 0) return null;
-
-    const completed = billingMilestones.filter(m => m.status === 'paid').length;
-    const inProgress = billingMilestones.filter(m => m.status === 'invoiced').length;
-    const overdue = billingMilestones.filter(m => m.status === 'delayed').length;
-    const upcoming = billingMilestones.filter(m => m.status === 'upcoming').length;
-
-    // Calculate total amounts
-    const totalReceived = billingMilestones
-      .filter(m => m.status === 'paid')
-      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-
-    const totalPending = billingMilestones
-      .filter(m => m.status === 'invoiced')
+  // Helper functions
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
     const totalOverdue = billingMilestones
