@@ -190,7 +190,16 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
 
   // Fetch available labels for assignment
   const { data: availableLabels = [] } = useQuery({
-    queryKey: ['/api/project-labels']
+    queryKey: ['/api/project-labels'],
+    queryFn: async () => {
+      const response = await fetch('/api/project-labels');
+      if (!response.ok) {
+        console.error('Failed to fetch project labels:', response.status);
+        return [];
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    }
   });
 
   const [isOpen, setIsOpen] = useState(false);
