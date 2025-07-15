@@ -983,8 +983,8 @@ const Dashboard = () => {
       const targetRelativeLeft = targetRect.left - containerRect.left + containerScrollLeft;
       const targetRelativeTop = targetRect.top - containerRect.top + containerScrollTop;
       
-      // Calculate center positions within the container
-      const scrollToCenterX = targetRelativeLeft - (scrollContainer.clientWidth / 2) + (targetRect.width / 2);
+      // Calculate center positions within the container with enhanced horizontal centering
+      const scrollToCenterX = targetRelativeLeft - (scrollContainer.clientWidth / 2) + (targetRect.width / 2) + (targetRect.width * 0.15);
       const scrollToCenterY = targetRelativeTop - (scrollContainer.clientHeight / 2) + (targetRect.height / 2);
       
       console.log('Dashboard container scroll calculation:', {
@@ -1006,7 +1006,7 @@ const Dashboard = () => {
       // Also try to find the ResizableBaySchedule viewport for horizontal scrolling precision
       const bayScheduleViewport = document.querySelector('.bay-schedule-viewport');
       if (bayScheduleViewport) {
-        console.log('Found bay-schedule-viewport, applying horizontal scroll:', scrollToCenterX);
+        console.log('Found bay-schedule-viewport, applying enhanced horizontal scroll:', scrollToCenterX);
         bayScheduleViewport.scrollTo({
           left: Math.max(0, scrollToCenterX),
           behavior: 'smooth'
