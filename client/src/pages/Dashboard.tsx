@@ -809,7 +809,10 @@ const Dashboard = () => {
         '[data-project-id]',
         '.schedule-bar',
         '.manufacturing-bar',
-        '.project-timeline-bar'
+        '.project-timeline-bar',
+        '.schedule-item',
+        '.bay-schedule-bar',
+        '.timeline-item'
       ];
 
       let targetBar = null;
@@ -865,17 +868,13 @@ const Dashboard = () => {
         return false;
       }
 
-      // Find the scrollable container - check multiple possible parent containers
-      const scrollContainers = safeFilter([
-        targetBar.closest('.overflow-auto'),
-        targetBar.closest('.overflow-x-auto'),
-        targetBar.closest('.overflow-y-auto'),
-        targetBar.closest('[style*="overflow"]'),
-        document.querySelector('.manufacturing-schedule-container'),
-        document.querySelector('.schedule-grid')
-      ], Boolean, 'Dashboard.scrollContainers');
-
-      const scrollContainer = scrollContainers[0];
+      // Find the scrollable containers - target the specific ResizableBaySchedule containers
+      const viewportContainer = document.querySelector('.bay-schedule-viewport') ||
+                                document.querySelector('.overflow-auto') ||
+                                targetBar.closest('.overflow-auto');
+      
+      // The bay-schedule-viewport handles both horizontal and vertical scrolling
+      const scrollContainer = viewportContainer;
 
       if (!scrollContainer) {
         toast({
@@ -887,15 +886,25 @@ const Dashboard = () => {
         return false;
       }
 
-      // Get positions for scrolling
-      const barRect = targetBar.getBoundingClientRect();
-      const containerRect = scrollContainer.getBoundingClientRect();
+      // Get the bay row that contains the target bar for vertical scrolling
+      const bayRow = targetBar.closest('.bay-row') || targetBar.closest('[data-bay-id]') || targetBar.closest('.schedule-row');
+      
+      console.log('Dashboard scroll debug:', {
+        scrollContainer: scrollContainer.className,
+        targetBar: targetBar.className,
+        bayRow: bayRow?.className,
+        targetBarOffsetLeft: targetBar.offsetLeft,
+        targetBarOffsetTop: targetBar.offsetTop,
+        bayRowOffsetTop: bayRow?.offsetTop
+      });
 
-      // Calculate scroll positions to center the project bar
+      // Calculate both horizontal and vertical scroll positions
       const scrollLeft = targetBar.offsetLeft - (scrollContainer.clientWidth / 2) + (targetBar.offsetWidth / 2);
-      const scrollTop = targetBar.offsetTop - (scrollContainer.clientHeight / 2) + (targetBar.offsetHeight / 2);
+      const scrollTop = bayRow ? 
+        bayRow.offsetTop - (scrollContainer.clientHeight / 2) + (bayRow.offsetHeight / 2) :
+        targetBar.offsetTop - (scrollContainer.clientHeight / 2) + (targetBar.offsetHeight / 2);
 
-      // Perform the scroll
+      // Perform both horizontal and vertical scroll
       scrollContainer.scrollTo({
         left: Math.max(0, scrollLeft),
         top: Math.max(0, scrollTop),
