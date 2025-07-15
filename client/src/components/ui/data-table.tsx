@@ -248,10 +248,13 @@ export function DataTable<TData, TValue>({
         let valueA = rowA.getValue(columnId) as string | number | Date | null | undefined;
         let valueB = rowB.getValue(columnId) as string | number | Date | null | undefined;
         
-        // Special handling for shipDate column - get values from original data
-        if (columnId === 'shipDate') {
-          valueA = rowA.original?.shipDate;
-          valueB = rowB.original?.shipDate;
+        // Special handling for date columns - get values from original data
+        const dateColumns = ['shipDate', 'deliveryDate', 'contractDate', 'fabricationStart', 'paintStart', 
+                           'productionStart', 'itStart', 'wrapDate', 'ntcTesting', 'qcStart', 
+                           'executiveReview', 'mechShop'];
+        if (dateColumns.includes(columnId)) {
+          valueA = rowA.original?.[columnId];
+          valueB = rowB.original?.[columnId];
         }
 
         // Handle N/A values
