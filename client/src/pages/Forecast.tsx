@@ -1025,25 +1025,47 @@ export function Forecast() {
               <div className="space-y-2">
                 {['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
                   const monthNum = 6 + index; // July = 6
-                  const monthProjects = projects.filter((p: any) => {
-                    if (!scheduledProjectIds.has(p.id)) return false;
-                    const schedule = schedules.find((s: any) => s.projectId === p.id);
-                    if (!schedule) return false;
-                    const startDate = new Date(schedule.startDate);
-                    const endDate = new Date(schedule.endDate);
-                    return (startDate.getMonth() <= monthNum && endDate.getMonth() >= monthNum) ||
-                           (startDate.getFullYear() < 2025 && endDate.getFullYear() > 2025);
-                  });
+                  const monthStart = new Date(2025, monthNum, 1);
+                  const monthEnd = new Date(2025, monthNum + 1, 0);
                   
-                  const monthHours = monthProjects.reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0);
+                  let monthHours = 0;
+                  let projectCount = 0;
+                  
+                  projects.forEach((p: any) => {
+                    if (!scheduledProjectIds.has(p.id)) return;
+                    const schedule = schedules.find((s: any) => s.projectId === p.id);
+                    if (!schedule) return;
+                    
+                    const projectStart = new Date(schedule.startDate);
+                    const projectEnd = new Date(schedule.endDate);
+                    
+                    // Check if project overlaps with this month
+                    if (projectStart <= monthEnd && projectEnd >= monthStart) {
+                      // Calculate the overlap between project and month
+                      const overlapStart = new Date(Math.max(projectStart.getTime(), monthStart.getTime()));
+                      const overlapEnd = new Date(Math.min(projectEnd.getTime(), monthEnd.getTime()));
+                      
+                      // Calculate total project duration in days
+                      const projectDurationDays = Math.ceil((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      // Calculate overlap duration in days
+                      const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      // Calculate proportional hours for this month
+                      const proportionalHours = (p.totalHours || 0) * (overlapDays / projectDurationDays);
+                      
+                      monthHours += proportionalHours;
+                      projectCount++;
+                    }
+                  });
                   
                   return (
                     <div key={month} className="flex items-center justify-between py-2 border-b">
                       <span className="font-medium">{month} 2025</span>
                       <div className="text-right">
-                        <span className="font-semibold">{monthHours.toLocaleString()} hrs</span>
+                        <span className="font-semibold">{Math.round(monthHours).toLocaleString()} hrs</span>
                         <span className="text-sm text-muted-foreground ml-2">
-                          ({monthProjects.length} projects)
+                          ({projectCount} projects)
                         </span>
                       </div>
                     </div>
@@ -1062,27 +1084,47 @@ export function Forecast() {
             <CardContent>
               <div className="space-y-2">
                 {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
-                  const monthProjects = projects.filter((p: any) => {
-                    if (!scheduledProjectIds.has(p.id)) return false;
-                    const schedule = schedules.find((s: any) => s.projectId === p.id);
-                    if (!schedule) return false;
-                    const startDate = new Date(schedule.startDate);
-                    const endDate = new Date(schedule.endDate);
-                    // Check if the project spans across this month in 2026
-                    const monthStart = new Date(2026, index, 1);
-                    const monthEnd = new Date(2026, index + 1, 0);
-                    return startDate <= monthEnd && endDate >= monthStart;
-                  });
+                  const monthStart = new Date(2026, index, 1);
+                  const monthEnd = new Date(2026, index + 1, 0);
                   
-                  const monthHours = monthProjects.reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0);
+                  let monthHours = 0;
+                  let projectCount = 0;
+                  
+                  projects.forEach((p: any) => {
+                    if (!scheduledProjectIds.has(p.id)) return;
+                    const schedule = schedules.find((s: any) => s.projectId === p.id);
+                    if (!schedule) return;
+                    
+                    const projectStart = new Date(schedule.startDate);
+                    const projectEnd = new Date(schedule.endDate);
+                    
+                    // Check if project overlaps with this month
+                    if (projectStart <= monthEnd && projectEnd >= monthStart) {
+                      // Calculate the overlap between project and month
+                      const overlapStart = new Date(Math.max(projectStart.getTime(), monthStart.getTime()));
+                      const overlapEnd = new Date(Math.min(projectEnd.getTime(), monthEnd.getTime()));
+                      
+                      // Calculate total project duration in days
+                      const projectDurationDays = Math.ceil((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      // Calculate overlap duration in days
+                      const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      // Calculate proportional hours for this month
+                      const proportionalHours = (p.totalHours || 0) * (overlapDays / projectDurationDays);
+                      
+                      monthHours += proportionalHours;
+                      projectCount++;
+                    }
+                  });
                   
                   return (
                     <div key={month} className="flex items-center justify-between py-2 border-b">
                       <span className="font-medium">{month} 2026</span>
                       <div className="text-right">
-                        <span className="font-semibold">{monthHours.toLocaleString()} hrs</span>
+                        <span className="font-semibold">{Math.round(monthHours).toLocaleString()} hrs</span>
                         <span className="text-sm text-muted-foreground ml-2">
-                          ({monthProjects.length} projects)
+                          ({projectCount} projects)
                         </span>
                       </div>
                     </div>
