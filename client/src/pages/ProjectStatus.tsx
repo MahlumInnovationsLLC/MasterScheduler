@@ -8,6 +8,17 @@ import { format } from 'date-fns';
 import { calculateWeekdaysBetween } from '@/lib/utils';
 import { CellHighlighter } from '@/components/CellHighlighter';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { ProjectsErrorBoundary } from '@/components/ProjectsErrorBoundary';
+import {
+  safeParseArray,
+  ProjectsResponseSchema,
+  LabelAssignmentsResponseSchema,
+  CCBRequestsResponseSchema,
+  ManufacturingSchedulesResponseSchema,
+  BillingMilestonesResponseSchema,
+  ManufacturingBaysResponseSchema,
+  ProjectLabelsResponseSchema
+} from '@/lib/runtime-validators';
 import { 
   Folders, 
   Flag, 
@@ -359,46 +370,52 @@ const ProjectStatus = () => {
     retry: 3,
     retryDelay: 1000,
     staleTime: 30000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    select: (data) => safeParseArray(data, ProjectsResponseSchema, [])
   });
 
   // Fetch ALL project label assignments at once to avoid N+1 queries
   const { data: allProjectLabelAssignments = [], isLoading: labelsLoading } = useQuery({
     queryKey: ['/api/all-project-label-assignments'],
     staleTime: 30000,
-    refetchOnWindowFocus: false
-    // Removed enabled condition to prevent conditional hook calls
+    refetchOnWindowFocus: false,
+    select: (data) => safeParseArray(data, LabelAssignmentsResponseSchema, [])
   });
 
   const { data: ccbRequests = [], isLoading: ccbLoading } = useQuery({
     queryKey: ['/api/ccb-requests'],
     staleTime: 30000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    select: (data) => safeParseArray(data, CCBRequestsResponseSchema, [])
   });
 
   const { data: manufacturingSchedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
     staleTime: 30000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    select: (data) => safeParseArray(data, ManufacturingSchedulesResponseSchema, [])
   });
 
   const { data: billingMilestones = [], isLoading: billingLoading } = useQuery({
     queryKey: ['/api/billing-milestones'],
     staleTime: 30000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    select: (data) => safeParseArray(data, BillingMilestonesResponseSchema, [])
   });
 
   const { data: manufacturingBays = [], isLoading: baysLoading } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
     staleTime: 30000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    select: (data) => safeParseArray(data, ManufacturingBaysResponseSchema, [])
   });
 
   // Fetch available labels for all projects
   const { data: availableLabels = [], isLoading: availableLabelsLoading } = useQuery({
     queryKey: ['/api/project-labels'],
     staleTime: 30000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    select: (data) => safeParseArray(data, ProjectLabelsResponseSchema, [])
   });
 
   // Removed hasAppliedInitialFilter - not needed anymore
@@ -2632,17 +2649,19 @@ const ProjectStatus = () => {
   );
 };
 
-// Wrap the entire component in ErrorBoundary to catch rendering errors
+// Wrap the entire component in multiple ErrorBoundaries for maximum safety
 const ProjectStatusWithErrorBoundary = () => {
   return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
-        console.error('Projects Module Error:', error, errorInfo);
-        // You could also send this to a logging service
-      }}
-    >
-      <ProjectStatus />
-    </ErrorBoundary>
+    <ProjectsErrorBoundary fallbackMessage="The Projects Module encountered an unexpected error. Please try refreshing the page.">
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
+          console.error('Projects Module Error:', error, errorInfo);
+          // You could also send this to a logging service
+        }}
+      >
+        <ProjectStatus />
+      </ErrorBoundary>
+    </ProjectsErrorBoundary>
   );
 };
 

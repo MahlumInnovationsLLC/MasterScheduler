@@ -1,0 +1,99 @@
+Here are a handful of “belt‑and‑suspenders” techniques and libraries you can layer on top of your existing guards so that no matter what sneaks through, you’ll never call .filter on anything but a real array:
+
+1. Centralize your data fetching with React Query or SWR
+Both libraries give you built‑in loading/error states and will never hand you back an unexpected shape:
+
+js
+Copy
+Edit
+import { useQuery } from 'react-query';
+
+function useProjects() {
+  return useQuery('projects', () =>
+    fetch('/api/projects')
+      .then(res => res.json())
+      .then(json => Array.isArray(json) ? json : json.data ?? [])
+  );
+}
+
+function Projects() {
+  const { data: rows = [], isLoading, error } = useProjects();
+
+  if (isLoading)   return <Spinner />;
+  if (error)       return <ErrorBanner error={error} />;
+
+  return <Table rows={rows.filter(r => r.active)} />;
+}
+Because React Query normalizes the return value via your transform (.then(...)), you know rows is always an array by the time you hit your component.
+
+2. Use a simple “safeFilter” utility
+Rather than sprinkling Array.isArray checks everywhere, make a tiny helper and import it wherever you need:
+
+js
+Copy
+Edit
+// utils/safe.js
+export const safeFilter = (value, fn) =>
+  Array.isArray(value) ? value.filter(fn) : [];
+
+// in VD.tsx
+import { safeFilter } from '../utils/safe';
+const filtered = safeFilter(rows, row => row.active);
+That ensures you never crash—even if rows is null, an object, or a string.
+
+3. Prop-types or Zod runtime validation
+If you’re in JS-land, add PropTypes to your components so you’ll get console warnings in dev whenever someone passes the wrong shape:
+
+js
+Copy
+Edit
+import PropTypes from 'prop-types';
+
+Projects.propTypes = {
+  rows: PropTypes.arrayOf(PropTypes.object).isRequired,
+};
+If you’re in TS-land, pair your static types with Zod to assert at runtime:
+
+ts
+Copy
+Edit
+import { z } from 'zod';
+
+const ProjectsResponse = z.object({
+  data: z.array(z.object({ id: z.string(), active: z.boolean() })),
+});
+…
+const parsed = ProjectsResponse.safeParse(json);
+const rows = parsed.success ? parsed.data : [];
+4. Optional chaining + nullish coalescing
+For quick one‑liners, you can write:
+
+js
+Copy
+Edit
+const filtered = (rows ?? []).filter?.(r => r.active) ?? [];
+That covers rows = null, rows = undefined, and even if somehow Array.prototype.filter were stubbed out.
+
+5. Error Boundaries for unexpected crashes
+Wrap your table or entire module in an Error Boundary so that if something still slips through, the user at least sees a graceful fallback instead of a blank screen:
+
+jsx
+Copy
+Edit
+import { ErrorBoundary } from 'react-error-boundary';
+
+<ErrorBoundary FallbackComponent={TableErrorFallback}>
+  <Projects rows={rows} />
+</ErrorBoundary>
+Putting it all together
+React Query/SWR for guaranteed array shape + loading state
+
+safeFilter helper everywhere you filter
+
+Runtime validation (PropTypes or Zod) to catch bad props ASAP
+
+Optional chaining for one‑off safety nets
+
+Error Boundary to catch any residual exceptions
+
+With that stack in place, you’ll never see an r.filter is not a function slip by—even on low‑power laptops or when someone lands directly on the Projects page.

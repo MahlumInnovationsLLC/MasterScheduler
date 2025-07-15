@@ -147,3 +147,94 @@ export function safeLength(data: any, context: string = 'Unknown'): number {
   
   return 0;
 }
+
+/**
+ * Ultra-safe filter with maximum defensive programming
+ * Uses optional chaining and nullish coalescing for absolute safety
+ * @param data - The data to filter (might be anything)
+ * @param filterFn - The filter function
+ * @param context - Context string for debugging
+ * @returns Filtered array or empty array
+ */
+export function ultraSafeFilter<T>(
+  data: any,
+  filterFn: (item: T, index: number, array: T[]) => boolean,
+  context: string = 'Unknown'
+): T[] {
+  try {
+    // Use optional chaining and nullish coalescing for maximum safety
+    const result = (data ?? [])?.filter?.(filterFn) ?? [];
+    
+    // Verify result is actually an array
+    if (Array.isArray(result)) {
+      return result;
+    }
+    
+    console.warn(`[ULTRA FILTER WARNING] ${context}: Filter result was not an array`);
+    return [];
+  } catch (error) {
+    console.error(`[ULTRA FILTER ERROR] ${context}: Caught error in ultra-safe filter`, error);
+    return [];
+  }
+}
+
+/**
+ * Belt-and-suspenders filter that combines all safety techniques
+ * @param data - The data to filter
+ * @param filterFn - The filter function
+ * @param context - Context string for debugging
+ * @returns Filtered array with absolute safety guarantees
+ */
+export function beltAndSuspendersFilter<T>(
+  data: any,
+  filterFn: (item: T, index: number, array: T[]) => boolean,
+  context: string = 'Unknown'
+): T[] {
+  // Layer 1: Null/undefined check
+  if (data == null) {
+    if (DEBUG_FILTERS) {
+      console.log(`[B&S FILTER] ${context}: Data is null/undefined, returning []`);
+    }
+    return [];
+  }
+  
+  // Layer 2: Check if filter method exists
+  if (typeof data?.filter !== 'function') {
+    if (DEBUG_FILTERS) {
+      console.log(`[B&S FILTER] ${context}: No filter method found, returning []`);
+    }
+    return [];
+  }
+  
+  // Layer 3: Array.isArray check
+  if (!Array.isArray(data)) {
+    if (DEBUG_FILTERS) {
+      console.log(`[B&S FILTER] ${context}: Not an array, returning []`);
+    }
+    return [];
+  }
+  
+  // Layer 4: Validate filter function
+  if (typeof filterFn !== 'function') {
+    if (DEBUG_FILTERS) {
+      console.log(`[B&S FILTER] ${context}: Invalid filter function, returning original array`);
+    }
+    return data;
+  }
+  
+  // Layer 5: Try-catch with optional chaining
+  try {
+    const result = data?.filter?.(filterFn) ?? [];
+    
+    // Layer 6: Verify result is an array
+    if (!Array.isArray(result)) {
+      console.error(`[B&S FILTER] ${context}: Filter did not return an array`);
+      return [];
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`[B&S FILTER] ${context}: Exception during filter`, error);
+    return [];
+  }
+}
