@@ -626,106 +626,61 @@ export function Forecast() {
       }
     });
 
-    // Set accumulated hours baseline to 92,000 as of July 1st, 2025
-    const baselineAccumulatedHours = 92000;
-    
-    // Calculate REAL total project hours based on actual project data
+    // Simple calculation - just sum up project hours for scheduled projects
     let totalProjectHours = 0;
     let deliveredProjectHours = 0;
     let inProgressProjectHours = 0;
-    let scheduledProjectHours = 0;
     
-    // Calculate REAL hours for all scheduled projects
+    // Calculate hours for all scheduled projects
     projects.forEach((project: any) => {
       if (!project.totalHours || project.totalHours <= 0) return;
 
       const isScheduled = scheduledProjectIds.has(project.id);
       
       if (isScheduled) {
-        // Get manufacturing schedule for this project
-        const projectSchedules = schedules.filter((s: any) => s.projectId === project.id);
+        totalProjectHours += project.totalHours;
         
-        if (projectSchedules.length > 0) {
-          // Use the first schedule to determine project timeline
-          const schedule = projectSchedules[0];
-          const scheduleStart = new Date(schedule.startDate);
-          const scheduleEnd = new Date(schedule.endDate);
+        // Track delivered vs in-progress hours
+        if (project.status === 'delivered') {
+          deliveredProjectHours += project.totalHours;
           
-          // Calculate the portion of hours that fall within the current year
-          if (scheduleStart <= yearEnd && scheduleEnd >= yearStart) {
-            const overlapStart = scheduleStart > yearStart ? scheduleStart : yearStart;
-            const overlapEnd = scheduleEnd < yearEnd ? scheduleEnd : yearEnd;
-            
-            if (overlapStart <= overlapEnd) {
-              const totalScheduleDays = (scheduleEnd.getTime() - scheduleStart.getTime()) / (1000 * 60 * 60 * 24);
-              const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
-              const overlapRatio = totalScheduleDays > 0 ? overlapDays / totalScheduleDays : 1;
-              
-              // Use ACTUAL project hours (no arbitrary scaling)
-              const projectHoursInYear = project.totalHours * overlapRatio;
-              scheduledProjectHours += projectHoursInYear;
-              
-              // Track delivered vs in-progress hours
-              if (project.status === 'delivered') {
-                deliveredProjectHours += projectHoursInYear;
-                
-                const deliveryDate = new Date(project.deliveryDate || project.actualCompletionDate);
-                if (deliveryDate >= lastMonthStart && deliveryDate <= lastMonthEnd) {
-                  lastMonthHours += projectHoursInYear;
-                }
-                if (deliveryDate >= lastQuarterStart && deliveryDate <= lastQuarterEnd) {
-                  lastQuarterHours += projectHoursInYear;
-                }
-                if (deliveryDate >= yearStart && deliveryDate <= now) {
-                  ytdHours += projectHoursInYear;
-                }
-              } else {
-                inProgressProjectHours += projectHoursInYear;
-              }
-            }
+          const deliveryDate = new Date(project.deliveryDate || project.actualCompletionDate || project.shipDate);
+          if (deliveryDate >= lastMonthStart && deliveryDate <= lastMonthEnd) {
+            lastMonthHours += project.totalHours;
           }
+          if (deliveryDate >= lastQuarterStart && deliveryDate <= lastQuarterEnd) {
+            lastQuarterHours += project.totalHours;
+          }
+          if (deliveryDate >= yearStart && deliveryDate <= yearEnd) {
+            ytdHours += project.totalHours;
+          }
+        } else {
+          inProgressProjectHours += project.totalHours;
         }
       }
     });
 
-    // Log real project hours data
-    console.log('=== REAL PROJECT HOURS DATA ===');
-    console.log('Scheduled project hours:', scheduledProjectHours);
-    console.log('Delivered project hours:', deliveredProjectHours);
-    console.log('In-progress project hours:', inProgressProjectHours);
-    console.log('Total scheduled projects:', scheduledProjectIds.size);
+    // Set baseline accumulated hours to 92,000
+    const baselineAccumulatedHours = 92000;
+    
+    // Calculate totals
+    totalHours = totalProjectHours;
+    earnedHours = deliveredProjectHours;
+    projectedHours = inProgressProjectHours;
+    
+    // Calculate engineering hours for remaining months in 2025
+    const remainingMonths = Math.max(0, 12 - now.getMonth());
+    const engineeringHoursRemaining = engineeringHoursPerMonth * remainingMonths;
 
-    // Calculate engineering hours for remaining months of 2025 (July - December = 6 months)
-    const remainingMonths = 6;
-    const totalEngineeringHours = engineeringHoursPerMonth * remainingMonths;
-    
-    // Use REAL project hours data
-    totalProjectHours = scheduledProjectHours;
-    
-    // Calculate total hours using real data
-    totalHours = baselineAccumulatedHours + totalEngineeringHours + totalProjectHours;
-    earnedHours = baselineAccumulatedHours + deliveredProjectHours;
-    projectedHours = inProgressProjectHours + totalEngineeringHours;
-    
-    // Remaining hours = total scheduled hours - already delivered hours
-    const remainingHours = totalProjectHours - deliveredProjectHours;
-    
-    console.log('=== REAL HOURS CALCULATION ===');
-    console.log('Baseline accumulated:', baselineAccumulatedHours);
-    console.log('Engineering hours:', totalEngineeringHours);
-    console.log('Total project hours:', totalProjectHours);
-    console.log('Delivered hours:', deliveredProjectHours);
-    console.log('In-progress hours:', inProgressProjectHours);
-    console.log('Total hours:', totalHours);
-    console.log('Earned hours:', earnedHours);
-    console.log('Remaining hours:', remainingHours);
+    // Calculate remaining hours = in-progress hours (not delivered yet)
+    const remainingHours = inProgressProjectHours;
 
     return {
       totalHours,
       earnedHours,
       projectedHours,
       remainingHours,
-      engineeringHours: totalEngineeringHours,
+      engineeringHours: engineeringHoursRemaining,
       manufacturingHours: totalProjectHours,
       lastMonth: {
         earnedHours: lastMonthHours,
