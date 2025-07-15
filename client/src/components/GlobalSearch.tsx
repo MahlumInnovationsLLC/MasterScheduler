@@ -22,6 +22,11 @@ export default function GlobalSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [, setLocation] = useLocation();
 
+  // Detect operating system for correct keyboard shortcut display
+  const isMac = typeof window !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+  const shortcutKey = isMac ? '⌘' : 'Ctrl';
+  const shortcutDisplay = isMac ? '⌘K' : 'Ctrl+K';
+
   // Use backend search endpoint
   const { data: searchData } = useQuery<{ results: SearchResult[] }>({
     queryKey: ["/api/search", searchQuery],
@@ -47,7 +52,7 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle keyboard shortcuts
+  // Handle keyboard shortcuts (⌘K on Mac, Ctrl+K on Windows/Linux)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -116,7 +121,11 @@ export default function GlobalSearch() {
           onFocus={() => setIsOpen(true)}
         />
         <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-          <span className="text-xs">⌘</span>K
+          {isMac ? (
+            <><span className="text-xs">⌘</span>K</>
+          ) : (
+            <>Ctrl+K</>
+          )}
         </kbd>
       </div>
 

@@ -563,6 +563,11 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added automatic fallback to default sorting when users clear column sorting (none -> asc -> desc -> default)
   - Ensured Ship Date sorting works with actual database dates rather than display dates
   - Table now maintains proper sorting behavior across pagination and filter changes
+- January 15, 2025: Global Search OS-Specific Keyboard Shortcut Enhancement
+  - Added operating system detection to show correct keyboard shortcuts in global search header
+  - Mac users now see ⌘K shortcut, Windows/Linux users see Ctrl+K
+  - Enhanced user experience with platform-appropriate keyboard shortcut display
+  - Maintained existing keyboard event handling for both Mac (metaKey) and Windows/Linux (ctrlKey)
 
 
 ## User Preferences
