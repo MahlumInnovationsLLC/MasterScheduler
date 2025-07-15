@@ -568,6 +568,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Mac users now see ⌘K shortcut, Windows/Linux users see Ctrl+K
   - Enhanced user experience with platform-appropriate keyboard shortcut display
   - Maintained existing keyboard event handling for both Mac (metaKey) and Windows/Linux (ctrlKey)
+- January 15, 2025: Project Module Button Improvements
+  - Consolidated location filter to three main options: Columbia Falls, Libby, and FSW
+  - Added location normalization logic to map various location formats to consolidated categories
+  - Enhanced column chooser functionality with proper header display and toggle behavior
+  - Removed non-functional Sort button from Project Module toolbar
+  - Improved project filtering performance with consolidated location mapping
 
 
 ## User Preferences

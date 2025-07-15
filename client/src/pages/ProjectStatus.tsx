@@ -26,7 +26,6 @@ import {
   Building2,
   Plus,
   Filter,
-  SortDesc,
   Eye,
   Edit,
   MoreHorizontal,
@@ -1107,9 +1106,26 @@ const ProjectStatus = () => {
         return false;
       }
 
-      // Location filtering (fast string comparison)
+      // Location filtering with consolidated mapping
       if (locationFilter && project.location) {
-        if (project.location.toLowerCase() !== locationFilter.toLowerCase()) {
+        const normalizeLocation = (location: string): string => {
+          const loc = location.toLowerCase();
+          if (loc.includes('columbia falls') || loc.includes('cf')) {
+            return 'columbia falls';
+          }
+          if (loc.includes('libby')) {
+            return 'libby';
+          }
+          if (loc.includes('fsw')) {
+            return 'fsw';
+          }
+          return loc;
+        };
+        
+        const projectLocation = normalizeLocation(project.location);
+        const filterLocation = normalizeLocation(locationFilter);
+        
+        if (projectLocation !== filterLocation) {
           return false;
         }
       }
@@ -2243,20 +2259,16 @@ const ProjectStatus = () => {
                 All Locations
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {projects && 
-                [...new Set(safeFilter(projects
-                  .map(p => p.location), Boolean, 'ProjectStatus.locations')
-                )]
-                .sort()
-                .map(location => (
-                  <DropdownMenuItem 
-                    key={location} 
-                    onClick={() => setLocationFilter(location || '')}
-                  >
-                    {location}
-                  </DropdownMenuItem>
-                ))
-              }
+              {/* Consolidated location options */}
+              <DropdownMenuItem onClick={() => setLocationFilter('Columbia Falls')}>
+                Columbia Falls
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocationFilter('Libby')}>
+                Libby
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocationFilter('FSW')}>
+                FSW
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -2426,16 +2438,13 @@ const ProjectStatus = () => {
                   checked={visibleColumns[column.id as string] !== false}
                   onCheckedChange={() => toggleColumnVisibility(column.id as string)}
                 >
-                  {column.header as React.ReactNode}
+                  {typeof column.header === 'string' ? column.header : column.id}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" size="sm">
-            <SortDesc className="mr-2 h-4 w-4" />
-            Sort
-          </Button>
+
 
           <Button size="sm" onClick={() => navigate('/projects/new')}>
             <Plus className="mr-2 h-4 w-4" />
