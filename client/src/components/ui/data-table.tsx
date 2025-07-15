@@ -362,8 +362,10 @@ export function DataTable<TData, TValue>({
     notes: 360, // Expanded Notes column to 3x previous width (120px * 3)
   };
 
-  // Fixed row height for all rows
-  const ROW_HEIGHT = '60px';
+  // Fixed row height for frozen columns
+  const FROZEN_ROW_HEIGHT = '60px';
+  // Fixed row height for scrollable area (slightly taller to fix alignment)
+  const SCROLLABLE_ROW_HEIGHT = '61px';
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -489,7 +491,7 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-border transition-colors duration-150"
-                        style={{ height: ROW_HEIGHT }} // Explicitly set height for all rows
+                        style={{ height: FROZEN_ROW_HEIGHT }} // Explicitly set height for frozen rows
                         onMouseEnter={() => {
                           // Highlight corresponding row in scrollable section
                           const scrollableRow = document.querySelector(`[data-row-id="scrollable-${row.id}"]`);
@@ -518,7 +520,7 @@ export function DataTable<TData, TValue>({
                                   minWidth: `${width}px`,
                                   background: 'var(--background)',
                                   borderRight: '1px solid var(--border-muted)',
-                                  height: ROW_HEIGHT,
+                                  height: FROZEN_ROW_HEIGHT,
                                   padding: '0 16px' // Consistent padding
                                 }}
                               >
@@ -677,7 +679,7 @@ export function DataTable<TData, TValue>({
                         key={row.id}
                         data-row-id={`scrollable-${row.id}`}
                         className="hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-border transition-colors duration-150"
-                        style={{ height: ROW_HEIGHT }} // Explicitly set height for all rows
+                        style={{ height: SCROLLABLE_ROW_HEIGHT }} // Explicitly set height for scrollable rows
                         onMouseEnter={() => {
                           // Highlight corresponding row in frozen section
                           const frozenRows = document.querySelectorAll(`tr[data-row-id="${row.id}"]`);
@@ -711,7 +713,7 @@ export function DataTable<TData, TValue>({
                                       ? `${Math.round(cell.column.columnDef.size * 1.2)}px` // Increase by 20%
                                       : cell.column.columnDef.size || '180px', // Default size increased by 20%
                                   borderRight: '1px solid var(--border-muted)',
-                                  height: ROW_HEIGHT
+                                  height: SCROLLABLE_ROW_HEIGHT
                                 }}
                               >
                                 {flexRender(
