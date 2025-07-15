@@ -949,34 +949,35 @@ const Dashboard = () => {
         canScrollVertically: scrollContainer.scrollHeight > scrollContainer.clientHeight
       });
 
-      // Try different scrolling approaches
-      console.log('Attempting to scroll to:', { left: Math.max(0, scrollLeft), top: Math.max(0, scrollTop) });
+      // Get the current position of the target element relative to the page
+      const rect = targetBar.getBoundingClientRect();
+      const absoluteTop = rect.top + window.scrollY;
+      const absoluteLeft = rect.left + window.scrollX;
       
-      // First approach: Standard scrollTo
-      scrollContainer.scrollTo({
-        left: Math.max(0, scrollLeft),
-        top: Math.max(0, scrollTop),
+      // Calculate both scroll positions
+      const centerVertical = absoluteTop - (window.innerHeight / 2) + (targetBar.offsetHeight / 2);
+      const centerHorizontal = absoluteLeft - (window.innerWidth / 2) + (targetBar.offsetWidth / 2);
+      
+      console.log('Final scroll calculation:', {
+        targetElementRect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+        windowScroll: { x: window.scrollX, y: window.scrollY },
+        absolutePosition: { top: absoluteTop, left: absoluteLeft },
+        targetCenter: { vertical: centerVertical, horizontal: centerHorizontal },
+        windowSize: { width: window.innerWidth, height: window.innerHeight }
+      });
+      
+      // Scroll both horizontally and vertically to center the target element
+      window.scrollTo({
+        left: Math.max(0, centerHorizontal),
+        top: Math.max(0, centerVertical),
         behavior: 'smooth'
       });
       
-      // Second approach: Use window.scrollTo for vertical scrolling like ResizableBaySchedule does
-      setTimeout(() => {
-        // Get the absolute position of the target element relative to the page
-        const rect = targetBar.getBoundingClientRect();
-        const absoluteTop = rect.top + window.scrollY;
-        
-        // Scroll window to center the target element
-        window.scrollTo({
-          top: absoluteTop - (window.innerHeight / 2),
-          behavior: 'smooth'
-        });
-        
-        console.log('Window scrollTo called with:', {
-          targetTop: absoluteTop,
-          windowScrollY: window.scrollY,
-          finalScrollTop: absoluteTop - (window.innerHeight / 2)
-        });
-      }, 100);
+      // Also scroll the container horizontally for better precision
+      scrollContainer.scrollTo({
+        left: Math.max(0, scrollLeft),
+        behavior: 'smooth'
+      });
 
       // Highlight the found project bar with visual feedback
       targetBar.classList.add('highlight-found');
