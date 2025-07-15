@@ -226,20 +226,25 @@ export function DataTable<TData, TValue>({
     return false;
   }, []);
 
-  // Log current sorting state
-  console.log('🔍 SORTING DEBUG: Current sorting state:', sorting);
-  console.log('🔍 SORTING DEBUG: Columns:', filteredColumns.map(c => ({ id: c.id, sortingFn: c.sortingFn })));
-
   const table = useReactTable({
     data,
     columns: filteredColumns,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      globalFilter,
+    },
+    enableSorting: true,
+    manualSorting: false,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    // Custom sorting to move N/A values to the bottom
     getSortedRowModel: getSortedRowModel(),
     sortingFns: {
       customSort: (rowA, rowB, columnId) => {
-        console.log('🔍 SORTING DEBUG: customSort called for column:', columnId);
-        
         // ALWAYS ensure delivered projects go to the bottom regardless of column
         const statusA = rowA.original?.status;
         const statusB = rowB.original?.status;
@@ -254,8 +259,6 @@ export function DataTable<TData, TValue>({
         let valueA = rowA.getValue(columnId) as string | number | Date | null | undefined;
         let valueB = rowB.getValue(columnId) as string | number | Date | null | undefined;
         
-        console.log('🔍 SORTING DEBUG: Initial values:', { columnId, valueA, valueB });
-        
         // Special handling for date columns - get values from original data
         const dateColumns = ['shipDate', 'deliveryDate', 'contractDate', 'fabricationStart', 'paintStart', 
                            'productionStart', 'itStart', 'wrapDate', 'ntcTesting', 'qcStart', 
@@ -263,7 +266,6 @@ export function DataTable<TData, TValue>({
         if (dateColumns.includes(columnId)) {
           valueA = rowA.original?.[columnId];
           valueB = rowB.original?.[columnId];
-          console.log('🔍 SORTING DEBUG: Date column values from original:', { valueA, valueB });
         }
 
         // Handle N/A values
@@ -326,31 +328,6 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: showPagination ? getPaginationRowModel() : undefined,
     globalFilterFn: globalFilterFn,
-    onSortingChange: (updater) => {
-      console.log('🔍 SORTING DEBUG: onSortingChange called with:', updater);
-      const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
-      console.log('🔍 SORTING DEBUG: New sorting state:', newSorting);
-      
-      // If sorting is being cleared (empty array), apply default ship date sorting
-      if (newSorting.length === 0 && initialSorting.length > 0) {
-        console.log('🔍 SORTING DEBUG: Applying initial sorting:', initialSorting);
-        setSorting(initialSorting);
-      } else {
-        setSorting(newSorting);
-      }
-      
-      // Clear any active timeouts to prevent re-renders
-      if (searchInputRef.current) {
-        const currentValue = searchInputRef.current.value;
-        setTimeout(() => {
-          if (searchInputRef.current && searchInputRef.current.value === currentValue) {
-            searchInputRef.current.focus();
-          }
-        }, 0);
-      }
-    },
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: (updater) => {
       console.log("🔄 PAGINATION: onPaginationChange called with:", updater);
       if (typeof updater === 'function') {
@@ -366,12 +343,6 @@ export function DataTable<TData, TValue>({
     },
     // Prevent automatic pagination reset on data changes
     autoResetPageIndex: false,
-    state: {
-      sorting,
-      columnFilters,
-      globalFilter,
-      pagination: showPagination ? { pageIndex, pageSize: 10 } : undefined,
-    },
   });
 
   // Define column widths
@@ -487,9 +458,8 @@ export function DataTable<TData, TValue>({
                                   : ''
                               }
                               onClick={() => {
-                                alert(`Frozen column clicked: ${header.column.id}`);
                                 if (header.column.getCanSort()) {
-                                  handleColumnSort(header.column);
+                                  header.column.toggleSorting();
                                 }
                               }}
                             >
@@ -682,9 +652,8 @@ export function DataTable<TData, TValue>({
                                   : ''
                               }
                               onClick={() => {
-                                alert(`Scrollable column clicked: ${header.column.id}`);
                                 if (header.column.getCanSort()) {
-                                  handleColumnSort(header.column);
+                                  header.column.toggleSorting();
                                 }
                               }}
                             >
