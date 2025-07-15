@@ -156,24 +156,19 @@ export function DataTable<TData, TValue>({
 
   // Create custom sorting handler that returns to default sort
   const handleColumnSort = React.useCallback((column: any) => {
-    console.log('🔍 SORTING DEBUG: handleColumnSort called for column:', column.id);
     const currentSort = column.getIsSorted();
-    console.log('🔍 SORTING DEBUG: Current sort state:', currentSort);
     
     // Cycle through: none -> asc -> desc -> none (returns to default)
     if (!currentSort) {
       // No sort -> ascending
       const newSorting = [{ id: column.id, desc: false }];
-      console.log('🔍 SORTING DEBUG: Setting ascending sort:', newSorting);
       setSorting(newSorting);
     } else if (currentSort === 'asc') {
       // Ascending -> descending
       const newSorting = [{ id: column.id, desc: true }];
-      console.log('🔍 SORTING DEBUG: Setting descending sort:', newSorting);
       setSorting(newSorting);
     } else {
       // Descending -> clear (which triggers default sorting)
-      console.log('🔍 SORTING DEBUG: Clearing sort, returning to default');
       setSorting([]); // This will trigger the onSortingChange handler to apply default
     }
   }, [setSorting]);
@@ -492,7 +487,7 @@ export function DataTable<TData, TValue>({
                                   : ''
                               }
                               onClick={() => {
-                                console.log('🔍 SORTING DEBUG: Frozen column clicked:', header.column.id, 'canSort:', header.column.getCanSort());
+                                alert(`Frozen column clicked: ${header.column.id}`);
                                 if (header.column.getCanSort()) {
                                   handleColumnSort(header.column);
                                 }
@@ -687,7 +682,7 @@ export function DataTable<TData, TValue>({
                                   : ''
                               }
                               onClick={() => {
-                                console.log('🔍 SORTING DEBUG: Scrollable column clicked:', header.column.id, 'canSort:', header.column.getCanSort());
+                                alert(`Scrollable column clicked: ${header.column.id}`);
                                 if (header.column.getCanSort()) {
                                   handleColumnSort(header.column);
                                 }
