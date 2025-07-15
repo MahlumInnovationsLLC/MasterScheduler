@@ -363,7 +363,7 @@ export function DataTable<TData, TValue>({
   };
 
   // Fixed row height for all rows
-  const ROW_HEIGHT = '61px';
+  const ROW_HEIGHT = '63px';
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
