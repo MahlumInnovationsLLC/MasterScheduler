@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, Factory, MapPin, Calendar } from "lucide-react";
+import { Plus, Users, Factory, MapPin, Calendar, PaintBucket, Package, Wrench, Settings, Monitor, TestTube, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import TeamCapacityCard from "./TeamCapacityCard";
@@ -12,12 +12,25 @@ import TeamMemberDialog from "./TeamMemberDialog";
 import DepartmentDialog from "./DepartmentDialog";
 import type { DepartmentCapacity, TeamMember, ManufacturingBay, ManufacturingSchedule, Project } from "@shared/schema";
 
+type DepartmentType = 'mech' | 'fabrication' | 'paint' | 'wrap' | 'production' | 'it' | 'ntc' | 'qc';
+
+const departmentConfig = {
+  mech: { name: 'MECH Shop', icon: Wrench, color: 'orange' },
+  fabrication: { name: 'Fabrication', icon: Factory, color: 'blue' },
+  paint: { name: 'Paint', icon: PaintBucket, color: 'red' },
+  wrap: { name: 'Wrap', icon: Package, color: 'red' },
+  production: { name: 'Production', icon: Settings, color: 'green' },
+  it: { name: 'IT', icon: Monitor, color: 'purple' },
+  ntc: { name: 'NTC', icon: TestTube, color: 'cyan' },
+  qc: { name: 'QC', icon: CheckCircle, color: 'amber' }
+};
+
 export default function CapacityPlanning() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState<DepartmentType>('mech');
+  const [selectedLocation, setSelectedLocation] = useState<string>('Columbia Falls');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
   const [showTeamMemberDialog, setShowTeamMemberDialog] = useState(false);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
@@ -180,139 +193,153 @@ export default function CapacityPlanning() {
     }
   });
 
-  const renderTeamsSection = (teams: any[], location: string) => (
-    <>
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">{location} Production Teams</h3>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {teams.map((team) => {
-          const members = teamMembers.filter((m) => 
-            m.teamName === team.name && m.location === location
-          );
-          const utilization = calculateTeamUtilization(team.bayIds);
+
+  const renderDepartmentContent = (department: DepartmentType) => {
+    const config = departmentConfig[department];
+    const Icon = config.icon;
+    
+    // Special handling for production department - show bay teams
+    if (department === 'production') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Icon className="h-6 w-6 text-blue-600" />
+            <h2 className="text-xl font-semibold">{config.name} Teams</h2>
+          </div>
           
-          return (
-            <Card key={team.name} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>{team.name}</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedTeam(team.name);
-                      setSelectedLocation(location);
-                      setEditingMember(null);
-                      setShowTeamMemberDialog(true);
-                    }}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add
-                  </Button>
-                </CardTitle>
-                <CardDescription>
-                  {utilization.memberCount} members • {utilization.projectCount} active projects
-                </CardDescription>
-                
-                {/* Active Projects Display */}
-                <div className="flex items-center justify-between text-sm pt-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-blue-500" />
-                    <span className="text-muted-foreground">Currently Active In Bay:</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-medium text-blue-600">
-                      {utilization.activeProjectsInBay} project{utilization.activeProjectsInBay !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Team Capacity</span>
-                      <span>{utilization.totalCapacity} hrs/week</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Utilization</span>
-                      <span className={utilization.utilization > 100 ? "text-red-600 font-medium" : ""}>
-                        {utilization.utilization}%
-                      </span>
-                    </div>
-                  </div>
+          <Tabs defaultValue="Columbia Falls" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="Columbia Falls">
+                <MapPin className="h-4 w-4 mr-2" />
+                Columbia Falls, MT
+              </TabsTrigger>
+              <TabsTrigger value="Libby">
+                <MapPin className="h-4 w-4 mr-2" />
+                Libby, MT
+              </TabsTrigger>
+            </TabsList>
 
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Team Members</h4>
-                    {members.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                      >
-                        <div>
-                          <div className="font-medium text-sm">{member.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {member.role} • {member.hoursPerWeek} hrs/week
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingMember(member);
-                              setSelectedTeam(team.name);
-                              setSelectedLocation(location);
-                              setShowTeamMemberDialog(true);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => deleteTeamMemberMutation.mutate(member.id)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {members.length === 0 && (
-                      <div className="text-sm text-muted-foreground text-center py-4">
-                        No team members assigned
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+            <TabsContent value="Columbia Falls" className="space-y-4 mt-6">
+              {renderProductionTeamsSection("Columbia Falls")}
+            </TabsContent>
+
+            <TabsContent value="Libby" className="space-y-4 mt-6">
+              {renderProductionTeamsSection("Libby")}
+            </TabsContent>
+          </Tabs>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 mb-6">
+          <Icon className="h-6 w-6 text-blue-600" />
+          <h2 className="text-xl font-semibold">{config.name} Department Capacity</h2>
+        </div>
+        
+        <Tabs defaultValue="Columbia Falls" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="Columbia Falls">
+              <MapPin className="h-4 w-4 mr-2" />
+              Columbia Falls, MT
+            </TabsTrigger>
+            <TabsTrigger value="Libby">
+              <MapPin className="h-4 w-4 mr-2" />
+              Libby, MT
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="Columbia Falls" className="space-y-4 mt-6">
+            {renderDepartmentLocationSection(department, "Columbia Falls")}
+          </TabsContent>
+
+          <TabsContent value="Libby" className="space-y-4 mt-6">
+            {renderDepartmentLocationSection(department, "Libby")}
+          </TabsContent>
+        </Tabs>
       </div>
-    </>
-  );
+    );
+  };
 
-  const renderDepartmentsSection = (location: string) => {
-    // Filter departments by location
+  const renderProductionTeamsSection = (location: string) => {
+    const teams = location === "Columbia Falls" ? columbiaFallsTeams : libbyTeams;
+    const fullLocation = location === "Columbia Falls" ? "Columbia Falls, MT" : "Libby, MT";
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{location} Production Teams</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {teams.map((team) => {
+            const teamStats = calculateTeamUtilization(team.bayIds);
+            const teamMembersForTeam = teamMembers.filter(m => 
+              team.bayIds.includes(m.bayId || 0) && m.isActive
+            );
+            
+            return (
+              <TeamCapacityCard
+                key={team.name}
+                team={{
+                  name: team.name,
+                  bayIds: team.bayIds,
+                  location: fullLocation,
+                  utilization: teamStats.utilization,
+                  projectCount: teamStats.projectCount,
+                  memberCount: teamStats.memberCount,
+                  totalCapacity: teamStats.totalCapacity,
+                  activeProjectsInBay: teamStats.activeProjectsInBay
+                }}
+                members={teamMembersForTeam}
+                onAddMember={() => {
+                  setSelectedLocation(fullLocation);
+                  setEditingMember(null);
+                  setShowTeamMemberDialog(true);
+                }}
+                onEditMember={(member) => {
+                  setEditingMember(member);
+                  setSelectedLocation(fullLocation);
+                  setShowTeamMemberDialog(true);
+                }}
+                onDeleteMember={(id) => deleteTeamMemberMutation.mutate(id)}
+              />
+            );
+          })}
+          {teams.length === 0 && (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No production teams found for {location}.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderDepartmentLocationSection = (department: DepartmentType, location: string) => {
+    const config = departmentConfig[department];
+    const fullLocation = location === "Columbia Falls" ? "Columbia Falls, MT" : "Libby, MT";
     const locationDepartments = departments.filter(dept => 
-      dept.location === location && dept.isActive
+      dept.location === fullLocation && 
+      dept.departmentType === department &&
+      dept.isActive
     );
 
     return (
-      <>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">{location} Department Capacity</h3>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{location} {config.name}</h3>
           <Button
             size="sm"
             onClick={() => {
               setEditingDepartment({
                 id: 0,
-                departmentName: "",
-                departmentType: "fabrication",
-                location,
+                departmentName: config.name,
+                departmentType: department,
+                location: fullLocation,
                 weeklyCapacityHours: 2000,
                 isActive: true,
                 notes: "",
@@ -323,7 +350,7 @@ export default function CapacityPlanning() {
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Department
+            Add {config.name} Capacity
           </Button>
         </div>
 
@@ -358,76 +385,35 @@ export default function CapacityPlanning() {
           {locationDepartments.length === 0 && (
             <div className="col-span-full text-center py-12 text-muted-foreground">
               <Factory className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No departments configured for {location} yet.</p>
-              <p className="text-sm mt-2">Click "Add Department" to get started.</p>
+              <p>No {config.name} capacity configured for {location} yet.</p>
+              <p className="text-sm mt-2">Click "Add {config.name} Capacity" to get started.</p>
             </div>
           )}
         </div>
-      </>
+      </div>
     );
   };
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="columbia-falls" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="columbia-falls">
-            <MapPin className="h-4 w-4 mr-2" />
-            Columbia Falls, MT
-          </TabsTrigger>
-          <TabsTrigger value="libby">
-            <MapPin className="h-4 w-4 mr-2" />
-            Libby, MT
-          </TabsTrigger>
+      <Tabs value={selectedDepartment} onValueChange={(value) => setSelectedDepartment(value as DepartmentType)} className="w-full">
+        <TabsList className="grid w-full grid-cols-8">
+          {Object.entries(departmentConfig).map(([key, config]) => {
+            const Icon = config.icon;
+            return (
+              <TabsTrigger key={key} value={key} className="flex items-center gap-1">
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{config.name}</span>
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
-        {/* Columbia Falls Tab */}
-        <TabsContent value="columbia-falls" className="space-y-4 mt-6">
-          <Tabs defaultValue="teams" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="teams">
-                <Users className="h-4 w-4 mr-2" />
-                Production Teams
-              </TabsTrigger>
-              <TabsTrigger value="departments">
-                <Factory className="h-4 w-4 mr-2" />
-                Departments
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="teams" className="mt-6">
-              {renderTeamsSection(columbiaFallsTeams, "Columbia Falls, MT")}
-            </TabsContent>
-            
-            <TabsContent value="departments" className="mt-6">
-              {renderDepartmentsSection("Columbia Falls, MT")}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
-        {/* Libby Tab */}
-        <TabsContent value="libby" className="space-y-4 mt-6">
-          <Tabs defaultValue="teams" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="teams">
-                <Users className="h-4 w-4 mr-2" />
-                Production Teams
-              </TabsTrigger>
-              <TabsTrigger value="departments">
-                <Factory className="h-4 w-4 mr-2" />
-                Departments
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="teams" className="mt-6">
-              {renderTeamsSection(libbyTeams, "Libby, MT")}
-            </TabsContent>
-            
-            <TabsContent value="departments" className="mt-6">
-              {renderDepartmentsSection("Libby, MT")}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
+        {Object.keys(departmentConfig).map((department) => (
+          <TabsContent key={department} value={department} className="mt-6">
+            {renderDepartmentContent(department as DepartmentType)}
+          </TabsContent>
+        ))}
       </Tabs>
 
       {/* Team Member Dialog */}
@@ -436,13 +422,12 @@ export default function CapacityPlanning() {
           open={showTeamMemberDialog}
           onOpenChange={setShowTeamMemberDialog}
           member={editingMember}
-          teamName={selectedTeam}
+          teamName=""
           location={selectedLocation}
-          departmentId={selectedDepartment}
+          departmentId={selectedDepartmentId}
           onSave={(data) => {
             const saveData = {
               ...data,
-              teamName: selectedTeam || data.teamName,
               location: selectedLocation || data.location,
             };
             

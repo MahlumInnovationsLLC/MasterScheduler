@@ -864,12 +864,14 @@ export const manufacturingSchedulesRelations = relations(manufacturingSchedules,
 
 // Department Types Enum
 export const departmentTypeEnum = pgEnum("department_type", [
+  "mech",
   "fabrication",
   "paint",
+  "wrap",
   "production",
   "it",
   "ntc",
-  "qa",
+  "qc",
 ]);
 
 // Department Capacity Table
