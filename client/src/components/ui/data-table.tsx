@@ -423,7 +423,7 @@ export function DataTable<TData, TValue>({
 
       <div className="overflow-hidden">
         <div style={{ position: 'relative' }}>
-          <div className="grid grid-flow-col" style={{ width: 'fit-content', alignItems: 'stretch' }}>
+          <div className="grid grid-flow-col" style={{ width: 'fit-content', alignItems: 'start' }}>
             {/* Frozen columns - these will stay fixed */}
             <div 
               className="sticky left-0 z-40 shadow-md"
@@ -586,7 +586,11 @@ export function DataTable<TData, TValue>({
                   padding: 0;
                 }
                 tbody tr:last-child {
-                  border-bottom: none;
+                  border-bottom: none !important;
+                }
+                tbody tr:last-child td {
+                  padding-bottom: 0 !important;
+                  border-bottom: none !important;
                 }
               `}</style>
               <table className="border-collapse" style={{ marginBottom: '0px', borderSpacing: '0px' }}>
@@ -737,8 +741,9 @@ export function DataTable<TData, TValue>({
           </div>
           {/* External scrollbar positioned below both table sections */}
           <div 
-            className="overflow-x-auto mt-0 border-t border-border bg-muted/20" 
+            className="overflow-x-auto border-t border-border bg-muted/20"
             style={{ 
+              marginTop: '-1px',
               height: '15px',
               width: '100%',
               scrollbarWidth: 'thin', /* Firefox */
