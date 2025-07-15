@@ -365,7 +365,7 @@ export function DataTable<TData, TValue>({
   // Fixed row height for frozen columns
   const FROZEN_ROW_HEIGHT = '60px';
   // Fixed row height for scrollable area (slightly taller to fix alignment)
-  const SCROLLABLE_ROW_HEIGHT = '61px';
+  const SCROLLABLE_ROW_HEIGHT = '60.5px';
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
