@@ -489,7 +489,11 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-border transition-colors duration-150"
-                        style={{ height: ROW_HEIGHT }} // Explicitly set height for all rows
+                        style={{ 
+                          height: ROW_HEIGHT,
+                          boxSizing: 'border-box',
+                          lineHeight: ROW_HEIGHT
+                        }} // Explicitly set height for all rows
                         onMouseEnter={() => {
                           // Highlight corresponding row in scrollable section
                           const scrollableRow = document.querySelector(`[data-row-id="scrollable-${row.id}"]`);
@@ -677,7 +681,11 @@ export function DataTable<TData, TValue>({
                         key={row.id}
                         data-row-id={`scrollable-${row.id}`}
                         className="hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-border transition-colors duration-150"
-                        style={{ height: ROW_HEIGHT }} // Explicitly set height for all rows
+                        style={{ 
+                          height: ROW_HEIGHT,
+                          boxSizing: 'border-box',
+                          lineHeight: ROW_HEIGHT
+                        }} // Explicitly set height for all rows
                         onMouseEnter={() => {
                           // Highlight corresponding row in frozen section
                           const frozenRows = document.querySelectorAll(`tr[data-row-id="${row.id}"]`);
@@ -711,7 +719,9 @@ export function DataTable<TData, TValue>({
                                       ? `${Math.round(cell.column.columnDef.size * 1.2)}px` // Increase by 20%
                                       : cell.column.columnDef.size || '180px', // Default size increased by 20%
                                   borderRight: '1px solid var(--border-muted)',
-                                  height: ROW_HEIGHT
+                                  height: ROW_HEIGHT,
+                                  padding: '0 16px',
+                                  boxSizing: 'border-box'
                                 }}
                               >
                                 {flexRender(
