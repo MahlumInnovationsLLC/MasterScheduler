@@ -21,6 +21,7 @@ import { NotificationBell } from '@/components/ui/notification/NotificationBell'
 import { MyTasks } from '@/components/MyTasks';
 import { HeaderHelpButton } from './HeaderHelpButton';
 import GlobalSearch from './GlobalSearch';
+import { ShipmentBanner } from './ShipmentBanner';
 
 const Header = () => {
   const { user, isLoading } = useAuth();
@@ -41,12 +42,15 @@ const Header = () => {
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-border px-6 py-3 fixed top-0 left-0 right-0 z-20">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1">
           <Link href="/" className="text-primary font-bold text-2xl font-sans">
             <span>TIER</span><span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span><span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
           </Link>
           <div className="h-6 border-l border-border mx-2"></div>
           <GlobalSearch />
+          <div className="flex-1 mx-4">
+            <ShipmentBanner />
+          </div>
         </div>
         
         <div className="flex items-center gap-4">

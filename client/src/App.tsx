@@ -233,8 +233,7 @@ function MainContent() {
   return (
     <div className="min-h-screen flex flex-col bg-darkBg text-white desktop-layout">
       <Header />
-      <ShipmentBanner />
-      <div className="flex flex-1 h-[calc(100vh-104px)]">
+      <div className="flex flex-1 h-[calc(100vh-64px)]">
         <Sidebar />
         <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16 ${isCollapsed ? 'ml-[50px]' : 'ml-[260px]'}`}>
           <Switch>

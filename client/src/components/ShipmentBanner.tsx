@@ -37,7 +37,7 @@ export function ShipmentBanner() {
   const fullText = shipmentText + '    ' + shipmentText;
 
   return (
-    <div className="relative w-full h-10 bg-gray-900 dark:bg-gray-950 overflow-hidden border-b border-gray-800 dark:border-gray-700">
+    <div className="relative w-full h-8 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
       <style>
         {`
           @font-face {
@@ -47,8 +47,8 @@ export function ShipmentBanner() {
           
           .pixel-text {
             font-family: 'Courier New', monospace;
-            font-weight: bold;
-            letter-spacing: 2px;
+            font-weight: 600;
+            letter-spacing: 1px;
             text-transform: uppercase;
             image-rendering: pixelated;
             -webkit-font-smoothing: none;
@@ -57,11 +57,11 @@ export function ShipmentBanner() {
           
           .pixel-dot {
             display: inline-block;
-            width: 6px;
-            height: 6px;
+            width: 4px;
+            height: 4px;
             background-color: #f59e0b;
-            margin: 0 8px;
-            box-shadow: 0 0 4px #f59e0b;
+            margin: 0 6px;
+            box-shadow: 0 0 3px #f59e0b;
             animation: pulse 2s infinite;
           }
           
@@ -81,10 +81,10 @@ export function ShipmentBanner() {
         }}
       >
         <span 
-          className="pixel-text text-amber-500 dark:text-amber-400"
+          className="pixel-text text-gray-700 dark:text-gray-300"
           style={{
-            fontSize: '14px',
-            textShadow: '0 0 4px currentColor, 2px 2px 0 rgba(0,0,0,0.8)',
+            fontSize: '12px',
+            textShadow: '0 0 2px rgba(245, 158, 11, 0.3)',
           }}
         >
           {shipmentText.split('●').map((text, index) => (
@@ -105,8 +105,8 @@ export function ShipmentBanner() {
       </div>
       
       {/* Gradient overlays for fade effect */}
-      <div className="absolute left-0 top-0 h-full w-20 bg-gradient-to-r from-gray-900 dark:from-gray-950 to-transparent pointer-events-none" />
-      <div className="absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-gray-900 dark:from-gray-950 to-transparent pointer-events-none" />
+      <div className="absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-gray-100 dark:from-gray-800 to-transparent pointer-events-none" />
+      <div className="absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-gray-100 dark:from-gray-800 to-transparent pointer-events-none" />
     </div>
   );
 }
