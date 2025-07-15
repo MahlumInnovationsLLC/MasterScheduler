@@ -369,16 +369,18 @@ const ProjectStatus = () => {
     queryKey: ['/api/projects'],
     retry: 3,
     retryDelay: 1000,
-    staleTime: 30000,
+    staleTime: 60000, // Increased stale time to 60 seconds
     refetchOnWindowFocus: false,
+    refetchInterval: 120000, // Refetch every 2 minutes instead of constant polling
     select: (data) => safeParseArray(data, ProjectsResponseSchema, [])
   });
 
-  // Fetch ALL project label assignments at once to avoid N+1 queries
+  // Fetch ALL project label assignments at once to avoid N+1 queries - OPTIMIZED
   const { data: allProjectLabelAssignments = [], isLoading: labelsLoading } = useQuery({
     queryKey: ['/api/all-project-label-assignments'],
-    staleTime: 30000,
+    staleTime: 120000, // 2 minutes stale time
     refetchOnWindowFocus: false,
+    refetchInterval: 300000, // 5 minutes refetch interval
     select: (data) => safeParseArray(data, LabelAssignmentsResponseSchema, [])
   });
 
@@ -391,8 +393,9 @@ const ProjectStatus = () => {
 
   const { data: manufacturingSchedules = [], isLoading: schedulesLoading } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
-    staleTime: 30000,
+    staleTime: 120000, // 2 minutes stale time
     refetchOnWindowFocus: false,
+    refetchInterval: 300000, // 5 minutes refetch interval
     select: (data) => safeParseArray(data, ManufacturingSchedulesResponseSchema, [])
   });
 
@@ -919,6 +922,10 @@ const ProjectStatus = () => {
   // Filter dialog state
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
 
+  // Pagination state for CPU optimization
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50); // Start with 50 rows per page
+
   // Get label statistics
   const labelStats = useProjectLabelStats();
 
@@ -939,9 +946,53 @@ const ProjectStatus = () => {
     };
   }, [projects, labelStats]);
 
-  // Calculate project state breakdown
+  // Calculate project state breakdown - OPTIMIZED
   const projectStateBreakdown = React.useMemo(() => {
     if (!projects || projects.length === 0) return null;
+
+    // Pre-calculate schedule state lookup to avoid repeated function calls
+    const scheduleStateMap = new Map<number, string>();
+    if (manufacturingSchedules && Array.isArray(manufacturingSchedules)) {
+      const schedulesByProject = new Map<number, any[]>();
+      manufacturingSchedules.forEach(schedule => {
+        if (schedule.projectId) {
+          if (!schedulesByProject.has(schedule.projectId)) {
+            schedulesByProject.set(schedule.projectId, []);
+          }
+          schedulesByProject.get(schedule.projectId)!.push(schedule);
+        }
+      });
+
+      // Calculate state for each project only once
+      for (const [projectId, schedules] of schedulesByProject) {
+        const now = new Date();
+        const hasSchedules = schedules.length > 0;
+        
+        if (!hasSchedules) {
+          scheduleStateMap.set(projectId, 'Unscheduled');
+          continue;
+        }
+
+        const activeSchedules = schedules.filter(s => {
+          const start = new Date(s.startDate);
+          const end = new Date(s.endDate);
+          return start <= now && end >= now;
+        });
+
+        const futureSchedules = schedules.filter(s => {
+          const start = new Date(s.startDate);
+          return start > now;
+        });
+
+        if (activeSchedules.length > 0) {
+          scheduleStateMap.set(projectId, 'In Progress');
+        } else if (futureSchedules.length > 0) {
+          scheduleStateMap.set(projectId, 'Scheduled');
+        } else {
+          scheduleStateMap.set(projectId, 'Complete');
+        }
+      }
+    }
 
     // Initialize counters
     let unscheduled = 0;
@@ -970,7 +1021,7 @@ const ProjectStatus = () => {
       }
 
       // For all other projects, categorize by their schedule state
-      const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
+      const scheduleState = scheduleStateMap.get(project.id) || 'Unscheduled';
 
       if (scheduleState === 'Unscheduled') {
         unscheduled++;
@@ -1006,99 +1057,107 @@ const ProjectStatus = () => {
     }
   }, []);
 
-  // Apply date filters and location filters to projects
+  // Optimize date range check with memoization
+  const isInDateRange = React.useCallback((dateValue: string | null | undefined, minDate: string, maxDate: string): boolean => {
+    if (!dateValue) return true; // Skip filtering if no date value
+
+    const parsedDate = parseDate(dateValue);
+    if (!parsedDate) return true; // Skip if unparseable
+
+    const minParsed = minDate ? parseDate(minDate) : null;
+    const maxParsed = maxDate ? parseDate(maxDate) : null;
+
+    if (minParsed && parsedDate < minParsed) {
+      return false;
+    }
+
+    if (maxParsed && parsedDate > maxParsed) {
+      return false;
+    }
+
+    return true;
+  }, [parseDate]);
+
+  // Apply date filters and location filters to projects - OPTIMIZED
   const filteredProjects = React.useMemo(() => {
-    if (!projects) return [];
-
-    // Helper to check date range
-    const isInDateRange = (dateValue: string | null | undefined, minDate: string, maxDate: string): boolean => {
-      if (!dateValue) return true; // Skip filtering if no date value
-
-      const parsedDate = parseDate(dateValue);
-      if (!parsedDate) return true; // Skip if unparseable
-
-      const minParsed = minDate ? parseDate(minDate) : null;
-      const maxParsed = maxDate ? parseDate(maxDate) : null;
-
-      if (minParsed && parsedDate < minParsed) {
-        return false;
-      }
-
-      if (maxParsed && parsedDate > maxParsed) {
-        return false;
-      }
-
-      return true;
-    };
+    if (!projects || !Array.isArray(projects)) return [];
 
     // Cast projects to ProjectWithRawData[] using safe array utility
     const projectsWithPriority = ensureArray(projects, [], 'ProjectStatus.projects') as ProjectWithRawData[];
 
-    const filtered = safeFilter(projectsWithPriority, (project: ProjectWithRawData) => {
-      // Now we'll only filter out archived projects if showArchived is false
-      // This allows displaying all projects including archived ones when showArchived is true
+    // Check if any filter is active - calculate once
+    const hasActiveFilters = Object.values(dateFilters).some(val => val !== '') || locationFilter !== '';
+
+    // Fast path: if no filters, just handle archived projects and sort
+    if (!hasActiveFilters) {
+      const filtered = showArchived ? projectsWithPriority : projectsWithPriority.filter(p => p.status !== 'archived');
+      return filtered.sort((a, b) => {
+        const aDelivered = a.status === 'delivered';
+        const bDelivered = b.status === 'delivered';
+        if (aDelivered && !bDelivered) return 1;
+        if (!aDelivered && bDelivered) return -1;
+        return 0;
+      });
+    }
+
+    // Only apply expensive filtering when necessary
+    const filtered = projectsWithPriority.filter((project: ProjectWithRawData) => {
+      // Archive filter (fast check first)
       if (project.status === 'archived' && !showArchived) {
         return false;
       }
 
-      // Check if any filter is active
-      const hasActiveFilters = Object.values(dateFilters).some(val => val !== '') || locationFilter !== '';
-
-      // If no filters, return all projects (archived ones only if showArchived is true)
-      if (!hasActiveFilters) {
-        return true;
-      }
-
-      // Location filtering
+      // Location filtering (fast string comparison)
       if (locationFilter && project.location) {
-        // If the project location doesn't match the filter, exclude it
         if (project.location.toLowerCase() !== locationFilter.toLowerCase()) {
           return false;
         }
       }
 
-      // Start Date Filtering
+      // Date filtering (most expensive - do last)
       if (!isInDateRange(project.startDate, dateFilters.startDateMin, dateFilters.startDateMax)) {
         return false;
       }
 
-      // End Date Filtering
       if (!isInDateRange(project.estimatedCompletionDate, dateFilters.endDateMin, dateFilters.endDateMax)) {
         return false;
       }
 
-      // QC Start Date Filtering
       if (!isInDateRange(project.qcStartDate, dateFilters.qcStartDateMin, dateFilters.qcStartDateMax)) {
         return false;
       }
 
-      // Ship Date Filtering
       if (!isInDateRange(project.shipDate, dateFilters.shipDateMin, dateFilters.shipDateMax)) {
         return false;
       }
 
       return true;
-    }, 'ProjectStatus.projectFilter');
+    });
 
-    // Debug: Log the filtered result type
-    console.log('[ProjectStatus] filtered type:', typeof filtered, 'isArray:', Array.isArray(filtered), 'length:', filtered?.length);
-
-    // Ensure filtered is always an array before sorting
-    const safeFiltered = ensureArray(filtered, [], 'ProjectStatus.filteredSort');
-
-    // ALWAYS sort delivered projects to the bottom regardless of other sorting
-    return safeFiltered.sort((a, b) => {
-      // First priority: delivered projects always go to the bottom
+    // Sort with delivered projects at bottom
+    return filtered.sort((a, b) => {
       const aDelivered = a.status === 'delivered';
       const bDelivered = b.status === 'delivered';
-
-      if (aDelivered && !bDelivered) return 1;  // a goes to bottom
-      if (!aDelivered && bDelivered) return -1; // b goes to bottom
-
-      // If both or neither are delivered, maintain existing order
+      if (aDelivered && !bDelivered) return 1;
+      if (!aDelivered && bDelivered) return -1;
       return 0;
     });
-  }, [projects, dateFilters, locationFilter, showArchived]);
+  }, [projects, dateFilters, locationFilter, showArchived, isInDateRange]);
+
+  // Paginate filtered projects for CPU optimization
+  const paginatedProjects = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredProjects.slice(startIndex, endIndex);
+  }, [filteredProjects, currentPage, pageSize]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredProjects.length / pageSize);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [dateFilters, locationFilter, showArchived]);
 
   // Commented out DOM manipulation to prevent infinite loops
   // This was causing re-renders by adding event listeners
@@ -2314,7 +2373,7 @@ const ProjectStatus = () => {
 
               <div className="flex justify-between mt-6">
                 <div className="text-sm text-gray-400">
-                  {filteredProjects.length} projects match filter criteria
+                  {filteredProjects.length} projects match filter criteria (showing {paginatedProjects.length} on page {currentPage})
                 </div>
                 <div className="flex gap-2">
                   <Button variant="destructive" onClick={resetFilters}>
@@ -2441,7 +2500,7 @@ const ProjectStatus = () => {
       <div className="relative">
         <DataTable
           columns={columns}
-          data={filteredProjects as ProjectWithRawData[]}
+          data={paginatedProjects as ProjectWithRawData[]}
           filterColumn="status"
           filterOptions={statusOptions}
           searchPlaceholder="Search by project number, name, PM owner, location, status..."
@@ -2451,6 +2510,97 @@ const ProjectStatus = () => {
           persistenceKey="projects-table" // Add persistence key for sorting/pagination
           onExportExcel={handleExcelExport}
         />
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between mt-4 p-4 bg-gray-900 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <span>
+              Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredProjects.length)} of {filteredProjects.length} projects
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {/* Show first page */}
+              {currentPage > 3 && (
+                <>
+                  <Button
+                    variant={currentPage === 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                  >
+                    1
+                  </Button>
+                  {currentPage > 4 && <span className="px-2">...</span>}
+                </>
+              )}
+              
+              {/* Show pages around current */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                if (pageNum > totalPages) return null;
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+              
+              {/* Show last page */}
+              {currentPage < totalPages - 2 && (
+                <>
+                  {currentPage < totalPages - 3 && <span className="px-2">...</span>}
+                  <Button
+                    variant={currentPage === totalPages ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                  >
+                    {totalPages}
+                  </Button>
+                </>
+              )}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        </div>
 
         {/* Custom Filter Buttons - Will be moved to the results header using portal/DOM manipulation */}
         {/* Filter buttons source div - HIDDEN 
@@ -2470,7 +2620,7 @@ const ProjectStatus = () => {
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <Calendar className="h-4 w-4" />
             <span>
-              Date filters applied. Showing {filteredProjects.length} out of {projects?.length || 0} projects.
+              Date filters applied. Showing {paginatedProjects.length} out of {filteredProjects.length} projects (Page {currentPage} of {totalPages}).
             </span>
           </div>
           <Button variant="ghost" size="sm" onClick={resetFilters}>
