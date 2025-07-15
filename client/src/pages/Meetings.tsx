@@ -716,15 +716,23 @@ export default function Meetings() {
     if (!concernToClose) return;
 
     try {
-      // First create the task
-      await createTaskMutation.mutateAsync({
+      // First create the task with properly formatted data
+      const taskData = {
         projectId: concernToClose.projectId,
-        ...closeTaskForm
-      });
+        name: closeTaskForm.name,
+        description: closeTaskForm.description,
+        dueDate: closeTaskForm.dueDate && closeTaskForm.dueDate.trim() !== "" ? closeTaskForm.dueDate : null,
+        assignedToUserId: closeTaskForm.assignedToUserId && closeTaskForm.assignedToUserId.trim() !== "" ? closeTaskForm.assignedToUserId : null,
+        department: closeTaskForm.department && closeTaskForm.department.trim() !== "" ? closeTaskForm.department : null,
+        isCompleted: false
+      };
+
+      await createTaskMutation.mutateAsync(taskData);
 
       // Then close the concern
       await closeConcernMutation.mutateAsync(concernToClose.id);
     } catch (error) {
+      console.error('Error closing concern:', error);
       toast({ 
         title: "Error", 
         description: "Failed to close concern and create task",

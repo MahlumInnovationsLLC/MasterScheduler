@@ -583,6 +583,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Added comprehensive debugging to track container dimensions and scroll calculations
   - Project numbers in dashboard snapshot are already clickable links to project pages
   - Scrolling now properly centers projects both horizontally and vertically within the dashboard bay schedule viewport
+- January 15, 2025: Tier IV Escalated Concerns Close Task Fix
+  - Fixed critical error in closing escalated concerns and creating follow-up tasks
+  - Updated handleSubmitCloseConcern to properly format task data with null values instead of empty strings
+  - Added proper validation for optional fields (dueDate, assignedToUserId, department)
+  - Fixed task creation to include all required fields with correct data types
+  - Enhanced error handling with console logging for better debugging
+  - Resolved "Failed to close concern and create task" error in Tier IV module
 
 
 ## User Preferences
