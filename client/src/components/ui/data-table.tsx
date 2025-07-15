@@ -247,6 +247,12 @@ export function DataTable<TData, TValue>({
         // If both or neither are delivered, proceed with normal sorting
         let valueA = rowA.getValue(columnId) as string | number | Date | null | undefined;
         let valueB = rowB.getValue(columnId) as string | number | Date | null | undefined;
+        
+        // Special handling for shipDate column - get values from original data
+        if (columnId === 'shipDate') {
+          valueA = rowA.original?.shipDate;
+          valueB = rowB.original?.shipDate;
+        }
 
         // Handle N/A values
         const isANA = valueA === 'N/A' || valueA === null || valueA === undefined || valueA === '';
