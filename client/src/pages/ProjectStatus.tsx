@@ -1497,6 +1497,7 @@ const ProjectStatus = () => {
       id,
       accessorKey,
       header,
+      enableSorting: true, // Explicitly enable sorting
       // Use custom sort function to make N/A values appear at the bottom
       sortingFn: options.sortingFn || 'customSort' as any,
       ...options,

@@ -491,7 +491,12 @@ export function DataTable<TData, TValue>({
                                   ? 'flex items-center gap-1 cursor-pointer select-none'
                                   : ''
                               }
-                              onClick={() => handleColumnSort(header.column)}
+                              onClick={() => {
+                                console.log('🔍 SORTING DEBUG: Frozen column clicked:', header.column.id, 'canSort:', header.column.getCanSort());
+                                if (header.column.getCanSort()) {
+                                  handleColumnSort(header.column);
+                                }
+                              }}
                             >
                               {flexRender(
                                 header.column.columnDef.header,
@@ -681,7 +686,12 @@ export function DataTable<TData, TValue>({
                                   ? 'flex items-center gap-1 cursor-pointer select-none'
                                   : ''
                               }
-                              onClick={() => handleColumnSort(header.column)}
+                              onClick={() => {
+                                console.log('🔍 SORTING DEBUG: Scrollable column clicked:', header.column.id, 'canSort:', header.column.getCanSort());
+                                if (header.column.getCanSort()) {
+                                  handleColumnSort(header.column);
+                                }
+                              }}
                             >
                               {headerText}
                               {header.column.getCanSort() && (
