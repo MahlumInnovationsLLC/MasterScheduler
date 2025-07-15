@@ -1213,6 +1213,13 @@ const ProjectStatus = () => {
       shipDateMin: '',
       shipDateMax: '',
     });
+    // Reset sorting to default (ship date earliest) when filters are cleared
+    // This will be handled by the DataTable's localStorage clearing and initial sorting
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('datatable-sorting-projects-table-v2');
+      // Force page reload to ensure sorting is reset properly
+      window.location.reload();
+    }
   };
 
   // Handle Excel export - excludes delivered projects and shows only date columns

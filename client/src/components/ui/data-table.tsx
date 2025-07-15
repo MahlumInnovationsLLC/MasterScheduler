@@ -75,10 +75,12 @@ export function DataTable<TData, TValue>({
           // If saved sorting is empty, return initialSorting instead
           return parsed.length === 0 ? initialSorting : parsed;
         } catch (e) {
-          // Ignore invalid saved data
+          // Ignore invalid saved data and fall back to initial sorting
+          return initialSorting;
         }
       }
     }
+    // Always return initialSorting if no saved state exists
     return initialSorting;
   };
 
@@ -95,6 +97,13 @@ export function DataTable<TData, TValue>({
       localStorage.setItem(`datatable-sorting-${persistenceKey}`, JSON.stringify(sortingToSave));
     }
   }, [sorting, persistenceKey, initialSorting]);
+
+  // Ensure default sorting when no sorting is active and no filters are applied
+  useEffect(() => {
+    if (sorting.length === 0 && columnFilters.length === 0 && !globalFilter && initialSorting.length > 0) {
+      setSorting(initialSorting);
+    }
+  }, [sorting, columnFilters, globalFilter, initialSorting]);
 
   // Initialize pageIndex with saved value immediately
   const getInitialPageIndex = () => {
@@ -169,10 +178,10 @@ export function DataTable<TData, TValue>({
       const newSorting = [{ id: column.id, desc: true }];
       setSorting(newSorting);
     } else {
-      // Descending -> clear (which triggers default sorting)
-      setSorting([]); // This will trigger the onSortingChange handler to apply default
+      // Descending -> clear and return to default sorting (ship date earliest)
+      setSorting(initialSorting.length > 0 ? initialSorting : []);
     }
-  }, [setSorting]);
+  }, [setSorting, initialSorting]);
 
   // Modify the columns to always enable sorting for all columns
   const columnsWithSorting = React.useMemo(() => {

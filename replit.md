@@ -555,6 +555,14 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Changed ViewerRestrictedRoute to ProtectedRoute in App.tsx routing for forecast module
   - Removed forecast from viewer role exclusion list in module visibility defaults
   - Forecast module now accessible to all authenticated users (admin, editor, viewer roles)
+- January 15, 2025: Project Status Table Default Ship Date Sorting Enhancement
+  - Fixed critical table sorting issue where sorting was only applied to current page data instead of full dataset
+  - Updated DataTable to use all filtered projects for proper sorting across all pages
+  - Implemented consistent default Ship Date sorting (earliest first) on page load and when no other sorting is active
+  - Enhanced resetFilters function to clear sorting state and return to default ship date sorting
+  - Added automatic fallback to default sorting when users clear column sorting (none -> asc -> desc -> default)
+  - Ensured Ship Date sorting works with actual database dates rather than display dates
+  - Table now maintains proper sorting behavior across pagination and filter changes
 
 
 ## User Preferences
