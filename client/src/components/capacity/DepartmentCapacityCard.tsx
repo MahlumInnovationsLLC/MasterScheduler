@@ -162,11 +162,11 @@ export default function DepartmentCapacityCard({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={utilization > 100 ? "destructive" : utilization > 85 ? "warning" : "success"}>
+          <div className="flex items-start gap-2">
+            <Badge variant={utilization > 100 ? "destructive" : utilization > 85 ? "warning" : "success"} className="whitespace-nowrap">
               {utilization.toFixed(0)}% Load
             </Badge>
-            <Button onClick={onEditDepartment} size="sm" variant="ghost" className="h-8 w-8 p-0">
+            <Button onClick={onEditDepartment} size="sm" variant="ghost" className="h-8 w-8 p-0 flex-shrink-0">
               <Settings className="h-4 w-4" />
             </Button>
           </div>
