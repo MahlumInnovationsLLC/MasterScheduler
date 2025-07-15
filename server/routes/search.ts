@@ -30,16 +30,60 @@ router.get("/search", async (req: Request, res: Response) => {
       return true; // For now, allowing all authenticated users to see projects
     });
 
+    // Search projects - enhanced with PM owner, engineers, and dates
     accessibleProjects.forEach(project => {
       const projectNumber = project.projectNumber?.toLowerCase() || '';
       const projectName = project.name?.toLowerCase() || '';
+      const pmOwner = project.pmOwner?.toLowerCase() || '';
+      const meAssigned = project.meAssigned?.toLowerCase() || '';
+      const eeAssigned = project.eeAssigned?.toLowerCase() || '';
+      const iteAssigned = project.iteAssigned?.toLowerCase() || '';
       
-      if (projectNumber.includes(query) || projectName.includes(query)) {
+      // Check various fields
+      const matchesQuery = 
+        projectNumber.includes(query) || 
+        projectName.includes(query) ||
+        pmOwner.includes(query) ||
+        meAssigned.includes(query) ||
+        eeAssigned.includes(query) ||
+        iteAssigned.includes(query);
+      
+      // Also check dates if query looks like a date
+      const dateMatch = query.match(/\d{1,2}[\/-]\d{1,2}|\d{4}/);
+      if (dateMatch && project.shipDate) {
+        const shipDate = new Date(project.shipDate).toLocaleDateString().toLowerCase();
+        if (shipDate.includes(query)) {
+          results.push({
+            type: 'project',
+            id: project.id,
+            title: `${project.projectNumber} - ${project.name}`,
+            subtitle: `Ship Date: ${new Date(project.shipDate).toLocaleDateString()} • ${project.team || 'No team'}`,
+            status: project.status,
+            route: `/project/${project.id}`,
+          });
+          return;
+        }
+      }
+      
+      if (matchesQuery) {
+        let subtitle = `${project.team || 'No team'} • ${project.status || 'Active'}`;
+        
+        // Add context about what matched
+        if (pmOwner.includes(query)) {
+          subtitle = `PM: ${project.pmOwner} • ${project.team || 'No team'}`;
+        } else if (meAssigned.includes(query) || eeAssigned.includes(query) || iteAssigned.includes(query)) {
+          const engineers = [];
+          if (project.meAssigned) engineers.push(`ME: ${project.meAssigned}`);
+          if (project.eeAssigned) engineers.push(`EE: ${project.eeAssigned}`);
+          if (project.iteAssigned) engineers.push(`ITE: ${project.iteAssigned}`);
+          subtitle = engineers.join(' • ');
+        }
+        
         results.push({
           type: 'project',
           id: project.id,
           title: `${project.projectNumber} - ${project.name}`,
-          subtitle: `${project.team || 'No team'} • ${project.status || 'Active'}`,
+          subtitle: subtitle,
           status: project.status,
           route: `/project/${project.id}`,
         });

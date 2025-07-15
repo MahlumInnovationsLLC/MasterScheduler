@@ -51,6 +51,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { MobileHeader } from "@/components/MobileHeader";
 import { MobileSidebar } from "@/components/MobileSidebar";
+import { ShipmentBanner } from "@/components/ShipmentBanner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
@@ -232,7 +233,8 @@ function MainContent() {
   return (
     <div className="min-h-screen flex flex-col bg-darkBg text-white desktop-layout">
       <Header />
-      <div className="flex flex-1 h-[calc(100vh-64px)]">
+      <ShipmentBanner />
+      <div className="flex flex-1 h-[calc(100vh-104px)]">
         <Sidebar />
         <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16 ${isCollapsed ? 'ml-[50px]' : 'ml-[260px]'}`}>
           <Switch>

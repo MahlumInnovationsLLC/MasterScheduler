@@ -101,6 +101,7 @@ import { format, differenceInDays, addDays } from "date-fns";
 import { setupPTNRoutes } from "./routes/ptnApi";
 import { setupAIInsightsRoutes } from "./routes/aiInsights";
 import { searchRouter } from "./routes/search";
+import { shipmentsRouter } from "./routes/shipments";
 import {
   analyzeProjectHealth,
   generateBillingInsights,
@@ -5417,6 +5418,7 @@ Response format:
   app.use('/api/engineering', requireEngineeringAccess, engineeringRoutes);
   app.use('/api/capacity', simpleAuth, capacityRoutes);
   app.use('/api', simpleAuth, searchRouter);
+  app.use('/api', simpleAuth, shipmentsRouter);
   
 
 
