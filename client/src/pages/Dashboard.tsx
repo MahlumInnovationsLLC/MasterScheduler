@@ -849,14 +849,26 @@ const Dashboard = () => {
               el.childElementCount === 0) { // Only leaf nodes with text
             
             // Check if this element is part of the manufacturing schedule
-            const parentSchedule = el.closest('.schedule-container, .manufacturing-schedule, .bay-schedule');
+            const parentSchedule = el.closest('.schedule-container, .manufacturing-schedule, .bay-schedule, .bay-schedule-container');
             if (parentSchedule) {
-              targetBar = el.closest('.project-bar, .schedule-bar, [data-project-id]') || el;
+              targetBar = el.closest('.project-bar, .schedule-bar, [data-project-id], .schedule-item') || el;
               break;
             }
           }
         }
       }
+      
+      // Additional debug logging for element selection
+      console.log('Element selection debug:', {
+        targetProject: targetProject.projectNumber,
+        targetBar: targetBar ? {
+          className: targetBar.className,
+          tagName: targetBar.tagName,
+          textContent: targetBar.textContent?.substring(0, 50),
+          offsetTop: targetBar.offsetTop,
+          offsetLeft: targetBar.offsetLeft
+        } : null
+      });
 
       if (!targetBar) {
         toast({
@@ -887,24 +899,50 @@ const Dashboard = () => {
       }
 
       // Get the bay row that contains the target bar for vertical scrolling
-      const bayRow = targetBar.closest('.bay-row') || targetBar.closest('[data-bay-id]') || targetBar.closest('.schedule-row');
+      const bayRow = targetBar.closest('.bay-row') || 
+                     targetBar.closest('[data-bay-id]') || 
+                     targetBar.closest('.schedule-row') ||
+                     targetBar.parentElement?.closest('.bay-container') ||
+                     targetBar.parentElement?.closest('[data-bay-name]');
+      
+      // Also try to find the bay container directly using bay information
+      const bay = manufacturingBays?.find(b => b.id === projectSchedule.bayId);
+      const bayContainer = document.querySelector(`[data-bay-id="${projectSchedule.bayId}"]`) ||
+                          document.querySelector(`[data-bay-name*="${projectSchedule.bayId}"]`) ||
+                          (bay ? document.querySelector(`[data-bay-name*="${bay.name}"]`) : null);
       
       console.log('Dashboard scroll debug:', {
         scrollContainer: scrollContainer.className,
         targetBar: targetBar.className,
         bayRow: bayRow?.className,
+        bayContainer: bayContainer?.className,
         targetBarOffsetLeft: targetBar.offsetLeft,
         targetBarOffsetTop: targetBar.offsetTop,
-        bayRowOffsetTop: bayRow?.offsetTop
+        bayRowOffsetTop: bayRow?.offsetTop,
+        bayContainerOffsetTop: bayContainer?.offsetTop,
+        projectScheduleBayId: projectSchedule.bayId
       });
 
-      // Calculate both horizontal and vertical scroll positions
+      // Calculate horizontal scroll position
       const scrollLeft = targetBar.offsetLeft - (scrollContainer.clientWidth / 2) + (targetBar.offsetWidth / 2);
-      const scrollTop = bayRow ? 
-        bayRow.offsetTop - (scrollContainer.clientHeight / 2) + (bayRow.offsetHeight / 2) :
-        targetBar.offsetTop - (scrollContainer.clientHeight / 2) + (targetBar.offsetHeight / 2);
+      
+      // Calculate vertical scroll position - try multiple approaches
+      let scrollTop = 0;
+      
+      if (bayRow) {
+        scrollTop = bayRow.offsetTop - (scrollContainer.clientHeight / 2) + (bayRow.offsetHeight / 2);
+        console.log('Using bayRow for vertical scroll:', scrollTop);
+      } else if (bayContainer) {
+        scrollTop = bayContainer.offsetTop - (scrollContainer.clientHeight / 2) + (bayContainer.offsetHeight / 2);
+        console.log('Using bayContainer for vertical scroll:', scrollTop);
+      } else {
+        // Fallback to target bar position
+        scrollTop = targetBar.offsetTop - (scrollContainer.clientHeight / 2) + (targetBar.offsetHeight / 2);
+        console.log('Using targetBar for vertical scroll:', scrollTop);
+      }
 
       // Perform both horizontal and vertical scroll
+      console.log('Scrolling to:', { left: Math.max(0, scrollLeft), top: Math.max(0, scrollTop) });
       scrollContainer.scrollTo({
         left: Math.max(0, scrollLeft),
         top: Math.max(0, scrollTop),
