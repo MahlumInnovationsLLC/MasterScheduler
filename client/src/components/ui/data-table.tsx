@@ -84,6 +84,7 @@ export function DataTable<TData, TValue>({
 
   const [sorting, setSorting] = useState<SortingState>(getSavedSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
   const [globalFilter, setGlobalFilter] = useState<string>("");
   
   // Save sorting state when it changes
