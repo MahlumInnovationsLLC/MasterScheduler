@@ -2501,14 +2501,10 @@ const ProjectStatus = () => {
       <div className="relative">
         <div 
           className="transition-all duration-300 ease-in-out"
-          style={{ 
-            height: `${pageSize * 60 + 180}px`, // Dynamic height based on page size
-            maxHeight: `${pageSize * 60 + 180}px` // Allow proper viewport sizing
-          }}
         >
           <DataTable
             columns={columns}
-            data={paginatedProjects as ProjectWithRawData[]}
+            data={filteredProjects as ProjectWithRawData[]}
             filterColumn="status"
             filterOptions={statusOptions}
             searchPlaceholder="Search by project number, name, PM owner, location, status..."
@@ -2517,111 +2513,10 @@ const ProjectStatus = () => {
             initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)
             persistenceKey="projects-table-v2" // Add persistence key for sorting/pagination
             onExportExcel={handleExcelExport}
-            showPagination={false} // Disable built-in pagination since we're using custom pagination
+            showPagination={true} // Enable built-in pagination to handle sorting properly
           />
         </div>
 
-        {/* Pagination Controls - Always visible */}
-        <div className="flex items-center justify-between mt-4 p-4 bg-gray-900 rounded-lg relative z-10">
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <span>
-              Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredProjects.length)} of {filteredProjects.length} projects
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            
-            <div className="flex items-center gap-1">
-              {/* Show first page */}
-              {currentPage > 3 && (
-                <>
-                  <Button
-                    variant={currentPage === 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(1)}
-                  >
-                    1
-                  </Button>
-                  {currentPage > 4 && <span className="px-2">...</span>}
-                </>
-              )}
-              
-              {/* Show pages around current */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-                if (pageNum > totalPages) return null;
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(pageNum)}
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-              
-              {/* Show last page */}
-              {currentPage < totalPages - 2 && (
-                <>
-                  {currentPage < totalPages - 3 && <span className="px-2">...</span>}
-                  <Button
-                    variant={currentPage === totalPages ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(totalPages)}
-                  >
-                    {totalPages}
-                  </Button>
-                </>
-              )}
-            </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Custom Filter Buttons - Will be moved to the results header using portal/DOM manipulation */}
-        {/* Filter buttons source div - HIDDEN 
-            These buttons are not displayed at the top of the results window
-            They are still available in the UI in other places as needed
-        */}
-        <div className="absolute top-0 left-0 opacity-0 pointer-events-none hidden">
-          <div id="custom-filter-buttons-source" className="flex items-center gap-2">
-            {/* Keeping the buttons in the DOM but hiding them completely */}
-          </div>
-        </div>
       </div>
 
       {/* Filters Info */}
@@ -2630,7 +2525,7 @@ const ProjectStatus = () => {
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <Calendar className="h-4 w-4" />
             <span>
-              Date filters applied. Showing {paginatedProjects.length} out of {filteredProjects.length} projects (Page {currentPage} of {totalPages}).
+              Date filters applied. Showing {filteredProjects.length} projects.
             </span>
           </div>
           <Button variant="ghost" size="sm" onClick={resetFilters}>
