@@ -34,7 +34,7 @@ export default function TeamCapacityCard({
 
   // Calculate active projects in production phases for this bay
   const today = new Date();
-  const activeSchedules = schedules.filter(s => s.bayId === bay.id);
+  const activeSchedules = schedules ? schedules.filter(s => s.bayId === bay.id) : [];
   const activeProjects = activeSchedules.filter(schedule => {
     const project = projects.find(p => p.id === schedule.projectId);
     if (!project || project.status === "Delivered" || project.status === "Cancelled") return false;

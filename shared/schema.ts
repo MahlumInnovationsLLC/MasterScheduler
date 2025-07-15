@@ -880,9 +880,7 @@ export const departmentCapacity = pgTable("department_capacity", {
   departmentType: departmentTypeEnum("department_type").notNull(),
   departmentName: text("department_name").notNull(),
   location: text("location").notNull().default("Columbia Falls, MT"), // Columbia Falls, MT or Libby, MT
-  totalStaffCount: integer("total_staff_count").default(0),
   weeklyCapacityHours: integer("weekly_capacity_hours").default(0), // Total available hours per week
-  utilizationTarget: integer("utilization_target").default(85), // Target utilization percentage
   isActive: boolean("is_active").default(true),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),

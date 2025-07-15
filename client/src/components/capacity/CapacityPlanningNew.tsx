@@ -283,17 +283,20 @@ export default function CapacityPlanning() {
             return (
               <TeamCapacityCard
                 key={team.name}
-                team={{
+                bay={{
+                  id: team.bayIds[0] || 0,
+                  bayNumber: team.bayIds[0] || 0,
                   name: team.name,
-                  bayIds: team.bayIds,
+                  team: team.name,
                   location: fullLocation,
-                  utilization: teamStats.utilization,
-                  projectCount: teamStats.projectCount,
-                  memberCount: teamStats.memberCount,
-                  totalCapacity: teamStats.totalCapacity,
-                  activeProjectsInBay: teamStats.activeProjectsInBay
+                  capacity: 2,
+                  isActive: true,
+                  createdAt: new Date(),
+                  updatedAt: new Date()
                 }}
                 members={teamMembersForTeam}
+                projects={projects}
+                schedules={schedules || []}
                 onAddMember={() => {
                   setSelectedLocation(fullLocation);
                   setEditingMember(null);
