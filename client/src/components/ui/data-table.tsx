@@ -555,6 +555,8 @@ export function DataTable<TData, TValue>({
                 msOverflowStyle: 'none', /* IE and Edge */
                 marginBottom: '0px', // Remove any default bottom margin
                 paddingBottom: '0px', // Remove any default bottom padding
+                height: 'fit-content', // Ensure container height matches content exactly
+                lineHeight: '1', // Remove default line height spacing
               }}
               onScroll={(e) => {
                 // Sync scroll with external scrollbar
@@ -573,8 +575,21 @@ export function DataTable<TData, TValue>({
                 div::-webkit-scrollbar {
                   display: none;
                 }
+                table {
+                  border-spacing: 0;
+                  border-collapse: collapse;
+                  margin: 0;
+                  padding: 0;
+                }
+                tbody {
+                  margin: 0;
+                  padding: 0;
+                }
+                tbody tr:last-child {
+                  border-bottom: none;
+                }
               `}</style>
-              <table className="border-collapse" style={{ marginBottom: '0px' }}>
+              <table className="border-collapse" style={{ marginBottom: '0px', borderSpacing: '0px' }}>
                 <thead>
                   <tr className="bg-muted/50">
                     {table.getHeaderGroups()[0].headers.map((header) => {
@@ -651,7 +666,7 @@ export function DataTable<TData, TValue>({
                     })}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody style={{ marginBottom: '0px', paddingBottom: '0px' }}>
                   {(showPagination ? table.getRowModel().rows : table.getFilteredRowModel().rows).length > 0 ? (
                     (showPagination ? table.getRowModel().rows : table.getFilteredRowModel().rows).map((row) => (
                       <tr
