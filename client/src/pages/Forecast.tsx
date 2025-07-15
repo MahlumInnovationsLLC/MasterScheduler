@@ -731,6 +731,44 @@ export function Forecast() {
     }
   });
 
+  // Helper function to calculate proportional hours for a time period
+  const calculateProportionalHours = (projects: any[], periodStart: Date, periodEnd: Date, filterFn?: (p: any) => boolean) => {
+    let totalHours = 0;
+    let projectCount = 0;
+    
+    projects.forEach((p: any) => {
+      if (!scheduledProjectIds.has(p.id)) return;
+      if (filterFn && !filterFn(p)) return;
+      
+      const schedule = schedules.find((s: any) => s.projectId === p.id);
+      if (!schedule) return;
+      
+      const projectStart = new Date(schedule.startDate);
+      const projectEnd = new Date(schedule.endDate);
+      
+      // Check if project overlaps with the period
+      if (projectStart <= periodEnd && projectEnd >= periodStart) {
+        // Calculate the overlap between project and period
+        const overlapStart = new Date(Math.max(projectStart.getTime(), periodStart.getTime()));
+        const overlapEnd = new Date(Math.min(projectEnd.getTime(), periodEnd.getTime()));
+        
+        // Calculate total project duration in days
+        const projectDurationDays = Math.ceil((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Calculate overlap duration in days
+        const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Calculate proportional hours for this period
+        const proportionalHours = (p.totalHours || 0) * (overlapDays / projectDurationDays);
+        
+        totalHours += proportionalHours;
+        projectCount++;
+      }
+    });
+    
+    return { totalHours, projectCount };
+  };
+
   // Calculate scheduled projects count for the current year
   const getScheduledProjectsCount = () => {
     return projects.filter((p: any) => scheduledProjectIds.has(p.id)).length;
@@ -793,11 +831,10 @@ export function Forecast() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-green-600">
-                  {projects.filter((p: any) => p.status === 'delivered' && scheduledProjectIds.has(p.id))
-                    .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()}
+                  {Math.round(calculateProportionalHours(projects, yearStart, yearEnd, (p: any) => p.status === 'delivered').totalHours).toLocaleString()}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {projects.filter((p: any) => p.status === 'delivered' && scheduledProjectIds.has(p.id)).length} delivered projects
+                  {calculateProportionalHours(projects, yearStart, yearEnd, (p: any) => p.status === 'delivered').projectCount} delivered projects
                 </p>
               </CardContent>
             </Card>
@@ -809,11 +846,10 @@ export function Forecast() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-blue-600">
-                  {projects.filter((p: any) => p.status !== 'delivered' && scheduledProjectIds.has(p.id))
-                    .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()}
+                  {Math.round(calculateProportionalHours(projects, yearStart, yearEnd, (p: any) => p.status !== 'delivered').totalHours).toLocaleString()}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {projects.filter((p: any) => p.status !== 'delivered' && scheduledProjectIds.has(p.id)).length} active projects
+                  {calculateProportionalHours(projects, yearStart, yearEnd, (p: any) => p.status !== 'delivered').projectCount} active projects
                 </p>
               </CardContent>
             </Card>
@@ -825,11 +861,10 @@ export function Forecast() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {projects.filter((p: any) => scheduledProjectIds.has(p.id))
-                    .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()}
+                  {Math.round(calculateProportionalHours(projects, yearStart, yearEnd).totalHours).toLocaleString()}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {[...scheduledProjectIds].length} scheduled projects
+                  {calculateProportionalHours(projects, yearStart, yearEnd).projectCount} scheduled projects
                 </p>
               </CardContent>
             </Card>
@@ -879,17 +914,15 @@ export function Forecast() {
                     <div className="flex justify-between">
                       <span>Manufacturing (Scheduled Projects):</span>
                       <span className="font-medium">
-                        +{projects.filter((p: any) => scheduledProjectIds.has(p.id))
-                          .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()} hrs
+                        +{Math.round(calculateProportionalHours(projects, new Date(2025, 6, 1), yearEnd).totalHours).toLocaleString()} hrs
                       </span>
                     </div>
                     <Separator className="my-2" />
                     <div className="flex justify-between text-base font-semibold">
                       <span>2025 Year-End Total:</span>
                       <span className="text-blue-600">
-                        {(92000 + (engineeringHoursPerMonth * 6) + 
-                          projects.filter((p: any) => scheduledProjectIds.has(p.id))
-                            .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0)).toLocaleString()} hrs
+                        {Math.round(92000 + (engineeringHoursPerMonth * 6) + 
+                          calculateProportionalHours(projects, new Date(2025, 6, 1), yearEnd).totalHours).toLocaleString()} hrs
                       </span>
                     </div>
                   </div>
@@ -936,46 +969,27 @@ export function Forecast() {
                     <div className="flex justify-between">
                       <span>Projects scheduled in 2026:</span>
                       <span className="font-medium">
-                        {projects.filter((p: any) => {
-                          if (!scheduledProjectIds.has(p.id)) return false;
-                          const schedule = schedules.find((s: any) => s.projectId === p.id);
-                          if (!schedule) return false;
-                          const startDate = new Date(schedule.startDate);
-                          return startDate.getFullYear() === 2026;
-                        }).length} projects
+                        {calculateProportionalHours(projects, new Date(2026, 0, 1), new Date(2026, 11, 31)).projectCount} projects
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Total hours from scheduled projects:</span>
                       <span className="font-medium">
-                        {projects.filter((p: any) => {
-                          if (!scheduledProjectIds.has(p.id)) return false;
-                          const schedule = schedules.find((s: any) => s.projectId === p.id);
-                          if (!schedule) return false;
-                          const startDate = new Date(schedule.startDate);
-                          return startDate.getFullYear() === 2026;
-                        }).reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()} hrs
+                        {Math.round(calculateProportionalHours(projects, new Date(2026, 0, 1), new Date(2026, 11, 31)).totalHours).toLocaleString()} hrs
                       </span>
                     </div>
                     <Separator className="my-2" />
                     <div className="flex justify-between text-base font-semibold">
                       <span>2026 Total Projection:</span>
                       <span className="text-orange-600">
-                        {(
+                        {Math.round(
                           // 2025 year-end total
                           (92000 + (engineeringHoursPerMonth * 6) + 
-                          projects.filter((p: any) => scheduledProjectIds.has(p.id))
-                            .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0)) +
+                          calculateProportionalHours(projects, new Date(2025, 6, 1), yearEnd).totalHours) +
                           // 2026 engineering
                           (engineeringHoursPerMonth * 12) +
                           // 2026 scheduled projects
-                          projects.filter((p: any) => {
-                            if (!scheduledProjectIds.has(p.id)) return false;
-                            const schedule = schedules.find((s: any) => s.projectId === p.id);
-                            if (!schedule) return false;
-                            const startDate = new Date(schedule.startDate);
-                            return startDate.getFullYear() === 2026;
-                          }).reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0) +
+                          calculateProportionalHours(projects, new Date(2026, 0, 1), new Date(2026, 11, 31)).totalHours +
                           // Additional manufacturing
                           manufacturing2026 +
                           // Growth factor
