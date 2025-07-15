@@ -41,7 +41,7 @@ router.get("/search", async (req: Request, res: Response) => {
           title: `${project.projectNumber} - ${project.name}`,
           subtitle: `${project.team || 'No team'} • ${project.status || 'Active'}`,
           status: project.status,
-          route: `/projects/${project.id}`,
+          route: `/project/${project.id}`,
         });
       }
     });
@@ -82,7 +82,7 @@ router.get("/search", async (req: Request, res: Response) => {
           title: milestone.name,
           subtitle: project ? `${project.projectNumber} - ${project.name}` : 'Project',
           status: milestone.status,
-          route: `/projects/${milestone.projectId}?tab=billing`,
+          route: `/project/${milestone.projectId}?tab=billing`,
         });
       }
     });
