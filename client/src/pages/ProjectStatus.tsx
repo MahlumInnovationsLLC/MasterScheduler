@@ -371,7 +371,15 @@ const ProjectStatus = () => {
     staleTime: 60000, // Increased stale time to 60 seconds
     refetchOnWindowFocus: false,
     refetchInterval: 120000, // Refetch every 2 minutes instead of constant polling
-    select: (data) => safeParseArray(data, ProjectsResponseSchema, [])
+    select: (data) => safeParseArray(data, ProjectsResponseSchema, []),
+    // Add explicit error handling to prevent undefined data
+    enabled: true,
+    onError: (error: any) => {
+      console.error('Projects query error:', error);
+      if (error?.message?.includes('403')) {
+        console.error('Access denied to projects endpoint for viewer role');
+      }
+    }
   });
 
   // Fetch ALL project label assignments at once to avoid N+1 queries - OPTIMIZED
@@ -972,16 +980,16 @@ const ProjectStatus = () => {
           continue;
         }
 
-        const activeSchedules = schedules.filter(s => {
+        const activeSchedules = Array.isArray(schedules) ? schedules.filter(s => {
           const start = new Date(s.startDate);
           const end = new Date(s.endDate);
           return start <= now && end >= now;
-        });
+        }) : [];
 
-        const futureSchedules = schedules.filter(s => {
+        const futureSchedules = Array.isArray(schedules) ? schedules.filter(s => {
           const start = new Date(s.startDate);
           return start > now;
-        });
+        }) : [];
 
         if (activeSchedules.length > 0) {
           scheduleStateMap.set(projectId, 'In Progress');
@@ -1001,37 +1009,39 @@ const ProjectStatus = () => {
     let delivered = 0;
 
     // Count projects by schedule state
-    projects.forEach(project => {
-      // If project is completed, add to complete count
-      if (project.status === 'completed') {
-        complete++;
-        return;
-      }
+    if (Array.isArray(projects)) {
+      projects.forEach(project => {
+        // If project is completed, add to complete count
+        if (project.status === 'completed') {
+          complete++;
+          return;
+        }
 
-      // If project is delivered, count it in delivered category
-      if (project.status === 'delivered') {
-        delivered++;
-        return;
-      }
+        // If project is delivered, count it in delivered category
+        if (project.status === 'delivered') {
+          delivered++;
+          return;
+        }
 
-      // Filter out Field or FSW category projects
-      if (project.team === 'Field' || project.team === 'FSW') {
-        return;
-      }
+        // Filter out Field or FSW category projects
+        if (project.team === 'Field' || project.team === 'FSW') {
+          return;
+        }
 
-      // For all other projects, categorize by their schedule state
-      const scheduleState = scheduleStateMap.get(project.id) || 'Unscheduled';
+        // For all other projects, categorize by their schedule state
+        const scheduleState = scheduleStateMap.get(project.id) || 'Unscheduled';
 
-      if (scheduleState === 'Unscheduled') {
-        unscheduled++;
-      } else if (scheduleState === 'Scheduled') {
-        scheduled++;
-      } else if (scheduleState === 'In Progress') {
-        inProgress++;
-      } else if (scheduleState === 'Complete') {
-        complete++;
-      }
-    });
+        if (scheduleState === 'Unscheduled') {
+          unscheduled++;
+        } else if (scheduleState === 'Scheduled') {
+          scheduled++;
+        } else if (scheduleState === 'In Progress') {
+          inProgress++;
+        } else if (scheduleState === 'Complete') {
+          complete++;
+        }
+      });
+    }
 
     return {
       unscheduled,
@@ -1079,28 +1089,38 @@ const ProjectStatus = () => {
 
   // Apply date filters and location filters to projects - OPTIMIZED
   const filteredProjects = React.useMemo(() => {
-    if (!projects || !Array.isArray(projects)) return [];
+    // Ultra-defensive programming for viewer role issues
+    if (!projects || !Array.isArray(projects)) {
+      console.warn('Projects data is not an array:', { projects, isError, error });
+      return [];
+    }
 
     // Cast projects to ProjectWithRawData[] using safe array utility
     const projectsWithPriority = ensureArray(projects, [], 'ProjectStatus.projects') as ProjectWithRawData[];
+
+    // Additional safety check
+    if (!Array.isArray(projectsWithPriority)) {
+      console.error('projectsWithPriority is not an array after ensureArray:', projectsWithPriority);
+      return [];
+    }
 
     // Check if any filter is active - calculate once
     const hasActiveFilters = Object.values(dateFilters).some(val => val !== '') || locationFilter !== '';
 
     // Fast path: if no filters, just handle archived projects and sort
     if (!hasActiveFilters) {
-      const filtered = showArchived ? projectsWithPriority : projectsWithPriority.filter(p => p.status !== 'archived');
-      return filtered.sort((a, b) => {
+      const filtered = showArchived ? projectsWithPriority : safeFilter(projectsWithPriority, p => p.status !== 'archived', 'ProjectStatus.archiveFilter');
+      return Array.isArray(filtered) ? filtered.sort((a, b) => {
         const aDelivered = a.status === 'delivered';
         const bDelivered = b.status === 'delivered';
         if (aDelivered && !bDelivered) return 1;
         if (!aDelivered && bDelivered) return -1;
         return 0;
-      });
+      }) : [];
     }
 
     // Only apply expensive filtering when necessary
-    const filtered = projectsWithPriority.filter((project: ProjectWithRawData) => {
+    const filtered = safeFilter(projectsWithPriority, (project: ProjectWithRawData) => {
       // Archive filter (fast check first)
       if (project.status === 'archived' && !showArchived) {
         return false;
@@ -1148,16 +1168,16 @@ const ProjectStatus = () => {
       }
 
       return true;
-    });
+    }, 'ProjectStatus.dateLocationFilter');
 
     // Sort with delivered projects at bottom
-    return filtered.sort((a, b) => {
+    return Array.isArray(filtered) ? filtered.sort((a, b) => {
       const aDelivered = a.status === 'delivered';
       const bDelivered = b.status === 'delivered';
       if (aDelivered && !bDelivered) return 1;
       if (!aDelivered && bDelivered) return -1;
       return 0;
-    });
+    }) : [];
   }, [projects, dateFilters, locationFilter, showArchived, isInDateRange]);
 
   // Paginate filtered projects for CPU optimization
