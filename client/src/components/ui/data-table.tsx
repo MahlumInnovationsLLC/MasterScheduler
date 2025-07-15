@@ -156,19 +156,24 @@ export function DataTable<TData, TValue>({
 
   // Create custom sorting handler that returns to default sort
   const handleColumnSort = React.useCallback((column: any) => {
+    console.log('🔍 SORTING DEBUG: handleColumnSort called for column:', column.id);
     const currentSort = column.getIsSorted();
+    console.log('🔍 SORTING DEBUG: Current sort state:', currentSort);
     
     // Cycle through: none -> asc -> desc -> none (returns to default)
     if (!currentSort) {
       // No sort -> ascending
       const newSorting = [{ id: column.id, desc: false }];
+      console.log('🔍 SORTING DEBUG: Setting ascending sort:', newSorting);
       setSorting(newSorting);
     } else if (currentSort === 'asc') {
       // Ascending -> descending
       const newSorting = [{ id: column.id, desc: true }];
+      console.log('🔍 SORTING DEBUG: Setting descending sort:', newSorting);
       setSorting(newSorting);
     } else {
       // Descending -> clear (which triggers default sorting)
+      console.log('🔍 SORTING DEBUG: Clearing sort, returning to default');
       setSorting([]); // This will trigger the onSortingChange handler to apply default
     }
   }, [setSorting]);
@@ -226,6 +231,10 @@ export function DataTable<TData, TValue>({
     return false;
   }, []);
 
+  // Log current sorting state
+  console.log('🔍 SORTING DEBUG: Current sorting state:', sorting);
+  console.log('🔍 SORTING DEBUG: Columns:', filteredColumns.map(c => ({ id: c.id, sortingFn: c.sortingFn })));
+
   const table = useReactTable({
     data,
     columns: filteredColumns,
@@ -234,6 +243,8 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     sortingFns: {
       customSort: (rowA, rowB, columnId) => {
+        console.log('🔍 SORTING DEBUG: customSort called for column:', columnId);
+        
         // ALWAYS ensure delivered projects go to the bottom regardless of column
         const statusA = rowA.original?.status;
         const statusB = rowB.original?.status;
@@ -248,6 +259,8 @@ export function DataTable<TData, TValue>({
         let valueA = rowA.getValue(columnId) as string | number | Date | null | undefined;
         let valueB = rowB.getValue(columnId) as string | number | Date | null | undefined;
         
+        console.log('🔍 SORTING DEBUG: Initial values:', { columnId, valueA, valueB });
+        
         // Special handling for date columns - get values from original data
         const dateColumns = ['shipDate', 'deliveryDate', 'contractDate', 'fabricationStart', 'paintStart', 
                            'productionStart', 'itStart', 'wrapDate', 'ntcTesting', 'qcStart', 
@@ -255,6 +268,7 @@ export function DataTable<TData, TValue>({
         if (dateColumns.includes(columnId)) {
           valueA = rowA.original?.[columnId];
           valueB = rowB.original?.[columnId];
+          console.log('🔍 SORTING DEBUG: Date column values from original:', { valueA, valueB });
         }
 
         // Handle N/A values
@@ -318,10 +332,13 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: showPagination ? getPaginationRowModel() : undefined,
     globalFilterFn: globalFilterFn,
     onSortingChange: (updater) => {
+      console.log('🔍 SORTING DEBUG: onSortingChange called with:', updater);
       const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
+      console.log('🔍 SORTING DEBUG: New sorting state:', newSorting);
       
       // If sorting is being cleared (empty array), apply default ship date sorting
       if (newSorting.length === 0 && initialSorting.length > 0) {
+        console.log('🔍 SORTING DEBUG: Applying initial sorting:', initialSorting);
         setSorting(initialSorting);
       } else {
         setSorting(newSorting);
