@@ -1937,7 +1937,21 @@ const ProjectStatus = () => {
           </div>
         );
       },
-      { size: 170 }),
+      { 
+        size: 170,
+        sortingFn: (rowA: any, rowB: any) => {
+          const dateA = rowA.original.shipDate ? new Date(rowA.original.shipDate) : null;
+          const dateB = rowB.original.shipDate ? new Date(rowB.original.shipDate) : null;
+          
+          // Handle null/undefined dates - put them at the end
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          
+          // Compare dates properly
+          return dateA.getTime() - dateB.getTime();
+        }
+      }),
     createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
       (value, project) => <EditableDateFieldWithOP 
         projectId={project.id} 
@@ -2514,7 +2528,7 @@ const ProjectStatus = () => {
             frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
             enableSorting={true} // Always enable sorting on all columns
             initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)
-            persistenceKey="projects-table" // Add persistence key for sorting/pagination
+            persistenceKey="projects-table-v2" // Add persistence key for sorting/pagination
             onExportExcel={handleExcelExport}
             showPagination={false} // Disable built-in pagination since we're using custom pagination
           />

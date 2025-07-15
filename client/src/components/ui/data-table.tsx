@@ -257,9 +257,12 @@ export function DataTable<TData, TValue>({
         if (!isANA && isBNA) return -1;
         if (isANA && isBNA) return 0;
 
-        // Date comparison
-        if (valueA instanceof Date && valueB instanceof Date) {
-          return valueA.getTime() - valueB.getTime();
+        // Date comparison - handle both Date objects and date strings
+        const dateA = valueA instanceof Date ? valueA : (typeof valueA === 'string' && valueA.includes('-') ? new Date(valueA) : null);
+        const dateB = valueB instanceof Date ? valueB : (typeof valueB === 'string' && valueB.includes('-') ? new Date(valueB) : null);
+        
+        if (dateA && dateB && !isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+          return dateA.getTime() - dateB.getTime();
         }
 
         // Regular string comparison for non-empty values
