@@ -553,6 +553,8 @@ export function DataTable<TData, TValue>({
               style={{
                 scrollbarWidth: 'none', /* Firefox */
                 msOverflowStyle: 'none', /* IE and Edge */
+                marginBottom: '0px', // Remove any default bottom margin
+                paddingBottom: '0px', // Remove any default bottom padding
               }}
               onScroll={(e) => {
                 // Sync scroll with external scrollbar
@@ -572,7 +574,7 @@ export function DataTable<TData, TValue>({
                   display: none;
                 }
               `}</style>
-              <table className="border-collapse">
+              <table className="border-collapse" style={{ marginBottom: '0px' }}>
                 <thead>
                   <tr className="bg-muted/50">
                     {table.getHeaderGroups()[0].headers.map((header) => {
