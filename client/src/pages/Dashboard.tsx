@@ -996,12 +996,24 @@ const Dashboard = () => {
         containerClient: { width: scrollContainer.clientWidth, height: scrollContainer.clientHeight }
       });
       
-      // Scroll the container to center the target element
+      // Scroll the container to center the target element both horizontally and vertically
       scrollContainer.scrollTo({
         left: Math.max(0, scrollToCenterX),
         top: Math.max(0, scrollToCenterY),
         behavior: 'smooth'
       });
+
+      // Also try to find the ResizableBaySchedule viewport for horizontal scrolling precision
+      const bayScheduleViewport = document.querySelector('.bay-schedule-viewport');
+      if (bayScheduleViewport) {
+        console.log('Found bay-schedule-viewport, applying horizontal scroll:', scrollToCenterX);
+        bayScheduleViewport.scrollTo({
+          left: Math.max(0, scrollToCenterX),
+          behavior: 'smooth'
+        });
+      } else {
+        console.log('No bay-schedule-viewport found, horizontal scroll limited to main container');
+      }
 
       // Highlight the found project bar with visual feedback
       targetBar.classList.add('highlight-found');
