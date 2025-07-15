@@ -14,24 +14,38 @@ export function ShipmentBanner() {
     refetchInterval: 60000, // Refresh every minute
   });
 
+  // Create the scrolling text
+  const shipmentText = upcomingShipments && upcomingShipments.length > 0
+    ? upcomingShipments
+        .map((project: any) => 
+          `● ${project.projectNumber} - ${project.name} (Ships: ${new Date(project.shipDate).toLocaleDateString()})`
+        )
+        .join('    ')
+    : '';
+
   useEffect(() => {
+    if (!shipmentText) return;
+
     const interval = setInterval(() => {
-      setScrollPosition(prev => prev - 1);
+      setScrollPosition(prev => {
+        // Calculate the width of the text (approximate)
+        const textWidth = shipmentText.length * 7; // Rough estimate of pixel width
+        
+        // Reset to start when we've scrolled past the first copy
+        if (prev <= -textWidth - 40) { // -40 for the spacing between copies
+          return 0;
+        }
+        
+        return prev - 1;
+      });
     }, 30); // Adjust speed of scrolling
 
     return () => clearInterval(interval);
-  }, []);
+  }, [shipmentText]);
 
   if (!upcomingShipments || upcomingShipments.length === 0) {
     return null;
   }
-
-  // Create the scrolling text
-  const shipmentText = upcomingShipments
-    .map((project: any) => 
-      `● ${project.projectNumber} - ${project.name} (Ships: ${new Date(project.shipDate).toLocaleDateString()})`
-    )
-    .join('    ');
 
   // Double the text for seamless scrolling
   const fullText = shipmentText + '    ' + shipmentText;
@@ -76,8 +90,6 @@ export function ShipmentBanner() {
         className="absolute whitespace-nowrap h-full flex items-center"
         style={{
           transform: `translateX(${scrollPosition}px)`,
-          // Reset position when first text is fully scrolled out
-          ...(scrollPosition < -(fullText.length * 10) ? { transform: 'translateX(0)' } : {}),
         }}
       >
         <span 
