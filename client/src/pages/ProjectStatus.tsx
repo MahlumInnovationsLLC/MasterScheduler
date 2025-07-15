@@ -2499,10 +2499,10 @@ const ProjectStatus = () => {
       {/* Project List Table */}
       <div className="relative">
         <div 
-          className="transition-all duration-300 ease-in-out"
+          className="transition-all duration-300 ease-in-out overflow-hidden"
           style={{ 
-            minHeight: `${Math.min(pageSize * 60 + 120, 800)}px`, // Dynamic height based on page size, capped at 800px
-            maxHeight: `${Math.min(pageSize * 60 + 200, 900)}px` // Allow some buffer for headers
+            height: `${Math.min(pageSize * 60 + 180, 700)}px`, // Dynamic height based on page size, leave room for pagination
+            maxHeight: `${Math.min(pageSize * 60 + 180, 700)}px` // Ensure pagination controls are always visible
           }}
         >
           <DataTable
@@ -2520,8 +2520,8 @@ const ProjectStatus = () => {
           />
         </div>
 
-        {/* Pagination Controls */}
-        <div className="flex items-center justify-between mt-4 p-4 bg-gray-900 rounded-lg">
+        {/* Pagination Controls - Always visible */}
+        <div className="flex items-center justify-between mt-4 p-4 bg-gray-900 rounded-lg relative z-10">
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <span>
               Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredProjects.length)} of {filteredProjects.length} projects
