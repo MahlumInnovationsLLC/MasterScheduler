@@ -631,24 +631,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Now check engineering access
       const userRole = req.user?.role;
       const userDepartment = req.user?.department;
+      const isReadOperation = req.method === 'GET';
       
-      console.log(`🔍 Auth middleware: User role: ${userRole}, department: ${userDepartment}`);
+      console.log(`🔍 Auth middleware: User role: ${userRole}, department: ${userDepartment}, method: ${req.method}`);
       
-      // EDITOR and ADMIN roles can access regardless of department
+      // EDITOR and ADMIN roles can access all operations regardless of department
       if (userRole === 'admin' || userRole === 'editor') {
         console.log(`✅ Engineering access granted for ${userRole}: ${req.user.email}`);
         return next();
       }
       
-      // VIEWER role can access ONLY if they are in the engineering department
-      if (userRole === 'viewer' && userDepartment === 'engineering') {
-        console.log(`✅ Engineering access granted for engineering viewer: ${req.user.email}`);
-        return next();
+      // VIEWER role with different permissions for READ vs WRITE operations
+      if (userRole === 'viewer') {
+        // Allow ALL viewers to READ engineering data (GET requests)
+        if (isReadOperation) {
+          console.log(`✅ Engineering READ access granted for viewer: ${req.user.email}`);
+          return next();
+        }
+        
+        // For WRITE operations (POST, PUT, DELETE), only allow engineering department viewers
+        if (userDepartment === 'engineering') {
+          console.log(`✅ Engineering WRITE access granted for engineering viewer: ${req.user.email}`);
+          return next();
+        }
       }
       
       // Access denied
-      console.log(`❌ Engineering access denied for role: ${userRole}, department: ${userDepartment}`);
-      res.status(403).json({ message: "Engineering module access requires EDITOR/ADMIN role or VIEWER role in engineering department" });
+      console.log(`❌ Engineering access denied for role: ${userRole}, department: ${userDepartment}, method: ${req.method}`);
+      res.status(403).json({ message: "Engineering module write access requires EDITOR/ADMIN role or VIEWER role in engineering department" });
     } catch (error) {
       console.error("Engineering auth middleware error:", error);
       res.status(401).json({ message: "Authentication error" });

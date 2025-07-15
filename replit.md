@@ -590,6 +590,13 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Fixed task creation to include all required fields with correct data types
   - Enhanced error handling with console logging for better debugging
   - Resolved "Failed to close concern and create task" error in Tier IV module
+- January 16, 2025: Engineering Module Viewer Access Enhancement
+  - Modified requireEngineeringAccess middleware to allow all viewers READ access to engineering data
+  - Viewers can now GET engineering resources and assignments data regardless of their department
+  - WRITE operations (POST, PUT, DELETE) still restricted to editors/admins or viewers in engineering department
+  - Fixed 403 Forbidden errors for viewers accessing Projects module with engineering assignment data
+  - Engineering data is now viewable by all authenticated users while maintaining write protection
+  - Added request method checking (GET vs POST/PUT/DELETE) for granular permission control
 
 
 ## User Preferences
