@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, startOfMonth, endOfMonth, subMonths, subQuarters, startOfYear, differenceInDays, differenceInCalendarDays, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 interface ForecastStats {
   totalHours: number;
@@ -307,42 +308,68 @@ function DepartmentSandCharts({
         </CardHeader>
         <CardContent>
           <div className="h-96">
-            {/* Simple chart visualization - in real app would use Recharts */}
-            <div className="relative h-full border rounded-lg p-4">
-              <div className="absolute top-2 right-2 flex gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                  <span>Allocated Hours</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                  <span>Capacity</span>
-                </div>
-              </div>
-              
-              {/* Chart area */}
-              <div className="mt-8 h-64 flex items-end justify-between gap-1">
-                {utilizationData.slice(0, 12).map((week, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center">
-                    <div className="w-full relative" style={{ height: '240px' }}>
-                      {/* Capacity bar */}
-                      <div 
-                        className="absolute bottom-0 w-full bg-orange-200 rounded-t"
-                        style={{ height: `${(week.capacity / Math.max(...utilizationData.map(w => w.capacity))) * 100}%` }}
-                      />
-                      {/* Allocated bar */}
-                      <div 
-                        className="absolute bottom-0 w-full bg-blue-500 rounded-t"
-                        style={{ height: `${(week.allocated / Math.max(...utilizationData.map(w => w.capacity))) * 100}%` }}
-                      />
-                    </div>
-                    <div className="text-xs mt-2 rotate-45 origin-left whitespace-nowrap">
-                      {week.week}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={utilizationData} margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
+                <defs>
+                  <linearGradient id={`color${selectedDepartment}Capacity`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FF9800" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#FF9800" stopOpacity={0.3}/>
+                  </linearGradient>
+                  <linearGradient id={`color${selectedDepartment}Allocated`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2196F3" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#2196F3" stopOpacity={0.3}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="week" 
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Hours per Week', angle: -90, position: 'insideLeft' }}
+                />
+                <Tooltip 
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-white dark:bg-gray-800 p-3 rounded shadow-lg border border-gray-200 dark:border-gray-700">
+                          <p className="font-semibold">{label}</p>
+                          {payload.map((entry: any, index: number) => (
+                            <p key={index} className="text-sm" style={{ color: entry.color }}>
+                              {entry.name}: {entry.value} hours
+                            </p>
+                          ))}
+                          <p className="text-sm font-semibold mt-1">
+                            Utilization: {payload[0]?.payload?.utilization || 0}%
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend />
+                <Area
+                  type="monotone"
+                  dataKey="capacity"
+                  name="Capacity"
+                  stroke="#FF9800"
+                  fillOpacity={1}
+                  fill={`url(#color${selectedDepartment}Capacity)`}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="allocated"
+                  name="Allocated Hours"
+                  stroke="#2196F3"
+                  fillOpacity={1}
+                  fill={`url(#color${selectedDepartment}Allocated)`}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
 
           {/* Summary Stats */}
@@ -377,6 +404,130 @@ function DepartmentSandCharts({
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Monthly Project Breakdown */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Monthly Project Breakdown</CardTitle>
+          <CardDescription>
+            Detailed view of projects contributing to each month's hours
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {utilizationData.slice(0, 26).map((week, weekIndex) => {
+              // Group by month
+              const monthStart = startOfMonth(addDays(new Date(), weekIndex * 7));
+              const monthEnd = endOfMonth(monthStart);
+              const monthKey = format(monthStart, 'yyyy-MM');
+              
+              // Get projects active in this department during this month
+              const monthProjects = projects.filter((project: any) => {
+                if (!project.totalHours) return false;
+                
+                // Filter by location
+                const projectLocation = project.location?.toLowerCase() || '';
+                const matchesLocation = selectedLocation === 'cfalls' 
+                  ? projectLocation.includes('columbia') || projectLocation === ''
+                  : projectLocation.includes('libby');
+                
+                if (!matchesLocation) return false;
+                
+                // Get phase dates based on department
+                let phaseStart: Date | null = null;
+                let phaseEnd: Date | null = null;
+                
+                switch (selectedDepartment) {
+                  case 'mech':
+                    if (project.mechShop && project.productionStart) {
+                      phaseStart = new Date(project.mechShop);
+                      phaseEnd = new Date(project.productionStart);
+                    }
+                    break;
+                  case 'fab':
+                    if (project.fabricationStart && project.paintStart) {
+                      phaseStart = new Date(project.fabricationStart);
+                      phaseEnd = new Date(project.paintStart);
+                    }
+                    break;
+                  case 'paint':
+                    if (project.paintStart && project.productionStart) {
+                      phaseStart = new Date(project.paintStart);
+                      phaseEnd = new Date(project.productionStart);
+                    }
+                    break;
+                  case 'production':
+                    if (project.productionStart && project.itStart) {
+                      phaseStart = new Date(project.productionStart);
+                      phaseEnd = new Date(project.itStart);
+                    }
+                    break;
+                  case 'it':
+                    if (project.itStart && project.ntcTestingDate) {
+                      phaseStart = new Date(project.itStart);
+                      phaseEnd = new Date(project.ntcTestingDate);
+                    }
+                    break;
+                  case 'ntc':
+                    if (project.ntcTestingDate && project.qcStartDate) {
+                      phaseStart = new Date(project.ntcTestingDate);
+                      phaseEnd = new Date(project.qcStartDate);
+                    }
+                    break;
+                  case 'qc':
+                    if (project.qcStartDate && project.shipDate) {
+                      phaseStart = new Date(project.qcStartDate);
+                      phaseEnd = new Date(project.shipDate);
+                    }
+                    break;
+                  case 'wrap':
+                    if (project.wrapDate) {
+                      phaseStart = new Date(project.wrapDate);
+                      phaseEnd = addDays(phaseStart, 7);
+                    }
+                    break;
+                }
+                
+                // Check if phase overlaps with month
+                return phaseStart && phaseEnd && phaseStart <= monthEnd && phaseEnd >= monthStart;
+              });
+              
+              // Only show months with projects
+              if (monthProjects.length === 0 || weekIndex % 4 !== 0) return null; // Show monthly only
+              
+              return (
+                <div key={monthKey} className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">{format(monthStart, 'MMMM yyyy')}</h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {monthProjects.map((project: any) => {
+                      // Calculate phase hours for this project
+                      const phasePercentage = getDepartmentPercentage(selectedDepartment) / 100;
+                      const phaseHours = Math.round(project.totalHours * phasePercentage);
+                      
+                      return (
+                        <div key={project.id} className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">
+                            {project.projectNumber} - {project.name}
+                          </span>
+                          <span className="font-medium">{phaseHours.toLocaleString()} hrs</span>
+                        </div>
+                      );
+                    })}
+                    <div className="border-t mt-2 pt-2 flex justify-between items-center font-semibold">
+                      <span>Total</span>
+                      <span>
+                        {monthProjects.reduce((sum: number, p: any) => 
+                          sum + Math.round(p.totalHours * (getDepartmentPercentage(selectedDepartment) / 100)), 0
+                        ).toLocaleString()} hrs
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -475,8 +626,8 @@ export function Forecast() {
       }
     });
 
-    // Set accumulated hours baseline to 86,317 as of July 1st, 2025
-    const baselineAccumulatedHours = 86317;
+    // Set accumulated hours baseline to 92,000 as of July 1st, 2025
+    const baselineAccumulatedHours = 92000;
     
     // Calculate REAL total project hours based on actual project data
     let totalProjectHours = 0;
@@ -826,7 +977,7 @@ export function Forecast() {
           value={stats.remainingHours}
           type="remaining"
           stats={[
-            { label: "From Baseline", value: "86,317" },
+            { label: "From Baseline", value: "92,000" },
             { label: "Progress", value: `${Math.round((stats.earnedHours / stats.totalHours) * 100)}%` }
           ]}
         />

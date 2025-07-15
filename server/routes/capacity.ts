@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { AppRequest } from "../types";
+import { storage } from '../storage';
 import { insertDepartmentCapacitySchema, insertTeamMemberSchema, insertCapacityProfileSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -8,9 +8,9 @@ const router = Router();
 // Note: Authentication will be handled by the main routes file when mounting this router
 
 // Department Capacity Routes
-router.get("/departments", async (req: AppRequest, res) => {
+router.get("/departments", async (req: any, res) => {
   try {
-    const departments = await req.storage.getDepartmentCapacities();
+    const departments = await storage.getDepartmentCapacities();
     res.json(departments);
   } catch (error) {
     console.error("Error fetching department capacities:", error);
@@ -18,10 +18,10 @@ router.get("/departments", async (req: AppRequest, res) => {
   }
 });
 
-router.get("/departments/:id", async (req: AppRequest, res) => {
+router.get("/departments/:id", async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
-    const department = await req.storage.getDepartmentCapacity(id);
+    const department = await storage.getDepartmentCapacity(id);
     
     if (!department) {
       return res.status(404).json({ message: "Department capacity not found" });
@@ -34,10 +34,10 @@ router.get("/departments/:id", async (req: AppRequest, res) => {
   }
 });
 
-router.post("/departments", async (req: AppRequest, res) => {
+router.post("/departments", async (req: any, res) => {
   try {
     const data = insertDepartmentCapacitySchema.parse(req.body);
-    const department = await req.storage.createDepartmentCapacity(data);
+    const department = await storage.createDepartmentCapacity(data);
     res.json(department);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -48,11 +48,11 @@ router.post("/departments", async (req: AppRequest, res) => {
   }
 });
 
-router.put("/departments/:id",  async (req: AppRequest, res) => {
+router.put("/departments/:id",  async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
     const data = insertDepartmentCapacitySchema.partial().parse(req.body);
-    const department = await req.storage.updateDepartmentCapacity(id, data);
+    const department = await storage.updateDepartmentCapacity(id, data);
     
     if (!department) {
       return res.status(404).json({ message: "Department capacity not found" });
@@ -68,10 +68,10 @@ router.put("/departments/:id",  async (req: AppRequest, res) => {
   }
 });
 
-router.delete("/departments/:id",  async (req: AppRequest, res) => {
+router.delete("/departments/:id",  async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
-    const success = await req.storage.deleteDepartmentCapacity(id);
+    const success = await storage.deleteDepartmentCapacity(id);
     
     if (!success) {
       return res.status(404).json({ message: "Department capacity not found" });
@@ -85,7 +85,7 @@ router.delete("/departments/:id",  async (req: AppRequest, res) => {
 });
 
 // Team Members Routes
-router.get("/team-members", async (req: AppRequest, res) => {
+router.get("/team-members", async (req: any, res) => {
   try {
     const { bayId, departmentId, isActive } = req.query;
     
@@ -95,7 +95,7 @@ router.get("/team-members", async (req: AppRequest, res) => {
     if (isActive !== undefined) filters.isActive = isActive === 'true';
     
     console.log("Fetching team members with filters:", filters);
-    const members = await req.storage.getTeamMembers(filters);
+    const members = await storage.getTeamMembers(filters);
     console.log("Found team members:", members.length);
     res.json(members);
   } catch (error) {
@@ -104,10 +104,10 @@ router.get("/team-members", async (req: AppRequest, res) => {
   }
 });
 
-router.get("/team-members/:id", async (req: AppRequest, res) => {
+router.get("/team-members/:id", async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
-    const member = await req.storage.getTeamMember(id);
+    const member = await storage.getTeamMember(id);
     
     if (!member) {
       return res.status(404).json({ message: "Team member not found" });
@@ -120,10 +120,10 @@ router.get("/team-members/:id", async (req: AppRequest, res) => {
   }
 });
 
-router.post("/team-members",  async (req: AppRequest, res) => {
+router.post("/team-members",  async (req: any, res) => {
   try {
     const data = insertTeamMemberSchema.parse(req.body);
-    const member = await req.storage.createTeamMember(data);
+    const member = await storage.createTeamMember(data);
     res.json(member);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -134,11 +134,11 @@ router.post("/team-members",  async (req: AppRequest, res) => {
   }
 });
 
-router.put("/team-members/:id",  async (req: AppRequest, res) => {
+router.put("/team-members/:id",  async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
     const data = insertTeamMemberSchema.partial().parse(req.body);
-    const member = await req.storage.updateTeamMember(id, data);
+    const member = await storage.updateTeamMember(id, data);
     
     if (!member) {
       return res.status(404).json({ message: "Team member not found" });
@@ -154,10 +154,10 @@ router.put("/team-members/:id",  async (req: AppRequest, res) => {
   }
 });
 
-router.delete("/team-members/:id",  async (req: AppRequest, res) => {
+router.delete("/team-members/:id",  async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
-    const success = await req.storage.deleteTeamMember(id);
+    const success = await storage.deleteTeamMember(id);
     
     if (!success) {
       return res.status(404).json({ message: "Team member not found" });
@@ -171,9 +171,9 @@ router.delete("/team-members/:id",  async (req: AppRequest, res) => {
 });
 
 // Capacity Profiles Routes
-router.get("/profiles", async (req: AppRequest, res) => {
+router.get("/profiles", async (req: any, res) => {
   try {
-    const profiles = await req.storage.getCapacityProfiles();
+    const profiles = await storage.getCapacityProfiles();
     res.json(profiles);
   } catch (error) {
     console.error("Error fetching capacity profiles:", error);
@@ -181,10 +181,10 @@ router.get("/profiles", async (req: AppRequest, res) => {
   }
 });
 
-router.get("/profiles/:id", async (req: AppRequest, res) => {
+router.get("/profiles/:id", async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
-    const profile = await req.storage.getCapacityProfile(id);
+    const profile = await storage.getCapacityProfile(id);
     
     if (!profile) {
       return res.status(404).json({ message: "Capacity profile not found" });
@@ -197,10 +197,10 @@ router.get("/profiles/:id", async (req: AppRequest, res) => {
   }
 });
 
-router.post("/profiles",  async (req: AppRequest, res) => {
+router.post("/profiles",  async (req: any, res) => {
   try {
     const data = insertCapacityProfileSchema.parse(req.body);
-    const profile = await req.storage.createCapacityProfile(data);
+    const profile = await storage.createCapacityProfile(data);
     res.json(profile);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -211,11 +211,11 @@ router.post("/profiles",  async (req: AppRequest, res) => {
   }
 });
 
-router.put("/profiles/:id",  async (req: AppRequest, res) => {
+router.put("/profiles/:id",  async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
     const data = insertCapacityProfileSchema.partial().parse(req.body);
-    const profile = await req.storage.updateCapacityProfile(id, data);
+    const profile = await storage.updateCapacityProfile(id, data);
     
     if (!profile) {
       return res.status(404).json({ message: "Capacity profile not found" });
@@ -231,10 +231,10 @@ router.put("/profiles/:id",  async (req: AppRequest, res) => {
   }
 });
 
-router.delete("/profiles/:id",  async (req: AppRequest, res) => {
+router.delete("/profiles/:id",  async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
-    const success = await req.storage.deleteCapacityProfile(id);
+    const success = await storage.deleteCapacityProfile(id);
     
     if (!success) {
       return res.status(404).json({ message: "Capacity profile not found" });
@@ -248,12 +248,12 @@ router.delete("/profiles/:id",  async (req: AppRequest, res) => {
 });
 
 // Department Capacity History Routes
-router.get("/departments/:id/history", async (req: AppRequest, res) => {
+router.get("/departments/:id/history", async (req: any, res) => {
   try {
     const departmentId = parseInt(req.params.id);
     const { startDate, endDate } = req.query;
     
-    const history = await req.storage.getDepartmentCapacityHistory(
+    const history = await storage.getDepartmentCapacityHistory(
       departmentId,
       startDate ? new Date(startDate as string) : undefined,
       endDate ? new Date(endDate as string) : undefined
@@ -266,7 +266,7 @@ router.get("/departments/:id/history", async (req: AppRequest, res) => {
   }
 });
 
-router.post("/departments/:id/history",  async (req: AppRequest, res) => {
+router.post("/departments/:id/history",  async (req: any, res) => {
   try {
     const departmentId = parseInt(req.params.id);
     const data = {
@@ -274,7 +274,7 @@ router.post("/departments/:id/history",  async (req: AppRequest, res) => {
       departmentId
     };
     
-    const history = await req.storage.createDepartmentCapacityHistory(data);
+    const history = await storage.createDepartmentCapacityHistory(data);
     res.json(history);
   } catch (error) {
     console.error("Error creating department capacity history:", error);
@@ -283,15 +283,15 @@ router.post("/departments/:id/history",  async (req: AppRequest, res) => {
 });
 
 // Capacity Calculations Route
-router.get("/calculations", async (req: AppRequest, res) => {
+router.get("/calculations", async (req: any, res) => {
   try {
     // Get all active team members and departments
     const [teamMembers, departments, bays, schedules, projects] = await Promise.all([
-      req.storage.getTeamMembers({ isActive: true }),
-      req.storage.getDepartmentCapacities(),
-      req.storage.getManufacturingBays(),
-      req.storage.getManufacturingSchedules(),
-      req.storage.getProjects()
+      storage.getTeamMembers({ isActive: true }),
+      storage.getDepartmentCapacities(),
+      storage.getManufacturingBays(),
+      storage.getManufacturingSchedules(),
+      storage.getProjects()
     ]);
 
     // Calculate production team capacity (by bay)

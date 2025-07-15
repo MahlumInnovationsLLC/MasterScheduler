@@ -489,7 +489,7 @@ export function EnhancedHoursFlowWidget({ projects, schedules }: EnhancedHoursFl
 
     // Calculate cumulative hours using target-based approach for 2025
     if (selectedYear === 2025 && selectedTimeframe === 'future') {
-      const baselineAccumulatedHours = 86317;
+      const baselineAccumulatedHours = 92000;
       const targetTotalHours = 195000;
       const engineeringHoursPerMonth = userSettings?.engineering_hours || 2000;
       const manufacturingHoursNeeded = targetTotalHours - baselineAccumulatedHours - (engineeringHoursPerMonth * 6);
