@@ -100,6 +100,7 @@ import { countWorkingDays } from "@shared/utils/date-utils";
 import { format, differenceInDays, addDays } from "date-fns";
 import { setupPTNRoutes } from "./routes/ptnApi";
 import { setupAIInsightsRoutes } from "./routes/aiInsights";
+import { searchRouter } from "./routes/search";
 import {
   analyzeProjectHealth,
   generateBillingInsights,
@@ -5415,6 +5416,7 @@ Response format:
   app.use('/api/system', systemRoutes);
   app.use('/api/engineering', requireEngineeringAccess, engineeringRoutes);
   app.use('/api/capacity', simpleAuth, capacityRoutes);
+  app.use('/api', simpleAuth, searchRouter);
   
 
 

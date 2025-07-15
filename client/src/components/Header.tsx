@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'wouter';
 import { 
   Settings, 
-  Search,
   User,
   LogOut
 } from 'lucide-react';
@@ -21,6 +20,7 @@ import { User as UserType } from '@shared/schema';
 import { NotificationBell } from '@/components/ui/notification/NotificationBell';
 import { MyTasks } from '@/components/MyTasks';
 import { HeaderHelpButton } from './HeaderHelpButton';
+import GlobalSearch from './GlobalSearch';
 
 const Header = () => {
   const { user, isLoading } = useAuth();
@@ -46,14 +46,7 @@ const Header = () => {
             <span>TIER</span><span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span><span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
           </Link>
           <div className="h-6 border-l border-border mx-2"></div>
-          <div className="flex items-center px-3 py-1.5 bg-darkInput rounded-md">
-            <Search className="text-muted-foreground mr-2 h-4 w-4" />
-            <input 
-              type="text" 
-              placeholder="Search projects, tasks, milestones..." 
-              className="bg-transparent border-none outline-none text-sm w-56 text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+          <GlobalSearch />
         </div>
         
         <div className="flex items-center gap-4">
