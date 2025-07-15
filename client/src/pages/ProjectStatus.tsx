@@ -2499,10 +2499,10 @@ const ProjectStatus = () => {
       {/* Project List Table */}
       <div className="relative">
         <div 
-          className="transition-all duration-300 ease-in-out overflow-hidden"
+          className="transition-all duration-300 ease-in-out"
           style={{ 
-            height: `${Math.min(pageSize * 60 + 180, 700)}px`, // Dynamic height based on page size, leave room for pagination
-            maxHeight: `${Math.min(pageSize * 60 + 180, 700)}px` // Ensure pagination controls are always visible
+            height: `${pageSize * 60 + 180}px`, // Dynamic height based on page size
+            maxHeight: `${pageSize * 60 + 180}px` // Allow proper viewport sizing
           }}
         >
           <DataTable
