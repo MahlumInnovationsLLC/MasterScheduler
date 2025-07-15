@@ -576,10 +576,11 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Improved project filtering performance with consolidated location mapping
 - January 15, 2025: Dashboard Manufacturing Bay Schedule Vertical Scrolling Fix
   - Fixed vertical scrolling issue in Dashboard Manufacturing Bay Schedule Snapshot
-  - Updated scrollToProject function to properly target bay-schedule-viewport container
-  - Enhanced scrolling logic to handle both horizontal and vertical scrolling simultaneously
-  - Added debugging logs to track scrolling behavior and container selection
+  - Updated scrollToProject function to properly target dashboard-specific container (.bay-schedule-readonly parent)
+  - Enhanced scrolling logic to calculate positions relative to container instead of window
+  - Added comprehensive debugging to track container dimensions and scroll calculations
   - Project numbers in dashboard snapshot are already clickable links to project pages
+  - Scrolling now properly centers projects within the dashboard bay schedule viewport
 
 
 ## User Preferences

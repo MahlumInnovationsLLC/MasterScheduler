@@ -880,13 +880,13 @@ const Dashboard = () => {
         return false;
       }
 
-      // Find the scrollable containers - target the specific ResizableBaySchedule containers
-      const viewportContainer = document.querySelector('.bay-schedule-viewport') ||
-                                document.querySelector('.overflow-auto') ||
+      // Find the scrollable containers - target the specific Dashboard ResizableBaySchedule containers
+      const dashboardContainer = document.querySelector('.bay-schedule-readonly')?.parentElement?.querySelector('.overflow-auto') ||
+                                document.querySelector('.h-\\[1200px\\].w-full.overflow-auto') ||
                                 targetBar.closest('.overflow-auto');
       
-      // The bay-schedule-viewport handles both horizontal and vertical scrolling
-      const scrollContainer = viewportContainer;
+      // The dashboard container handles both horizontal and vertical scrolling
+      const scrollContainer = dashboardContainer;
 
       if (!scrollContainer) {
         toast({
@@ -949,33 +949,35 @@ const Dashboard = () => {
         canScrollVertically: scrollContainer.scrollHeight > scrollContainer.clientHeight
       });
 
-      // Get the current position of the target element relative to the page
-      const rect = targetBar.getBoundingClientRect();
-      const absoluteTop = rect.top + window.scrollY;
-      const absoluteLeft = rect.left + window.scrollX;
+      // Get the position of the target element relative to the container
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetRect = targetBar.getBoundingClientRect();
       
-      // Calculate both scroll positions
-      const centerVertical = absoluteTop - (window.innerHeight / 2) + (targetBar.offsetHeight / 2);
-      const centerHorizontal = absoluteLeft - (window.innerWidth / 2) + (targetBar.offsetWidth / 2);
+      // Calculate scroll positions relative to the container
+      const containerScrollLeft = scrollContainer.scrollLeft;
+      const containerScrollTop = scrollContainer.scrollTop;
       
-      console.log('Final scroll calculation:', {
-        targetElementRect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-        windowScroll: { x: window.scrollX, y: window.scrollY },
-        absolutePosition: { top: absoluteTop, left: absoluteLeft },
-        targetCenter: { vertical: centerVertical, horizontal: centerHorizontal },
-        windowSize: { width: window.innerWidth, height: window.innerHeight }
+      // Calculate target position relative to container's scrollable area
+      const targetRelativeLeft = targetRect.left - containerRect.left + containerScrollLeft;
+      const targetRelativeTop = targetRect.top - containerRect.top + containerScrollTop;
+      
+      // Calculate center positions within the container
+      const scrollToCenterX = targetRelativeLeft - (scrollContainer.clientWidth / 2) + (targetRect.width / 2);
+      const scrollToCenterY = targetRelativeTop - (scrollContainer.clientHeight / 2) + (targetRect.height / 2);
+      
+      console.log('Dashboard container scroll calculation:', {
+        containerRect: { top: containerRect.top, left: containerRect.left, width: containerRect.width, height: containerRect.height },
+        targetRect: { top: targetRect.top, left: targetRect.left, width: targetRect.width, height: targetRect.height },
+        currentScroll: { left: containerScrollLeft, top: containerScrollTop },
+        targetRelativePosition: { left: targetRelativeLeft, top: targetRelativeTop },
+        scrollToCenter: { x: scrollToCenterX, y: scrollToCenterY },
+        containerClient: { width: scrollContainer.clientWidth, height: scrollContainer.clientHeight }
       });
       
-      // Scroll both horizontally and vertically to center the target element
-      window.scrollTo({
-        left: Math.max(0, centerHorizontal),
-        top: Math.max(0, centerVertical),
-        behavior: 'smooth'
-      });
-      
-      // Also scroll the container horizontally for better precision
+      // Scroll the container to center the target element
       scrollContainer.scrollTo({
-        left: Math.max(0, scrollLeft),
+        left: Math.max(0, scrollToCenterX),
+        top: Math.max(0, scrollToCenterY),
         behavior: 'smooth'
       });
 
