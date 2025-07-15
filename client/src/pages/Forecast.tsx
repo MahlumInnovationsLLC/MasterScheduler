@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePermissions } from '@/components/PermissionsManager';
 import { Redirect } from 'wouter';
-import { Clock, TrendingUp, Calendar, Activity, ChevronRight, BarChart3, FileText, Settings, Plus, Factory, Paintbrush, Cpu, TestTube, CheckCircle, Wrench, Package, Monitor } from 'lucide-react';
+import { Clock, TrendingUp, Calendar, Activity, ChevronRight, BarChart3, FileText, Settings, Plus, Factory, Paintbrush, Cpu, TestTube, CheckCircle, Wrench, Package, Monitor, Calculator } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -544,6 +544,8 @@ export function Forecast() {
   const [activeTab, setActiveTab] = useState<'overview' | 'department-sand'>('overview');
   const [selectedLocation, setSelectedLocation] = useState<'cfalls' | 'libby'>('cfalls');
   const [selectedDepartment, setSelectedDepartment] = useState<'mech' | 'fab' | 'paint' | 'wrap' | 'production' | 'it' | 'ntc' | 'qc'>('mech');
+  const [manufacturing2026, setManufacturing2026] = useState<number>(0);
+  const [growthFactor2026, setGrowthFactor2026] = useState<number>(0);
 
   // Check permissions - only allow Editor and Admin roles
   if (userRole !== 'editor' && userRole !== 'admin') {
@@ -778,170 +780,315 @@ export function Forecast() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Hours Overview Tab (Original Content) */}
+        {/* Hours Overview Tab - Revamped Calculator Interface */}
         <TabsContent value="overview" className="space-y-6">
-          {/* Period Selector and Summary */}
-          <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 dark:from-blue-950/20 dark:to-indigo-950/20">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Hours Summary</h2>
-          <div className="flex gap-2">
-            <Button
-              variant={selectedPeriod === 'lastMonth' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedPeriod('lastMonth')}
-              className={selectedPeriod !== 'lastMonth' ? 'dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700' : ''}
-            >
-              Last Month
-            </Button>
-            <Button
-              variant={selectedPeriod === 'lastQuarter' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedPeriod('lastQuarter')}
-              className={selectedPeriod !== 'lastQuarter' ? 'dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700' : ''}
-            >
-              Last Quarter
-            </Button>
-            <Button
-              variant={selectedPeriod === 'ytd' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedPeriod('ytd')}
-              className={selectedPeriod !== 'ytd' ? 'dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700' : ''}
-            >
-              YTD
-            </Button>
-            <Button
-              variant={showEngineeringSettings ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowEngineeringSettings(!showEngineeringSettings)}
-              className="ml-2"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-          </div>
-        </div>
+          {/* Current Status Cards - Real Data */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium">Delivered Projects Hours</CardTitle>
+                <CardDescription>Actual earned hours from completed projects</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600">
+                  {projects.filter((p: any) => p.status === 'delivered' && scheduledProjectIds.has(p.id))
+                    .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {projects.filter((p: any) => p.status === 'delivered' && scheduledProjectIds.has(p.id)).length} delivered projects
+                </p>
+              </CardContent>
+            </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400">Hours Earned</div>
-            <div className="text-2xl font-bold text-blue-600">{periodStats.earnedHours.toLocaleString()}</div>
-            <div className="text-sm text-gray-500 mt-1">{periodStats.percentage.toFixed(1)}% of total</div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400">Period</div>
-            <div className="text-2xl font-bold">
-              {selectedPeriod === 'lastMonth' && 'Last Month'}
-              {selectedPeriod === 'lastQuarter' && 'Last Quarter'}
-              {selectedPeriod === 'ytd' && 'Year to Date'}
-            </div>
-            <div className="text-sm text-gray-500 mt-1">Historical performance</div>
-          </div>
-        </div>
-      </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium">In-Process Projects Hours</CardTitle>
+                <CardDescription>Hours from active scheduled projects</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-600">
+                  {projects.filter((p: any) => p.status !== 'delivered' && scheduledProjectIds.has(p.id))
+                    .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {projects.filter((p: any) => p.status !== 'delivered' && scheduledProjectIds.has(p.id)).length} active projects
+                </p>
+              </CardContent>
+            </Card>
 
-      {/* Engineering Hours Settings */}
-      {showEngineeringSettings && (
-        <div className="mb-8">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium">Total Scheduled Hours</CardTitle>
+                <CardDescription>All hours in Bay Schedule</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {projects.filter((p: any) => scheduledProjectIds.has(p.id))
+                    .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {[...scheduledProjectIds].length} scheduled projects
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Hours Calculator */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Engineering Hours Settings
+                <Calculator className="h-5 w-5" />
+                Hours Projection Calculator
               </CardTitle>
               <CardDescription>
-                Configure engineering hours per month to adjust forecast projections
+                Calculate projected hours based on your inputs
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* 2025 Calculator */}
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="engineering-hours">Engineering Hours per Month</Label>
-                  <Input
-                    id="engineering-hours"
-                    type="number"
-                    value={engineeringHoursPerMonth}
-                    onChange={(e) => setEngineeringHoursPerMonth(Number(e.target.value))}
-                    className="mt-1"
-                    min="0"
-                    step="100"
-                  />
-                  <p className="text-sm text-gray-600 mt-1">
-                    Current setting: {engineeringHoursPerMonth.toLocaleString()} hours/month × 6 months = {(engineeringHoursPerMonth * 6).toLocaleString()} total engineering hours
-                  </p>
+                <h3 className="font-semibold text-lg">2025 Projections</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Starting Baseline (July 1, 2025)</Label>
+                    <Input type="number" value="92000" disabled className="bg-gray-50" />
+                  </div>
+                  <div>
+                    <Label>Engineering Hours per Month</Label>
+                    <Input 
+                      type="number" 
+                      value={engineeringHoursPerMonth}
+                      onChange={(e) => setEngineeringHoursPerMonth(Number(e.target.value))}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEngineeringHoursPerMonth(1500)}
-                  >
-                    Low (1,500/month)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEngineeringHoursPerMonth(2000)}
-                  >
-                    Medium (2,000/month)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEngineeringHoursPerMonth(2500)}
-                  >
-                    High (2,500/month)
-                  </Button>
+
+                <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4">
+                  <h4 className="font-medium mb-2">2025 Calculation</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Starting Baseline:</span>
+                      <span className="font-medium">92,000 hrs</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Engineering (Jul-Dec: 6 months × {engineeringHoursPerMonth.toLocaleString()}):</span>
+                      <span className="font-medium">+{(engineeringHoursPerMonth * 6).toLocaleString()} hrs</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Manufacturing (Scheduled Projects):</span>
+                      <span className="font-medium">
+                        +{projects.filter((p: any) => scheduledProjectIds.has(p.id))
+                          .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()} hrs
+                      </span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between text-base font-semibold">
+                      <span>2025 Year-End Total:</span>
+                      <span className="text-blue-600">
+                        {(92000 + (engineeringHoursPerMonth * 6) + 
+                          projects.filter((p: any) => scheduledProjectIds.has(p.id))
+                            .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0)).toLocaleString()} hrs
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2026 Calculator */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">2026 Projections</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Additional Manufacturing Hours</Label>
+                    <Input 
+                      type="number" 
+                      placeholder="Enter projected hours"
+                      value={manufacturing2026}
+                      onChange={(e) => setManufacturing2026(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Engineering Hours (Full Year)</Label>
+                    <Input 
+                      type="number" 
+                      value={engineeringHoursPerMonth * 12}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <Label>Growth Factor (%)</Label>
+                    <Input 
+                      type="number" 
+                      placeholder="e.g., 10"
+                      value={growthFactor2026}
+                      onChange={(e) => setGrowthFactor2026(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* 2026 Scheduled Projects */}
+                <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-4 mt-4">
+                  <h4 className="font-medium mb-2">2026 Scheduled Projects</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Projects scheduled in 2026:</span>
+                      <span className="font-medium">
+                        {projects.filter((p: any) => {
+                          if (!scheduledProjectIds.has(p.id)) return false;
+                          const schedule = schedules.find((s: any) => s.projectId === p.id);
+                          if (!schedule) return false;
+                          const startDate = new Date(schedule.startDate);
+                          return startDate.getFullYear() === 2026;
+                        }).length} projects
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total hours from scheduled projects:</span>
+                      <span className="font-medium">
+                        {projects.filter((p: any) => {
+                          if (!scheduledProjectIds.has(p.id)) return false;
+                          const schedule = schedules.find((s: any) => s.projectId === p.id);
+                          if (!schedule) return false;
+                          const startDate = new Date(schedule.startDate);
+                          return startDate.getFullYear() === 2026;
+                        }).reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0).toLocaleString()} hrs
+                      </span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between text-base font-semibold">
+                      <span>2026 Total Projection:</span>
+                      <span className="text-orange-600">
+                        {(
+                          // 2025 year-end total
+                          (92000 + (engineeringHoursPerMonth * 6) + 
+                          projects.filter((p: any) => scheduledProjectIds.has(p.id))
+                            .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0)) +
+                          // 2026 engineering
+                          (engineeringHoursPerMonth * 12) +
+                          // 2026 scheduled projects
+                          projects.filter((p: any) => {
+                            if (!scheduledProjectIds.has(p.id)) return false;
+                            const schedule = schedules.find((s: any) => s.projectId === p.id);
+                            if (!schedule) return false;
+                            const startDate = new Date(schedule.startDate);
+                            return startDate.getFullYear() === 2026;
+                          }).reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0) +
+                          // Additional manufacturing
+                          manufacturing2026 +
+                          // Growth factor
+                          (manufacturing2026 * growthFactor2026 / 100)
+                        ).toLocaleString()} hrs
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mt-6">
+                <h4 className="font-medium mb-2">Key Metrics</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Average Hours per Project:</span>
+                    <span className="font-medium ml-2">
+                      {projects.filter((p: any) => scheduledProjectIds.has(p.id) && p.totalHours > 0).length > 0
+                        ? Math.round(projects.filter((p: any) => scheduledProjectIds.has(p.id))
+                            .reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0) / 
+                            projects.filter((p: any) => scheduledProjectIds.has(p.id) && p.totalHours > 0).length).toLocaleString()
+                        : 0}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Completion Rate:</span>
+                    <span className="font-medium ml-2">
+                      {projects.filter((p: any) => scheduledProjectIds.has(p.id)).length > 0
+                        ? Math.round((projects.filter((p: any) => p.status === 'delivered' && scheduledProjectIds.has(p.id)).length / 
+                            projects.filter((p: any) => scheduledProjectIds.has(p.id)).length) * 100)
+                        : 0}%
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
 
-      {/* Hour Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <HoursStatusCard
-          title="Total Hours"
-          value={stats.totalHours}
-          type="total"
-          stats={[
-            { label: "Accumulated", value: stats.earnedHours.toLocaleString() },
-            { label: "Projected", value: stats.projectedHours.toLocaleString() }
-          ]}
-        />
-        <HoursStatusCard
-          title="Manufacturing Hours"
-          value={stats.manufacturingHours}
-          type="earned"
-          stats={[
-            { label: "Scheduled Projects", value: getScheduledProjectsCount() },
-            { label: "All Project Hours", value: "Full Schedule" }
-          ]}
-        />
-        <HoursStatusCard
-          title="Engineering Hours"
-          value={stats.engineeringHours}
-          type="projected"
-          stats={[
-            { label: "Per Month", value: engineeringHoursPerMonth.toLocaleString() },
-            { label: "6 Months", value: "July-December" }
-          ]}
-        />
-        <HoursStatusCard
-          title="Remaining Hours"
-          value={stats.remainingHours}
-          type="remaining"
-          stats={[
-            { label: "From Baseline", value: "92,000" },
-            { label: "Progress", value: `${Math.round((stats.earnedHours / stats.totalHours) * 100)}%` }
-          ]}
-        />
-      </div>
+          {/* Monthly Breakdown Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Hours Breakdown (2025)</CardTitle>
+              <CardDescription>Scheduled project hours by month</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
+                  const monthNum = 6 + index; // July = 6
+                  const monthProjects = projects.filter((p: any) => {
+                    if (!scheduledProjectIds.has(p.id)) return false;
+                    const schedule = schedules.find((s: any) => s.projectId === p.id);
+                    if (!schedule) return false;
+                    const startDate = new Date(schedule.startDate);
+                    const endDate = new Date(schedule.endDate);
+                    return (startDate.getMonth() <= monthNum && endDate.getMonth() >= monthNum) ||
+                           (startDate.getFullYear() < 2025 && endDate.getFullYear() > 2025);
+                  });
+                  
+                  const monthHours = monthProjects.reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0);
+                  
+                  return (
+                    <div key={month} className="flex items-center justify-between py-2 border-b">
+                      <span className="font-medium">{month} 2025</span>
+                      <div className="text-right">
+                        <span className="font-semibold">{monthHours.toLocaleString()} hrs</span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          ({monthProjects.length} projects)
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Enhanced Hours Flow Analysis */}
-          <div className="mb-8">
-            <EnhancedHoursFlowWidget projects={projects} schedules={schedules} />
-          </div>
+          {/* Monthly Breakdown Table 2026 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Hours Breakdown (2026)</CardTitle>
+              <CardDescription>Scheduled project hours by month</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
+                  const monthProjects = projects.filter((p: any) => {
+                    if (!scheduledProjectIds.has(p.id)) return false;
+                    const schedule = schedules.find((s: any) => s.projectId === p.id);
+                    if (!schedule) return false;
+                    const startDate = new Date(schedule.startDate);
+                    const endDate = new Date(schedule.endDate);
+                    // Check if the project spans across this month in 2026
+                    const monthStart = new Date(2026, index, 1);
+                    const monthEnd = new Date(2026, index + 1, 0);
+                    return startDate <= monthEnd && endDate >= monthStart;
+                  });
+                  
+                  const monthHours = monthProjects.reduce((sum: number, p: any) => sum + (p.totalHours || 0), 0);
+                  
+                  return (
+                    <div key={month} className="flex items-center justify-between py-2 border-b">
+                      <span className="font-medium">{month} 2026</span>
+                      <div className="text-right">
+                        <span className="font-semibold">{monthHours.toLocaleString()} hrs</span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          ({monthProjects.length} projects)
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Department Sand Charts Tab */}
