@@ -47,9 +47,9 @@ export const useModuleVisibility = () => {
       return false;
     }
     
-    // Special access control for Forecast module - only Editor and Admin
+    // Special access control for Forecast module - visible to all users
     if (moduleId === 'forecast') {
-      return userRole === 'editor' || userRole === 'admin';
+      return true;
     }
     
     // Capacity Management module - visible to all users
@@ -73,9 +73,9 @@ export const useModuleVisibility = () => {
       return !['quality-assurance', 'system-settings', 'import'].includes(moduleId);
     }
     
-    // Viewer defaults - can see everything except quality-assurance, sales-forecast, bay-scheduling, system-settings, import, forecast, and engineering (unless engineering department)
+    // Viewer defaults - can see everything except quality-assurance, sales-forecast, bay-scheduling, system-settings, import, and engineering (unless engineering department)
     if (userRole === 'viewer') {
-      return !['quality-assurance', 'sales-forecast', 'bay-scheduling', 'system-settings', 'import', 'forecast', 'engineering'].includes(moduleId);
+      return !['quality-assurance', 'sales-forecast', 'bay-scheduling', 'system-settings', 'import', 'engineering'].includes(moduleId);
     }
     
     return true; // Default to visible for any other case

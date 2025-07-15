@@ -212,7 +212,7 @@ function MainContent() {
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/material-management" component={MaterialManagement} />
             <ProtectedRoute path="/engineering" component={Engineering} />
-            <ViewerRestrictedRoute path="/forecast" component={Forecast} />
+            <ProtectedRoute path="/forecast" component={Forecast} />
             <ProtectedRoute path="/capacity-management" component={CapacityManagement} />
             <ProtectedRoute path="/department-schedules" component={DepartmentSchedules} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
@@ -265,7 +265,7 @@ function MainContent() {
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/material-management" component={MaterialManagement} />
             <ProtectedRoute path="/engineering" component={Engineering} />
-            <ViewerRestrictedRoute path="/forecast" component={Forecast} />
+            <ProtectedRoute path="/forecast" component={Forecast} />
             <ProtectedRoute path="/capacity-management" component={CapacityManagement} />
             <ProtectedRoute path="/department-schedules" component={DepartmentSchedules} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />

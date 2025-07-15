@@ -549,6 +549,12 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Delete functionality removes engineer from users table and invalidates all related queries
   - Added proper error handling and success/error toast notifications for delete operations
   - Fixed cascading deletion to handle foreign key constraints from project_engineering_assignments and engineering_resources tables
+- January 15, 2025: Forecast Module Universal Access Implementation
+  - Modified module visibility to allow all users (including viewers) to access the Forecast module
+  - Updated use-module-visibility.ts to return true for forecast module regardless of user role
+  - Changed ViewerRestrictedRoute to ProtectedRoute in App.tsx routing for forecast module
+  - Removed forecast from viewer role exclusion list in module visibility defaults
+  - Forecast module now accessible to all authenticated users (admin, editor, viewer roles)
 
 
 ## User Preferences
