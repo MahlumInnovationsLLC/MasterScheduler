@@ -303,7 +303,7 @@ export function DataTable<TData, TValue>({
       }
     },
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: showPagination ? getPaginationRowModel() : undefined,
     globalFilterFn: globalFilterFn,
     onSortingChange: (updater) => {
       const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
@@ -346,7 +346,7 @@ export function DataTable<TData, TValue>({
       sorting,
       columnFilters,
       globalFilter,
-      pagination: { pageIndex, pageSize: 10 },
+      pagination: showPagination ? { pageIndex, pageSize: 10 } : undefined,
     },
   });
 
@@ -484,8 +484,8 @@ export function DataTable<TData, TValue>({
                   </tr>
                 </thead>
                 <tbody>
-                  {table.getRowModel().rows.length > 0 ? (
-                    table.getRowModel().rows.map((row) => (
+                  {(showPagination ? table.getRowModel().rows : table.getFilteredRowModel().rows).length > 0 ? (
+                    (showPagination ? table.getRowModel().rows : table.getFilteredRowModel().rows).map((row) => (
                       <tr
                         key={row.id}
                         className="hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-border transition-colors duration-150"
@@ -650,8 +650,8 @@ export function DataTable<TData, TValue>({
                   </tr>
                 </thead>
                 <tbody>
-                  {table.getRowModel().rows.length > 0 ? (
-                    table.getRowModel().rows.map((row) => (
+                  {(showPagination ? table.getRowModel().rows : table.getFilteredRowModel().rows).length > 0 ? (
+                    (showPagination ? table.getRowModel().rows : table.getFilteredRowModel().rows).map((row) => (
                       <tr
                         key={row.id}
                         data-row-id={`scrollable-${row.id}`}
