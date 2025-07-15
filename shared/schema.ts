@@ -882,7 +882,6 @@ export const departmentCapacity = pgTable("department_capacity", {
   location: text("location").notNull().default("Columbia Falls, MT"), // Columbia Falls, MT or Libby, MT
   weeklyCapacityHours: integer("weekly_capacity_hours").default(0), // Total available hours per week
   isActive: boolean("is_active").default(true),
-  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

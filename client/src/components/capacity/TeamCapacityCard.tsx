@@ -32,21 +32,30 @@ export default function TeamCapacityCard({
     0
   );
 
-  // Calculate active projects in production phases for this bay
+  // Calculate all scheduled projects for this bay
   const today = new Date();
-  const activeSchedules = schedules ? schedules.filter(s => s.bayId === bay.id) : [];
-  const activeProjects = activeSchedules.filter(schedule => {
-    const project = projects.find(p => p.id === schedule.projectId);
-    if (!project || project.status === "Delivered" || project.status === "Cancelled") return false;
+  const baySchedules = schedules ? schedules.filter(s => s.bayId === bay.id) : [];
+  
+  // Get unique project IDs from schedules
+  const uniqueProjectIds = [...new Set(baySchedules.map(s => s.projectId))];
+  const scheduledProjects = uniqueProjectIds.filter(projectId => {
+    const project = projects.find(p => p.id === projectId);
+    return project && project.status !== "Delivered" && project.status !== "Cancelled";
+  });
+  
+  // Calculate projects currently active in production phases
+  const activeProjects = scheduledProjects.filter(projectId => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return false;
     
-    // Check if project is currently active in bay (between Production Start and NTC Start)
-    const productionStart = project.productionStartDate ? new Date(project.productionStartDate) : null;
-    const ntcStart = project.ntcStartDate ? new Date(project.ntcStartDate) : null;
+    // Check if project is currently active in bay (between Production Start and Delivery)
+    const productionStart = project.productionStart ? new Date(project.productionStart) : null;
+    const deliveryDate = project.deliveryDate ? new Date(project.deliveryDate) : null;
     
-    // Project is active if today is between production start and ntc start dates
+    // Project is active if today is between production start and delivery dates
     return productionStart && 
            today >= productionStart && 
-           (!ntcStart || today <= ntcStart);
+           (!deliveryDate || today <= deliveryDate);
   });
 
   const utilization = Math.min(100, (members.length > 0 ? (members.length / 2) * 50 : 0));
@@ -64,16 +73,29 @@ export default function TeamCapacityCard({
           </Badge>
         </div>
         
-        {/* Active Projects Display */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-blue-500" />
-            <span className="text-muted-foreground">Currently Active In Bay:</span>
+        {/* Projects Display */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-500" />
+              <span className="text-muted-foreground">Scheduled Projects:</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Badge variant="outline" className="text-blue-600 border-blue-200">
+                {scheduledProjects.length} project{scheduledProjects.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Badge variant="outline" className="text-blue-600 border-blue-200">
-              {activeProjects.length} project{activeProjects.length !== 1 ? 's' : ''}
-            </Badge>
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-green-500" />
+              <span className="text-muted-foreground">Currently Active In Bay:</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Badge variant="outline" className="text-green-600 border-green-200">
+                {activeProjects.length} project{activeProjects.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
           </div>
         </div>
       </CardHeader>

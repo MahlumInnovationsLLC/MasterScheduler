@@ -31,6 +31,7 @@ export default function CapacityPlanning() {
   const [selectedDepartment, setSelectedDepartment] = useState<DepartmentType>('mech');
   const [selectedLocation, setSelectedLocation] = useState<string>('Columbia Falls');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
+  const [selectedBayId, setSelectedBayId] = useState<number | null>(null);
   const [showTeamMemberDialog, setShowTeamMemberDialog] = useState(false);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
@@ -267,11 +268,49 @@ export default function CapacityPlanning() {
     const teams = location === "Columbia Falls" ? columbiaFallsTeams : libbyTeams;
     const fullLocation = location === "Columbia Falls" ? "Columbia Falls, MT" : "Libby, MT";
     
+    // Calculate total location capacity
+    const locationTeamMembers = teamMembers.filter(m => 
+      m.location === fullLocation && m.isActive && m.bayId
+    );
+    
+    const totalLocationCapacity = locationTeamMembers.reduce(
+      (sum, member) => sum + (member.hoursPerWeek || 40), 0
+    );
+    
+    // Count total projects for this location
+    const locationBayIds = teams.flatMap(t => t.bayIds);
+    const locationSchedules = schedules.filter(s => locationBayIds.includes(s.bayId));
+    const uniqueProjectIds = [...new Set(locationSchedules.map(s => s.projectId))];
+    const activeProjects = uniqueProjectIds.filter(projectId => {
+      const project = projects.find(p => p.id === projectId);
+      return project && project.status !== "Delivered" && project.status !== "Cancelled";
+    });
+    
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">{location} Production Teams</h3>
         </div>
+        
+        {/* Location Summary Card */}
+        <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Teams</p>
+                <p className="text-2xl font-bold">{teams.length}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Projects</p>
+                <p className="text-2xl font-bold">{activeProjects.length}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Capacity</p>
+                <p className="text-2xl font-bold">{totalLocationCapacity} hrs/week</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {teams.map((team) => {
@@ -299,6 +338,7 @@ export default function CapacityPlanning() {
                 schedules={schedules || []}
                 onAddMember={() => {
                   setSelectedLocation(fullLocation);
+                  setSelectedBayId(team.bayIds[0] || null);
                   setEditingMember(null);
                   setShowTeamMemberDialog(true);
                 }}
@@ -428,10 +468,12 @@ export default function CapacityPlanning() {
           teamName=""
           location={selectedLocation}
           departmentId={selectedDepartmentId}
+          bayId={selectedBayId}
           onSave={(data) => {
             const saveData = {
               ...data,
               location: selectedLocation || data.location,
+              bayId: selectedBayId || data.bayId,
             };
             
             if (editingMember) {
