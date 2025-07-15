@@ -2498,18 +2498,27 @@ const ProjectStatus = () => {
 
       {/* Project List Table */}
       <div className="relative">
-        <DataTable
-          columns={columns}
-          data={paginatedProjects as ProjectWithRawData[]}
-          filterColumn="status"
-          filterOptions={statusOptions}
-          searchPlaceholder="Search by project number, name, PM owner, location, status..."
-          frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
-          enableSorting={true} // Always enable sorting on all columns
-          initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)
-          persistenceKey="projects-table" // Add persistence key for sorting/pagination
-          onExportExcel={handleExcelExport}
-        />
+        <div 
+          className="transition-all duration-300 ease-in-out"
+          style={{ 
+            minHeight: `${Math.min(pageSize * 60 + 120, 800)}px`, // Dynamic height based on page size, capped at 800px
+            maxHeight: `${Math.min(pageSize * 60 + 200, 900)}px` // Allow some buffer for headers
+          }}
+        >
+          <DataTable
+            columns={columns}
+            data={paginatedProjects as ProjectWithRawData[]}
+            filterColumn="status"
+            filterOptions={statusOptions}
+            searchPlaceholder="Search by project number, name, PM owner, location, status..."
+            frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
+            enableSorting={true} // Always enable sorting on all columns
+            initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)
+            persistenceKey="projects-table" // Add persistence key for sorting/pagination
+            onExportExcel={handleExcelExport}
+            showPagination={false} // Disable built-in pagination since we're using custom pagination
+          />
+        </div>
 
         {/* Pagination Controls */}
         <div className="flex items-center justify-between mt-4 p-4 bg-gray-900 rounded-lg">
