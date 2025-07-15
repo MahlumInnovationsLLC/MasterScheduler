@@ -881,6 +881,7 @@ export const departmentCapacity = pgTable("department_capacity", {
   departmentName: text("department_name").notNull(),
   location: text("location").notNull().default("Columbia Falls, MT"), // Columbia Falls, MT or Libby, MT
   weeklyCapacityHours: integer("weekly_capacity_hours").default(0), // Total available hours per week
+  notes: text("notes"), // Additional notes about the department
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
