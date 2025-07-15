@@ -880,10 +880,25 @@ const Dashboard = () => {
         return false;
       }
 
-      // Find the scrollable containers - target the specific Dashboard ResizableBaySchedule containers
-      const dashboardContainer = document.querySelector('.bay-schedule-readonly')?.parentElement?.querySelector('.overflow-auto') ||
-                                document.querySelector('.h-\\[1200px\\].w-full.overflow-auto') ||
-                                targetBar.closest('.overflow-auto');
+      // Find the scrollable containers - try multiple approaches
+      const approaches = [
+        () => document.querySelector('.bay-schedule-readonly')?.parentElement,
+        () => document.querySelector('.h-\\[1200px\\]'),
+        () => targetBar.closest('.overflow-auto'),
+        () => targetBar.closest('[style*="overflow"]'),
+        () => document.querySelector('[style*="height: 1200px"]'),
+        () => document.querySelector('.manufacturing-schedule-container'),
+        () => document.querySelector('.schedule-viewport')
+      ];
+      
+      let dashboardContainer = null;
+      for (const approach of approaches) {
+        dashboardContainer = approach();
+        if (dashboardContainer) {
+          console.log('Found container using approach:', approach.toString());
+          break;
+        }
+      }
       
       // The dashboard container handles both horizontal and vertical scrolling
       const scrollContainer = dashboardContainer;
@@ -912,7 +927,14 @@ const Dashboard = () => {
                           (bay ? document.querySelector(`[data-bay-name*="${bay.name}"]`) : null);
       
       console.log('Dashboard scroll debug:', {
-        scrollContainer: scrollContainer.className,
+        scrollContainer: scrollContainer ? {
+          className: scrollContainer.className,
+          tagName: scrollContainer.tagName,
+          scrollHeight: scrollContainer.scrollHeight,
+          clientHeight: scrollContainer.clientHeight,
+          scrollTop: scrollContainer.scrollTop,
+          hasOverflowY: getComputedStyle(scrollContainer).overflowY
+        } : null,
         targetBar: targetBar.className,
         bayRow: bayRow?.className,
         bayContainer: bayContainer?.className,
