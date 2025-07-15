@@ -983,8 +983,9 @@ const Dashboard = () => {
       const targetRelativeLeft = targetRect.left - containerRect.left + containerScrollLeft;
       const targetRelativeTop = targetRect.top - containerRect.top + containerScrollTop;
       
-      // Calculate center positions within the container with enhanced horizontal centering
-      const scrollToCenterX = targetRelativeLeft - (scrollContainer.clientWidth / 2) + (targetRect.width / 2) + (targetRect.width * 0.15);
+      // Calculate center positions within the container - center on the middle of the project bar
+      const projectBarCenterX = targetRelativeLeft + (targetRect.width / 2);
+      const scrollToCenterX = projectBarCenterX - (scrollContainer.clientWidth / 2);
       const scrollToCenterY = targetRelativeTop - (scrollContainer.clientHeight / 2) + (targetRect.height / 2);
       
       console.log('Dashboard container scroll calculation:', {
@@ -992,6 +993,7 @@ const Dashboard = () => {
         targetRect: { top: targetRect.top, left: targetRect.left, width: targetRect.width, height: targetRect.height },
         currentScroll: { left: containerScrollLeft, top: containerScrollTop },
         targetRelativePosition: { left: targetRelativeLeft, top: targetRelativeTop },
+        projectBarCenterX: projectBarCenterX,
         scrollToCenter: { x: scrollToCenterX, y: scrollToCenterY },
         containerClient: { width: scrollContainer.clientWidth, height: scrollContainer.clientHeight }
       });

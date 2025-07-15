@@ -579,6 +579,7 @@ TIER IV PRO is a comprehensive project management system specifically designed f
   - Updated scrollToProject function to properly target dashboard-specific container (.bay-schedule-readonly parent)
   - Enhanced scrolling logic to calculate positions relative to container instead of window
   - Added dual-container scrolling approach for both main container and bay-schedule-viewport
+  - Fixed horizontal centering to center on the middle of project bars instead of the start position
   - Added comprehensive debugging to track container dimensions and scroll calculations
   - Project numbers in dashboard snapshot are already clickable links to project pages
   - Scrolling now properly centers projects both horizontally and vertically within the dashboard bay schedule viewport
