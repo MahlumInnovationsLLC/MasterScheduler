@@ -941,13 +941,42 @@ const Dashboard = () => {
         console.log('Using targetBar for vertical scroll:', scrollTop);
       }
 
-      // Perform both horizontal and vertical scroll
-      console.log('Scrolling to:', { left: Math.max(0, scrollLeft), top: Math.max(0, scrollTop) });
+      // Additional debugging to understand the scrolling issue
+      console.log('Scroll container details:', {
+        scrollHeight: scrollContainer.scrollHeight,
+        scrollTop: scrollContainer.scrollTop,
+        clientHeight: scrollContainer.clientHeight,
+        canScrollVertically: scrollContainer.scrollHeight > scrollContainer.clientHeight
+      });
+
+      // Try different scrolling approaches
+      console.log('Attempting to scroll to:', { left: Math.max(0, scrollLeft), top: Math.max(0, scrollTop) });
+      
+      // First approach: Standard scrollTo
       scrollContainer.scrollTo({
         left: Math.max(0, scrollLeft),
         top: Math.max(0, scrollTop),
         behavior: 'smooth'
       });
+      
+      // Second approach: Use window.scrollTo for vertical scrolling like ResizableBaySchedule does
+      setTimeout(() => {
+        // Get the absolute position of the target element relative to the page
+        const rect = targetBar.getBoundingClientRect();
+        const absoluteTop = rect.top + window.scrollY;
+        
+        // Scroll window to center the target element
+        window.scrollTo({
+          top: absoluteTop - (window.innerHeight / 2),
+          behavior: 'smooth'
+        });
+        
+        console.log('Window scrollTo called with:', {
+          targetTop: absoluteTop,
+          windowScrollY: window.scrollY,
+          finalScrollTop: absoluteTop - (window.innerHeight / 2)
+        });
+      }, 100);
 
       // Highlight the found project bar with visual feedback
       targetBar.classList.add('highlight-found');
